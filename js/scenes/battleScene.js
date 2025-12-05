@@ -1,25 +1,19 @@
 // Battle UI Configuration
 const BattleConfig = {
-    BACKGROUND: { path: 'bg/GAMEBG.png', color: '#225522' },
+    UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
+    BG: { prefix: 'bg/', min: 0, max: 11 },
     PORTRAIT: {
-        P1: { x: -20, y: 80, w: 280, h: 304 },
-        CPU: { x: 380, y: 80, w: 280, h: 304 }
+        P1: { x: 0, y: 80, w: 264, h: 280 },
+        CPU: { x: 376, y: 80, w: 264, h: 280 },
+        baseW: 264,
+        baseH: 280
     },
     BARS: {
-        width: 200, height: 16,
-        P1: { x: 20, y: 390 },
-        CPU: { x: 420, y: 390 },
-        HP_COLOR: '#FF4444',
-        MP_COLOR: '#4444FF',
-        BG_COLOR: '#444',
-        LABEL: {
-            font: '16px "KoddiUDOnGothic-Bold", sans-serif',
-            color: 'white',
-            stroke: 'black',
-            strokeWidth: 2,
-            offsetX: -5,
-            offsetY: 12
-        }
+        width: 140, height: 10,
+        P1: { x: 40, y: 346 },
+        CPU: { x: 458, y: 346 },
+        gap: 10, // Gap between HP and MP bars
+        img: 'bar.png'
     },
     HAND: {
         y: 400,
@@ -40,12 +34,17 @@ const BattleConfig = {
         labelFont: 'bold 20px "KoddiUDOnGothic-Bold"'
     },
     INFO: {
-        roundX: 320, roundY: 100,
-        turnX: 320, turnY: 180,
-        font: 'bold 24px "KoddiUDOnGothic-Bold"',
+        roundX: 320, roundY: 180,
+        turnX: 320, turnY: 200,
+        roundFont: 'bold 16px "KoddiUDOnGothic-Bold"',
+        turnFont: 'bold 16px "KoddiUDOnGothic-Bold"',
         color: 'white',
         stroke: 'black',
         strokeWidth: 3
+    },
+    ACTION: {
+        buttonFont: 'bold 20px "KoddiUDOnGothic-Bold"',
+        helpFont: '16px "KoddiUDOnGothic-Bold"'
     },
     OVERLAY: {
         bgColor: 'rgba(0, 0, 0, 0.7)',
@@ -64,6 +63,14 @@ const BattleConfig = {
         cardBackPattern: '#880000',
         unknownBg: '#444',
         unknownStroke: '#888'
+    },
+    DISCARDS: {
+        P1: { x: 214, y: 280 },
+        CPU: { x: 214, y: 100 },
+        tileWidth: 20,
+        tileHeight: 27,
+        gap: 2,
+        rowMax: 10
     }
 };
 
@@ -104,15 +111,66 @@ const BattleScene = {
     init: function (data) {
         this.playerIndex = data.playerIndex || 0;
         this.cpuIndex = data.cpuIndex || 0;
+        console.log(`BattleScene Init. P1 Index: ${this.playerIndex}, CPU Index: ${this.cpuIndex}`);
+        console.log(`CharacterData Length: ${CharacterData.length}`);
+        CharacterData.forEach((c, i) => console.log(`[${i}] ${c.name} (${c.id})`));
+
+        const p1Data = CharacterData[this.playerIndex];
+        const cpuData = CharacterData[this.cpuIndex];
+        console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
+
         this.currentState = this.STATE_INIT;
         this.timer = 0;
+        this.turnCount = 1;
         this.currentRound = 1;
 
-        // Reset Stats
-        this.p1.hp = 1000;
-        this.cpu.hp = 1000;
+        // Select Random Background
+        const bgIndex = Math.floor(Math.random() * (BattleConfig.BG.max - BattleConfig.BG.min + 1)) + BattleConfig.BG.min;
+        const bgName = bgIndex.toString().padStart(2, '0');
+        this.bgPath = `${BattleConfig.BG.prefix}${bgName}.png`;
+        console.log(`Selected BG: ${this.bgPath}`);
+
+        // Reset Stats (Only if new match)
+        if (!data.isNextRound) {
+            this.p1.hp = 10000;
+            this.cpu.hp = 10000;
+            this.p1.maxHp = 10000;
+            this.cpu.maxHp = 10000;
+        }
+
+        // Store tournament data
+        this.defeatedOpponents = data.defeatedOpponents || [];
 
         this.startRound();
+    },
+
+    nextRound: function () {
+        console.log("Starting Next Round...");
+        this.startRound();
+    },
+
+    matchOver: function (winner) {
+        console.log(`Match Over! Winner: ${winner}`);
+        if (winner === 'P1') {
+            // Add current CPU to defeated list
+            this.defeatedOpponents.push(this.cpuIndex);
+
+            // Proceed to next match
+            Game.changeScene(CharacterSelectScene, {
+                mode: 'NEXT_MATCH',
+                playerIndex: this.playerIndex,
+                defeatedOpponents: this.defeatedOpponents
+            });
+        } else {
+            // Game Over -> Continue Screen
+            console.log(`Encounter Finished. Transitioning to Battle. P1: ${this.playerIndex}, CPU: ${this.cpuIndex}`);
+            Game.changeScene(BattleScene, {
+                playerIndex: this.playerIndex,
+                cpuIndex: this.cpuIndex,
+                defeatedOpponents: this.defeatedOpponents,
+                hasContinued: this.hasContinued || false
+            });
+        }
     },
 
     startRound: function () {
@@ -147,6 +205,8 @@ const BattleScene = {
         // Reset Riichi
         this.p1.isRiichi = false;
         this.cpu.isRiichi = false;
+        this.p1.isMenzen = true; // Reset Menzen (Closed Hand)
+
 
         console.log(`Round ${this.currentRound} Start! Visible Dora: ${this.doras[0].type}`);
     },
@@ -238,6 +298,15 @@ const BattleScene = {
                 break;
 
             case this.STATE_PLAYER_TURN:
+                // Riichi Auto-Discard Logic
+                if (this.p1.isRiichi) {
+                    if (this.timer > 60) { // ~1 second delay
+                        console.log("Riichi Auto-Discard (Delayed)");
+                        this.discardTile(this.p1.hand.length - 1);
+                    }
+                    return; // Skip input handling
+                }
+
                 if (Input.isMouseJustPressed()) {
                     // Check if Action Menu is active first? No, Action Select is a different state.
                     // But we want to allow opening Action Menu if Riichi is possible?
@@ -245,15 +314,7 @@ const BattleScene = {
 
                     if (this.hoverIndex !== -1) {
                         // Discard
-                        console.log(`Player discards index ${this.hoverIndex} `);
-                        const discarded = this.p1.hand.splice(this.hoverIndex, 1)[0];
-                        this.discards.push(discarded);
-
-                        // If Riichi was declared THIS turn, we need to lock hand?
-                        // For now, simple flow.
-
-                        this.currentState = this.STATE_CPU_TURN;
-                        this.timer = 0;
+                        this.discardTile(this.hoverIndex);
                     }
                 }
                 break;
@@ -263,30 +324,8 @@ const BattleScene = {
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer === 10) {
+                if (this.timer === 30) { // Delay before CPU acts
                     this.cpuDraw();
-                }
-
-                if (this.timer > 40) {
-                    const r = Math.floor(Math.random() * this.cpu.hand.length);
-                    const discarded = this.cpu.hand.splice(r, 1)[0];
-                    this.discards.push(discarded);
-
-                    // CHECK PLAYER ACTIONS (Ron, Pon)
-                    // If actions possible, switch to STATE_ACTION_SELECT
-                    // Else, proceed to Player Turn
-
-                    if (this.checkPlayerActions(discarded)) {
-                        console.log("Player has actions: ", this.possibleActions);
-                        this.currentState = this.STATE_ACTION_SELECT;
-                        this.actionTimer = 0;
-                        this.selectedActionIndex = 0;
-                    } else {
-                        this.turnCount++;
-                        this.playerDraw();
-                        // The playerDraw function now handles state transition to STATE_PLAYER_TURN or STATE_ACTION_SELECT
-                        this.timer = 0;
-                    }
                 }
                 break;
 
@@ -313,6 +352,7 @@ const BattleScene = {
     checkRoundEnd: function () {
         // 1. Deck Exhaustion
         if (this.deck.length === 0) {
+            this.calculateTenpaiDamage();
             this.currentState = this.STATE_DRAW;
             console.log("Deck Empty -> DRAW");
             return;
@@ -320,28 +360,48 @@ const BattleScene = {
 
         // 2. Turn Limit
         if (this.turnCount > 20) {
+            this.calculateTenpaiDamage();
             this.currentState = this.STATE_DRAW;
             console.log("Turn Limit -> DRAW");
             return;
         }
     },
 
+    calculateTenpaiDamage: function () {
+        const p1Tenpai = this.checkTenpai(this.p1.hand);
+        const cpuTenpai = this.checkTenpai(this.cpu.hand);
+        this.drawResultMsg = "";
+
+        if (p1Tenpai && !cpuTenpai) {
+            this.cpu.hp -= 1000;
+            this.drawResultMsg = "P1 Tenpai! CPU takes 1000 dmg";
+            console.log("P1 Tenpai, CPU Noten -> CPU takes 1000 damage");
+        } else if (!p1Tenpai && cpuTenpai) {
+            this.p1.hp -= 1000;
+            this.drawResultMsg = "CPU Tenpai! P1 takes 1000 dmg";
+            console.log("CPU Tenpai, P1 Noten -> P1 takes 1000 damage");
+        } else {
+            this.drawResultMsg = "Both Tenpai or Noten";
+            console.log("Tenpai status equal -> No damage");
+        }
+
+        // Clamp HP
+        if (this.p1.hp < 0) this.p1.hp = 0;
+        if (this.cpu.hp < 0) this.cpu.hp = 0;
+    },
+
     handleRoundEnd: function () {
         // Check HP for Match Over
         if (this.p1.hp <= 0) {
-            this.currentState = this.STATE_LOSE; // Player lost the match
-            console.log("Player HP Depleted -> LOSE MATCH");
+            this.currentState = this.STATE_MATCH_OVER;
+            this.matchOver('CPU');
         } else if (this.cpu.hp <= 0) {
-            this.currentState = this.STATE_WIN; // Player won the match
-            console.log("CPU HP Depleted -> WIN MATCH");
-        }
-
-        if (this.currentState === this.STATE_WIN || this.currentState === this.STATE_LOSE) {
-            this.currentState = this.STATE_MATCH_OVER; // Transition to match over state
+            this.currentState = this.STATE_MATCH_OVER;
+            this.matchOver('P1');
         } else {
-            // Next Round
-            this.currentRound++;
-            this.startRound();
+            // Neither dead -> Next Round
+            // Automatically proceed to next round
+            this.nextRound();
         }
     },
 
@@ -391,19 +451,114 @@ const BattleScene = {
 
         // CHECK SELF ACTIONS (Riichi, Tsumo)
         if (this.checkSelfActions()) {
+            // Riichi Auto-Win (Tsumo)
+            if (this.p1.isRiichi) {
+                const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
+                if (tsumoAction) {
+                    console.log("Riichi Auto-Tsumo!");
+                    this.executeAction(tsumoAction);
+                    return;
+                }
+            }
+
             this.currentState = this.STATE_ACTION_SELECT;
             this.actionTimer = 0;
             this.selectedActionIndex = 0;
         } else {
-            // No actions, just play turn
-            this.currentState = this.STATE_PLAYER_TURN;
+            // No actions
+            if (this.p1.isRiichi) {
+                // Auto Discard (Riichi Rule) - Delayed
+                // Go to STATE_PLAYER_TURN to allow rendering the drawn tile
+                this.currentState = this.STATE_PLAYER_TURN;
+                this.timer = 0; // Reset timer for delay
+            } else {
+                // Normal turn
+                this.currentState = this.STATE_PLAYER_TURN;
+                this.timer = 0;
+            }
         }
     },
 
     cpuDraw: function () {
         const t = this.drawTiles(1);
         if (t.length > 0) this.cpu.hand.push(t[0]);
-        // CPU logic: maybe sort, maybe not visible.
+
+        // CPU AI Logic
+        const difficulty = AILogic.DIFFICULTY.NORMAL; // Default to Normal for now
+
+        // 1. Check Tsumo
+        if (YakuLogic.checkYaku(this.cpu.hand)) {
+            console.log("CPU Tsumo!");
+            this.winningYaku = YakuLogic.checkYaku(this.cpu.hand);
+            this.p1.hp = Math.max(0, this.p1.hp - this.winningYaku.score);
+            this.currentState = this.STATE_LOSE;
+            return;
+        }
+
+        // 2. Check Riichi
+        if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2) {
+            // Check if can Riichi (Tenpai check)
+            let canRiichi = false;
+            for (let i = 0; i < this.cpu.hand.length; i++) {
+                const tempHand = [...this.cpu.hand];
+                tempHand.splice(i, 1);
+                if (this.checkTenpai(tempHand)) {
+                    canRiichi = true;
+                    break;
+                }
+            }
+
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty)) {
+                console.log("CPU Riichi!");
+                this.cpu.isRiichi = true;
+                // Auto-discard logic will handle the discard below
+            }
+        }
+
+        // 3. Decide Discard
+        // If Riichi, must discard drawn tile (unless Tsumo, checked above)
+        if (this.cpu.isRiichi) {
+            // Discard last drawn
+            const discardIdx = this.cpu.hand.length - 1;
+            // Delay? CPU doesn't need visual delay for itself, but for player experience?
+            // Let's just discard immediately for now.
+            this.discardTileCPU(discardIdx);
+        } else {
+            const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty);
+            this.discardTileCPU(discardIdx);
+        }
+    },
+
+    discardTileCPU: function (index) {
+        console.log(`CPU discards index ${index}`);
+        const discarded = this.cpu.hand.splice(index, 1)[0];
+        discarded.owner = 'cpu';
+        this.discards.push(discarded);
+
+        // Check Player Ron/Pon
+        if (this.checkPlayerActions(discarded)) {
+            console.log("Player has actions on CPU discard");
+            // Riichi Auto-Win (Ron)
+            if (this.p1.isRiichi) {
+                const ronAction = this.possibleActions.find(a => a.type === 'RON');
+                if (ronAction) {
+                    console.log("Riichi Auto-Ron!");
+                    this.executeAction(ronAction);
+                    return;
+                }
+                // Auto-Pass if only Pass available
+                console.log("Riichi Auto-Pass");
+                this.executeAction({ type: 'PASS' });
+                return;
+            }
+
+            this.currentState = this.STATE_ACTION_SELECT;
+            this.actionTimer = 0;
+            this.selectedActionIndex = 0;
+        } else {
+            this.turnCount++;
+            this.playerDraw();
+        }
     },
 
     // Sort: Category -> Color -> ID
@@ -437,12 +592,26 @@ const BattleScene = {
         this.lastDrawGroupSize = 0; // Reset grouping on sort
     },
 
+    discardTile: function (index) {
+        console.log(`Player discards index ${index}`);
+        const discarded = this.p1.hand.splice(index, 1)[0];
+        discarded.owner = 'p1'; // Mark owner
+        this.discards.push(discarded);
+
+        this.currentState = this.STATE_CPU_TURN;
+        this.timer = 0;
+        this.hoverIndex = -1;
+    },
+
     draw: function (ctx) {
-        // 1. Background
-        const bg = Assets.get(BattleConfig.BACKGROUND.path);
-        if (bg) ctx.drawImage(bg, 0, 0);
-        else {
-            ctx.fillStyle = BattleConfig.BACKGROUND.color;
+        // 1. Random Background (Bottom Layer)
+        const randomBg = Assets.get(this.bgPath);
+        if (randomBg) {
+            const pattern = ctx.createPattern(randomBg, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 640, 480);
+        } else {
+            ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, 640, 480);
         }
 
@@ -450,15 +619,47 @@ const BattleScene = {
         const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
 
         // 2. Portraits
-        if (p1Data && p1Data.face) Assets.drawFrame(ctx, p1Data.face, BattleConfig.PORTRAIT.P1.x, BattleConfig.PORTRAIT.P1.y, 0, BattleConfig.PORTRAIT.P1.w, BattleConfig.PORTRAIT.P1.h);
-        if (cpuData && cpuData.face) Assets.drawFrame(ctx, cpuData.face, BattleConfig.PORTRAIT.CPU.x, BattleConfig.PORTRAIT.CPU.y, 1, BattleConfig.PORTRAIT.CPU.w, BattleConfig.PORTRAIT.CPU.h);
+        // P1 (Left)
+        if (p1Data && p1Data.battleFaceL) {
+            const img = Assets.get(p1Data.battleFaceL);
+            if (img) {
+                // Crop base face (Left side)
+                ctx.drawImage(img,
+                    0, 0, BattleConfig.PORTRAIT.baseW, BattleConfig.PORTRAIT.baseH,
+                    BattleConfig.PORTRAIT.P1.x, BattleConfig.PORTRAIT.P1.y, BattleConfig.PORTRAIT.P1.w, BattleConfig.PORTRAIT.P1.h
+                );
+            }
+        } else if (p1Data && p1Data.face) {
+            // Fallback
+            Assets.drawFrame(ctx, p1Data.face, BattleConfig.PORTRAIT.P1.x, BattleConfig.PORTRAIT.P1.y, 0, BattleConfig.PORTRAIT.P1.w, BattleConfig.PORTRAIT.P1.h);
+        }
 
-        // 3. Info (Round, Turn, Dora)
+        // CPU (Right)
+        if (cpuData && cpuData.battleFaceR) {
+            const img = Assets.get(cpuData.battleFaceR);
+            if (img) {
+                // Crop base face (Left side of the Right image? Or is the base face always on the left of the sprite sheet?)
+                // User said: "Each image has a base face on the left"
+                ctx.drawImage(img,
+                    0, 0, BattleConfig.PORTRAIT.baseW, BattleConfig.PORTRAIT.baseH,
+                    BattleConfig.PORTRAIT.CPU.x, BattleConfig.PORTRAIT.CPU.y, BattleConfig.PORTRAIT.CPU.w, BattleConfig.PORTRAIT.CPU.h
+                );
+            }
+        } else if (cpuData && cpuData.face) {
+            // Fallback
+            Assets.drawFrame(ctx, cpuData.face, BattleConfig.PORTRAIT.CPU.x, BattleConfig.PORTRAIT.CPU.y, 1, BattleConfig.PORTRAIT.CPU.w, BattleConfig.PORTRAIT.CPU.h);
+        }
+
+        // 3. UI Background (Over Characters)
+        const uiBg = Assets.get(BattleConfig.UI_BG.path);
+        if (uiBg) ctx.drawImage(uiBg, 0, 0);
+
+        // 4. Info (Round, Turn, Dora)
         ctx.fillStyle = BattleConfig.INFO.color;
         ctx.strokeStyle = BattleConfig.INFO.stroke;
         ctx.lineWidth = BattleConfig.INFO.strokeWidth;
-        ctx.textAlign = 'left';
-        ctx.font = BattleConfig.INFO.font;
+        ctx.textAlign = 'center';
+        ctx.font = BattleConfig.INFO.roundFont;
 
         // Round
         ctx.strokeText(`ROUND ${this.currentRound}`, BattleConfig.INFO.roundX, BattleConfig.INFO.roundY);
@@ -466,15 +667,24 @@ const BattleScene = {
 
         // Turn
         ctx.textAlign = 'center';
+        ctx.font = BattleConfig.INFO.turnFont;
         ctx.strokeText(`TURN ${this.turnCount} / 20`, BattleConfig.INFO.turnX, BattleConfig.INFO.turnY);
         ctx.fillText(`TURN ${this.turnCount} / 20`, BattleConfig.INFO.turnX, BattleConfig.INFO.turnY);
 
-        // Dora Label
-        ctx.font = BattleConfig.DORA.labelFont;
-        const doraLblX = BattleConfig.DORA.x + BattleConfig.DORA.labelXOffset;
-        const doraLblY = BattleConfig.DORA.y + BattleConfig.DORA.labelYOffset;
-        ctx.strokeText("DORA", doraLblX, doraLblY);
-        ctx.fillText("DORA", doraLblX, doraLblY);
+        // DEBUG: Show CPU Index and Name
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'yellow';
+        ctx.textAlign = 'right';
+        ctx.fillText(`CPU Idx: ${this.cpuIndex} (${this.cpu.hand.length})`, 630, 470);
+        const cpuName = CharacterData[this.cpuIndex] ? CharacterData[this.cpuIndex].name : 'Unknown';
+        ctx.fillText(`CPU Name: ${cpuName}`, 630, 455);
+
+        // Dora Label (Removed as per request)
+        // ctx.font = BattleConfig.DORA.labelFont;
+        // const doraLblX = BattleConfig.DORA.x + BattleConfig.DORA.labelXOffset;
+        // const doraLblY = BattleConfig.DORA.y + BattleConfig.DORA.labelYOffset;
+        // ctx.strokeText("DORA", doraLblX, doraLblY);
+        // ctx.fillText("DORA", doraLblX, doraLblY);
 
         // Render 2 Doras
         // 1st: Visible
@@ -498,28 +708,34 @@ const BattleScene = {
             this.drawUnknownTile(ctx, dx, BattleConfig.DORA.y, BattleConfig.DORA.tileWidth, BattleConfig.DORA.tileHeight);
         }
 
-        // 4. HP/MP Bars
-        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, this.p1.hp, this.p1.maxHp, BattleConfig.BARS.HP_COLOR, 'HP');
-        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + 25, this.p1.mp, this.p1.maxMp, BattleConfig.BARS.MP_COLOR, 'MP');
+        // 4. HP/MP Bars (Moved to end)
 
-        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, this.cpu.hp, this.cpu.maxHp, BattleConfig.BARS.HP_COLOR, 'HP');
-        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + 25, this.cpu.mp, this.cpu.maxMp, BattleConfig.BARS.MP_COLOR, 'MP');
 
+
+        // 4.5 Discards
+        this.drawDiscards(ctx);
 
         // 5. Hands
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
         const gap = BattleConfig.HAND.gap;
 
-        // CPU Hand (Top) - Just simple rects for back of cards
+        // CPU Hand (Top)
         const cpuCount = this.cpu.hand.length;
         const cpuStartX = (640 - (cpuCount * (tileW + gap))) / 2;
 
         for (let i = 0; i < cpuCount; i++) {
             // Use gap for draw?
             let xOffset = 0;
-            // Simplified CPU rendering for now
-            this.drawCardBack(ctx, cpuStartX + i * (tileW + gap) + xOffset, BattleConfig.HAND.cpuY, tileW, tileH, 'tiles/back-top.png');
+            const x = cpuStartX + i * (tileW + gap) + xOffset;
+
+            // Reveal hand if CPU wins (STATE_LOSE for player)
+            if (this.currentState === this.STATE_LOSE) {
+                this.drawTile(ctx, this.cpu.hand[i], x, BattleConfig.HAND.cpuY, tileW, tileH);
+            } else {
+                // Hidden
+                this.drawCardBack(ctx, x, BattleConfig.HAND.cpuY, tileW, tileH, 'tiles/back-top.png');
+            }
         }
 
         // Player Hand (Bottom)
@@ -573,6 +789,17 @@ const BattleScene = {
             }
         });
 
+        // 6. HP/MP Bars (Rendered here to be above Hands/Discards)
+        // HP
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, this.p1.hp, this.p1.maxHp, 'HP');
+        // MP
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, this.p1.mp, this.p1.maxMp, 'MP');
+
+        // CPU HP
+        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, this.cpu.hp, this.cpu.maxHp, 'HP');
+        // CPU MP
+        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, this.cpu.mp, this.cpu.maxMp, 'MP');
+
 
         // Action Menu
         if (this.currentState === this.STATE_ACTION_SELECT) {
@@ -592,8 +819,13 @@ const BattleScene = {
             if (this.currentState === this.STATE_WIN) {
                 msg = "VICTORY!";
                 if (this.winningYaku) subMsg = `${this.winningYaku.name} (+${this.winningYaku.score})`;
-            } else if (this.currentState === this.STATE_LOSE) msg = "DEFEAT...";
-            else msg = "DRAW GAME";
+            } else if (this.currentState === this.STATE_LOSE) {
+                msg = "DEFEAT...";
+                if (this.winningYaku) subMsg = `${this.winningYaku.name} (-${this.winningYaku.score})`;
+            } else {
+                msg = "DRAW GAME";
+                if (this.drawResultMsg) subMsg = this.drawResultMsg;
+            }
 
             ctx.fillText(msg, 320, 240);
             if (subMsg) {
@@ -647,18 +879,36 @@ const BattleScene = {
         }
 
         // 2. Riichi
-        // Cond: Closed hand (always true for now), Not already Riichi, Hand size >= 10?
-        // User rule: "Have 11 tiles" -> Draw 1 -> 12. Discard -> 11.
+        // Cond: Closed hand (isMenzen), Not already Riichi
+        // Rule: "Have 11 tiles" -> Draw 1 -> 12. Discard -> 11.
         // Riichi is declared before discard.
-        if (!this.p1.isRiichi && hand.length >= 2) { // Logic: Can I declare Riichi? 
-            // Simplified: Always allow Riichi if not already Riichi (User didn't specify Tenpai check requirements yet)
-            // But usually Riichi means you are 1 tile away.
-            // Let's just allow it for now to test the button.
-            this.possibleActions.push({ type: 'RIICHI', label: '리치' });
+        if (!this.p1.isRiichi && this.p1.isMenzen && hand.length >= 2) {
+            // Check if any discard leads to Tenpai
+            // We have 12 tiles now (after draw).
+            // We need to check if discarding any tile results in a hand that is Tenpai (1 away from win).
+
+            let canRiichi = false;
+            // Iterate all tiles in hand to simulate discard
+            for (let i = 0; i < hand.length; i++) {
+                // Create temp hand without this tile
+                const tempHand = [...hand];
+                tempHand.splice(i, 1); // Remove 1 tile -> 11 tiles
+
+                if (this.checkTenpai(tempHand)) {
+                    canRiichi = true;
+                    break;
+                }
+            }
+
+            if (canRiichi) {
+                this.possibleActions.push({ type: 'RIICHI', label: '리치' });
+            }
         }
 
         if (this.possibleActions.length > 0) {
             this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
+            // Debug: Manually select CPU
+            console.log("Possible self actions:", this.possibleActions.map(a => a.type)); // Added log
             return true;
         }
         return false;
@@ -720,6 +970,7 @@ const BattleScene = {
             }
         } else if (action.type === 'PON') {
             console.log("PON implementation pending");
+            this.p1.isMenzen = false; // Pon breaks Menzen
             this.turnCount++;
             this.playerDraw();
             this.currentState = this.STATE_PLAYER_TURN;
@@ -766,13 +1017,13 @@ const BattleScene = {
             ctx.strokeRect(x, startY, btnW, btnH);
 
             ctx.fillStyle = isSelected ? 'black' : 'white';
-            ctx.font = 'bold 20px "KoddiUDOnGothic-Bold"';
+            ctx.font = BattleConfig.ACTION.buttonFont;
             ctx.textAlign = 'center';
             ctx.fillText(act.label, x + btnW / 2, startY + btnH / 2 + 7);
         });
 
         ctx.fillStyle = 'white';
-        ctx.font = '16px "KoddiUDOnGothic-Bold"';
+        ctx.font = BattleConfig.ACTION.helpFont;
         ctx.textAlign = 'center';
         ctx.fillText("Select Action!", 320, 300);
     },
@@ -794,26 +1045,36 @@ const BattleScene = {
         }
     },
 
-    drawBar: function (ctx, x, y, val, max, color, label) {
-        // Label
-        ctx.fillStyle = BattleConfig.BARS.LABEL.color;
-        ctx.font = BattleConfig.BARS.LABEL.font;
-        ctx.textAlign = 'right';
-        ctx.strokeStyle = BattleConfig.BARS.LABEL.stroke;
-        ctx.lineWidth = BattleConfig.BARS.LABEL.strokeWidth;
-        const lx = x + BattleConfig.BARS.LABEL.offsetX;
-        const ly = y + BattleConfig.BARS.LABEL.offsetY;
-        ctx.strokeText(label, lx, ly);
-        ctx.fillText(label, lx, ly);
+    drawBar: function (ctx, x, y, val, max, label) {
+        // Bar bg (Removed)
+        // ctx.fillStyle = BattleConfig.BARS.BG_COLOR;
+        // ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
 
-        // Bar bg
-        ctx.fillStyle = BattleConfig.BARS.BG_COLOR;
-        ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
-
-        // Bar fg
+        // Bar fill (Pattern)
         const pct = Math.max(0, Math.min(1, val / max));
-        ctx.fillStyle = color;
-        ctx.fillRect(x + 2, y + 2, (BattleConfig.BARS.width - 4) * pct, BattleConfig.BARS.height - 4);
+        const fillW = Math.floor(BattleConfig.BARS.width * pct);
+
+        if (fillW > 0) {
+            const barImg = Assets.get(BattleConfig.BARS.img);
+            if (barImg) {
+                ctx.save();
+                // Translate so pattern starts at bar position
+                ctx.translate(x, y);
+                const pattern = ctx.createPattern(barImg, 'repeat');
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0, 0, fillW, BattleConfig.BARS.height);
+                ctx.restore();
+            } else {
+                // Fallback
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(x, y, fillW, BattleConfig.BARS.height);
+            }
+        }
+
+        // Border
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
     },
     drawUnknownTile: function (ctx, x, y, w, h) {
         // Use pai_uradora.png for hidden dora
@@ -848,6 +1109,49 @@ const BattleScene = {
             ctx.textAlign = 'center';
             ctx.fillText("IMG?", x + w / 2, y + h / 2);
         }
+    },
+
+    drawDiscards: function (ctx) {
+        const p1Discards = this.discards.filter(d => d.owner === 'p1');
+        const cpuDiscards = this.discards.filter(d => d.owner === 'cpu');
+
+        // Draw P1 Discards
+        p1Discards.forEach((tile, i) => {
+            const row = Math.floor(i / BattleConfig.DISCARDS.rowMax);
+            const col = i % BattleConfig.DISCARDS.rowMax;
+            const x = BattleConfig.DISCARDS.P1.x + col * (BattleConfig.DISCARDS.tileWidth + BattleConfig.DISCARDS.gap);
+            const y = BattleConfig.DISCARDS.P1.y + row * (BattleConfig.DISCARDS.tileHeight + BattleConfig.DISCARDS.gap);
+            this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+        });
+
+        // Draw CPU Discards
+        cpuDiscards.forEach((tile, i) => {
+            const row = Math.floor(i / BattleConfig.DISCARDS.rowMax);
+            const col = i % BattleConfig.DISCARDS.rowMax;
+            const x = BattleConfig.DISCARDS.CPU.x + col * (BattleConfig.DISCARDS.tileWidth + BattleConfig.DISCARDS.gap);
+            const y = BattleConfig.DISCARDS.CPU.y + row * (BattleConfig.DISCARDS.tileHeight + BattleConfig.DISCARDS.gap);
+            this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+        });
+    },
+
+    checkTenpai: function (hand) {
+        // Hand should be 11 tiles.
+        // We try adding every possible tile (13 types).
+        // If any addition results in a Win (Yaku), then we are Tenpai.
+
+        for (const type of PaiData.TYPES) {
+            // Create a temp tile
+            const tile = { type: type.id, color: type.color, img: type.img };
+
+            // Add to hand -> 12 tiles
+            const tempHand = [...hand, tile];
+
+            // Check Win
+            if (YakuLogic.checkYaku(tempHand)) {
+                return true;
+            }
+        }
+        return false;
     }
 };
 

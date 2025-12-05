@@ -6,7 +6,7 @@ const EncounterLayout = {
     },
     VS_LOGO: { y: 150, widthConstraint: 640 },
     NAME: {
-        y: 340,
+        y: 390,
         xPadding: 20,
         font: 'bold 30px "KoddiUDOnGothic-Bold", sans-serif',
         strokeWidth: 4
@@ -40,6 +40,7 @@ const EncounterScene = {
     init: function (data) {
         this.playerIndex = data.playerIndex;
         this.cpuIndex = data.cpuIndex;
+        this.defeatedOpponents = data.defeatedOpponents || [];
         this.state = 0;
         this.currentLineIndex = 0;
 
@@ -72,9 +73,11 @@ const EncounterScene = {
             this.currentLineIndex++;
             if (this.currentLineIndex >= this.dialogueSequence.length) {
                 console.log('Dialogue finished. Go to battle');
+                console.log('BattleScene object:', BattleScene);
                 Game.changeScene(BattleScene, {
                     playerIndex: this.playerIndex,
-                    cpuIndex: this.cpuIndex
+                    cpuIndex: this.cpuIndex,
+                    defeatedOpponents: this.defeatedOpponents
                 });
             }
         }

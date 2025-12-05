@@ -20,7 +20,7 @@ const Game = {
 
     changeScene: function (scene, data) {
         this.currentScene = scene;
-        if (this.currentScene.init) {
+        if (this.currentScene && this.currentScene.init) {
             this.currentScene.init(data);
         }
     },

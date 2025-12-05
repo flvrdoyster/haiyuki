@@ -19,7 +19,12 @@ const Assets = {
         'face/CHRBAK.png',
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
         'bg/GAMEBG.png',
-        'bg/GAMEBG.png',
+        // Random Backgrounds
+        'bg/00.png', 'bg/01.png', 'bg/02.png', 'bg/03.png',
+        'bg/04.png', 'bg/05.png', 'bg/06.png', 'bg/07.png',
+        'bg/08.png', 'bg/09.png', 'bg/10.png', 'bg/11.png',
+
+        'bar.png',
         'VS.png',
         'FUKIDASI.png', // Keeping for legacy reference or removal? Let's keep for now.
         'LONG_BUBBLE.png',
@@ -27,11 +32,25 @@ const Assets = {
         'TTBAK.png',
         'face/CHRSELEF_face.png',
         'face/CHRSELEF_cursor.png',
+        // Individual Select Icons
+        'face/CHRSELATA.png', 'face/CHRSELRIN.png', 'face/CHRSELFARI.png',
+        'face/CHRSELSMSH.png', 'face/CHRSELPET.png', 'face/CHRSELYURI.png',
+        'face/CHRSELMAYU.png',
 
         // Big Portraits
         'face/FACEATA.png', 'face/FACERIN.png', 'face/FACEFARI.png',
         'face/FACESMSH.png', 'face/FACEPET.png', 'face/FACEYURI.png',
         'face/FACEMAYU.png',
+
+        // Battle Portraits (BTLCHR)
+        'face/BTLCHRATA_L.png', 'face/BTLCHRATA_R.png',
+        'face/BTLCHRRIN_L.png', 'face/BTLCHRRIN_R.png',
+        'face/BTLCHRFARI_L.png', 'face/BTLCHRFARI_R.png',
+        'face/BTLCHRSMSH_L.png', 'face/BTLCHRSMSH_R.png',
+        'face/BTLCHRPET_L.png', 'face/BTLCHRPET_R.png',
+        'face/BTLCHRYURI_L.png', 'face/BTLCHRYURI_R.png',
+        'face/BTLCHRMAYU_L.png', 'face/BTLCHRMAYU_R.png',
+
         // Battle Sprites
         'face/PARTATA.png',
         'face/PARTRIN.png',

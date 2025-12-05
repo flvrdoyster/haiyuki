@@ -15,12 +15,10 @@ const SelectConfig = {
         xPadding: 20
     },
     ICON_ROW: {
-        facePath: 'face/CHRSELEF_face.png',
-        cursorPath: 'face/CHRSELEF_cursor.png',
         y: 380,
         gap: 14,
-        numFaces: 7,
-        dimOpacity: 0.5
+        dimOpacity: 0.5,
+        cursorPath: 'face/CHRSELEF_cursor.png'
     }
 };
 
@@ -45,19 +43,60 @@ const CharacterSelectScene = {
 
     // Timer for CPU roulette
     cpuTimer: 0,
-    cpuTimer: 0,
     cpuSelectDuration: 60, // frames to spin
 
     // Debug: Manually select CPU
-    isDebug: true, // Set to true to enable manual CPU selection
-    debugSkipDialogue: true, // Skip EncounterScene if true
+    isDebug: false, // Set to true to enable manual CPU selection
+    debugSkipDialogue: false, // Skip EncounterScene if true
 
-    init: function () {
+    init: function (data) {
         this.currentState = this.STATE_PLAYER_SELECT;
         this.playerIndex = 0;
-        this.cpuIndex = 0;
-        this.cpuTimer = 0;
+        this.cpuIndex = 0; // Initialize to 0 to avoid draw crash
+        this.timer = 0;
+        this.cpuTimer = 0; // Ensure timer is reset
         this.readyTimer = 0;
+
+        // Tournament Data
+        this.mode = data && data.mode ? data.mode : 'NEW_GAME';
+        this.defeatedOpponents = data && data.defeatedOpponents ? data.defeatedOpponents : [];
+
+        if (this.mode === 'NEXT_MATCH') {
+            this.playerIndex = data.playerIndex;
+            this.currentState = this.STATE_CPU_SELECT; // Skip player select
+
+            // Auto-select CPU
+            this.selectNextOpponent();
+        }
+    },
+
+    selectNextOpponent: function () {
+        // Filter available opponents
+        const available = [];
+        for (let i = 0; i < CharacterData.length; i++) {
+            if (i !== this.playerIndex && !this.defeatedOpponents.includes(i)) {
+                available.push(i);
+            }
+        }
+
+        if (available.length > 0) {
+            // Randomly pick one
+            const rand = Math.floor(Math.random() * available.length);
+            this.cpuIndex = available[rand];
+            console.log(`Auto-selected CPU: ${this.cpuIndex}`);
+
+            // Transition to Encounter
+            Game.changeScene(EncounterScene, {
+                playerIndex: this.playerIndex,
+                cpuIndex: this.cpuIndex,
+                defeatedOpponents: this.defeatedOpponents
+            });
+        } else {
+            // No opponents left -> Tournament Win?
+            console.log("All opponents defeated! Tournament Win!");
+            // For now, return to title or show credits
+            Game.changeScene(TitleScene);
+        }
     },
 
     update: function () {
@@ -77,6 +116,30 @@ const CharacterSelectScene = {
                 this.currentState = this.STATE_CPU_SELECT;
                 this.cpuTimer = 0;
             }
+
+            // Mouse Input
+            if (Input.isMouseJustPressed()) {
+                const clickedIndex = this.getClickedCharacterIndex();
+                if (clickedIndex !== -1) {
+                    this.playerIndex = clickedIndex;
+                    // Auto-confirm on click? Or just select?
+                    // User said "Select with mouse click". Usually implies selection + confirm or just selection.
+                    // Let's do Select + Confirm for smoother UX, or just Select.
+                    // "Click to select" -> usually means "Choose this one".
+                    // Let's just update index. If they click again (or double click?), confirm?
+                    // For now, let's just update index. User can press Space/Enter or click a "Confirm" button (which doesn't exist).
+                    // Actually, standard web behavior: Click updates selection.
+                    // But wait, if there's no "OK" button, how do they confirm with mouse?
+                    // Maybe clicking the *currently selected* one confirms it?
+                    // Or just confirm immediately?
+                    // Let's try: Click updates index. If already selected, confirm.
+
+                    if (this.playerIndex === clickedIndex) {
+                        this.currentState = this.STATE_CPU_SELECT;
+                        this.cpuTimer = 0;
+                    }
+                }
+            }
         } else if (this.currentState === this.STATE_CPU_SELECT) {
 
             if (this.isDebug) {
@@ -94,6 +157,34 @@ const CharacterSelectScene = {
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
                     console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                }
+
+                // Mouse Input (Debug Manual)
+                if (Input.isMouseJustPressed()) {
+                    const clickedIndex = this.getClickedCharacterIndex();
+                    if (clickedIndex !== -1) {
+                        this.cpuIndex = clickedIndex;
+                        // Confirm if clicked again?
+                        if (this.cpuIndex === clickedIndex) {
+                            this.currentState = this.STATE_READY;
+                            this.readyTimer = 0;
+                            console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                        }
+                    }
+                }
+
+                // Mouse Input (Debug Manual)
+                if (Input.isMouseJustPressed()) {
+                    const clickedIndex = this.getClickedCharacterIndex();
+                    if (clickedIndex !== -1) {
+                        this.cpuIndex = clickedIndex;
+                        // Confirm if clicked again?
+                        if (this.cpuIndex === clickedIndex) {
+                            this.currentState = this.STATE_READY;
+                            this.readyTimer = 0;
+                            console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                        }
+                    }
                 }
 
             } else {
@@ -206,71 +297,87 @@ const CharacterSelectScene = {
 
         ctx.restore();
 
-        // 6. Draw Icon Row (Using CHRSELEF_face.png)
-        const faceStrip = Assets.get(SelectConfig.ICON_ROW.facePath);
-        if (faceStrip) {
-            const numFaces = SelectConfig.ICON_ROW.numFaces;
-            const faceW = faceStrip.width / numFaces;
-            const faceH = faceStrip.height; // Horizontal strip height
+        // 6. Draw Icon Row (Using Individual Icons)
+        const iconY = SelectConfig.ICON_ROW.y;
+        const gap = SelectConfig.ICON_ROW.gap;
 
-            // Dynamic centering
-            const gap = SelectConfig.ICON_ROW.gap;
-            // Total width logic: We draw 6 characters for now (unless we want to show 7th)
-            // Using this.characters.length
-            const totalW = (faceW * this.characters.length) + (gap * (this.characters.length - 1));
-            const startX = (640 - totalW) / 2;
-            const startY = SelectConfig.ICON_ROW.y;
+        // Calculate total width
+        // Assume all icons have same width? Or check first one?
+        // Let's assume standard width from first char
+        const firstIcon = Assets.get(this.characters[0].selectIcon);
+        const iconW = firstIcon ? firstIcon.width : 40; // Fallback
+        const iconH = firstIcon ? firstIcon.height : 40;
 
-            this.characters.forEach((char, index) => {
-                const x = startX + index * (faceW + gap);
-                const y = startY;
+        const totalW = (iconW * this.characters.length) + (gap * (this.characters.length - 1));
+        const startX = (640 - totalW) / 2;
 
-                // Dim if already selected by Player (during CPU phase/Ready)
-                const isPlayerSelected = (this.currentState >= this.STATE_CPU_SELECT && index === this.playerIndex);
+        this.characters.forEach((char, index) => {
+            const x = startX + index * (iconW + gap);
+            const y = iconY;
 
-                ctx.save();
-                if (isPlayerSelected) {
-                    ctx.globalAlpha = SelectConfig.ICON_ROW.dimOpacity;
-                }
+            // Dim if already selected by Player (during CPU phase/Ready)
+            const isPlayerSelected = (this.currentState >= this.STATE_CPU_SELECT && index === this.playerIndex);
 
-                // Draw Face Icon
-                // char.partIndex should help us map if needed, but assuming index matches strip order
-                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.facePath, x, y, index, faceW, faceH);
+            ctx.save();
+            if (isPlayerSelected) {
+                ctx.globalAlpha = SelectConfig.ICON_ROW.dimOpacity;
+            }
 
-                ctx.restore();
-            });
+            // Draw Icon
+            const iconImg = Assets.get(char.selectIcon);
+            if (iconImg) {
+                ctx.drawImage(iconImg, x, y);
+            }
 
-            // 7. Draw Cursors
-            const cursorImg = Assets.get(SelectConfig.ICON_ROW.cursorPath);
-            if (cursorImg) {
-                const cursorW = cursorImg.width / 2; // contains 2 frames
-                const cursorH = cursorImg.height;
+            ctx.restore();
+        });
 
-                // Player Cursor (Green) - Frame 0
-                // Draw at playerIndex
-                const pX = startX + this.playerIndex * (faceW + gap);
-                const pY = startY;
-                // Center the cursor over the face? Or is it exact fit?
-                // The cursor image likely fits the face image.
-                // Let's assume it's same size or slightly larger.
-                // Centering logic:
-                const cX = pX + (faceW - cursorW) / 2;
-                const cY = pY + (faceH - cursorH) / 2;
+        // 7. Draw Cursors
+        const cursorImg = Assets.get(SelectConfig.ICON_ROW.cursorPath);
+        if (cursorImg) {
+            const cursorW = cursorImg.width / 2; // contains 2 frames
+            const cursorH = cursorImg.height;
 
-                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cX, cY, 0, cursorW, cursorH);
+            // Player Cursor (Green) - Frame 0
+            const pX = startX + this.playerIndex * (iconW + gap);
+            const pY = iconY;
+            const cX = pX + (iconW - cursorW) / 2;
+            const cY = pY + (iconH - cursorH) / 2;
 
-                // CPU Cursor (Red) - Frame 1
-                // Only draw if we are selecting CPU or Ready
-                // In Debug Manual Mode, we want to see it clearly active
-                if (this.currentState >= this.STATE_CPU_SELECT) {
-                    const cpuX = startX + this.cpuIndex * (faceW + gap);
-                    const cpuCX = cpuX + (faceW - cursorW) / 2;
-                    // same Y calc
+            Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cX, cY, 0, cursorW, cursorH);
 
-                    // If Debug Manual Mode, we can blink it or just draw
-                    Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cpuCX, cY, 1, cursorW, cursorH);
+            // CPU Cursor (Red) - Frame 1
+            if (this.currentState >= this.STATE_CPU_SELECT) {
+                const cpuX = startX + this.cpuIndex * (iconW + gap);
+                const cpuCX = cpuX + (iconW - cursorW) / 2;
+                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cpuCX, cY, 1, cursorW, cursorH);
+            }
+        }
+    },
+
+    getClickedCharacterIndex: function () {
+        const firstIcon = Assets.get(this.characters[0].selectIcon);
+        if (!firstIcon) return -1;
+
+        const iconW = firstIcon.width;
+        const iconH = firstIcon.height;
+        const gap = SelectConfig.ICON_ROW.gap;
+        const totalW = (iconW * this.characters.length) + (gap * (this.characters.length - 1));
+        const startX = (640 - totalW) / 2;
+        const startY = SelectConfig.ICON_ROW.y;
+
+        const mx = Input.mouseX;
+        const my = Input.mouseY;
+
+        // Check bounds
+        if (my >= startY && my <= startY + iconH) {
+            for (let i = 0; i < this.characters.length; i++) {
+                const x = startX + i * (iconW + gap);
+                if (mx >= x && mx <= x + iconW) {
+                    return i;
                 }
             }
         }
+        return -1;
     }
 };

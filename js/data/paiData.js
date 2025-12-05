@@ -1,5 +1,6 @@
 
 const PaiData = {
+    TILE_COUNT_PER_TYPE: 9,
     TYPES: [
         {
             id: 'ataho', name: '아타호', color: 'red', category: 'character', img: 'tiles/pai_ata.png',

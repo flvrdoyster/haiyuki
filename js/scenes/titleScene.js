@@ -2,7 +2,7 @@
 const TitleConfig = {
     TITLE: { path: 'TITLE.png', y: 80, centered: true },
     PUSH_KEY: { path: 'PUSHOK.png', y: 360, centered: true },
-    COPYRIGHT: { path: 'COMPLOGO.png', y: 430, centered: true }
+    COPYRIGHT: { path: 'SCMPLOGO.png', y: 430, centered: true }
 };
 
 const TitleScene = {
