@@ -10,10 +10,11 @@ const BattleConfig = {
     },
     BARS: {
         width: 140, height: 10,
-        P1: { x: 40, y: 346 },
-        CPU: { x: 458, y: 346 },
-        gap: 10, // Gap between HP and MP bars
-        img: 'bar.png'
+        hpPath: 'ui/bar_blue.png',
+        mpPath: 'ui/bar_yellow.png',
+        P1: { x: 41, y: 347 },
+        CPU: { x: 459, y: 347 },
+        gap: 8, // Gap between HP and MP bars
     },
     HAND: {
         y: 400,
@@ -27,20 +28,26 @@ const BattleConfig = {
         groupGap: 10
     },
     DORA: {
-        x: 280, y: 210, gap: 5,
+        x: 320, y: 180, // x is now center if align is center
+        gap: 5,
+        align: 'center',
         tileWidth: 40, // Added missing key
         tileHeight: 53, // Added missing key
-        labelXOffset: 40, labelYOffset: -10,
-        labelFont: 'bold 20px "KoddiUDOnGothic-Bold"'
+        frame: { path: 'ui/dora.png', xOffset: 44, yOffset: 32, align: 'center' }
     },
     INFO: {
-        roundX: 320, roundY: 180,
-        turnX: 320, turnY: 200,
+        // Explicit coordinates for adjustable layout
+        turnLabel: { x: 230, y: 180 },
+        turnNumber: { x: 230, y: 200, align: 'center' },
+        roundLabel: { x: 420, y: 180 },
+        roundNumber: { x: 420, y: 200, align: 'center' },
         roundFont: 'bold 16px "KoddiUDOnGothic-Bold"',
         turnFont: 'bold 16px "KoddiUDOnGothic-Bold"',
         color: 'white',
         stroke: 'black',
-        strokeWidth: 3
+        strokeWidth: 3,
+        numbers: { path: 'ui/number.png', w: 14, gap: 2 },
+        labels: { path: 'ui/turn_round.png' }
     },
     ACTION: {
         buttonFont: 'bold 20px "KoddiUDOnGothic-Bold"',
@@ -146,6 +153,7 @@ const BattleScene = {
 
     nextRound: function () {
         console.log("Starting Next Round...");
+        this.currentRound++;
         this.startRound();
     },
 
@@ -229,6 +237,38 @@ const BattleScene = {
             ctx.fillStyle = 'black';
             ctx.fillText(tile.type, x + w / 2, y + h / 2 + 10);
         }
+    },
+
+    drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {
+        let str = number.toString();
+        // Zero Padding if requested (e.g. pad=2, number=1 -> "01")
+        if (pad > 0 && str.length < pad) {
+            str = str.padStart(pad, '0');
+        }
+
+        const numW = BattleConfig.INFO.numbers.w;
+        const gap = BattleConfig.INFO.numbers.gap;
+        const img = Assets.get(BattleConfig.INFO.numbers.path);
+
+        if (!img) return;
+
+        // Calculate total width for alignment
+        const totalW = str.length * numW + (str.length - 1) * gap;
+        let startX = x;
+        if (align === 'center') startX -= totalW / 2;
+        else if (align === 'right') startX -= totalW;
+
+        for (let i = 0; i < str.length; i++) {
+            const digit = parseInt(str[i]);
+            // Source X: digit * (14 + 2)
+            const sx = digit * (numW + gap);
+            ctx.drawImage(img,
+                sx, 0, numW, img.height,
+                startX + i * (numW + gap), y, numW, img.height
+            );
+        }
+
+        return totalW; // Return width if needed for chaining
     },
 
     generateDeck: function () {
@@ -603,6 +643,8 @@ const BattleScene = {
         this.hoverIndex = -1;
     },
 
+
+
     draw: function (ctx) {
         // 1. Random Background (Bottom Layer)
         const randomBg = Assets.get(this.bgPath);
@@ -654,59 +696,6 @@ const BattleScene = {
         const uiBg = Assets.get(BattleConfig.UI_BG.path);
         if (uiBg) ctx.drawImage(uiBg, 0, 0);
 
-        // 4. Info (Round, Turn, Dora)
-        ctx.fillStyle = BattleConfig.INFO.color;
-        ctx.strokeStyle = BattleConfig.INFO.stroke;
-        ctx.lineWidth = BattleConfig.INFO.strokeWidth;
-        ctx.textAlign = 'center';
-        ctx.font = BattleConfig.INFO.roundFont;
-
-        // Round
-        ctx.strokeText(`ROUND ${this.currentRound}`, BattleConfig.INFO.roundX, BattleConfig.INFO.roundY);
-        ctx.fillText(`ROUND ${this.currentRound}`, BattleConfig.INFO.roundX, BattleConfig.INFO.roundY);
-
-        // Turn
-        ctx.textAlign = 'center';
-        ctx.font = BattleConfig.INFO.turnFont;
-        ctx.strokeText(`TURN ${this.turnCount} / 20`, BattleConfig.INFO.turnX, BattleConfig.INFO.turnY);
-        ctx.fillText(`TURN ${this.turnCount} / 20`, BattleConfig.INFO.turnX, BattleConfig.INFO.turnY);
-
-        // DEBUG: Show CPU Index and Name
-        ctx.font = '12px Arial';
-        ctx.fillStyle = 'yellow';
-        ctx.textAlign = 'right';
-        ctx.fillText(`CPU Idx: ${this.cpuIndex} (${this.cpu.hand.length})`, 630, 470);
-        const cpuName = CharacterData[this.cpuIndex] ? CharacterData[this.cpuIndex].name : 'Unknown';
-        ctx.fillText(`CPU Name: ${cpuName}`, 630, 455);
-
-        // Dora Label (Removed as per request)
-        // ctx.font = BattleConfig.DORA.labelFont;
-        // const doraLblX = BattleConfig.DORA.x + BattleConfig.DORA.labelXOffset;
-        // const doraLblY = BattleConfig.DORA.y + BattleConfig.DORA.labelYOffset;
-        // ctx.strokeText("DORA", doraLblX, doraLblY);
-        // ctx.fillText("DORA", doraLblX, doraLblY);
-
-        // Render 2 Doras
-        // 1st: Visible
-        if (this.doras[0]) {
-            this.drawTile(ctx, this.doras[0], BattleConfig.DORA.x, BattleConfig.DORA.y, BattleConfig.DORA.tileWidth, BattleConfig.DORA.tileHeight);
-        }
-        // 2nd: Hidden (Shown as ?) until Win? OR always visible as per user "Hidden Dora (until 2 pieces)" phrasing?
-        // User said: "도라(숨김 도라까지 2개) 표시" -> "Display Dora (2 pieces including hidden dora)".
-        // So display 2 slots. 2nd one is '?' unless Riichi-win.
-        // For now, let's render it as a 'Back' or '?' tile.
-        // Assuming I don't have '?' asset yet, I'll draw a rect with '?'.
-
-        // Only show 2nd dora if condition met?
-        // Manual 229: "Hidden dora is indicated by ?, revealed only if winning with Riichi."
-        // So normally it IS '?'
-        if (this.doras[1]) {
-            const dx = BattleConfig.DORA.x + BattleConfig.DORA.tileWidth + BattleConfig.DORA.gap;
-
-            // Check if we should reveal (Win State + Riichi - not impl yet. Just reveal on Win for now for testing?)
-            // For now, always '?'
-            this.drawUnknownTile(ctx, dx, BattleConfig.DORA.y, BattleConfig.DORA.tileWidth, BattleConfig.DORA.tileHeight);
-        }
 
         // 4. HP/MP Bars (Moved to end)
 
@@ -770,22 +759,38 @@ const BattleScene = {
 
             // Draw Side first if hovering (below the tile visually, meaning Y+height?)
             // "Right below the tile".
-            if (isHover) {
-                const sideImg = Assets.get('tiles/side-bottom.png');
-                if (sideImg) {
-                    // Adjust Y to be at bottom of tile
-                    // Tile is at y + yOffset. Height is tileH.
-                    // Side should be at y + yOffset + tileH?
-                    ctx.drawImage(sideImg, x, handY + yOffset + tileH, tileW, sideImg.height);
-                }
+            // Draw Side ALWAYS
+            const sideImg = Assets.get('tiles/side-bottom.png');
+            if (sideImg) {
+                ctx.drawImage(sideImg, x, handY + yOffset + tileH, tileW, sideImg.height);
             }
 
             this.drawTile(ctx, tile, x, handY + yOffset, tileW, tileH);
 
             if (isHover) {
-                ctx.strokeStyle = BattleConfig.HAND.hoverColor;
-                ctx.lineWidth = BattleConfig.HAND.hoverWidth;
-                ctx.strokeRect(x, handY + yOffset, tileW, tileH);
+                const cursorImg = Assets.get('ui/cursor_yellow.png');
+                if (cursorImg) {
+                    // Draw cursor on top (centered or same coords?)
+                    // "크기 그대로" -> Use image dimensions, or scale to tile?
+                    // "테두리가 표시되고 있는데... 이 이미지로 대체" -> Likely a bracket or highlight frame.
+                    // Assuming it's a frame for the tile.
+                    // Let's draw it at x, y + yOffset? Or centered?
+                    // Similar to frame:
+                    // If it's a cursor, maybe it's floating.
+                    // Let's draw it at the tile position.
+                    // If it has diff size, we might need to center it.
+                    // Safe bet: Draw at x, y + yOffset (top-left of the tile)
+                    // But if image is bigger than tile (e.g. 64x64 vs 40x53), it will look off if not centered.
+                    // Let's assume we center it on the tile.
+                    const cx = x + tileW / 2 - cursorImg.width / 2;
+                    const cy = (handY + yOffset) + tileH / 2 - cursorImg.height / 2;
+                    ctx.drawImage(cursorImg, cx, cy);
+                } else {
+                    // Fallback
+                    ctx.strokeStyle = BattleConfig.HAND.hoverColor;
+                    ctx.lineWidth = BattleConfig.HAND.hoverWidth;
+                    ctx.strokeRect(x, handY + yOffset, tileW, tileH);
+                }
             }
         });
 
@@ -799,6 +804,62 @@ const BattleScene = {
         this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, this.cpu.hp, this.cpu.maxHp, 'HP');
         // CPU MP
         this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, this.cpu.mp, this.cpu.maxMp, 'MP');
+
+        // 7. Info (Round, Turn, Dora) - Moved to end to be on top of characters/hands
+        ctx.fillStyle = BattleConfig.INFO.color;
+        ctx.strokeStyle = BattleConfig.INFO.stroke;
+        ctx.lineWidth = BattleConfig.INFO.strokeWidth;
+        ctx.textAlign = 'center';
+        ctx.font = BattleConfig.INFO.roundFont;
+
+        const labelImg = Assets.get(BattleConfig.INFO.labels.path);
+        if (labelImg) {
+            const turnW = 68;
+            const gap = 2;
+            const roundX = turnW + gap;
+            const roundW = labelImg.width - roundX;
+            const h = labelImg.height;
+
+            // ROUND Label
+            ctx.drawImage(labelImg, roundX, 0, roundW, h, BattleConfig.INFO.roundLabel.x - roundW / 2, BattleConfig.INFO.roundLabel.y, roundW, h);
+            // Round Number
+            this.drawNumber(ctx, this.currentRound, BattleConfig.INFO.roundNumber.x, BattleConfig.INFO.roundNumber.y, BattleConfig.INFO.roundNumber.align, 2);
+            // TURN Label
+            ctx.drawImage(labelImg, 0, 0, turnW, h, BattleConfig.INFO.turnLabel.x - turnW / 2, BattleConfig.INFO.turnLabel.y, turnW, h);
+            // Turn Number
+            this.drawNumber(ctx, this.turnCount, BattleConfig.INFO.turnNumber.x, BattleConfig.INFO.turnNumber.y, BattleConfig.INFO.turnNumber.align, 2);
+        }
+
+        // Dora
+        if (this.doras[0] || this.doras[1]) {
+            const totalW = (BattleConfig.DORA.tileWidth * 2) + BattleConfig.DORA.gap;
+            let startX = BattleConfig.DORA.x;
+            if (BattleConfig.DORA.align === 'center') startX -= totalW / 2;
+            else if (BattleConfig.DORA.align === 'right') startX -= totalW;
+
+            if (this.doras[0]) {
+                const tx = startX;
+                const ty = BattleConfig.DORA.y;
+                const frameImg = Assets.get(BattleConfig.DORA.frame.path);
+                if (frameImg) {
+                    let fx = tx + BattleConfig.DORA.frame.xOffset;
+                    let fy = ty + BattleConfig.DORA.frame.yOffset;
+                    if (BattleConfig.DORA.frame.align === 'center') {
+                        fx -= frameImg.width / 2;
+                        fy -= frameImg.height / 2;
+                    } else if (BattleConfig.DORA.frame.align === 'right') {
+                        fx -= frameImg.width;
+                    }
+                    ctx.drawImage(frameImg, fx, fy);
+                }
+                this.drawTile(ctx, this.doras[0], tx, ty, BattleConfig.DORA.tileWidth, BattleConfig.DORA.tileHeight);
+            }
+            if (this.doras[1]) {
+                const tx = startX + BattleConfig.DORA.tileWidth + BattleConfig.DORA.gap;
+                const ty = BattleConfig.DORA.y;
+                this.drawUnknownTile(ctx, tx, ty, BattleConfig.DORA.tileWidth, BattleConfig.DORA.tileHeight);
+            }
+        }
 
 
         // Action Menu
@@ -1054,27 +1115,32 @@ const BattleScene = {
         const pct = Math.max(0, Math.min(1, val / max));
         const fillW = Math.floor(BattleConfig.BARS.width * pct);
 
+
+
+        // Draw Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
+
         if (fillW > 0) {
-            const barImg = Assets.get(BattleConfig.BARS.img);
+            const path = (label === 'HP') ? BattleConfig.BARS.hpPath : BattleConfig.BARS.mpPath;
+            const barImg = Assets.get(path);
             if (barImg) {
-                ctx.save();
-                // Translate so pattern starts at bar position
-                ctx.translate(x, y);
-                const pattern = ctx.createPattern(barImg, 'repeat');
-                ctx.fillStyle = pattern;
-                ctx.fillRect(0, 0, fillW, BattleConfig.BARS.height);
-                ctx.restore();
+                // Draw Image Cropped
+                ctx.drawImage(barImg,
+                    0, 0, barImg.width * pct, barImg.height,
+                    x, y, fillW, BattleConfig.BARS.height
+                );
             } else {
                 // Fallback
-                ctx.fillStyle = '#FF0000';
+                ctx.fillStyle = (label === 'HP') ? '#ff4d4d' : '#4d4dff';
                 ctx.fillRect(x, y, fillW, BattleConfig.BARS.height);
             }
         }
 
-        // Border
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
+        // Border - Removed as per request
+        // ctx.strokeStyle = 'black';
+        // ctx.lineWidth = 2;
+        // ctx.strokeRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
     },
     drawUnknownTile: function (ctx, x, y, w, h) {
         // Use pai_uradora.png for hidden dora
@@ -1121,7 +1187,21 @@ const BattleScene = {
             const col = i % BattleConfig.DISCARDS.rowMax;
             const x = BattleConfig.DISCARDS.P1.x + col * (BattleConfig.DISCARDS.tileWidth + BattleConfig.DISCARDS.gap);
             const y = BattleConfig.DISCARDS.P1.y + row * (BattleConfig.DISCARDS.tileHeight + BattleConfig.DISCARDS.gap);
-            this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+
+            const isLast = (tile === this.discards[this.discards.length - 1]);
+            if (isLast) {
+                // Draw Larger (Hand Size)
+                const w = BattleConfig.HAND.tileWidth;
+                const h = BattleConfig.HAND.tileHeight;
+                // Center on the slot
+                const cx = x + (BattleConfig.DISCARDS.tileWidth - w) / 2;
+                const cy = y + (BattleConfig.DISCARDS.tileHeight - h) / 2;
+
+                this.drawTile(ctx, tile, cx, cy, w, h);
+                // Optional: Highlight? User didn't ask, but size diff is the main request.
+            } else {
+                this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+            }
         });
 
         // Draw CPU Discards
@@ -1130,7 +1210,20 @@ const BattleScene = {
             const col = i % BattleConfig.DISCARDS.rowMax;
             const x = BattleConfig.DISCARDS.CPU.x + col * (BattleConfig.DISCARDS.tileWidth + BattleConfig.DISCARDS.gap);
             const y = BattleConfig.DISCARDS.CPU.y + row * (BattleConfig.DISCARDS.tileHeight + BattleConfig.DISCARDS.gap);
-            this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+
+            const isLast = (tile === this.discards[this.discards.length - 1]);
+            if (isLast) {
+                // Draw Larger (Hand Size)
+                const w = BattleConfig.HAND.tileWidth;
+                const h = BattleConfig.HAND.tileHeight;
+                // Center on the slot
+                const cx = x + (BattleConfig.DISCARDS.tileWidth - w) / 2;
+                const cy = y + (BattleConfig.DISCARDS.tileHeight - h) / 2;
+
+                this.drawTile(ctx, tile, cx, cy, w, h);
+            } else {
+                this.drawTile(ctx, tile, x, y, BattleConfig.DISCARDS.tileWidth, BattleConfig.DISCARDS.tileHeight);
+            }
         });
     },
 

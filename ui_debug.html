@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle UI Debugger</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preload"
+        href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Regular.woff" as="font"
+        type="font/woff" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Bold.woff"
+        as="font" type="font/woff" crossorigin>
+    <style>
+        body {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            padding: 20px;
+            background: #333;
+            color: white;
+        }
+
+        #game-container {
+            border: 2px solid white;
+        }
+
+        #controls {
+            background: #444;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+
+        label {
+            margin-right: 10px;
+            font-size: 12px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #coord-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px;
+            pointer-events: none;
+            display: none;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container" style="position: relative;">
+        <canvas id="game-canvas" width="640" height="480"></canvas>
+        <div id="coord-tooltip">x: 0, y: 0</div>
+    </div>
+    <div id="controls">
+        <h2>UI Configuration</h2>
+        <div id="inputs"></div>
+        <button onclick="copyConfig()">Copy Config to Clipboard</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/input.js"></script>
+    <script src="js/assets.js"></script>
+    <script src="js/data/characterData.js"></script>
+    <script src="js/data/dialogueData.js"></script>
+    <script src="js/data/paiData.js"></script>
+    <script src="js/logic/yakuLogic.js"></script>
+    <script src="js/logic/aiLogic.js"></script>
+    <!-- Use dummy Game object -->
+    <script>
+        const Game = {
+            ctx: null,
+            canvas: null,
+            changeScene: () => console.log('Mock Scene Change'),
+            getCurrentScene: () => BattleScene
+        };
+    </script>
+    <script src="js/scenes/battleScene.js"></script>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('coord-tooltip');
+
+        Game.canvas = canvas;
+        Game.ctx = ctx;
+
+        // Mouse Tracker
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+            const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.clientX - rect.left + 10) + 'px';
+            tooltip.style.top = (e.clientY - rect.top + 10) + 'px';
+            tooltip.textContent = `x: ${x}, y: ${y}`;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+            const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+
+            const txt = `x: ${x}, y: ${y}`;
+            navigator.clipboard.writeText(txt).then(() => {
+                const originalText = tooltip.textContent;
+                tooltip.textContent = "Copied!";
+                tooltip.style.color = '#4CAF50';
+                setTimeout(() => {
+                    tooltip.textContent = originalText; // Will update on move anyway
+                    tooltip.style.color = '#fff';
+                }, 500);
+            });
+        });
+
+        // Config Keys to monitor
+        // Note: DORA config is separate. We need to handle it.
+        // Let's make CONFIG_KEYS objects support path? E.g. 'INFO.roundLabel'
+        const CONFIG_KEYS = [
+            { path: 'INFO.roundLabel', label: 'Round Label' },
+            { path: 'INFO.roundNumber', label: 'Round Number' },
+            { path: 'INFO.turnLabel', label: 'Turn Label' },
+            { path: 'INFO.turnNumber', label: 'Turn Number' },
+            { path: 'DORA', label: 'Dora Container' },
+            { path: 'DORA.frame', label: 'Dora Frame (Offsets)' }
+        ];
+
+        function initControls() {
+            const container = document.getElementById('inputs');
+            container.innerHTML = '';
+
+            CONFIG_KEYS.forEach(item => {
+                const group = document.createElement('div');
+                group.className = 'control-group';
+
+                const title = document.createElement('h3');
+                title.textContent = item.label;
+                group.appendChild(title);
+
+                // Resolve object
+                const parts = item.path.split('.');
+                let configObj = BattleConfig;
+                for (const part of parts) {
+                    configObj = configObj[part];
+                }
+
+                // Check props
+                const props = [];
+                if ('x' in configObj) props.push('x');
+                if ('y' in configObj) props.push('y');
+                if ('xOffset' in configObj) props.push('xOffset');
+                if ('yOffset' in configObj) props.push('yOffset');
+                if ('align' in configObj) props.push('align'); // Add align
+
+                props.forEach(prop => {
+                    const row = document.createElement('div');
+                    row.className = 'input-row';
+
+                    const label = document.createElement('label');
+                    label.textContent = prop.toUpperCase();
+
+                    if (prop === 'align') {
+                        // Select for alignment
+                        const select = document.createElement('select');
+                        ['left', 'center', 'right'].forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt;
+                            option.textContent = opt;
+                            if (configObj[prop] === opt) option.selected = true;
+                            select.appendChild(option);
+                        });
+                        select.onchange = (e) => {
+                            configObj[prop] = e.target.value;
+                        };
+                        row.appendChild(label);
+                        row.appendChild(select);
+                    } else {
+                        // Number Input
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.value = configObj[prop];
+                        input.oninput = (e) => {
+                            configObj[prop] = parseInt(e.target.value);
+                        };
+                        row.appendChild(label);
+                        row.appendChild(input);
+                    }
+
+                    group.appendChild(row);
+                });
+
+                container.appendChild(group);
+            });
+        }
+
+        function copyConfig() {
+            // Manual construction for clipboard
+            let str = "INFO: {\n";
+            str += `    roundLabel: { x: ${BattleConfig.INFO.roundLabel.x}, y: ${BattleConfig.INFO.roundLabel.y} },\n`;
+            str += `    roundNumber: { x: ${BattleConfig.INFO.roundNumber.x}, y: ${BattleConfig.INFO.roundNumber.y}, align: '${BattleConfig.INFO.roundNumber.align}' },\n`;
+            str += `    turnLabel: { x: ${BattleConfig.INFO.turnLabel.x}, y: ${BattleConfig.INFO.turnLabel.y} },\n`;
+            str += `    turnNumber: { x: ${BattleConfig.INFO.turnNumber.x}, y: ${BattleConfig.INFO.turnNumber.y}, align: '${BattleConfig.INFO.turnNumber.align}' },\n`;
+            str += "    // ...\n},\nDORA: {\n";
+            str += `    x: ${BattleConfig.DORA.x}, y: ${BattleConfig.DORA.y}, align: '${BattleConfig.DORA.align || 'left'}', gap: ${BattleConfig.DORA.gap},\n`;
+            str += `    frame: { path: '${BattleConfig.DORA.frame.path}', xOffset: ${BattleConfig.DORA.frame.xOffset}, yOffset: ${BattleConfig.DORA.frame.yOffset}, align: '${BattleConfig.DORA.frame.align || 'left'}' },\n`;
+            str += "    // ...\n}";
+
+            navigator.clipboard.writeText(str);
+            alert("Configuration copied to clipboard!");
+        }
+
+        // Start
+        Assets.load(() => {
+            console.log("Assets Loaded");
+
+            // Init with dummy data
+            BattleScene.init({ playerIndex: 0, cpuIndex: 1 });
+
+            // Setup Controls
+            initControls();
+
+            // Loop
+            function loop() {
+                // Clear
+                ctx.fillStyle = '#333';
+                ctx.fillRect(0, 0, 640, 480);
+
+                // Draw BattleScene
+                // We don't call update, just draw to keep state static
+                BattleScene.draw(ctx);
+
+                requestAnimationFrame(loop);
+            }
+            loop();
+        });
+    </script>
+</body>
+
+</html>

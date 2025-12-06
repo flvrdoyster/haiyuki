@@ -74,7 +74,15 @@ const Assets = {
         // Small Icons
         'face/PARTATA.png', 'face/PARTRIN.png', 'face/PARTFARI.png',
         'face/PARTSMSH.png', 'face/PARTPET.png', 'face/PARTYURI.png',
-        'face/PARTMAYU.png'
+        'face/PARTMAYU.png',
+
+        // UI
+        'ui/number.png',
+        'ui/turn_round.png',
+        'ui/dora.png',
+        'ui/bar_blue.png',
+        'ui/bar_yellow.png',
+        'ui/cursor_yellow.png'
     ],
     loadedCount: 0,
 
