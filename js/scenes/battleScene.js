@@ -598,7 +598,10 @@ const BattleScene = {
         }
 
         if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
-            this.checkRoundEnd();
+            // Optimization: value check doesn't need to be every frame
+            if (this.timer % 30 === 0) {
+                this.checkRoundEnd();
+            }
         }
     },
 
