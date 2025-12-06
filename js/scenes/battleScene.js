@@ -159,6 +159,10 @@ const BattleScene = {
             this.cpuCharacter.setAnimationConfig(AnimConfig[cpuData.id].R);
         }
 
+        // Ensure Expressions are Reset
+        if (this.p1Character) this.p1Character.setState('idle');
+        if (this.cpuCharacter) this.cpuCharacter.setState('idle');
+
         this.currentState = this.STATE_INIT;
         this.timer = 0;
         this.turnCount = 1;
@@ -184,11 +188,42 @@ const BattleScene = {
         this.startRound();
     },
 
-    playFX: function (type, x, y, scale = 1.0) {
+    playFX: function (type, x, y, options = {}) {
         // Default duration reduced to 45 frames (approx 0.75s at 60fps)
         const img = Assets.get(type);
         if (img) {
-            this.activeFX.push({ type: type, img: img, x: x || 320, y: y || 240, timer: 0, life: 45, maxLife: 45, scale: scale, alpha: 0 });
+            const life = options.life || 45;
+            const scale = options.scale || 1.0;
+            const slideFrom = options.slideFrom;
+
+            let startX = x;
+            let endX = x;
+            let startY = y;
+            let endY = y;
+
+            if (slideFrom === 'LEFT') {
+                startX = -img.width * scale; // Start off-screen left
+                endX = x;
+            } else if (slideFrom === 'RIGHT') {
+                startX = 640 + img.width * scale; // Start off-screen right
+                endX = x;
+            } else if (slideFrom === 'TOP') {
+                startY = -img.height * scale; // Start off-screen top
+                endY = y;
+            } else if (slideFrom === 'BOTTOM') {
+                startY = 480 + img.height * scale; // Start off-screen bottom
+                endY = y;
+            }
+
+            this.activeFX.push({
+                type: type, img: img,
+                x: startX, y: startY,
+                startX: startX, startY: startY,
+                endX: endX, endY: endY,
+                timer: 0, life: life, maxLife: life,
+                scale: scale, alpha: 0,
+                slideFrom: slideFrom
+            });
         }
     },
 
@@ -202,13 +237,24 @@ const BattleScene = {
             this.sortHand(this.cpu.hand); // Always sort just in case
         }
 
+        // Set Expressions
+        if (who === 'P1') {
+            this.p1Character.setState('smile');
+            this.cpuCharacter.setState('shocked');
+        } else {
+            this.p1Character.setState('shocked');
+            this.cpuCharacter.setState('smile');
+        }
+
+        const fxType = type === 'TSUMO' ? 'fx/tsumo' : 'fx/ron'; // Adjust for asset names if needed. User asked "Riichi, Tsumo, Ron".
+
         this.currentState = this.STATE_FX_PLAYING;
         this.sequencing = {
             active: true,
             timer: 0,
             currentStep: 0,
             steps: [
-                { type: 'FX', asset: `fx/${type.toLowerCase()}`, x: 320, y: 240 },
+                { type: 'FX', asset: fxType, x: 320, y: 240 },
                 { type: 'WAIT', duration: 60 },
                 { type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: score }
             ] // Note: score processing might need to happen before or passed along
@@ -243,8 +289,8 @@ const BattleScene = {
                 { type: 'REVEAL_HAND' }, // Reveal CPU hand
                 {
                     type: 'FX_PARALLEL', items: [
-                        { asset: p1Fx, x: p1X, y: p1Y, scale: 0.4 },
-                        { asset: cpuFx, x: cpuX, y: cpuY, scale: 0.4 }
+                        { asset: p1Fx, x: p1X, y: p1Y, slideFrom: 'LEFT' },
+                        { asset: cpuFx, x: cpuX, y: cpuY, slideFrom: 'RIGHT' }
                     ]
                 },
                 { type: 'WAIT', duration: 90 }, // Longer wait for status check
@@ -269,11 +315,11 @@ const BattleScene = {
                 this.sequencing.currentStep++;
             }
         } else if (step.type === 'FX') {
-            this.playFX(step.asset, step.x, step.y, step.scale || 1.0);
+            this.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom });
             this.sequencing.currentStep++;
         } else if (step.type === 'FX_PARALLEL') {
             step.items.forEach(item => {
-                this.playFX(item.asset, item.x, item.y, item.scale || 1.0);
+                this.playFX(item.asset, item.x, item.y, { scale: item.scale, slideFrom: item.slideFrom });
             });
             this.sequencing.currentStep++;
         } else if (step.type === 'REVEAL_HAND') {
@@ -297,8 +343,27 @@ const BattleScene = {
             // Animation Logic
             // Fade In (0-10)
             const fadeInDur = 10;
+            const progress = (fx.maxLife - fx.life) / fx.maxLife; // 0.0 to 1.0
+
             if (fx.maxLife - fx.life <= fadeInDur) {
                 fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
+            }
+
+            // Slide Logic
+            if (fx.slideFrom) {
+                // Easing? Linear for now.
+                // Interpolate x from startX to endX
+                // progress: 0 (Start) -> 1 (End)
+                // We want slide to finish quickly? Or over whole duration?
+                // User said "slide in... same duration". Let's slide over first 20 frames?
+                // Or whole duration? Usually "slide in" implies entry.
+                // Let's slide over the first 0.3 seconds (18 frames).
+                const slideDur = 20;
+                const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
+                // Ease out?
+                const ease = p * (2 - p); // Quad ease out
+                fx.x = fx.startX + (fx.endX - fx.startX) * ease;
+                fx.y = fx.startY + (fx.endY - fx.startY) * ease; // Also slide Y
             }
             // Fade Out (Last 20 frames)
             else if (fx.life < 20) {
@@ -393,6 +458,10 @@ const BattleScene = {
         this.p1.isRiichi = false;
         this.cpu.isRiichi = false;
         this.p1.isMenzen = true; // Reset Menzen (Closed Hand)
+
+        // Reset Character Expressions
+        if (this.p1Character) this.p1Character.setState('idle');
+        if (this.cpuCharacter) this.cpuCharacter.setState('idle');
 
 
         console.log(`Round ${this.currentRound} Start! Visible Dora: ${this.doras[0].type}`);
@@ -678,8 +747,8 @@ const BattleScene = {
             const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten';
             const cpuFx = cpuTenpai ? 'fx/tenpai' : 'fx/noten';
 
-            this.playFX(p1Fx, p1X, p1Y, 0.4);
-            this.playFX(cpuFx, cpuX, cpuY, 0.4);
+            this.playFX(p1Fx, p1X, p1Y, { slideFrom: 'LEFT' });
+            this.playFX(cpuFx, cpuX, cpuY, { slideFrom: 'RIGHT' });
         }
 
         // Clamp HP
@@ -1374,8 +1443,15 @@ const BattleScene = {
             this.p1.isRiichi = true;
             this.playFX('fx/riichi', 320, 240);
 
-            // Auto-arrange hand: Move VALID discard to the end (gap)
-            // 1. Identify valid discards
+            // Expression: Smile -> Idle
+            this.p1Character.setState('smile');
+            setTimeout(() => {
+                if (this.p1Character) this.p1Character.setState('idle');
+            }, 1000); // 60 frames approx
+
+            // Logic:
+            // Find valid discard for Riichi (move to end)
+            // ... Identify valid discards
             const hand = this.p1.hand;
             let targetIdx = -1;
 
