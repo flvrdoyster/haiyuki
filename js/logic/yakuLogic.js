@@ -117,15 +117,39 @@ const YakuLogic = {
     // --- Helpers ---
     checkCounts(a, size, numSets) {
         // Checks if there are `numSets` of `size`
-        const sets = Object.values(a.counts).filter(c => c.count >= size);
-        return sets.length >= numSets;
+        // Modified to allow multiple sets from same tile pile (e.g. 6 tiles = 2 sets of 3)
+        let totalSets = 0;
+        Object.values(a.counts).forEach(c => {
+            totalSets += Math.floor(c.count / size);
+        });
+        return totalSets >= numSets;
     },
 
     // --- 9 Piece ---
-    isIpEDam(a) { return Object.values(a.counts).some(c => c.count >= 9); },
+    isIpEDam(a) {
+        // 9 of one type + 3 of one type (total 12)
+        // OR 12 of one type
+        const c9 = Object.values(a.counts).find(c => c.count >= 9);
+        if (!c9) return false;
+
+        // Valid if:
+        // 1. That pile implies 12 (count >= 12)
+        // 2. Or there exists another pile with count >= 3
+        if (c9.count >= 12) return true;
+
+        return Object.values(a.counts).some(c => c !== c9 && c.count >= 3);
+    },
 
     // --- 8 Piece ---
-    isPalBoChae(a) { return Object.values(a.counts).some(c => c.count >= 8); },
+    isPalBoChae(a) {
+        // 8 of one type + 4 of one type (total 12)
+        const c8 = Object.values(a.counts).find(c => c.count >= 8);
+        if (!c8) return false;
+
+        if (c8.count >= 12) return true;
+
+        return Object.values(a.counts).some(c => c !== c8 && c.count >= 4);
+    },
     isBiOUi(a) {
         // Same Color: Char x 8, Wep x 4
         // Check 8-stack

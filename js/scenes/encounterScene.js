@@ -1,10 +1,10 @@
 // UI Layout Configuration
 const EncounterLayout = {
     PORTRAIT: {
-        P1: { x: -20, y: 80, w: 280, h: 304 },
-        CPU: { x: 380, y: 80, w: 280, h: 304 }
+        P1: { x: 20, y: 65, w: 280, h: 304 },
+        CPU: { x: 340, y: 65, w: 280, h: 304 }
     },
-    VS_LOGO: { y: 150, widthConstraint: 640 },
+    VS_LOGO: { y: 200, widthConstraint: 640 },
     NAME: {
         y: 390,
         xPadding: 20,

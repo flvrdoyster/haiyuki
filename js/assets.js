@@ -19,6 +19,15 @@ const Assets = {
         'face/CHRBAK.png',
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
         'bg/GAMEBG.png',
+        // FX
+        { id: 'fx/pon', src: 'assets/fx/pon.png' },
+        { id: 'fx/ron', src: 'assets/fx/ron.png' },
+        { id: 'fx/riichi', src: 'assets/fx/riichi.png' },
+        { id: 'fx/tsumo', src: 'assets/fx/tumo.png' },
+        { id: 'fx/nagari', src: 'assets/fx/nagari.png' },
+        { id: 'fx/tenpai', src: 'assets/fx/tenpai.png' },
+        { id: 'fx/noten', src: 'assets/fx/noten.png' },
+
         // Random Backgrounds
         'bg/00.png', 'bg/01.png', 'bg/02.png', 'bg/03.png',
         'bg/04.png', 'bg/05.png', 'bg/06.png', 'bg/07.png',
@@ -50,6 +59,22 @@ const Assets = {
         'face/BTLCHRPET_L.png', 'face/BTLCHRPET_R.png',
         'face/BTLCHRYURI_L.png', 'face/BTLCHRYURI_R.png',
         'face/BTLCHRMAYU_L.png', 'face/BTLCHRMAYU_R.png',
+
+        // Smashu Animation Asssets
+        'face/btl/SMSH_L_base.png', 'face/btl/SMSH_L_idle.png',
+        'face/btl/SMSH_L_blink-1.png', 'face/btl/SMSH_L_blink-2.png', 'face/btl/SMSH_L_blink-3.png',
+        'face/btl/SMSH_L_shocked.png', 'face/btl/SMSH_L_smile.png',
+        'face/btl/SMSH_L_talk-1.png', 'face/btl/SMSH_L_talk-2.png', 'face/btl/SMSH_L_talk-3.png',
+
+        'face/btl/SMSH_R_base.png', 'face/btl/SMSH_R_idle.png',
+        'face/btl/SMSH_R_blink-1.png', 'face/btl/SMSH_R_blink-2.png', 'face/btl/SMSH_R_blink-3.png',
+        'face/btl/SMSH_R_shocked.png', 'face/btl/SMSH_R_smile.png',
+        'face/btl/SMSH_R_talk-1.png', 'face/btl/SMSH_R_talk-2.png', 'face/btl/SMSH_R_talk-3.png',
+
+        // Ataho Animation Assets
+        'face/btl/ATA_L_base.png',
+        'face/btl/ATA_L_blink-1.png', 'face/btl/ATA_L_blink-2.png', 'face/btl/ATA_L_blink-3.png',
+        'face/btl/ATA_L_shocked.png', 'face/btl/ATA_L_smile.png',
 
         // Battle Sprites
         'face/PARTATA.png',
@@ -92,19 +117,30 @@ const Assets = {
             return;
         }
 
-        this.toLoad.forEach(filename => {
+        this.toLoad.forEach(item => {
             const img = new Image();
-            img.src = `assets/${filename}`;
+            let src = '';
+            let id = '';
+
+            if (typeof item === 'string') {
+                src = `assets/${item}`;
+                id = item;
+            } else {
+                src = item.src; // Assuming manual path provided is relative to root or full
+                id = item.id;
+            }
+
+            img.src = src;
             img.onload = () => {
-                this.images[filename] = img;
+                this.images[id] = img;
                 this.loadedCount++;
-                console.log(`Loaded: ${filename}`);
+                console.log(`Loaded: ${id}`);
                 if (this.loadedCount === this.toLoad.length) {
                     onComplete();
                 }
             };
             img.onerror = (e) => {
-                console.error(`Failed to load ${filename}`, e);
+                console.error(`Failed to load ${src}`, e);
                 this.loadedCount++; // Increment anyway so the game doesn't hang
                 if (this.loadedCount === this.toLoad.length) {
                     onComplete();
@@ -113,8 +149,8 @@ const Assets = {
         });
     },
 
-    get: function (filename) {
-        return this.images[filename];
+    get: function (id) {
+        return this.images[id];
     },
 
     /**

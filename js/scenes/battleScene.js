@@ -33,7 +33,7 @@ const BattleConfig = {
         align: 'center',
         tileWidth: 40, // Added missing key
         tileHeight: 53, // Added missing key
-        frame: { path: 'ui/dora.png', xOffset: 44, yOffset: 32, align: 'center' }
+        frame: { path: 'ui/dora.png', xOffset: -10, yOffset: -8, align: 'left' }
     },
     INFO: {
         // Explicit coordinates for adjustable layout
@@ -88,19 +88,22 @@ const BattleScene = {
     STATE_CPU_TURN: 2,
     STATE_WIN: 3,   // Round Win
     STATE_LOSE: 4,  // Round Lose
-    STATE_DRAW: 5,  // Round Draw
+    STATE_NAGARI: 5,  // Round Draw (Nagari)
     STATE_MATCH_OVER: 6, // Game Over (HP 0)
     STATE_ACTION_SELECT: 7, // Menu for Pon/Ron
+    STATE_FX_PLAYING: 8, // New: Block input during FX sequences
 
     currentState: 0,
     timer: 0,
+
+    sequencing: { active: false, steps: [], currentStep: 0, timer: 0 }, // New: Sequence manager
 
     playerIndex: 0,
     cpuIndex: 0,
 
     // Battle Data
     p1: { hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, hand: [], isRiichi: false },
-    cpu: { hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, hand: [], isRiichi: false },
+    cpu: { hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, hand: [], isRiichi: false, isRevealed: false },
 
     deck: [],
     discards: [],
@@ -122,9 +125,39 @@ const BattleScene = {
         console.log(`CharacterData Length: ${CharacterData.length}`);
         CharacterData.forEach((c, i) => console.log(`[${i}] ${c.name} (${c.id})`));
 
-        const p1Data = CharacterData[this.playerIndex];
-        const cpuData = CharacterData[this.cpuIndex];
+        const p1Data = CharacterData.find(c => c.index === this.playerIndex) || CharacterData[this.playerIndex];
+        const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
         console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
+
+        this.activeFX = [];
+        this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
+
+        // Init Characters
+        this.p1Character = new BattleCharacter(p1Data, {
+            ...BattleConfig.PORTRAIT.P1,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH
+        }, false);
+
+        // Apply Animation Config if available (P1 = Left)
+        if (typeof AnimConfig !== 'undefined' && p1Data && AnimConfig[p1Data.id] && AnimConfig[p1Data.id].L) {
+            this.p1Character.setAnimationConfig(AnimConfig[p1Data.id].L);
+        }
+
+        this.debugTenpaiStrings = []; // Init
+        this.recommendedDiscards = []; // Init logic
+
+
+        this.cpuCharacter = new BattleCharacter(cpuData, {
+            ...BattleConfig.PORTRAIT.CPU,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH
+        }, true);
+
+        // Apply Animation Config if available (CPU = Right)
+        if (typeof AnimConfig !== 'undefined' && cpuData && AnimConfig[cpuData.id] && AnimConfig[cpuData.id].R) {
+            this.cpuCharacter.setAnimationConfig(AnimConfig[cpuData.id].R);
+        }
 
         this.currentState = this.STATE_INIT;
         this.timer = 0;
@@ -149,6 +182,149 @@ const BattleScene = {
         this.defeatedOpponents = data.defeatedOpponents || [];
 
         this.startRound();
+    },
+
+    playFX: function (type, x, y, scale = 1.0) {
+        // Default duration reduced to 45 frames (approx 0.75s at 60fps)
+        const img = Assets.get(type);
+        if (img) {
+            this.activeFX.push({ type: type, img: img, x: x || 320, y: y || 240, timer: 0, life: 45, maxLife: 45, scale: scale, alpha: 0 });
+        }
+    },
+
+    startWinSequence: function (type, who, score) {
+        console.log(`Starting Win Sequence: ${type} by ${who}`);
+
+        // Sort CPU Hand if revealed
+        if (who === 'CPU' || type === 'RON') { // If CPU wins or we win (Ron from CPU?), usually we only show CPU hand if WE win (Ron/Tsumo) or CPU wins.
+            this.sortHand(this.cpu.hand);
+        } else {
+            this.sortHand(this.cpu.hand); // Always sort just in case
+        }
+
+        this.currentState = this.STATE_FX_PLAYING;
+        this.sequencing = {
+            active: true,
+            timer: 0,
+            currentStep: 0,
+            steps: [
+                { type: 'FX', asset: `fx/${type.toLowerCase()}`, x: 320, y: 240 },
+                { type: 'WAIT', duration: 60 },
+                { type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: score }
+            ] // Note: score processing might need to happen before or passed along
+        };
+    },
+
+    startNagariSequence: function () {
+        console.log("Starting Nagari Sequence");
+        this.currentState = this.STATE_FX_PLAYING;
+
+        this.sortHand(this.cpu.hand); // Sort CPU hand
+
+        // Calculate P1 Tenpai/Noten
+        const p1Tenpai = this.checkTenpai(this.p1.hand);
+        const cpuTenpai = this.checkTenpai(this.cpu.hand);
+        const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten';
+        const cpuFx = cpuTenpai ? 'fx/tenpai' : 'fx/noten';
+
+        // Positions
+        const p1X = BattleConfig.PORTRAIT.P1.x + BattleConfig.PORTRAIT.P1.w / 2;
+        const p1Y = BattleConfig.PORTRAIT.P1.y + BattleConfig.PORTRAIT.P1.h / 2;
+        const cpuX = BattleConfig.PORTRAIT.CPU.x + BattleConfig.PORTRAIT.CPU.w / 2;
+        const cpuY = BattleConfig.PORTRAIT.CPU.y + BattleConfig.PORTRAIT.CPU.h / 2;
+
+        this.sequencing = {
+            active: true,
+            timer: 0,
+            currentStep: 0,
+            steps: [
+                { type: 'FX', asset: 'fx/nagari', x: 320, y: 240 },
+                { type: 'WAIT', duration: 60 },
+                { type: 'REVEAL_HAND' }, // Reveal CPU hand
+                {
+                    type: 'FX_PARALLEL', items: [
+                        { asset: p1Fx, x: p1X, y: p1Y, scale: 0.4 },
+                        { asset: cpuFx, x: cpuX, y: cpuY, scale: 0.4 }
+                    ]
+                },
+                { type: 'WAIT', duration: 90 }, // Longer wait for status check
+                { type: 'STATE_NAGARI' } // Finally show result overlay
+            ]
+        };
+    },
+
+    updateSequence: function () {
+        if (!this.sequencing.active) return;
+
+        const step = this.sequencing.steps[this.sequencing.currentStep];
+        if (!step) {
+            this.sequencing.active = false;
+            return;
+        }
+
+        if (step.type === 'WAIT') {
+            this.sequencing.timer++;
+            if (this.sequencing.timer >= step.duration) {
+                this.sequencing.timer = 0;
+                this.sequencing.currentStep++;
+            }
+        } else if (step.type === 'FX') {
+            this.playFX(step.asset, step.x, step.y, step.scale || 1.0);
+            this.sequencing.currentStep++;
+        } else if (step.type === 'FX_PARALLEL') {
+            step.items.forEach(item => {
+                this.playFX(item.asset, item.x, item.y, item.scale || 1.0);
+            });
+            this.sequencing.currentStep++;
+        } else if (step.type === 'REVEAL_HAND') {
+            this.cpu.isRevealed = true;
+            this.sequencing.currentStep++;
+        } else if (step.type === 'STATE') {
+            this.currentState = step.state;
+            this.sequencing.active = false;
+        } else if (step.type === 'STATE_NAGARI') {
+            // FIX: Must set state to NAGARI to allow input (Next Round)
+            this.currentState = this.STATE_NAGARI;
+            this.calculateTenpaiDamage(true); // skipFX = true
+            this.sequencing.active = false;
+        }
+    },
+    updateFX: function () {
+        for (let i = this.activeFX.length - 1; i >= 0; i--) {
+            const fx = this.activeFX[i];
+            fx.life--;
+
+            // Animation Logic
+            // Fade In (0-10)
+            const fadeInDur = 10;
+            if (fx.maxLife - fx.life <= fadeInDur) {
+                fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
+            }
+            // Fade Out (Last 20 frames)
+            else if (fx.life < 20) {
+                fx.alpha = fx.life / 20;
+            } else {
+                fx.alpha = 1.0;
+            }
+
+            if (fx.life <= 0) {
+                this.activeFX.splice(i, 1);
+            }
+        }
+    },
+
+    drawFX: function (ctx) {
+        if (!this.activeFX) return;
+        ctx.save();
+        this.activeFX.forEach(fx => {
+            if (fx.img) {
+                ctx.globalAlpha = fx.alpha;
+                const w = fx.img.width * fx.scale;
+                const h = fx.img.height * fx.scale;
+                ctx.drawImage(fx.img, fx.x - w / 2, fx.y - h / 2, w, h);
+            }
+        });
+        ctx.restore();
     },
 
     nextRound: function () {
@@ -200,7 +376,10 @@ const BattleScene = {
         this.p1.hand = this.drawTiles(11);
         console.log(`Player Hand drawn. Size: ${this.p1.hand.length}`);
 
+
+
         this.cpu.hand = this.drawTiles(11);
+        this.cpu.isRevealed = false; // Reset reveal status
         this.sortHand(this.p1.hand);
 
         // 2 Doras
@@ -305,9 +484,19 @@ const BattleScene = {
     update: function () {
         this.timer++;
 
-        // Hover Check (always update mouse index)
-        this.hoverIndex = -1;
+        // Update Characters
+        if (this.p1Character) this.p1Character.update();
+        if (this.cpuCharacter) this.cpuCharacter.update();
+
+        // Update FX
+        this.updateFX();
+
+        // Hover Check (Mouse + Keyboard)
+        // Only reset if we change states? Or ensure valid?
+        if (this.hoverIndex === undefined) this.hoverIndex = 0;
+
         if (this.currentState === this.STATE_PLAYER_TURN) {
+            // 1. Mouse Interaction
             const mx = Input.mouseX;
             const my = Input.mouseY;
             const tileW = BattleConfig.HAND.tileWidth;
@@ -318,6 +507,7 @@ const BattleScene = {
             const startX = (640 - totalW) / 2;
             const handY = BattleConfig.HAND.y;
 
+            // Only update hover from mouse if within bounds
             if (my >= handY && my <= handY + tileH) {
                 if (mx >= startX && mx <= startX + totalW) {
                     const index = Math.floor((mx - startX) / (tileW + gap));
@@ -326,14 +516,27 @@ const BattleScene = {
                     }
                 }
             }
+
+            // 2. Keyboard Interaction
+            if (Input.isJustPressed(Input.LEFT)) {
+                this.hoverIndex--;
+                if (this.hoverIndex < 0) this.hoverIndex = handSize - 1;
+            }
+            if (Input.isJustPressed(Input.RIGHT)) {
+                this.hoverIndex++;
+                if (this.hoverIndex >= handSize) this.hoverIndex = 0;
+            }
+
+            // Safety clamp
+            if (this.hoverIndex >= handSize) this.hoverIndex = handSize - 1;
+            if (this.hoverIndex < 0) this.hoverIndex = 0;
         }
 
         switch (this.currentState) {
             case this.STATE_INIT:
                 if (this.timer > 60) { // Slight delay for Round Start text
                     this.playerDraw();
-                    this.currentState = this.STATE_PLAYER_TURN;
-                    this.timer = 0;
+                    // playerDraw sets state and hoverIndex
                 }
                 break;
 
@@ -347,12 +550,18 @@ const BattleScene = {
                     return; // Skip input handling
                 }
 
-                if (Input.isMouseJustPressed()) {
+                if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
                     // Check if Action Menu is active first? No, Action Select is a different state.
-                    // But we want to allow opening Action Menu if Riichi is possible?
-                    // Or check immediately after Draw?
 
-                    if (this.hoverIndex !== -1) {
+                    if (this.hoverIndex !== -1 && this.hoverIndex < this.p1.hand.length) {
+                        // Riichi Input Lock
+                        if (this.p1.isRiichi && this.riichiTargetIndex !== undefined && this.riichiTargetIndex !== -1) {
+                            if (this.hoverIndex !== this.riichiTargetIndex) {
+                                console.log("Blocked invalid Riichi discard.");
+                                return;
+                            }
+                        }
+
                         // Discard
                         this.discardTile(this.hoverIndex);
                     }
@@ -360,7 +569,11 @@ const BattleScene = {
                 break;
 
             case this.STATE_ACTION_SELECT:
+                if (this.actionTimer > 0) this.actionTimer--;
                 this.updateActionSelect();
+                break;
+            case this.STATE_FX_PLAYING:
+                this.updateSequence();
                 break;
 
             case this.STATE_CPU_TURN:
@@ -371,7 +584,7 @@ const BattleScene = {
 
             case this.STATE_WIN:
             case this.STATE_LOSE:
-            case this.STATE_DRAW:
+            case this.STATE_NAGARI:
                 if (Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
                     this.handleRoundEnd();
                 }
@@ -384,45 +597,86 @@ const BattleScene = {
                 break;
         }
 
-        if (this.currentState < this.STATE_WIN) {
+        if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
             this.checkRoundEnd();
         }
+    },
+
+    // Assuming a 'draw' function exists where these calls should be placed.
+    // This snippet is placed here based on the provided context,
+    // assuming it's the end of a 'draw' function.
+    draw: function (ctx) {
+        // ... existing draw logic ...
+
+        // Result Overlay
+        if (this.currentState >= this.STATE_WIN) {
+            this.drawResult(ctx);
+        }
+
+        // Draw FX (Top Level)
+        this.drawFX(ctx);
+    },
+
+    drawResult: function (ctx) {
+        // Placeholder for drawResult function content
+        // This function was implied by the edit, but its content was not provided.
+        // It's likely responsible for drawing the end-of-round/match overlay.
+        // For now, it's an empty function to maintain syntactical correctness.
     },
 
     checkRoundEnd: function () {
         // 1. Deck Exhaustion
         if (this.deck.length === 0) {
-            this.calculateTenpaiDamage();
-            this.currentState = this.STATE_DRAW;
-            console.log("Deck Empty -> DRAW");
+            this.startNagariSequence();
+            console.log("Deck Empty -> NAGARI Sequence");
             return;
         }
 
         // 2. Turn Limit
         if (this.turnCount > 20) {
-            this.calculateTenpaiDamage();
-            this.currentState = this.STATE_DRAW;
-            console.log("Turn Limit -> DRAW");
+            this.startNagariSequence();
+            console.log("Turn Limit -> NAGARI Sequence");
             return;
         }
     },
 
-    calculateTenpaiDamage: function () {
+    calculateTenpaiDamage: function (skipFX) {
         const p1Tenpai = this.checkTenpai(this.p1.hand);
         const cpuTenpai = this.checkTenpai(this.cpu.hand);
-        this.drawResultMsg = "";
+
+        // Status String
+        const p1Status = p1Tenpai ? "텐파이" : "노텐";
+        const cpuStatus = cpuTenpai ? "텐파이" : "노텐";
+        let damageMsg = "";
 
         if (p1Tenpai && !cpuTenpai) {
             this.cpu.hp -= 1000;
-            this.drawResultMsg = "P1 Tenpai! CPU takes 1000 dmg";
-            console.log("P1 Tenpai, CPU Noten -> CPU takes 1000 damage");
+            damageMsg = "CPU -1000";
         } else if (!p1Tenpai && cpuTenpai) {
             this.p1.hp -= 1000;
-            this.drawResultMsg = "CPU Tenpai! P1 takes 1000 dmg";
-            console.log("CPU Tenpai, P1 Noten -> P1 takes 1000 damage");
+            damageMsg = "Player -1000";
         } else {
-            this.drawResultMsg = "Both Tenpai or Noten";
-            console.log("Tenpai status equal -> No damage");
+            damageMsg = "No Damage";
+        }
+
+        // e.g. "나가리\nP1: 텐파이 vs CPU: 노텐\nCPU -1000"
+        this.drawResultMsg = `나가리\nP1: ${p1Status} vs CPU: ${cpuStatus}\n${damageMsg}`;
+        console.log(this.drawResultMsg);
+
+        // FX Trigger
+        if (!skipFX) {
+            this.playFX('fx/nagari', 320, 240); // Center
+
+            const p1X = BattleConfig.PORTRAIT.P1.x + BattleConfig.PORTRAIT.P1.w / 2;
+            const p1Y = BattleConfig.PORTRAIT.P1.y + BattleConfig.PORTRAIT.P1.h / 2;
+            const cpuX = BattleConfig.PORTRAIT.CPU.x + BattleConfig.PORTRAIT.CPU.w / 2;
+            const cpuY = BattleConfig.PORTRAIT.CPU.y + BattleConfig.PORTRAIT.CPU.h / 2;
+
+            const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten';
+            const cpuFx = cpuTenpai ? 'fx/tenpai' : 'fx/noten';
+
+            this.playFX(p1Fx, p1X, p1Y, 0.4);
+            this.playFX(cpuFx, cpuX, cpuY, 0.4);
         }
 
         // Clamp HP
@@ -446,9 +700,20 @@ const BattleScene = {
     },
 
     playerDraw: function () {
+        // Check End Conditions First
+        this.checkRoundEnd();
+
+        // Block if we transitioned to an End State or FX Logic
+        if (this.currentState === this.STATE_FX_PLAYING ||
+            this.currentState === this.STATE_NAGARI ||
+            this.currentState === this.STATE_MATCH_OVER) {
+            return;
+        }
+
         const t = this.drawTiles(1);
         if (t.length > 0) {
             const drawnTile = t[0];
+            console.log("Player Draws:", drawnTile.type); // Log
             this.p1.hand.push(drawnTile);
 
             // Grouping Logic:
@@ -511,9 +776,11 @@ const BattleScene = {
                 // Go to STATE_PLAYER_TURN to allow rendering the drawn tile
                 this.currentState = this.STATE_PLAYER_TURN;
                 this.timer = 0; // Reset timer for delay
+
             } else {
                 // Normal turn
                 this.currentState = this.STATE_PLAYER_TURN;
+                this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
                 this.timer = 0;
             }
         }
@@ -521,7 +788,10 @@ const BattleScene = {
 
     cpuDraw: function () {
         const t = this.drawTiles(1);
-        if (t.length > 0) this.cpu.hand.push(t[0]);
+        if (t.length > 0) {
+            console.log("CPU Draws:", t[0].type); // Log
+            this.cpu.hand.push(t[0]);
+        }
 
         // CPU AI Logic
         const difficulty = AILogic.DIFFICULTY.NORMAL; // Default to Normal for now
@@ -531,7 +801,7 @@ const BattleScene = {
             console.log("CPU Tsumo!");
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand);
             this.p1.hp = Math.max(0, this.p1.hp - this.winningYaku.score);
-            this.currentState = this.STATE_LOSE;
+            this.startWinSequence('TSUMO', 'CPU', this.winningYaku.score);
             return;
         }
 
@@ -551,6 +821,7 @@ const BattleScene = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty)) {
                 console.log("CPU Riichi!");
                 this.cpu.isRiichi = true;
+                this.playFX('fx/riichi', 320, 240);
                 // Auto-discard logic will handle the discard below
             }
         }
@@ -570,7 +841,7 @@ const BattleScene = {
     },
 
     discardTileCPU: function (index) {
-        console.log(`CPU discards index ${index}`);
+        console.log(`CPU discards index ${index} `);
         const discarded = this.cpu.hand.splice(index, 1)[0];
         discarded.owner = 'cpu';
         this.discards.push(discarded);
@@ -633,10 +904,12 @@ const BattleScene = {
     },
 
     discardTile: function (index) {
-        console.log(`Player discards index ${index}`);
+        console.log(`Player discards index ${index}: ${this.p1.hand[index].type}`); // Log
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
         this.discards.push(discarded);
+
+        console.log("DISCARDS:", this.discards.map(d => d.type).join(", ")); // Log discards
 
         this.currentState = this.STATE_CPU_TURN;
         this.timer = 0;
@@ -646,6 +919,9 @@ const BattleScene = {
 
 
     draw: function (ctx) {
+        // Disable interpolation for pixel art / precise layering
+        ctx.imageSmoothingEnabled = false;
+
         // 1. Random Background (Bottom Layer)
         const randomBg = Assets.get(this.bgPath);
         if (randomBg) {
@@ -657,40 +933,9 @@ const BattleScene = {
             ctx.fillRect(0, 0, 640, 480);
         }
 
-        const p1Data = CharacterData.find(c => c.index === this.playerIndex) || CharacterData[this.playerIndex];
-        const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
-
         // 2. Portraits
-        // P1 (Left)
-        if (p1Data && p1Data.battleFaceL) {
-            const img = Assets.get(p1Data.battleFaceL);
-            if (img) {
-                // Crop base face (Left side)
-                ctx.drawImage(img,
-                    0, 0, BattleConfig.PORTRAIT.baseW, BattleConfig.PORTRAIT.baseH,
-                    BattleConfig.PORTRAIT.P1.x, BattleConfig.PORTRAIT.P1.y, BattleConfig.PORTRAIT.P1.w, BattleConfig.PORTRAIT.P1.h
-                );
-            }
-        } else if (p1Data && p1Data.face) {
-            // Fallback
-            Assets.drawFrame(ctx, p1Data.face, BattleConfig.PORTRAIT.P1.x, BattleConfig.PORTRAIT.P1.y, 0, BattleConfig.PORTRAIT.P1.w, BattleConfig.PORTRAIT.P1.h);
-        }
-
-        // CPU (Right)
-        if (cpuData && cpuData.battleFaceR) {
-            const img = Assets.get(cpuData.battleFaceR);
-            if (img) {
-                // Crop base face (Left side of the Right image? Or is the base face always on the left of the sprite sheet?)
-                // User said: "Each image has a base face on the left"
-                ctx.drawImage(img,
-                    0, 0, BattleConfig.PORTRAIT.baseW, BattleConfig.PORTRAIT.baseH,
-                    BattleConfig.PORTRAIT.CPU.x, BattleConfig.PORTRAIT.CPU.y, BattleConfig.PORTRAIT.CPU.w, BattleConfig.PORTRAIT.CPU.h
-                );
-            }
-        } else if (cpuData && cpuData.face) {
-            // Fallback
-            Assets.drawFrame(ctx, cpuData.face, BattleConfig.PORTRAIT.CPU.x, BattleConfig.PORTRAIT.CPU.y, 1, BattleConfig.PORTRAIT.CPU.w, BattleConfig.PORTRAIT.CPU.h);
-        }
+        if (this.p1Character) this.p1Character.draw(ctx);
+        if (this.cpuCharacter) this.cpuCharacter.draw(ctx);
 
         // 3. UI Background (Over Characters)
         const uiBg = Assets.get(BattleConfig.UI_BG.path);
@@ -718,8 +963,8 @@ const BattleScene = {
             let xOffset = 0;
             const x = cpuStartX + i * (tileW + gap) + xOffset;
 
-            // Reveal hand if CPU wins (STATE_LOSE for player)
-            if (this.currentState === this.STATE_LOSE) {
+            // Reveal hand if CPU wins (STATE_LOSE for player) OR Nagari OR Revealed flag
+            if (this.currentState === this.STATE_LOSE || this.currentState === this.STATE_NAGARI || this.cpu.isRevealed) {
                 this.drawTile(ctx, this.cpu.hand[i], x, BattleConfig.HAND.cpuY, tileW, tileH);
             } else {
                 // Hidden
@@ -775,15 +1020,18 @@ const BattleScene = {
                     // "테두리가 표시되고 있는데... 이 이미지로 대체" -> Likely a bracket or highlight frame.
                     // Assuming it's a frame for the tile.
                     // Let's draw it at x, y + yOffset? Or centered?
-                    // Similar to frame:
-                    // If it's a cursor, maybe it's floating.
-                    // Let's draw it at the tile position.
                     // If it has diff size, we might need to center it.
                     // Safe bet: Draw at x, y + yOffset (top-left of the tile)
                     // But if image is bigger than tile (e.g. 64x64 vs 40x53), it will look off if not centered.
                     // Let's assume we center it on the tile.
                     const cx = x + tileW / 2 - cursorImg.width / 2;
-                    const cy = (handY + yOffset) + tileH / 2 - cursorImg.height / 2;
+                    // Align cursor bottom to the bottom of the side image
+                    // Side image bottom Y = (handY + yOffset + tileH) + sideImg.height
+                    // Cursor bottom Y = cy + cursorImg.height
+                    // So cy = (handY + yOffset + tileH + sideH) - cursorImg.height
+                    // We assume sideImg exists as it is drawn above.
+                    const sideH = sideImg ? sideImg.height : 0;
+                    const cy = (handY + yOffset + tileH + sideH) - cursorImg.height;
                     ctx.drawImage(cursorImg, cx, cy);
                 } else {
                     // Fallback
@@ -884,7 +1132,7 @@ const BattleScene = {
                 msg = "DEFEAT...";
                 if (this.winningYaku) subMsg = `${this.winningYaku.name} (-${this.winningYaku.score})`;
             } else {
-                msg = "DRAW GAME";
+                msg = "NAGARI";
                 if (this.drawResultMsg) subMsg = this.drawResultMsg;
             }
 
@@ -898,6 +1146,53 @@ const BattleScene = {
             ctx.font = BattleConfig.OVERLAY.infoFont;
             ctx.fillText("Press Action to Return", 320, 340);
         }
+
+        // Draw FX (Top Level)
+        this.drawFX(ctx);
+
+        // Debug: Draw Potential Yaku
+        if (this.debugTenpaiStrings && this.debugTenpaiStrings.length > 0) {
+            console.log("Drawing Debug Info:", this.debugTenpaiStrings[0], "State:", this.currentState);
+            if (this.currentState === this.STATE_ACTION_SELECT) {
+                ctx.fillStyle = '#FFFF00'; // Bright Yellow
+                ctx.font = 'bold 20px Arial'; // Safe font, larger
+                ctx.textAlign = 'center';
+
+            }
+        }
+
+        // Draw Recommended Riichi Discards - REMOVED
+        /*
+        if (this.recommendedDiscards && this.recommendedDiscards.length > 0 && this.currentState === this.STATE_ACTION_SELECT) {
+            const tileW = BattleConfig.HAND.tileWidth;
+            const gap = BattleConfig.HAND.gap;
+            const totalW = this.p1.hand.length * (tileW + gap);
+            // const pStartX = (640 - totalW) / 2; // Not needed, we just need the end
+            // Center calculation:
+            const pStartX = (640 - totalW) / 2;
+            const endX = pStartX + totalW;
+
+            const startX = endX + 20; // 20px gap from hand
+            const y = BattleConfig.HAND.y;
+
+            this.recommendedDiscards.forEach((tile, i) => {
+                ctx.save();
+                ctx.globalAlpha = 0.6; // Make it ghost-like
+                this.drawTile(ctx, tile, startX + i * (tileW + 5), y, tileW, BattleConfig.HAND.tileHeight);
+                ctx.restore();
+
+                // Red Arrow (Solid)
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                const tx = startX + i * (tileW + 5);
+                const cx = tx + tileW / 2;
+                ctx.moveTo(cx, y - 10);
+                ctx.lineTo(cx - 5, y - 20);
+                ctx.lineTo(cx + 5, y - 20);
+                ctx.fill();
+            });
+        }
+        */
     },
 
     checkPlayerActions: function (discardedTile) {
@@ -910,16 +1205,17 @@ const BattleScene = {
             if (t.type === discardedTile.type) matchCount++;
         });
         if (matchCount >= 2) {
-            this.possibleActions.push({ type: 'PON', label: '펑' });
+            const ponAction = { type: 'PON', label: '펑', targetTile: discardedTile };
+            this.possibleActions.push(ponAction);
         }
 
         // 3. Check RON (Win)
-        // Rule: "When Riichi is declared... Ron"
-        if (this.p1.isRiichi) {
-            const tempHand = [...hand, discardedTile];
-            if (YakuLogic.checkYaku(tempHand)) {
-                this.possibleActions.push({ type: 'RON', label: '론' });
-            }
+        // Rule: "When Riichi is declared... Ron" ?? No, can Ron anytime if Tenpai.
+        // checkYaku expects 12 tiles.
+        // If we pick up discard, we have 11+1 = 12.
+        const tempHand = [...hand, discardedTile];
+        if (YakuLogic.checkYaku(tempHand)) {
+            this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
         // 4. Pass
@@ -963,6 +1259,27 @@ const BattleScene = {
 
             if (canRiichi) {
                 this.possibleActions.push({ type: 'RIICHI', label: '리치' });
+
+                // Debug: Calculate potential Yaku
+                // We need to re-scan to get DETAILS
+                // Find WHICH discard allows Tenpai
+                const debugInfo = [];
+                const validDiscards = [];
+                for (let i = 0; i < hand.length; i++) {
+                    const temp = [...hand];
+                    temp.splice(i, 1);
+                    const yakus = this.checkTenpai(temp, true);
+                    if (yakus && yakus.length > 0) {
+                        debugInfo.push(`Discard [${hand[i].type}]: ${yakus.join(", ")}`);
+                        validDiscards.push(hand[i]);
+                    }
+                }
+                this.debugTenpaiStrings = debugInfo;
+                this.recommendedDiscards = validDiscards;
+                console.log("Debug Tenpai Strings:", this.debugTenpaiStrings);
+            } else {
+                this.debugTenpaiStrings = [];
+                this.recommendedDiscards = [];
             }
         }
 
@@ -1016,7 +1333,7 @@ const BattleScene = {
     },
 
     executeAction: function (action) {
-        console.log(`Executing Action: ${action.type}`);
+        console.log(`Executing Action: ${action.type} `);
 
         if (action.type === 'PASS' || action.type === 'PASS_SELF') {
             // Pass logic
@@ -1030,30 +1347,71 @@ const BattleScene = {
                 // this.currentState = this.STATE_PLAYER_TURN; // playerDraw sets this check
             }
         } else if (action.type === 'PON') {
-            console.log("PON implementation pending");
+            console.log("PON Action Triggered");
+            this.playFX('fx/pon', 320, 240);
+
+            // 1. Get Discarded Tile
+            const tile = this.discards.pop();
+            if (tile) {
+                tile.owner = 'p1';
+                this.p1.hand.push(tile);
+            }
+            // 2. State Update
             this.p1.isMenzen = false; // Pon breaks Menzen
-            this.turnCount++;
-            this.playerDraw();
+            this.turnCount++; // Turn advances? Or just action? Pon counts as turn start.
+
+            this.sortHand(this.p1.hand); // Sort
+
+            // 3. Go to Discard (Do NOT Draw)
             this.currentState = this.STATE_PLAYER_TURN;
+            this.timer = 0;
+            this.hoverIndex = this.p1.hand.length - 1;
+
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
-            // Play sound? Effect?
+            this.playFX('fx/riichi', 320, 240);
+
+            // Auto-arrange hand: Move VALID discard to the end (gap)
+            // 1. Identify valid discards
+            const hand = this.p1.hand;
+            let targetIdx = -1;
+
+            for (let i = 0; i < hand.length; i++) {
+                const temp = [...hand];
+                temp.splice(i, 1);
+                if (this.checkTenpai(temp, false)) { // Just check if it leads to Tenpai
+                    targetIdx = i;
+                    break;
+                }
+            }
+
+            if (targetIdx !== -1) {
+                // Move tile at targetIdx to end
+                const tile = hand.splice(targetIdx, 1)[0];
+                hand.push(tile);
+
+                this.lastDrawGroupSize = 1; // Force visual gap
+                this.riichiTargetIndex = hand.length - 1; // Strict target
+            } else {
+                this.riichiTargetIndex = -1; // Should not happen if Riichi was allowed
+            }
+
             // Go to discard
             this.currentState = this.STATE_PLAYER_TURN;
-            console.log("Riichi Declared!");
+            console.log("Riichi Declared! Target Index:", this.riichiTargetIndex);
         } else if (action.type === 'TSUMO') {
             const win = YakuLogic.checkYaku(this.p1.hand);
             if (win) {
                 this.winningYaku = win;
                 this.cpu.hp = Math.max(0, this.cpu.hp - win.score);
-                this.currentState = this.STATE_WIN;
+                this.startWinSequence('TSUMO', 'P1', win.score);
             }
         } else if (action.type === 'RON') {
             const win = YakuLogic.checkYaku([...this.p1.hand, this.discards[this.discards.length - 1]]);
             if (win) {
                 this.winningYaku = win;
                 this.cpu.hp = Math.max(0, this.cpu.hp - win.score);
-                this.currentState = this.STATE_WIN;
+                this.startWinSequence('RON', 'P1', win.score);
             }
         }
     },
@@ -1227,10 +1585,12 @@ const BattleScene = {
         });
     },
 
-    checkTenpai: function (hand) {
+    checkTenpai: function (hand, returnDetails) {
         // Hand should be 11 tiles.
         // We try adding every possible tile (13 types).
         // If any addition results in a Win (Yaku), then we are Tenpai.
+        const potentialYakus = new Set();
+        let isTenpai = false;
 
         for (const type of PaiData.TYPES) {
             // Create a temp tile
@@ -1240,11 +1600,22 @@ const BattleScene = {
             const tempHand = [...hand, tile];
 
             // Check Win
-            if (YakuLogic.checkYaku(tempHand)) {
-                return true;
+            const win = YakuLogic.checkYaku(tempHand);
+            if (win) {
+                isTenpai = true;
+                if (returnDetails) {
+                    potentialYakus.add(win.name);
+                } else {
+                    return true; // Return early if we don't need details
+                }
             }
         }
-        return false;
+
+        if (returnDetails && isTenpai) {
+            return Array.from(potentialYakus);
+        }
+
+        return isTenpai;
     }
 };
 
