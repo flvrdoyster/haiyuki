@@ -53,7 +53,7 @@ const DialogueData = {
 
     // Ataho vs Yuriwakamaru
     "ataho_yuri": [
-        { speaker: "ataho", text: "어라, 자네는!" },
+        { speaker: "ataho", text: "어라, 자네는!", cpuState: 'shocked' },
         { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?" },
         { speaker: "ataho", text: "나야, 아타호라고." },
         { speaker: "ataho", text: "있잖아, 그 때의..." },
@@ -64,8 +64,8 @@ const DialogueData = {
         { speaker: "ataho", text: "그래그래." },
         { speaker: "ataho", text: "뭐였더라." },
         { speaker: "ataho", text: "어라라." },
-        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!" },
-        { speaker: "yuri", text: "뭐야, 넌!" }
+        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!", cpuState: 'shocked' },
+        { speaker: "yuri", text: "뭐야, 넌!", p1State: 'shocked' }
     ],
 
     // Rinxiang vs Fari

@@ -133,31 +133,52 @@ const BattleScene = {
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         // Init Characters
+        // Initialize Portraits
+        const idMap = {
+            'ataho': 'ATA',
+            'rinxiang': 'RIN',
+            'smash': 'SMSH',
+            'petum': 'PET',
+            'fari': 'FARI',
+            'yuri': 'YURI',
+            'mayu': 'MAYU'
+        };
+
+        const getAnimConfig = (charData, side) => {
+            if (!charData) return null;
+
+            // 1. Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
+            /* 
+            if (typeof AnimConfig !== 'undefined' && AnimConfig[charData.id]) {
+                const config = side === 'left' ? AnimConfig[charData.id].L : AnimConfig[charData.id].R;
+                if (config) return config;
+            }
+            */
+
+            // 2. Auto-Detection
+            const prefix = idMap[charData.id] || charData.id.toUpperCase();
+            const base = `face/${prefix}_base.png`;
+            if (Assets.get(base)) {
+                console.log(`[BattleScene] Auto-configuring animation for ${charData.id} (${side})`);
+                return { base: base };
+            }
+
+            return null;
+        };
+
         this.p1Character = new PortraitCharacter(p1Data, {
             ...BattleConfig.PORTRAIT.P1,
             baseW: BattleConfig.PORTRAIT.baseW,
             baseH: BattleConfig.PORTRAIT.baseH
         }, false);
-
-        // Apply Animation Config if available (P1 = Left)
-        if (typeof AnimConfig !== 'undefined' && p1Data && AnimConfig[p1Data.id] && AnimConfig[p1Data.id].L) {
-            this.p1Character.setAnimationConfig(AnimConfig[p1Data.id].L);
-        }
-
-        this.debugTenpaiStrings = []; // Init
-        this.recommendedDiscards = []; // Init logic
-
+        this.p1Character.setAnimationConfig(getAnimConfig(p1Data, 'left'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
             ...BattleConfig.PORTRAIT.CPU,
             baseW: BattleConfig.PORTRAIT.baseW,
             baseH: BattleConfig.PORTRAIT.baseH
         }, true);
-
-        // Apply Animation Config if available (CPU = Right)
-        if (typeof AnimConfig !== 'undefined' && cpuData && AnimConfig[cpuData.id] && AnimConfig[cpuData.id].R) {
-            this.cpuCharacter.setAnimationConfig(AnimConfig[cpuData.id].R);
-        }
+        this.cpuCharacter.setAnimationConfig(getAnimConfig(cpuData, 'right'));
 
         // Ensure Expressions are Reset
         if (this.p1Character) this.p1Character.setState('idle');

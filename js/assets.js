@@ -27,7 +27,6 @@ const Assets = {
         'ui/long_bubble.png',
         'ui/long_bubble_tail.png',
         'ui/short_bubble.png',
-        'face/CHRSELEF_face.png',
         'face/CHRSELEF_cursor.png',
 
         // Individual Select Icons
@@ -40,51 +39,38 @@ const Assets = {
         'face/FACESMSH.png', 'face/FACEPET.png', 'face/FACEYURI.png',
         'face/FACEMAYU.png',
 
-        // Battle Portraits (BTLCHR)
-        'face/BTLCHRATA_L.png', 'face/BTLCHRATA_R.png',
-        'face/BTLCHRRIN_L.png', 'face/BTLCHRRIN_R.png',
-        'face/BTLCHRFARI_L.png', 'face/BTLCHRFARI_R.png',
-        'face/BTLCHRSMSH_L.png', 'face/BTLCHRSMSH_R.png',
-        'face/BTLCHRPET_L.png', 'face/BTLCHRPET_R.png',
-        'face/BTLCHRYURI_L.png', 'face/BTLCHRYURI_R.png',
-        'face/BTLCHRMAYU_L.png', 'face/BTLCHRMAYU_R.png',
+        // Encounter/Dialogue Portraits (Detailed)
+        'face/ATA_base.png',
+        'face/ATA_blink-1.png', 'face/ATA_blink-2.png',
+        'face/ATA_shocked.png', 'face/ATA_smile.png',
+
+        'face/YURI_base.png',
+        'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
+        'face/YURI_shocked.png', 'face/YURI_smile.png',
+        'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
+
+        'face/FARI_base.png',
+        'face/FARI_blink-1.png', 'face/FARI_blink-2.png',
+        'face/FARI_shocked.png', 'face/FARI_smile.png',
+        'face/FARI_talk-1.png', 'face/FARI_talk-2.png',
 
         // Smashu Animation Asssets
-        'face/btl/SMSH_L_base.png', 'face/btl/SMSH_L_idle.png',
-        'face/btl/SMSH_L_blink-1.png', 'face/btl/SMSH_L_blink-2.png', 'face/btl/SMSH_L_blink-3.png',
-        'face/btl/SMSH_L_shocked.png', 'face/btl/SMSH_L_smile.png',
-        'face/btl/SMSH_L_talk-1.png', 'face/btl/SMSH_L_talk-2.png', 'face/btl/SMSH_L_talk-3.png',
-
-        'face/btl/SMSH_R_base.png', 'face/btl/SMSH_R_idle.png',
-        'face/btl/SMSH_R_blink-1.png', 'face/btl/SMSH_R_blink-2.png', 'face/btl/SMSH_R_blink-3.png',
-        'face/btl/SMSH_R_shocked.png', 'face/btl/SMSH_R_smile.png',
-        'face/btl/SMSH_R_talk-1.png', 'face/btl/SMSH_R_talk-2.png', 'face/btl/SMSH_R_talk-3.png',
+        'face/SMSH_base.png', 'face/SMSH_idle.png',
+        'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png', 'face/SMSH_blink-3.png',
+        'face/SMSH_shocked.png', 'face/SMSH_smile.png',
+        'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png', 'face/SMSH_talk-3.png',
 
         // Linxiang Animation Assets
-        'face/btl/RIN_L_base.png',
-        'face/btl/RIN_L_blink-1.png', 'face/btl/RIN_L_blink-2.png', 'face/btl/RIN_L_blink-3.png',
-        'face/btl/RIN_L_shocked.png', 'face/btl/RIN_L_smile.png',
-        'face/btl/RIN_L_talk-1.png', 'face/btl/RIN_L_talk-2.png', 'face/btl/RIN_L_talk-3.png',
+        'face/RIN_base.png',
+        'face/RIN_blink-1.png', 'face/RIN_blink-2.png', 'face/RIN_blink-3.png',
+        'face/RIN_shocked.png', 'face/RIN_smile.png',
+        'face/RIN_talk-1.png', 'face/RIN_talk-2.png', 'face/RIN_talk-3.png',
 
         'face/btl/RIN_R_base.png',
         'face/btl/RIN_R_blink-1.png', 'face/btl/RIN_R_blink-2.png', 'face/btl/RIN_R_blink-3.png',
         'face/btl/RIN_R_shocked.png', 'face/btl/RIN_R_smile.png',
         'face/btl/RIN_R_talk-1.png', 'face/btl/RIN_R_talk-2.png', 'face/btl/RIN_R_talk-3.png',
 
-        // Ataho Animation Assets
-        'face/btl/ATA_L_base.png',
-        'face/btl/ATA_L_blink-1.png', 'face/btl/ATA_L_blink-2.png', 'face/btl/ATA_L_blink-3.png',
-        'face/btl/ATA_L_shocked.png', 'face/btl/ATA_L_smile.png',
-
-        // Battle Sprites
-        'face/PARTATA.png',
-        'face/PARTRIN.png',
-        'face/PARTSMSH.png',
-        'face/PARTPET.png',
-        'face/PARTFARI.png',
-        'face/PARTYURI.png',
-        'face/PARTMAYU.png',
-        'face/CHRSELEF.png',
         // Tiles
         'tiles/pai_ata.png', 'tiles/pai_rin.png', 'tiles/pai_smsh.png',
         'tiles/pai_pet.png', 'tiles/pai_fari.png', 'tiles/pai_yuri.png',
@@ -95,11 +81,6 @@ const Assets = {
         'tiles/back-top.png', 'tiles/back-bottom.png',
         'tiles/side-top.png', 'tiles/side-bottom.png',
         'tiles/pai_uradora.png', // Hidden Dora
-
-        // Small Icons
-        'face/PARTATA.png', 'face/PARTRIN.png', 'face/PARTFARI.png',
-        'face/PARTSMSH.png', 'face/PARTPET.png', 'face/PARTYURI.png',
-        'face/PARTMAYU.png',
 
         // UI
         'ui/number.png',

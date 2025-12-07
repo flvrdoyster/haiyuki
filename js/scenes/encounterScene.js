@@ -27,6 +27,8 @@ const EncounterLayout = {
 const EncounterScene = {
     playerIndex: 0,
     cpuIndex: 0,
+    p1Portrait: null,
+    cpuPortrait: null,
 
     // Timer/State
     // 0: Init/Fade In
@@ -72,9 +74,61 @@ const EncounterScene = {
         } else {
             this.dialogueSequence = DialogueData["default"];
         }
+
+        // Initialize Portraits
+        this.p1Portrait = new PortraitCharacter(p1, EncounterLayout.PORTRAIT.P1, false);
+        this.cpuPortrait = new PortraitCharacter(cpu, EncounterLayout.PORTRAIT.CPU, true);
+
+        // Auto-configure Animation based on ID
+        // Map internal ID to file prefix if needed (ataho -> ATA, yuri -> YURI)
+        // Others might default to ID.toUpperCase() if they follow the pattern.
+        const idMap = {
+            'ataho': 'ATA',
+            'rinxiang': 'RIN',
+            'smash': 'SMSH',
+            'petum': 'PET',
+            'fari': 'FARI',
+            'yuri': 'YURI',
+            'mayu': 'MAYU'
+        };
+
+        const setupAnim = (portrait, id) => {
+            const prefix = idMap[id] || id.toUpperCase();
+            const base = `face/${prefix}_base.png`;
+            if (Assets.get(base)) {
+                console.log(`Auto-configuring animation for ${id} with base ${base}`);
+                portrait.setAnimationConfig({ base: base });
+            } else {
+                console.warn(`[EncounterScene] No base image found for ${id} at ${base}`);
+            }
+        };
+
+        setupAnim(this.p1Portrait, p1.id);
+        setupAnim(this.cpuPortrait, cpu.id);
+
+        // MANUAL OVERRIDE (Safety fallback for Yuri if auto-detect fails due to timing/naming)
+        if (p1.id === 'yuri' || cpu.id === 'yuri') {
+            const yuriPortrait = (p1.id === 'yuri') ? this.p1Portrait : this.cpuPortrait;
+            // Only re-apply if auto-detect missed talk assets
+            if (!yuriPortrait.animConfig || !yuriPortrait.animConfig.talk) {
+                console.log("Manual Override for Yuri Animation Config");
+                yuriPortrait.setAnimationConfig({
+                    base: 'face/YURI_base.png',
+                    blink: ['face/YURI_blink-2.png', 'face/YURI_blink-1.png'],
+                    talk: ['face/YURI_talk-1.png', 'face/YURI_talk-2.png'],
+                    talkSequence: [0, 1],
+                    shocked: 'face/YURI_shocked.png',
+                    smile: 'face/YURI_smile.png'
+                });
+            }
+        }
     },
 
     update: function () {
+        // Update Portraits
+        if (this.p1Portrait) this.p1Portrait.update();
+        if (this.cpuPortrait) this.cpuPortrait.update();
+
         // Simple input to advance text
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
             this.currentLineIndex++;
@@ -148,11 +202,41 @@ const EncounterScene = {
             speakerSide = 'cpu';
         }
 
-        // P1 Left (Frame 0)
-        Assets.drawFrame(ctx, p1Char.face, EncounterLayout.PORTRAIT.P1.x, EncounterLayout.PORTRAIT.P1.y, 0, EncounterLayout.PORTRAIT.P1.w, EncounterLayout.PORTRAIT.P1.h);
+        // -- STATE MANAGEMENT --
+        // Defaults
+        let p1State = 'idle';
+        let cpuState = 'idle';
+        let p1Talking = (speakerSide === 'p1');
+        let cpuTalking = (speakerSide === 'cpu');
 
-        // CPU Right (Frame 1)
-        Assets.drawFrame(ctx, cpuChar.face, EncounterLayout.PORTRAIT.CPU.x, EncounterLayout.PORTRAIT.CPU.y, 1, EncounterLayout.PORTRAIT.CPU.w, EncounterLayout.PORTRAIT.CPU.h);
+        // Override from Dialogue Data
+        // Support keys: p1State, cpuState, or direct ID state (e.g. atahoState: 'smile')?
+        // User asked for "define the state in the dialogue".
+        // Let's support `p1State` and `cpuState` for generic access,
+        // and also allow explicit ID references if needed, but generic is cleaner.
+        if (currentLine.p1State) p1State = currentLine.p1State;
+        if (currentLine.cpuState) cpuState = currentLine.cpuState;
+
+        // Apply to Portraits
+        if (this.p1Portrait) {
+            this.p1Portrait.setState(p1State);
+            this.p1Portrait.setTalking(p1Talking);
+        }
+        if (this.cpuPortrait) {
+            this.cpuPortrait.setState(cpuState);
+            this.cpuPortrait.setTalking(cpuTalking);
+        }
+        // ----------------------
+
+        // P1 Left
+        if (this.p1Portrait) {
+            this.p1Portrait.draw(ctx);
+        }
+
+        // CPU Right
+        if (this.cpuPortrait) {
+            this.cpuPortrait.draw(ctx);
+        }
 
         ctx.globalAlpha = 1.0; // Reset
 

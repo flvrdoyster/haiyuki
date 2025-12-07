@@ -21,7 +21,7 @@ const Input = {
     init: function (canvas) {
         window.addEventListener('keydown', (e) => {
             // Prevent default scrolling for arrow keys and space
-            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
                 e.preventDefault();
             }
             this.keys[e.code] = true;
@@ -35,8 +35,10 @@ const Input = {
         if (canvas) {
             canvas.addEventListener('mousemove', (e) => {
                 const rect = canvas.getBoundingClientRect();
-                this.mouseX = e.clientX - rect.left;
-                this.mouseY = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                this.mouseX = (e.clientX - rect.left) * scaleX;
+                this.mouseY = (e.clientY - rect.top) * scaleY;
             });
 
             canvas.addEventListener('mousedown', () => {
@@ -46,6 +48,35 @@ const Input = {
             window.addEventListener('mouseup', () => {
                 this.isMouseDown = false;
             });
+
+            // Touch Support
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent scrolling
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const touch = e.touches[0];
+                this.mouseX = (touch.clientX - rect.left) * scaleX;
+                this.mouseY = (touch.clientY - rect.top) * scaleY;
+                this.isMouseDown = true;
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    this.mouseX = (touch.clientX - rect.left) * scaleX;
+                    this.mouseY = (touch.clientY - rect.top) * scaleY;
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.isMouseDown = false;
+            }, { passive: false });
         }
     },
 

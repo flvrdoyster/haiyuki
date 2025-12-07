@@ -31,46 +31,73 @@ class PortraitCharacter {
         // 1. Scalar Defaults
         if (!this.animConfig.interval) this.animConfig.interval = 80; // Blink Interval
         if (!this.animConfig.speed) this.animConfig.speed = 5;       // Blink Speed
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 6; // Talk Speed
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 10; // Talk Speed (Slower)
 
         // 2. Asset Auto-Generation (Convention over Configuration)
         // If 'base' exists (e.g., ".../NAME_SIDE_base.png"), try to generate blink/talk if missing.
         if (this.animConfig.base) {
             const base = this.animConfig.base;
+            const prefix = base.replace('_base.png', '');
 
-            // Auto-generate Blink: base("..._base.png") -> "..._blink-1.png", etc.
+            // Auto-generate Blink
             if (!this.animConfig.blink) {
-                // Check if base ends with "_base.png"
-                if (base.endsWith('_base.png')) {
-                    const prefix = base.replace('_base.png', '');
-                    this.animConfig.blink = [
-                        `${prefix}_blink-1.png`,
-                        `${prefix}_blink-2.png`,
-                        `${prefix}_blink-3.png`
-                    ];
+                const detectedBlinks = [];
+                // Look for blink-1, blink-2, blink-3...
+                for (let i = 1; i <= 5; i++) {
+                    const key = `${prefix}_blink-${i}.png`;
+                    if (Assets.get(key)) {
+                        detectedBlinks.push(key);
+                    } else {
+                        break; // Stop at first missing
+                    }
+                }
+                if (detectedBlinks.length > 0) {
+                    this.animConfig.blink = detectedBlinks;
                 }
             }
 
             // Auto-generate Talk
             if (!this.animConfig.talk) {
-                if (base.endsWith('_base.png')) {
-                    const prefix = base.replace('_base.png', '');
-                    this.animConfig.talk = [
-                        `${prefix}_talk-1.png`,
-                        `${prefix}_talk-2.png`,
-                        `${prefix}_talk-3.png`
-                    ];
+                // Modified: Index 0 is always Base
+                const detectedTalks = [this.animConfig.base];
+
+                for (let i = 1; i <= 5; i++) {
+                    const key = `${prefix}_talk-${i}.png`;
+                    if (Assets.get(key)) {
+                        detectedTalks.push(key);
+                    } else {
+                        break;
+                    }
                 }
+
+                // If we found any additional talk frames (length > 1)
+                if (detectedTalks.length > 1) {
+                    this.animConfig.talk = detectedTalks;
+                    // Auto-Default Sequence for 2 additional frames (Total 3: Base, Talk1, Talk2)
+                    if (detectedTalks.length === 3 && !this.animConfig.talkSequence) {
+                        this.animConfig.talkSequence = [0, 2, 1, 2];
+                    }
+                }
+                console.log(`[PortraitCharacter] Auto-detected Talk for ${prefix}: ${detectedTalks.length - 1} extra frames.`);
             }
 
             // Auto-generate Expressions
-            if (!this.animConfig.smile && base.endsWith('_base.png')) {
-                this.animConfig.smile = base.replace('_base.png', '_smile.png');
+            if (!this.animConfig.smile) {
+                const key = `${prefix}_smile.png`;
+                if (Assets.get(key)) this.animConfig.smile = key;
             }
-            if (!this.animConfig.shocked && base.endsWith('_base.png')) {
-                this.animConfig.shocked = base.replace('_base.png', '_shocked.png');
+            if (!this.animConfig.shocked) {
+                const key = `${prefix}_shocked.png`;
+                if (Assets.get(key)) this.animConfig.shocked = key;
+            }
+
+            // Auto-generate Idle
+            if (!this.animConfig.idle) {
+                const key = `${prefix}_idle.png`;
+                if (Assets.get(key)) this.animConfig.idle = key;
             }
         }
+        console.log(`[PortraitCharacter] Animation Config Set. Blink: ${this.animConfig.blink ? this.animConfig.blink.length : 0}, Talk: ${this.animConfig.talk ? this.animConfig.talk.length : 0}`);
 
         this.blinkTimer = Math.floor(Math.random() * this.animConfig.interval);
     }
@@ -80,9 +107,14 @@ class PortraitCharacter {
     }
 
     setTalking(talking) {
+        if (this.isTalking === talking) return; // Optimization: No state change
+
         this.isTalking = talking;
         if (talking) {
-            this.startTalk();
+            // Only remain talking if startTalk succeeds
+            if (!this.startTalk()) {
+                this.isTalking = false;
+            }
         } else {
             this.currentTalkFrame = null;
         }
@@ -90,15 +122,29 @@ class PortraitCharacter {
 
     startTalk() {
         if (!this.animConfig || !this.animConfig.talk || this.animConfig.talk.length === 0) {
-            console.warn("PortraitCharacter: startTalk failed - No talk config or empty array.", this.animConfig);
-            return;
+            // No talk assets available
+            return false;
         }
-        // Default Loop: 0 -> 1 -> 2 -> 1 -> 0 ...
-        this.talkSequence = this.animConfig.talkSequence || [0, 1, 2, 1];
+        // Default Loop
+        if (!this.talkSequence || this.talkSequence.length === 0) {
+            // If manual sequence not set, decide based on length
+            if (this.animConfig.talkSequence) {
+                this.talkSequence = this.animConfig.talkSequence;
+            } else if (this.animConfig.talk.length === 3) {
+                // Base(0) + Talk1(1) + Talk2(2)
+                this.talkSequence = [0, 2, 1, 2];
+            } else if (this.animConfig.talk.length === 2) {
+                // Base(0) + Talk1(1)
+                this.talkSequence = [0, 1, 0, 1];
+            } else {
+                this.talkSequence = [0, 1]; // Fallback
+            }
+        }
+
         this.talkFrameIndex = 0;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || 6;
-        // console.log("PortraitCharacter: Talk Started", this.currentTalkFrame);
+        this.talkTimer = this.animConfig.talkSpeed || 10;
+        return true;
     }
 
     // ... (update method unchanged) ...
@@ -110,7 +156,7 @@ class PortraitCharacter {
             const targetX = this.lastRenderRect.x + (offset.x || 0);
             const targetY = this.lastRenderRect.y + (offset.y || 0);
 
-            ctx.drawImage(img, targetX, targetY, this.lastRenderRect.w, this.lastRenderRect.h);
+            this._drawImageAutoSlice(ctx, img, targetX, targetY, this.lastRenderRect.w, this.lastRenderRect.h);
         } else if (img) {
             // Fallback
             ctx.drawImage(img, this.config.x + (offset.x || 0), this.config.y + (offset.y || 0), this.config.w, this.config.h);
@@ -137,14 +183,21 @@ class PortraitCharacter {
 
         // Talk Logic
         if (this.isTalking) {
-            this.talkTimer--;
-            if (this.talkTimer <= 0) {
-                this.advanceTalk();
+            // Safety check: ensure we actually have talk config
+            if (this.animConfig.talk && this.animConfig.talk.length > 0) {
+                this.talkTimer--;
+                if (this.talkTimer <= 0) {
+                    this.advanceTalk();
+                }
+            } else {
+                this.isTalking = false; // Auto-disable if no assets
             }
         }
     }
 
     advanceTalk() {
+        if (!this.talkSequence || this.talkSequence.length === 0) return;
+
         this.talkFrameIndex++;
         if (this.talkFrameIndex >= this.talkSequence.length) {
             this.talkFrameIndex = 0; // Loop
@@ -218,7 +271,7 @@ class PortraitCharacter {
                 x: cx,
                 y: cy,
                 w: this.config.w,
-                h: this.config.h
+                h: this.config.h // Default target height
             };
 
             // 1. Draw Base
@@ -233,7 +286,13 @@ class PortraitCharacter {
 
                     // Apply Custom Config if present
                     if (this.animConfig.scale) {
-                        dw = baseImg.width * this.animConfig.scale;
+                        // Note: If using slicing, baseImg.width is the full sheet width. 
+                        // We should use the "Frame Width".
+                        // Logic: If sheet, frameWidth = width / 2. Else width.
+                        const isSheet = baseImg.width >= (this.config.w * 1.8);
+                        const frameW = isSheet ? (baseImg.width / 2) : baseImg.width;
+
+                        dw = frameW * this.animConfig.scale;
                         dh = baseImg.height * this.animConfig.scale;
                     }
                     if (this.animConfig.xOffset) dx += this.animConfig.xOffset;
@@ -248,7 +307,8 @@ class PortraitCharacter {
                     // Update lastRenderRect with the ACTUAL base placement
                     this.lastRenderRect = { x: dx, y: dy, w: dw, h: dh };
 
-                    ctx.drawImage(baseImg, this.lastRenderRect.x, this.lastRenderRect.y, this.lastRenderRect.w, this.lastRenderRect.h);
+                    // Draw Base with Slicing Support
+                    this._drawImageAutoSlice(ctx, baseImg, this.lastRenderRect.x, this.lastRenderRect.y, this.lastRenderRect.w, this.lastRenderRect.h);
                 }
             }
 
@@ -330,7 +390,37 @@ class PortraitCharacter {
             const targetX = this.lastRenderRect.x + xo;
             const targetY = this.lastRenderRect.y + yo;
 
-            ctx.drawImage(img, targetX, targetY, this.lastRenderRect.w, this.lastRenderRect.h);
+            this._drawImageAutoSlice(ctx, img, targetX, targetY, this.lastRenderRect.w, this.lastRenderRect.h);
+        }
+    }
+
+    /**
+     * Draws an image with automatic slicing if it detects a combined sheet (Left+Right).
+     * Uses this.isCpu to determine which half to draw (False=Left/0, True=Right/1).
+     */
+    _drawImageAutoSlice(ctx, img, dx, dy, dw, dh) {
+        // Heuristic: If image width is significantly larger than target width, assume strip.
+        // Specifically for this project, combined sheets are usually 2 frames side-by-side.
+        // Check if width is approx >= 2 * original config width? 
+        // Or just compare to the render width?
+        // Using 1.8x factor to be safe against minor scaling differences.
+
+        // Use this.config.w as the baseline "Frame Width" expectation.
+        const threshold = this.config.w * 1.5;
+        const isSheet = img.width >= threshold;
+
+        if (isSheet) {
+            const frameIndex = this.isCpu ? 1 : 0;
+            // Assume 2 frames exactly
+            const frameWidth = img.width / 2;
+            const frameHeight = img.height; // Assume horizontal strip
+
+            const sx = frameIndex * frameWidth;
+
+            ctx.drawImage(img, sx, 0, frameWidth, frameHeight, dx, dy, dw, dh);
+        } else {
+            // Normal Single Image
+            ctx.drawImage(img, dx, dy, dw, dh);
         }
     }
 }

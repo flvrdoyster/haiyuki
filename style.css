@@ -18,6 +18,8 @@ canvas {
     background-color: #000;
     image-rendering: pixelated;
     /* Keep retro look crisp */
+    max-width: 100%;
+    max-height: 100vh;
 }
 
 @font-face {
