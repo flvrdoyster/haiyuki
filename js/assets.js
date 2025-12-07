@@ -1,22 +1,12 @@
 const Assets = {
     images: {},
     toLoad: [
-        'TITLE.png',
-        'TITLMOJI.png',
-        'TTBAK.png',
-        'TTMOJI.png',
-        'TTMOJI2.png',
-        'TTHAI.png',
-        'TTNARUTO.png',
-        'OPMENU2.png', // Menu background?
-        'OPMOJI.png',  // Menu text?
-        'POINTCUR.png', // Cursor
-        'PUSHOK.png',   // "PUSH SPACE KEY"
-        'COMPLOGO.png', // "COMPILE 1998"
-        'SCMPLOGO.png',  // Small Compile Logo?
+        'ui/title.png',
+        'ui/pushok.png',   // "PUSH SPACE KEY"
+        'ui/logo_compile_1998.png',  // Small Compile Logo?
 
         // Character Select Assets
-        'face/CHRBAK.png',
+        // 'face/CHRBAK.png', // Invalid path, removed
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
         'bg/GAMEBG.png',
         // FX
@@ -33,14 +23,13 @@ const Assets = {
         'bg/04.png', 'bg/05.png', 'bg/06.png', 'bg/07.png',
         'bg/08.png', 'bg/09.png', 'bg/10.png', 'bg/11.png',
 
-        'bar.png',
-        'VS.png',
-        'FUKIDASI.png', // Keeping for legacy reference or removal? Let's keep for now.
-        'LONG_BUBBLE.png',
-        'LONG_BUBBLE_TAIL.png',
-        'TTBAK.png',
+        'ui/vs.png',
+        'ui/long_bubble.png',
+        'ui/long_bubble_tail.png',
+        'ui/short_bubble.png',
         'face/CHRSELEF_face.png',
         'face/CHRSELEF_cursor.png',
+
         // Individual Select Icons
         'face/CHRSELATA.png', 'face/CHRSELRIN.png', 'face/CHRSELFARI.png',
         'face/CHRSELSMSH.png', 'face/CHRSELPET.png', 'face/CHRSELYURI.png',
@@ -107,13 +96,14 @@ const Assets = {
         'ui/dora.png',
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
-        'ui/bar_yellow.png',
         'ui/cursor_yellow.png',
+        'ui/alphabet.png',
+        'ui/pointer.png',
 
         // Endings
         'ending/ENDATA.png', 'ending/ENDFAR.png', 'ending/ENDMAY.png',
         'ending/ENDRIN.png', 'ending/ENDSMA.png', 'ending/ENDYUR.png',
-        'theend.png'
+        'ending/theend.png'
     ],
     loadedCount: 0,
 
@@ -187,5 +177,42 @@ const Assets = {
         if (sx >= img.width) return;
 
         ctx.drawImage(img, sx, sy, frameWidth, frameHeight, x, y, frameWidth, frameHeight);
+    },
+
+    /**
+     * Draw text using 'ui/alphabet.png'.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {string} text - Text to draw (A-Z, ?)
+     * @param {number} x - Start x position
+     * @param {number} y - Start y position
+     * @param {string} color - 'orange' (default) or 'yellow'
+     */
+    drawAlphabet: function (ctx, text, x, y, color = 'orange') {
+        const img = this.get('ui/alphabet.png');
+        if (!img) return;
+
+        const frameWidth = 32;
+        const frameHeight = 32;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ?";
+
+        // Row 0 = Orange, Row 1 = Yellow
+        const row = (color === 'yellow') ? 1 : 0;
+        const sy = row * frameHeight;
+
+        text = text.toUpperCase();
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const index = chars.indexOf(char);
+
+            if (index !== -1) {
+                const sx = index * frameWidth;
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, x + (i * frameWidth), y, frameWidth, frameHeight);
+            } else if (char === ' ') {
+                // Just advance for space
+                // (Loop advances x by i * frameWidth naturally, but if we wanted flexible spacing we'd do it differently. 
+                // Here we just draw nothing for space but the next character will be offset correctly by i)
+            }
+        }
     }
 };

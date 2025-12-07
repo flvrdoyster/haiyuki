@@ -158,7 +158,7 @@ const EncounterScene = {
 
         // 3. VS Logo (Hide in Ending Mode)
         if (this.mode !== 'ENDING' && this.mode !== 'ENDING_WATCH') {
-            const vs = Assets.get('VS.png');
+            const vs = Assets.get('ui/vs.png');
             if (vs) {
                 ctx.drawImage(vs, (EncounterLayout.VS_LOGO.widthConstraint - vs.width) / 2, EncounterLayout.VS_LOGO.y);
             }
@@ -190,8 +190,8 @@ const EncounterScene = {
 
 
         // 5. Dialogue Box & Text
-        const box = Assets.get('LONG_BUBBLE.png');
-        const tail = Assets.get('LONG_BUBBLE_TAIL.png');
+        const box = Assets.get('ui/long_bubble.png');
+        const tail = Assets.get('ui/long_bubble_tail.png');
 
         if (box && tail) {
             // Calculate scale to fit width if needed, preserving aspect ratio

@@ -327,6 +327,13 @@ const BattleScene = {
             this.sequencing.currentStep++;
         } else if (step.type === 'STATE') {
             this.currentState = step.state;
+
+            // Set Result Message
+            const winType = (step.state === this.STATE_WIN) ? "WIN" : "LOSE";
+            // Use score if provided, else default
+            const scoreMsg = step.score ? `Score: ${step.score}` : "";
+            this.drawResultMsg = `${winType}\n${scoreMsg}\nPress Space to Continue`;
+
             this.sequencing.active = false;
         } else if (step.type === 'STATE_NAGARI') {
             // FIX: Must set state to NAGARI to allow input (Next Round)
@@ -702,10 +709,30 @@ const BattleScene = {
     },
 
     drawResult: function (ctx) {
-        // Placeholder for drawResult function content
-        // This function was implied by the edit, but its content was not provided.
-        // It's likely responsible for drawing the end-of-round/match overlay.
-        // For now, it's an empty function to maintain syntactical correctness.
+        // Overlay
+        ctx.save();
+        ctx.fillStyle = BattleConfig.OVERLAY.bgColor;
+        ctx.fillRect(0, 0, 640, 480);
+
+        // Text
+        if (this.drawResultMsg) {
+            ctx.textAlign = 'center';
+            ctx.fillStyle = BattleConfig.OVERLAY.resultColor;
+
+            const lines = this.drawResultMsg.split('\n');
+            const totalHeight = lines.length * 40; // Approx line height
+            let startY = 240 - (totalHeight / 2);
+
+            lines.forEach((line, i) => {
+                if (i === 0) ctx.font = BattleConfig.OVERLAY.resultFont;
+                else if (i === 1) ctx.font = BattleConfig.OVERLAY.subFont;
+                else ctx.font = BattleConfig.OVERLAY.infoFont;
+
+                ctx.fillText(line, 320, startY + (i * 50));
+            });
+        }
+
+        ctx.restore();
     },
 
     checkRoundEnd: function () {

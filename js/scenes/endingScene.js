@@ -72,7 +72,7 @@ const EndingScene = {
         }
 
         // Draw 'theend.png'
-        const endImg = Assets.get('theend.png');
+        const endImg = Assets.get('ending/theend.png');
         if (endImg) {
             // Bottom right? Or Center bottom?
             // "screen bottom" usually implies center or right.

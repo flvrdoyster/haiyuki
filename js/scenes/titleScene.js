@@ -1,8 +1,12 @@
 // Scene Configuration
 const TitleConfig = {
-    TITLE: { path: 'TITLE.png', y: 80, centered: true },
-    PUSH_KEY: { path: 'PUSHOK.png', y: 360, centered: true },
-    COPYRIGHT: { path: 'SCMPLOGO.png', y: 430, centered: true }
+    TITLE: { path: 'ui/title.png', y: 80, centered: true },
+    PUSH_KEY: { path: 'ui/pushok.png', y: 360, centered: true },
+    COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 430, centered: true },
+    MENU: {
+        ITEM1: { text: "BATTLE MODE", y: 300 },
+        ITEM2: { text: "STORY ONLY", y: 340 }
+    }
 };
 
 const TitleScene = {
@@ -15,12 +19,14 @@ const TitleScene = {
     showPushKey: true,
 
     menuIndex: 0, // 0: Start, 1: Watch
+    pointerTimer: 0,
 
     init: function () {
         this.currentState = this.STATE_PRESS_KEY;
         this.blinkTimer = 0;
         this.showPushKey = true;
         this.menuIndex = 0;
+        this.pointerTimer = 0;
     },
 
     update: function () {
@@ -45,6 +51,8 @@ const TitleScene = {
                 const mode = (this.menuIndex === 0) ? 'STORY' : 'WATCH';
                 Game.changeScene(CharacterSelectScene, { mode: mode });
             }
+
+            this.pointerTimer++;
         }
     },
 
@@ -69,20 +77,29 @@ const TitleScene = {
                 }
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
-            // Draw Simple Menu
-            ctx.save();
-            ctx.font = 'bold 24px "KoddiUDOnGothic-Bold", sans-serif';
-            ctx.textAlign = 'center';
+            // Draw Retro Font Menu
 
-            // Item 1: Start Game
-            ctx.fillStyle = (this.menuIndex === 0) ? '#FFFF00' : '#FFFFFF';
-            ctx.fillText("게임 시작", 320, 360);
+            // Item 1: BATTLE MODE
+            const text1 = TitleConfig.MENU.ITEM1.text;
+            const color1 = (this.menuIndex === 0) ? 'yellow' : 'orange';
+            const x1 = (640 - (text1.length * 32)) / 2;
+            Assets.drawAlphabet(ctx, text1, x1, TitleConfig.MENU.ITEM1.y, color1);
 
-            // Item 2: Conversation View
-            ctx.fillStyle = (this.menuIndex === 1) ? '#FFFF00' : '#FFFFFF';
-            ctx.fillText("대화만 보기", 320, 400);
+            // Item 2: STORY ONLY
+            const text2 = TitleConfig.MENU.ITEM2.text;
+            const color2 = (this.menuIndex === 1) ? 'yellow' : 'orange';
+            const x2 = (640 - (text2.length * 32)) / 2;
+            Assets.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
 
-            ctx.restore();
+            // Draw Pointer
+            let targetText = (this.menuIndex === 0) ? text1 : text2;
+            let targetY = (this.menuIndex === 0) ? TitleConfig.MENU.ITEM1.y : TitleConfig.MENU.ITEM2.y;
+            let targetX = (640 - (targetText.length * 32)) / 2;
+
+            // Pointer Animation
+            const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
+            // Draw to the left of the text
+            Assets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
         }
 
         // 4. Copyright

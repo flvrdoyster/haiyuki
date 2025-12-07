@@ -1,8 +1,9 @@
+
 // Scene Configuration
 const SelectConfig = {
     BACKGROUND: { path: 'bg/CHRBAK.png' },
     TITLE: { path: 'face/CHRSELE.png', y: 20 },
-    VS_LOGO: { path: 'VS.png', y: 200 },
+    VS_LOGO: { path: 'ui/vs.png', y: 200 },
     PORTRAIT: {
         w: 280, h: 304,
         P1: { x: 0, y: 65 },
@@ -105,7 +106,7 @@ const CharacterSelectScene = {
             // Randomly pick one
             const rand = Math.floor(Math.random() * candidates.length);
             this.cpuIndex = candidates[rand];
-            console.log(`Auto-selected CPU: ${this.cpuIndex} (Rival: ${rivalId} / Index: ${rivalIndex})`);
+            console.log(`Auto - selected CPU: ${this.cpuIndex} (Rival: ${rivalId} / Index: ${rivalIndex})`);
 
             // Transition to Encounter
             Game.changeScene(EncounterScene, {
@@ -186,7 +187,7 @@ const CharacterSelectScene = {
                     // Confirm CPU
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
-                    console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                    console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                 }
 
                 // Mouse Input (Debug Manual)
@@ -198,7 +199,7 @@ const CharacterSelectScene = {
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;
                             this.readyTimer = 0;
-                            console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                            console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                         }
                     }
                 }
@@ -212,7 +213,7 @@ const CharacterSelectScene = {
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;
                             this.readyTimer = 0;
-                            console.log(`Ready (Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
+                            console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                         }
                     }
                 }
@@ -290,10 +291,14 @@ const CharacterSelectScene = {
         }
 
         // 2. Title "CHARACTER SELECT"
-        const title = Assets.get(SelectConfig.TITLE.path);
-        if (title) {
-            ctx.drawImage(title, (640 - title.width) / 2, SelectConfig.TITLE.y);
-        }
+        // const title = Assets.get(SelectConfig.TITLE.path);
+        // if (title) {
+        //     ctx.drawImage(title, (640 - title.width) / 2, SelectConfig.TITLE.y);
+        // }
+        // Replacement: Retro Font Title
+        const titleText = "CHARACTER SELECT";
+        const titleX = (640 - (titleText.length * 32)) / 2;
+        Assets.drawAlphabet(ctx, titleText, titleX, SelectConfig.TITLE.y, 'yellow');
 
         // 3. VS Logo
         const vs = Assets.get(SelectConfig.VS_LOGO.path);
@@ -453,13 +458,13 @@ const CharacterSelectScene = {
                 queue.splice(idxInQueue, 1);
                 // Push to end
                 queue.push(rivalIndex);
-                console.log(`Watch Mode: Moved Rival (${rivalId}) to end of queue.`);
+                console.log(`Watch Mode: Moved Rival(${rivalId}) to end of queue.`);
             }
         }
 
         if (queue.length > 0) {
             const firstCpu = queue.shift();
-            console.log(`Starting Watch Mode: P1(${this.playerIndex}) vs CPU(${firstCpu}). Remaining: ${queue.length}`);
+            console.log(`Starting Watch Mode: P1(${this.playerIndex}) vs CPU(${firstCpu}).Remaining: ${queue.length} `);
             Game.changeScene(EncounterScene, {
                 playerIndex: this.playerIndex,
                 cpuIndex: firstCpu,
