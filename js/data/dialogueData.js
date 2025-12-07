@@ -57,26 +57,26 @@ const DialogueData = {
         { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?" },
         { speaker: "ataho", text: "나야, 아타호라고." },
         { speaker: "ataho", text: "있잖아, 그 때의..." },
-        { speaker: "yuri", text: "그 때..." },
-        { speaker: "yuri", text: "그" },
-        { speaker: "yuri", text: "………………………………" },
-        { speaker: "yuri", text: "그~게." },
-        { speaker: "yuri", text: "그래그래." },
-        { speaker: "yuri", text: "뭐였더라." },
-        { speaker: "yuri", text: "어라라." },
-        { speaker: "yuri", text: "음~ 전혀 기억나지 않네!!" },
-        { speaker: "ataho", text: "뭐야, 넌!" }
+        { speaker: "ataho", text: "그 때..." },
+        { speaker: "ataho", text: "그" },
+        { speaker: "ataho", text: "………………………………" },
+        { speaker: "ataho", text: "그~게." },
+        { speaker: "ataho", text: "그래그래." },
+        { speaker: "ataho", text: "뭐였더라." },
+        { speaker: "ataho", text: "어라라." },
+        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!" },
+        { speaker: "yuri", text: "뭐야, 넌!" }
     ],
 
     // Rinxiang vs Fari
     "rinxiang_fari": [
-        { speaker: "rinxiang", text: "안녕하세요." },
-        { speaker: "fari", text: "아...안녕하세요." },
-        { speaker: "fari", text: "당신이 혹시 화린씨?" },
-        { speaker: "rinxiang", text: "그렇습니다만, 어떻게 제 이름을 알고 계신건가요?" },
+        { speaker: "fari", text: "안녕하세요." },
+        { speaker: "rinxiang", text: "아...안녕하세요." },
+        { speaker: "rinxiang", text: "당신이 혹시 화린씨?" },
+        { speaker: "fari", text: "그렇습니다만, 어떻게 제 이름을 알고 계신건가요?" },
         { speaker: "rinxiang", text: "과연, 아타호가 얘기했던 대로네.\n한 눈에 그런 줄 알았다구요." },
-        { speaker: "rinxiang", text: "네에, 아타호씨랑 아는 사이신가요?" },
-        { speaker: "fari", text: "말해두겠지만 아타호는 제 거니까,\n손대거나 하면 용서하지 않을 거에요!" },
+        { speaker: "fari", text: "네에, 아타호씨랑 아는 사이신가요?" },
+        { speaker: "rinxiang", text: "말해두겠지만 아타호는 제 거니까,\n손대거나 하면 용서하지 않을 거에요!" },
         { speaker: "rinxiang", text: "당신에겐 스마슈가 어울려!" },
         { speaker: "fari", text: "뭐... 뭐라구요!\n하필이면 스마슈씨라니..." },
         { speaker: "fari", text: "세상에는 말해도 되는 것과 안 되는 것이 있다구요!!" }
@@ -87,22 +87,22 @@ const DialogueData = {
         { speaker: "petum", text: "처음 뵙겠습니다.\n당신이 린샹씨군요?" },
         { speaker: "rinxiang", text: "아... 당신은...?" },
         { speaker: "petum", text: "앗, 이것 참 소개가 늦었습니다.\n저는 아타호의 친구인\n페톰이라는 사람입니다." },
-        { speaker: "rinxiang", text: "당신에 대해서는 그에게 많이 들었어요." },
-        { speaker: "petum", text: "그래서, 아타호는\n저에 대해서 뭐라고 했어요?" },
-        { speaker: "petum", text: "딱히 아무 말도 하지 않았지만,\n무척이나 신경쓰고 있는 모습이었어요." },
-        { speaker: "petum", text: "그래요, 고마워요.\n그러면, 또." },
+        { speaker: "petum", text: "당신에 대해서는 아타호에게 많이 들었습니다." },
+        { speaker: "rinxiang", text: "!\n그래서 아타호는\n저에 대해서 뭐라고 했어요?" },
+        { speaker: "petum", text: "대단한 얘기는 안 했지만,\n무척이나 신경쓰고 있는 모습이었어요." },
+        { speaker: "rinxiang", text: "그래요, 고마워요.\n그러면, 또." },
         { speaker: "petum", text: "어라, 벌써 가시려는 건가요?\n성격이 급하시네요. " },
-        { speaker: "rinxiang", text: "한 번 정도는 같이 어울려 달라구요." }
+        { speaker: "petum", text: "한 번 정도는 같이 어울려 달라구요." }
     ],
 
     // Rinxiang vs Smash
     "rinxiang_smash": [
-        { speaker: "smash", text: "요, 린샹.\n오랜만이네." },
+        { speaker: "smash", text: "여, 린샹.\n오랜만이네." },
         { speaker: "rinxiang", text: "어머 스마슈잖아, 우연이네.\n여전히 여자애들 꽁무니나 쫓아다니는 거에요?" },
         { speaker: "smash", text: "말이 심하구만." },
         { speaker: "rinxiang", text: "뭐 대충, 이 대회에 나온 것도\n출전하는 여자애들이 목적인 거 아냐?" },
         { speaker: "smash", text: "쯧쯧쯧.\n그게 아니라구.\n됐으니까 잘 들어봐." },
-        { speaker: "smash", text: "내가 이 대회에 참가한 진짜 목적은 말야,\n우승하고 유명해져서\nGIRL들한테 인기폭발이 되는 것이지," },
+        { speaker: "smash", text: "내가 이 대회에 참가한 진짜 목적은 말야,\n우승하고 유명해져서\nGIRL들한테 인기폭발이 되는 것이지." },
         { speaker: "smash", text: "여자애들 꽁무니나 쫓아다니기 위해\n참가한 게 아니라구!!" },
         { speaker: "rinxiang", text: "둘 다 마찬가지잖아, 바보." },
         { speaker: "smash", text: "뭐라구~!!" }
@@ -180,7 +180,7 @@ const DialogueData = {
     // Petum vs Yuriwakamaru
     "petum_yuri": [
         { speaker: "petum", text: "여, 안녕하십니까." },
-        { speaker: "yuri", text: "아...아 안녕." },
+        { speaker: "yuri", text: "아... 아, 안녕." },
         { speaker: "petum", text: "처음 뵙겠습니다. 페톰입니다.\n잘 부탁드립니다." },
         { speaker: "yuri", text: "아... 나는 유리와카마루.\n이쪽이야말로 잘 부탁해." },
         { speaker: "petum", text: "그럼 시간이 아까우니,\n슬슬 시작해볼까요?" },
@@ -236,12 +236,12 @@ const DialogueData = {
         { speaker: "ataho", text: "별 수 없지. 나도 이번 기회로,\n슬슬 자리를 잡을 각오를 가져볼까." },
         { speaker: "rinxiang", text: "자리를 잡다니, 무슨 얘기에요, 아타호.\n혹시, 나랑 무사 수행을 떠나는 게\n그렇게 싫은 거에요?" },
         { speaker: "ataho", text: "무... 무사 수행?!\n뭐야, 무사 수행에\n함께 해달라는 말이었나..." },
-        { speaker: "rinxiang", text: "난 또 틀림없이..." },
-        { speaker: "ataho", text: "틀림없이, 뭘?" },
-        { speaker: "rinxiang", text: "그... 그게 말이지\n아무 것도 아냐, 잊어 주게!" },
-        { speaker: "ataho", text: "틀림없이 뭘요?\n뭐랑 착각했던 거야?" },
-        { speaker: "rinxiang", text: "그... 그래, 무사 수행 여행을 출발하자고!" },
-        { speaker: "ataho", text: "앗... 기다려, 아타호!" }
+        { speaker: "ataho", text: "난 또 틀림없이..." },
+        { speaker: "rinxiang", text: "틀림없이, 뭘?" },
+        { speaker: "ataho", text: "그... 그게 말이지\n아무 것도 아냐, 잊어 주게!" },
+        { speaker: "rinxiang", text: "틀림없이 뭘요?\n뭐랑 착각했던 거야?" },
+        { speaker: "ataho", text: "그... 그래, 무사 수행 여행을 출발하자고!" },
+        { speaker: "rinxiang", text: "앗... 기다려, 아타호!" }
     ],
 
     // Rinxiang vs Mayu (True Ending)
@@ -270,6 +270,16 @@ const DialogueData = {
         { speaker: "mayu", text: "큐~웅..." }
     ],
 
+    // Petum vs Fari (Ending)
+    "petum_fari_ending": [
+        { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?" },
+        { speaker: "petum", text: "글쎄, 모르겠네요.\n대체 왜인 걸까요?" },
+        { speaker: "fari", text: "맞아맞아, 페톰씨.\n얼마 전에 맛있는 차를 구했어요.\n같이 드셔보시겠어요?" },
+        { speaker: "petum", text: "그렇군요.\n사양하지 않고 같이 어울려볼까요." },
+        { speaker: "petum", text: "그러면 저는\n맛있는 화과자라도 들고 오죠." },
+        { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요." }
+    ],
+
     // Petum vs Mayu (True Ending)
     "petum_mayu_true_ending": [
         { speaker: "petum", text: "어라, 당신은 눈썹개씨였던 겁니까." },
@@ -287,10 +297,10 @@ const DialogueData = {
         { speaker: "smash", text: "뭐라~곳!!" },
         { speaker: "smash", text: "아...아니\n이 몸의 우승을 축하줄 여자애들이\n분명 어딘가에 숨어있을 거다!" },
         { speaker: "smash", text: "어디야? 어디 있는 거야!\n귀여운 GIRL들아!!" },
-        { speaker: "yuri", text: "………………" },
+        { speaker: "smash", text: "………………" },
         { speaker: "yuri", text: "이제, 적당히 포기하는 게 어때?" },
-        { speaker: "yuri", text: "우승해서 여자애들에게 인기폭발이 되려던 계획이...\n기둥서방이 되려던 계획이..." },
-        { speaker: "smash", text: "그... 그런..." },
+        { speaker: "smash", text: "우승해서 여자애들에게 인기폭발이 되려던 계획이...\n기둥서방이 되려던 계획이..." },
+        { speaker: "smash", text: "어... 어째서..." },
         { speaker: "yuri", text: "훗, 저런저런...\n여전한 바보로구만..." }
     ],
 
@@ -303,7 +313,7 @@ const DialogueData = {
         { speaker: "smash", text: "아우~웅!!" }
     ],
 
-    // Yuri vs Smash (Ending) - Reversed roles
+    // Yuri vs Smash (Ending)
     "yuri_smash_ending": [
         { speaker: "smash", text: "젠장... 나의 패배다..." },
         { speaker: "smash", text: "………………" },

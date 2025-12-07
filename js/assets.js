@@ -107,7 +107,13 @@ const Assets = {
         'ui/dora.png',
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
-        'ui/cursor_yellow.png'
+        'ui/bar_yellow.png',
+        'ui/cursor_yellow.png',
+
+        // Endings
+        'ending/ENDATA.png', 'ending/ENDFAR.png', 'ending/ENDMAY.png',
+        'ending/ENDRIN.png', 'ending/ENDSMA.png', 'ending/ENDYUR.png',
+        'theend.png'
     ],
     loadedCount: 0,
 

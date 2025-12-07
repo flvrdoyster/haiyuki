@@ -2,10 +2,14 @@ const Game = {
     canvas: null,
     ctx: null,
     currentScene: null,
+    continueCount: 0,
+    isTrueEndingPath: false,
 
     init: function () {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
+        this.continueCount = 0;
+        this.isTrueEndingPath = true;
 
         // Initialize modules with canvas for mouse input
         Input.init(this.canvas);

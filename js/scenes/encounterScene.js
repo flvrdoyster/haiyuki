@@ -1,8 +1,8 @@
 // UI Layout Configuration
 const EncounterLayout = {
     PORTRAIT: {
-        P1: { x: 20, y: 65, w: 280, h: 304 },
-        CPU: { x: 340, y: 65, w: 280, h: 304 }
+        P1: { x: 0, y: 65, w: 280, h: 304 },
+        CPU: { x: 360, y: 65, w: 280, h: 304 }
     },
     VS_LOGO: { y: 200, widthConstraint: 640 },
     NAME: {
@@ -40,7 +40,10 @@ const EncounterScene = {
     init: function (data) {
         this.playerIndex = data.playerIndex;
         this.cpuIndex = data.cpuIndex;
+        this.cpuIndex = data.cpuIndex;
         this.defeatedOpponents = data.defeatedOpponents || [];
+        this.mode = data.mode || 'STORY';
+        this.queue = data.queue || [];
         this.state = 0;
         this.currentLineIndex = 0;
 
@@ -48,6 +51,10 @@ const EncounterScene = {
         const p1 = this.characters[this.playerIndex];
         const cpu = this.characters[this.cpuIndex];
         let key = `${p1.id}_${cpu.id}`;
+
+        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
+            key += "_ending";
+        }
 
         console.log(`Loading dialogue for: ${key}`);
 
@@ -72,13 +79,47 @@ const EncounterScene = {
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
             this.currentLineIndex++;
             if (this.currentLineIndex >= this.dialogueSequence.length) {
-                console.log('Dialogue finished. Go to battle');
-                console.log('BattleScene object:', BattleScene);
-                Game.changeScene(BattleScene, {
-                    playerIndex: this.playerIndex,
-                    cpuIndex: this.cpuIndex,
-                    defeatedOpponents: this.defeatedOpponents
-                });
+                console.log('Dialogue finished.');
+
+                if (this.mode === 'WATCH') {
+                    // Watch Mode: Go to next character in queue
+                    if (this.queue.length > 0) {
+                        const nextCpu = this.queue.shift();
+                        console.log(`Next interaction: CPU(${nextCpu})`);
+                        Game.changeScene(EncounterScene, {
+                            playerIndex: this.playerIndex,
+                            cpuIndex: nextCpu,
+                            mode: 'WATCH',
+                            queue: this.queue
+                        });
+                    } else {
+                        // End of watch list
+                        // Trigger Rival Ending Dialogue
+                        // Rival is the LAST one we just watched (this.cpuIndex).
+                        console.log("All conversations viewed. Triggering Ending Dialogue.");
+                        Game.changeScene(EncounterScene, {
+                            playerIndex: this.playerIndex,
+                            cpuIndex: this.cpuIndex,
+                            mode: 'ENDING_WATCH',
+                            defeatedOpponents: []
+                        });
+                    }
+                } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
+                    // Ending Dialogue Finished -> Go to Ending Image
+                    console.log('Ending Dialogue finished. Go to Ending Scene.');
+                    Game.changeScene(EndingScene, {
+                        playerIndex: this.playerIndex,
+                        skipTrueEnd: (this.mode === 'ENDING_WATCH')
+                    });
+                } else {
+                    // Story/Normal Mode: Go to Battle
+                    console.log('Go to battle');
+                    Game.changeScene(BattleScene, {
+                        playerIndex: this.playerIndex,
+                        cpuIndex: this.cpuIndex,
+                        defeatedOpponents: this.defeatedOpponents
+                    });
+                }
             }
         }
     },
@@ -115,10 +156,12 @@ const EncounterScene = {
 
         ctx.globalAlpha = 1.0; // Reset
 
-        // 3. VS Logo
-        const vs = Assets.get('VS.png');
-        if (vs) {
-            ctx.drawImage(vs, (EncounterLayout.VS_LOGO.widthConstraint - vs.width) / 2, EncounterLayout.VS_LOGO.y);
+        // 3. VS Logo (Hide in Ending Mode)
+        if (this.mode !== 'ENDING' && this.mode !== 'ENDING_WATCH') {
+            const vs = Assets.get('VS.png');
+            if (vs) {
+                ctx.drawImage(vs, (EncounterLayout.VS_LOGO.widthConstraint - vs.width) / 2, EncounterLayout.VS_LOGO.y);
+            }
         }
 
         // 4. Names
@@ -168,7 +211,7 @@ const EncounterScene = {
 
             // Draw Tail
             if (speakerSide !== 'none') {
-                // User instruction: Tail image position should be same as Bubble Body Top.
+                // Tail position same as Bubble Body Top
                 const tailY = boxY + EncounterLayout.DIALOGUE.tailYOffset;
 
                 if (speakerSide === 'p1') {
@@ -178,7 +221,6 @@ const EncounterScene = {
                     // Tail to CPU (Right)
                     ctx.save();
                     // Translate to the right side position
-                    // Note: tail position 'same as bubble top' means y is same.
                     ctx.translate(boxX + drawWidth - EncounterLayout.DIALOGUE.tailXOffset * scale, tailY);
                     ctx.scale(-1, 1);
                     ctx.drawImage(tail, 0, 0);
@@ -200,26 +242,11 @@ const EncounterScene = {
                 // Vertical Centering
                 // Box content area is drawHeight.
                 // We want to center the block of text within the box.
-                // Center Y of box = boxY + drawHeight / 2.
-                // Total Text block height = lines.length * lineHeight.
-                // Top of text block = Center Y - Total Height / 2.
-                // First line baseline ~ Top + lineHeight * 0.8 (approximation).
 
-                // Let's optimize for 3 lines as requested to be safe for all.
-                // 3 lines height = 3 * 28 = 84.
-                // Mid point offset = boxY + drawHeight / 2.
-                // Start Y (baseline of first line) = Mid point - (lines.length * lineHeight) / 2 + lineHeight * 0.8
-
-                // Actually, let's just stick to a clean math:
                 const totalTextHeight = lines.length * lineHeight;
                 const verticalCenter = boxY + (drawHeight / 2);
                 let startY = verticalCenter - (totalTextHeight / 2) + (lineHeight * 0.7); // 0.7 to push down to baseline
 
-                // Manual tweak if it still feels low/high:
-                // User said "it was skewed down", so moving UP is good.
-                // My previous logic was "boxY + ... + 20".
-                // Removing +20 and using pure centering should help.
-                // Let's subtract a few pixels to be safe (move up):
                 startY += EncounterLayout.DIALOGUE.text.baselineCorrection;
 
                 lines.forEach((line, i) => {

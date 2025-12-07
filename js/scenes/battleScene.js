@@ -404,6 +404,16 @@ const BattleScene = {
             // Add current CPU to defeated list
             this.defeatedOpponents.push(this.cpuIndex);
 
+            // SPECIAL: If we just beat Mayu (True Ending Boss)
+            // Check if CPU was Mayu
+            const mayuInfo = CharacterData.find(c => c.id === 'mayu');
+            if (mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6)) { // 6 is Mayu index
+                console.log("TRUE ENDING COMPLETED!");
+                // Return to Title (or show another ending screen if we had one)
+                Game.changeScene(TitleScene);
+                return;
+            }
+
             // Proceed to next match
             Game.changeScene(CharacterSelectScene, {
                 mode: 'NEXT_MATCH',
@@ -417,8 +427,11 @@ const BattleScene = {
                 playerIndex: this.playerIndex,
                 cpuIndex: this.cpuIndex,
                 defeatedOpponents: this.defeatedOpponents,
-                hasContinued: this.hasContinued || false
+                defeatedOpponents: this.defeatedOpponents,
+                hasContinued: true // Mark continue used
             });
+            // Update Global Continue Count
+            Game.continueCount++;
         }
     },
 
@@ -620,7 +633,6 @@ const BattleScene = {
                 }
 
                 if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
-                    // Check if Action Menu is active first? No, Action Select is a different state.
 
                     if (this.hoverIndex !== -1 && this.hoverIndex < this.p1.hand.length) {
                         // Riichi Input Lock

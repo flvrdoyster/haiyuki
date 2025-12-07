@@ -5,8 +5,8 @@ const SelectConfig = {
     VS_LOGO: { path: 'VS.png', y: 200 },
     PORTRAIT: {
         w: 280, h: 304,
-        P1: { x: 20, y: 65 },
-        CPU: { x: 340, y: 65 }
+        P1: { x: 0, y: 65 },
+        CPU: { x: 360, y: 65 }
     },
     NAME: {
         yOffset: 280, // from portrait Y top
@@ -58,7 +58,9 @@ const CharacterSelectScene = {
         this.readyTimer = 0;
 
         // Tournament Data
-        this.mode = data && data.mode ? data.mode : 'NEW_GAME';
+        this.mode = data && data.mode ? data.mode : 'STORY'; // Default to STORY if undefined (or NEW_GAME mapped to STORY?)
+        // If data.mode is undefined, default 'STORY'.
+
         this.defeatedOpponents = data && data.defeatedOpponents ? data.defeatedOpponents : [];
 
         if (this.mode === 'NEXT_MATCH') {
@@ -74,16 +76,36 @@ const CharacterSelectScene = {
         // Filter available opponents
         const available = [];
         for (let i = 0; i < CharacterData.length; i++) {
+            // Ignore hidden chars (Mayu) for now
+            if (CharacterData[i].hidden) continue;
+
             if (i !== this.playerIndex && !this.defeatedOpponents.includes(i)) {
                 available.push(i);
             }
         }
 
         if (available.length > 0) {
+            // Check if my rival is in the available list.
+            const myChar = this.characters[this.playerIndex];
+            const rivalId = myChar.rival;
+
+            // Find rival index (using original CharacterData)
+            const rivalIndex = CharacterData.findIndex(c => c.id === rivalId);
+
+            let candidates = available;
+
+            if (available.length > 1 && rivalIndex !== -1) {
+                // Filter out rival from candidates
+                candidates = available.filter(idx => idx !== rivalIndex);
+            }
+
+            // Fallback if candidates became empty (shouldn't happen if logic is correct, but just in case)
+            if (candidates.length === 0) candidates = available;
+
             // Randomly pick one
-            const rand = Math.floor(Math.random() * available.length);
-            this.cpuIndex = available[rand];
-            console.log(`Auto-selected CPU: ${this.cpuIndex}`);
+            const rand = Math.floor(Math.random() * candidates.length);
+            this.cpuIndex = candidates[rand];
+            console.log(`Auto-selected CPU: ${this.cpuIndex} (Rival: ${rivalId} / Index: ${rivalIndex})`);
 
             // Transition to Encounter
             Game.changeScene(EncounterScene, {
@@ -92,10 +114,20 @@ const CharacterSelectScene = {
                 defeatedOpponents: this.defeatedOpponents
             });
         } else {
-            // No opponents left -> Tournament Win?
-            console.log("All opponents defeated! Tournament Win!");
-            // For now, return to title or show credits
-            Game.changeScene(TitleScene);
+            // No opponents left -> Tournament Win
+            // Trigger Ending Dialogue (Story Mode)
+            console.log("TRIGGER ENDING DIALOGUE");
+
+            // Determine Rival Index from ID
+            const myChar = this.characters[this.playerIndex];
+            const rivalId = myChar.rival;
+            const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+
+            Game.changeScene(EncounterScene, {
+                playerIndex: this.playerIndex,
+                cpuIndex: rivalIndex,
+                mode: 'ENDING'
+            });
         }
     },
 
@@ -115,6 +147,11 @@ const CharacterSelectScene = {
                 // Play sound
                 this.currentState = this.STATE_CPU_SELECT;
                 this.cpuTimer = 0;
+
+                // WATCH Mode Check: Skip CPU Select
+                if (this.mode === 'WATCH') {
+                    this.startWatchMode();
+                }
             }
 
             // Mouse Input
@@ -122,21 +159,14 @@ const CharacterSelectScene = {
                 const clickedIndex = this.getClickedCharacterIndex();
                 if (clickedIndex !== -1) {
                     this.playerIndex = clickedIndex;
-                    // Auto-confirm on click? Or just select?
-                    // User said "Select with mouse click". Usually implies selection + confirm or just selection.
-                    // Let's do Select + Confirm for smoother UX, or just Select.
-                    // "Click to select" -> usually means "Choose this one".
-                    // Let's just update index. If they click again (or double click?), confirm?
-                    // For now, let's just update index. User can press Space/Enter or click a "Confirm" button (which doesn't exist).
-                    // Actually, standard web behavior: Click updates selection.
-                    // But wait, if there's no "OK" button, how do they confirm with mouse?
-                    // Maybe clicking the *currently selected* one confirms it?
-                    // Or just confirm immediately?
-                    // Let's try: Click updates index. If already selected, confirm.
-
                     if (this.playerIndex === clickedIndex) {
                         this.currentState = this.STATE_CPU_SELECT;
                         this.cpuTimer = 0;
+
+                        // WATCH Mode Check: Skip CPU Select
+                        if (this.mode === 'WATCH') {
+                            this.startWatchMode();
+                        }
                     }
                 }
             }
@@ -202,10 +232,29 @@ const CharacterSelectScene = {
                 }
 
                 if (this.cpuTimer > this.cpuSelectDuration) {
-                    // Ensure final selection is valid
-                    if (this.cpuIndex === this.playerIndex) {
-                        this.cpuIndex = (this.playerIndex + 1) % this.characters.length;
+                    // Force selection to be a valid candidate (respecting Rival logic)
+                    // Logic similar to selectNextOpponent
+                    const available = [];
+                    for (let i = 0; i < this.characters.length; i++) {
+                        if (i !== this.playerIndex && !this.defeatedOpponents.includes(i)) {
+                            available.push(i);
+                        }
                     }
+
+                    const myChar = this.characters[this.playerIndex];
+                    const rivalId = myChar.rival;
+                    const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+
+                    // Filter out rival from candidates
+                    let candidates = available;
+                    if (available.length > 1 && rivalIndex !== -1) {
+                        candidates = available.filter(idx => idx !== rivalIndex);
+                    }
+                    if (candidates.length === 0) candidates = available;
+
+                    const rand = Math.floor(Math.random() * candidates.length);
+                    this.cpuIndex = candidates[rand];
+
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
                     console.log(`Ready: P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
@@ -223,7 +272,8 @@ const CharacterSelectScene = {
                 } else {
                     Game.changeScene(EncounterScene, {
                         playerIndex: this.playerIndex,
-                        cpuIndex: this.cpuIndex
+                        cpuIndex: this.cpuIndex,
+                        defeatedOpponents: this.defeatedOpponents
                     });
                 }
             }
@@ -379,5 +429,43 @@ const CharacterSelectScene = {
             }
         }
         return -1;
+    },
+
+    startWatchMode: function () {
+        // Create a queue of all other characters
+        const queue = [];
+        for (let i = 0; i < this.characters.length; i++) {
+            if (i !== this.playerIndex) {
+                queue.push(i);
+            }
+        }
+
+        // RIVAL ORDER LOGIC for WATCH MODE
+        // Move Rival to the end of the queue
+        const myChar = this.characters[this.playerIndex];
+        const rivalId = myChar.rival;
+        const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+
+        if (rivalIndex !== -1) {
+            const idxInQueue = queue.indexOf(rivalIndex);
+            if (idxInQueue !== -1) {
+                // Remove from current pos
+                queue.splice(idxInQueue, 1);
+                // Push to end
+                queue.push(rivalIndex);
+                console.log(`Watch Mode: Moved Rival (${rivalId}) to end of queue.`);
+            }
+        }
+
+        if (queue.length > 0) {
+            const firstCpu = queue.shift();
+            console.log(`Starting Watch Mode: P1(${this.playerIndex}) vs CPU(${firstCpu}). Remaining: ${queue.length}`);
+            Game.changeScene(EncounterScene, {
+                playerIndex: this.playerIndex,
+                cpuIndex: firstCpu,
+                mode: 'WATCH',
+                queue: queue
+            });
+        }
     }
 };
