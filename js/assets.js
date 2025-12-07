@@ -6,9 +6,9 @@ const Assets = {
         'ui/logo_compile_1998.png',  // Small Compile Logo?
 
         // Character Select Assets
-        // 'face/CHRBAK.png', // Invalid path, removed
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
         'bg/GAMEBG.png',
+
         // FX
         { id: 'fx/pon', src: 'assets/fx/pon.png' },
         { id: 'fx/ron', src: 'assets/fx/ron.png' },
@@ -59,6 +59,17 @@ const Assets = {
         'face/btl/SMSH_R_blink-1.png', 'face/btl/SMSH_R_blink-2.png', 'face/btl/SMSH_R_blink-3.png',
         'face/btl/SMSH_R_shocked.png', 'face/btl/SMSH_R_smile.png',
         'face/btl/SMSH_R_talk-1.png', 'face/btl/SMSH_R_talk-2.png', 'face/btl/SMSH_R_talk-3.png',
+
+        // Linxiang Animation Assets
+        'face/btl/RIN_L_base.png',
+        'face/btl/RIN_L_blink-1.png', 'face/btl/RIN_L_blink-2.png', 'face/btl/RIN_L_blink-3.png',
+        'face/btl/RIN_L_shocked.png', 'face/btl/RIN_L_smile.png',
+        'face/btl/RIN_L_talk-1.png', 'face/btl/RIN_L_talk-2.png', 'face/btl/RIN_L_talk-3.png',
+
+        'face/btl/RIN_R_base.png',
+        'face/btl/RIN_R_blink-1.png', 'face/btl/RIN_R_blink-2.png', 'face/btl/RIN_R_blink-3.png',
+        'face/btl/RIN_R_shocked.png', 'face/btl/RIN_R_smile.png',
+        'face/btl/RIN_R_talk-1.png', 'face/btl/RIN_R_talk-2.png', 'face/btl/RIN_R_talk-3.png',
 
         // Ataho Animation Assets
         'face/btl/ATA_L_base.png',

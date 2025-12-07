@@ -133,7 +133,7 @@ const BattleScene = {
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         // Init Characters
-        this.p1Character = new BattleCharacter(p1Data, {
+        this.p1Character = new PortraitCharacter(p1Data, {
             ...BattleConfig.PORTRAIT.P1,
             baseW: BattleConfig.PORTRAIT.baseW,
             baseH: BattleConfig.PORTRAIT.baseH
@@ -148,7 +148,7 @@ const BattleScene = {
         this.recommendedDiscards = []; // Init logic
 
 
-        this.cpuCharacter = new BattleCharacter(cpuData, {
+        this.cpuCharacter = new PortraitCharacter(cpuData, {
             ...BattleConfig.PORTRAIT.CPU,
             baseW: BattleConfig.PORTRAIT.baseW,
             baseH: BattleConfig.PORTRAIT.baseH
@@ -1321,11 +1321,10 @@ const BattleScene = {
         }
 
         // 3. Check RON (Win)
-        // Rule: "When Riichi is declared... Ron" ?? No, can Ron anytime if Tenpai.
-        // checkYaku expects 12 tiles.
-        // If we pick up discard, we have 11+1 = 12.
+        // Rule: Ron is allowed ONLY if Riichi is declared (User Requirement)
+        // Since Pon disables Riichi, this effectively disables Ron after Pon.
         const tempHand = [...hand, discardedTile];
-        if (YakuLogic.checkYaku(tempHand)) {
+        if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand)) {
             this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
