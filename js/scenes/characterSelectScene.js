@@ -58,6 +58,9 @@ const CharacterSelectScene = {
         this.cpuTimer = 0; // Ensure timer is reset
         this.readyTimer = 0;
 
+        // BGM
+        Assets.playMusic('audio/bgm_chrsel');
+
         // Tournament Data
         this.mode = data && data.mode ? data.mode : 'STORY'; // Default to STORY if undefined (or NEW_GAME mapped to STORY?)
         // If data.mode is undefined, default 'STORY'.

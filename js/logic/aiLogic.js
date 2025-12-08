@@ -98,5 +98,13 @@ const AILogic = {
     shouldTsumo: function (hand, difficulty) {
         // Always Tsumo if possible
         return true;
+    },
+
+    shouldPon: function (hand, tile, difficulty) {
+        // Simple Logic: Always Pon if we have a pair?
+        // Or if it matches target color?
+        // For now, allow it fairly often (e.g. 50% or always if Normal+)
+        // Let's say: 100% chance for now to verify it works.
+        return true;
     }
 };

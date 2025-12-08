@@ -44,16 +44,16 @@ const DialogueData = {
 
     // Ataho vs Smash
     "ataho_smash": [
-        { speaker: "smash", text: "여, 아저씨.\n이런 곳에서 만나다니 우연이네.\n도대체 어떻게 된거야?" },
-        { speaker: "ataho", text: "대회가 있다길래 참가했더니,\n무투대회도 많이 마시기 대회도 아니고,\n게임 대회라지 뭔가." },
-        { speaker: "smash", text: "뭐~야. 틀림없이 아저씨도 나랑 똑같이\n대회에 우승하고 유명해져서,\n귀여운 걸들을 GET하려고 온 줄 알았다구." },
-        { speaker: "ataho", text: "부탁이니 자네와 같은 레벨로 생각하지 말아줬음 하네." },
-        { speaker: "smash", text: "미안하지만 이 몸의 계획을 위해\n아저씨는 여기서 져줘야 겠어." }
+        { speaker: "smash", text: "여, 아저씨.\n이런 곳에서 만나다니 우연이네.\n도대체 어떻게 된거야?", speakerState: 'smile' },
+        { speaker: "ataho", text: "대회가 있다길래 참가했더니,\n무투대회도 많이 마시기 대회도 아니고,\n게임 대회라지 뭔가.", listenerState: 'smile' },
+        { speaker: "smash", text: "뭐~야. 틀림없이 아저씨도 나랑 똑같이\n대회에 우승하고 유명해져서,\n귀여운 걸들을 GET하려고 온 줄 알았다구.", speakerState: 'smile' },
+        { speaker: "ataho", text: "부탁이니 자네와 같은 레벨로 생각하지 말아줬음 하네.", speakerState: 'shocked', listenerState: 'smile' },
+        { speaker: "smash", text: "미안하지만 이 몸의 계획을 위해\n아저씨는 여기서 져줘야 겠어.", listenerState: 'shocked' }
     ],
 
     // Ataho vs Yuriwakamaru
     "ataho_yuri": [
-        { speaker: "ataho", text: "어라, 자네는!", cpuState: 'shocked' },
+        { speaker: "ataho", text: "어라, 자네는!", listenerState: 'shocked' },
         { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?" },
         { speaker: "ataho", text: "나야, 아타호라고." },
         { speaker: "ataho", text: "있잖아, 그 때의..." },
@@ -64,8 +64,8 @@ const DialogueData = {
         { speaker: "ataho", text: "그래그래." },
         { speaker: "ataho", text: "뭐였더라." },
         { speaker: "ataho", text: "어라라." },
-        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!", cpuState: 'shocked' },
-        { speaker: "yuri", text: "뭐야, 넌!", p1State: 'shocked' }
+        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!", listenerState: 'shocked' },
+        { speaker: "yuri", text: "뭐야, 넌!", listenerState: 'shocked' }
     ],
 
     // Rinxiang vs Fari

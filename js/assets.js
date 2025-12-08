@@ -1,9 +1,22 @@
 const Assets = {
     images: {},
+    audio: {}, // New: Audio storage
+    currentMusic: null, // Track currently playing music
     toLoad: [
         'ui/title.png',
         'ui/pushok.png',   // "PUSH SPACE KEY"
         'ui/logo_compile_1998.png',  // Small Compile Logo?
+
+        // Audio
+        { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
+        { id: 'audio/discard', src: 'assets/audio/discard.mp3', type: 'audio' },
+        { id: 'audio/bgm_title', src: 'assets/audio/bgm_title.mp3', type: 'audio' },
+        { id: 'audio/bgm_chrsel', src: 'assets/audio/bgm_chrsel.mp3', type: 'audio' },
+        { id: 'audio/bgm_trail', src: 'assets/audio/bgm_trail.mp3', type: 'audio' },
+        { id: 'audio/bgm_basic', src: 'assets/audio/bgm_basic.mp3', type: 'audio' },
+        { id: 'audio/bgm_tension', src: 'assets/audio/bgm_tension.mp3', type: 'audio' },
+        { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
+        { id: 'audio/bgm_win', src: 'assets/audio/bgm_win.mp3', type: 'audio' },
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
@@ -27,6 +40,7 @@ const Assets = {
         'ui/long_bubble.png',
         'ui/long_bubble_tail.png',
         'ui/short_bubble.png',
+        'ui/battle_menu.png', // Battle Menu Overlay
         'face/CHRSELEF_cursor.png',
 
         // Individual Select Icons
@@ -106,39 +120,129 @@ const Assets = {
         }
 
         this.toLoad.forEach(item => {
-            const img = new Image();
             let src = '';
             let id = '';
+            let type = 'image';
 
             if (typeof item === 'string') {
                 src = `assets/${item}`;
                 id = item;
             } else {
-                src = item.src; // Assuming manual path provided is relative to root or full
+                src = item.src;
                 id = item.id;
+                if (item.type) type = item.type;
             }
 
-            img.src = src;
-            img.onload = () => {
-                this.images[id] = img;
-                this.loadedCount++;
-                console.log(`Loaded: ${id}`);
-                if (this.loadedCount === this.toLoad.length) {
-                    onComplete();
-                }
-            };
-            img.onerror = (e) => {
-                console.error(`Failed to load ${src}`, e);
-                this.loadedCount++; // Increment anyway so the game doesn't hang
-                if (this.loadedCount === this.toLoad.length) {
-                    onComplete();
-                }
-            };
+            if (type === 'audio') {
+                const audio = new Audio();
+                // Audio doesn't reliably fire onload for preloading in some browsers without interaction,
+                // but cancanplaythrough works. However, for simple assets, 'canplaythrough' is good.
+                // To avoid blocking if audio fails/hangs, we'll treat it liberally.
+                audio.addEventListener('canplaythrough', () => {
+                    if (!this.audio[id]) { // Prevent double count
+                        this.audio[id] = audio;
+                        this.loadedCount++;
+                        console.log(`Loaded Audio: ${id}`);
+                        if (this.loadedCount === this.toLoad.length) onComplete();
+                    }
+                }, { once: true });
+
+                audio.addEventListener('error', (e) => {
+                    console.error(`Failed to load audio ${src}`, e);
+                    this.loadedCount++;
+                    if (this.loadedCount === this.toLoad.length) onComplete();
+                });
+
+                audio.src = src;
+                audio.load();
+
+            } else {
+                // Image
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    this.images[id] = img;
+                    this.loadedCount++;
+                    console.log(`Loaded Image: ${id}`);
+                    if (this.loadedCount === this.toLoad.length) {
+                        onComplete();
+                    }
+                };
+                img.onerror = (e) => {
+                    console.error(`Failed to load ${src}`, e);
+                    this.loadedCount++; // Increment anyway
+                    if (this.loadedCount === this.toLoad.length) {
+                        onComplete();
+                    }
+                };
+            }
         });
     },
 
     get: function (id) {
         return this.images[id];
+    },
+
+    getAudio: function (id) {
+        return this.audio[id];
+    },
+
+    playSound: function (id) {
+        const audio = this.getAudio(id);
+        if (audio) {
+            // Clone node to allow overlapping playback of same sound
+            const sound = audio.cloneNode();
+            sound.volume = 0.5; // Default volume?
+            sound.play().catch(e => console.warn("Audio play blocked", e));
+        } else {
+            console.warn(`Audio not found: ${id}`);
+        }
+    },
+
+    playMusic: function (id, loop = true) {
+        // Stop current music if playing
+        this.stopMusic();
+
+        const audio = this.getAudio(id);
+        if (audio) {
+            audio.currentTime = 0;
+            audio.loop = loop;
+            audio.volume = 0.5;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.warn(`Music play blocked for ${id}. Waiting for interaction...`);
+                    // Add one-time listener to resume/retry
+                    const resumeAudio = () => {
+                        audio.play().then(() => {
+                            console.log("Audio resumed after interaction");
+                        }).catch(e => console.error("Retry failed", e));
+
+                        // Remove listeners
+                        window.removeEventListener('keydown', resumeAudio);
+                        window.removeEventListener('click', resumeAudio);
+                        window.removeEventListener('touchstart', resumeAudio);
+                    };
+
+                    window.addEventListener('keydown', resumeAudio, { once: true });
+                    window.addEventListener('click', resumeAudio, { once: true });
+                    window.addEventListener('touchstart', resumeAudio, { once: true });
+                });
+            }
+            audio._id = id; // Store ID for state checking
+            this.currentMusic = audio;
+        } else {
+            console.warn(`Music audio not found: ${id}`);
+        }
+    },
+
+    stopMusic: function () {
+        if (this.currentMusic) {
+            this.currentMusic.pause();
+            this.currentMusic.currentTime = 0;
+            this.currentMusic = null;
+        }
     },
 
     /**

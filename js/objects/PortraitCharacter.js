@@ -29,9 +29,9 @@ class PortraitCharacter {
         // --- OPTIMIZATION: Defaults & Auto-Generation ---
 
         // 1. Scalar Defaults
-        if (!this.animConfig.interval) this.animConfig.interval = 80; // Blink Interval
+        if (!this.animConfig.interval) this.animConfig.interval = 200; // Blink Interval
         if (!this.animConfig.speed) this.animConfig.speed = 5;       // Blink Speed
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 10; // Talk Speed (Slower)
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 8; // Talk Speed (Slower)
 
         // 2. Asset Auto-Generation (Convention over Configuration)
         // If 'base' exists (e.g., ".../NAME_SIDE_base.png"), try to generate blink/talk if missing.
@@ -260,55 +260,48 @@ class PortraitCharacter {
         // Safe check if data exists
         if (!this.data) return;
 
+        const globalBaseW = BattleUIConfig.PORTRAIT.baseW || 264;
+
         // ANIMATION RENDER PATH
         if (this.animConfig) {
             const cx = Math.floor(this.config.x);
             const cy = Math.floor(this.config.y);
-
-            // Initialize lastRenderRect to default (Stretched) box
-            // This ensures overlays have a valid reference frame even if Base draw fails or is skipped.
-            this.lastRenderRect = {
-                x: cx,
-                y: cy,
-                w: this.config.w,
-                h: this.config.h // Default target height
-            };
+            const scale = this.config.scale || 1.0;
 
             // 1. Draw Base
             if (this.animConfig.base) {
                 const baseImg = Assets.get(this.animConfig.base);
                 if (baseImg) {
-                    // Default to config size (Stretching)
-                    let dw = this.config.w;
-                    let dh = this.config.h;
+                    // Determine Frame Size
+                    const isSheet = baseImg.width >= (globalBaseW * 1.5);
+                    const frameW = isSheet ? (baseImg.width / 2) : baseImg.width;
+                    const frameH = baseImg.height;
+
+                    // Calculate Destination Size
+                    // Allow specific animConfig scale to override or multiply? 
+                    // Let's assume global config scale is primary, animConfig.scale is strictly for specific anim tweaks if needed.
+                    // But previous code replaced W/H with animConfig.scale logic.
+                    // Simplify: Use Global Config Scale.
+                    const destW = frameW * scale;
+                    const destH = frameH * scale;
+
+                    // Calculate Alignment
                     let dx = cx;
                     let dy = cy;
 
-                    // Apply Custom Config if present
-                    if (this.animConfig.scale) {
-                        // Note: If using slicing, baseImg.width is the full sheet width. 
-                        // We should use the "Frame Width".
-                        // Logic: If sheet, frameWidth = width / 2. Else width.
-                        const isSheet = baseImg.width >= (this.config.w * 1.8);
-                        const frameW = isSheet ? (baseImg.width / 2) : baseImg.width;
-
-                        dw = frameW * this.animConfig.scale;
-                        dh = baseImg.height * this.animConfig.scale;
+                    if (this.config.align === 'right') {
+                        dx -= destW;
                     }
+
+                    // Apply Anim Offsets
                     if (this.animConfig.xOffset) dx += this.animConfig.xOffset;
                     if (this.animConfig.yOffset) dy += this.animConfig.yOffset;
 
-                    // If we want to align bottom-center by default when custom sizing is used:
-                    if (this.animConfig.center) {
-                        dx = cx + (this.config.w - dw) / 2;
-                        dy = cy + (this.config.h - dh) / 2;
-                    }
+                    // Update lastRenderRect
+                    this.lastRenderRect = { x: dx, y: dy, w: destW, h: destH };
 
-                    // Update lastRenderRect with the ACTUAL base placement
-                    this.lastRenderRect = { x: dx, y: dy, w: dw, h: dh };
-
-                    // Draw Base with Slicing Support
-                    this._drawImageAutoSlice(ctx, baseImg, this.lastRenderRect.x, this.lastRenderRect.y, this.lastRenderRect.w, this.lastRenderRect.h);
+                    // Draw Base
+                    this._drawImageAutoSlice(ctx, baseImg, dx, dy, destW, destH);
                 }
             }
 
@@ -332,50 +325,57 @@ class PortraitCharacter {
 
             // 3. Draw Talk (Overlay if talking)
             if (this.isTalking && this.currentTalkFrame) {
-                // Pass talkOffset if defined
                 this._drawOverlay(ctx, this.currentTalkFrame, this.animConfig.talkOffset);
             }
 
             // 4. Draw Blink (Overlay)
             if (this.currentBlinkFrame) {
-                // Pass blinkOffset if defined
                 this._drawOverlay(ctx, this.currentBlinkFrame, this.animConfig.blinkOffset);
             }
 
             return;
         }
 
-        // LEGACY RENDER PATH
-        // Determine image to draw
+        // LEGACY RENDER PATH (Standard Faces)
         let img = null;
         let isFallback = false;
 
         if (this.isCpu) {
-            // CPU (Right)
-            if (this.data.battleFaceR) {
-                img = Assets.get(this.data.battleFaceR);
-            } else if (this.data.face) {
-                isFallback = true;
-                // Fallback logic uses Assets.drawFrame which handles getting the image internally
-            }
+            if (this.data.battleFaceR) img = Assets.get(this.data.battleFaceR);
+            else if (this.data.face) isFallback = true;
         } else {
-            // Player (Left)
-            if (this.data.battleFaceL) {
-                img = Assets.get(this.data.battleFaceL);
-            } else if (this.data.face) {
-                isFallback = true;
-            }
+            if (this.data.battleFaceL) img = Assets.get(this.data.battleFaceL);
+            else if (this.data.face) isFallback = true;
         }
 
+        const scale = this.config.scale || 1.0;
+        let destW = (this.config.baseW || globalBaseW) * scale; // Fallback to baseW if image not ready
+        let destH = (this.config.baseH || 280) * scale;
+
+        // Alignment
+        let dx = this.config.x;
+        let dy = this.config.y;
+        if (this.config.align === 'right') dx -= destW;
+
         if (img) {
-            ctx.drawImage(img,
-                0, 0, this.config.baseW || 264, this.config.baseH || 280,
-                this.config.x, this.config.y, this.config.w, this.config.h
-            );
+            // Recalculate based on actual image
+            const isSheet = img.width >= (globalBaseW * 1.5);
+            const frameW = isSheet ? (img.width / 2) : img.width;
+            destW = frameW * scale;
+            destH = img.height * scale;
+
+            // Recalculate dx with new width
+            dx = this.config.x;
+            if (this.config.align === 'right') dx -= destW;
+
+            this._drawImageAutoSlice(ctx, img, dx, dy, destW, destH);
         } else if (isFallback) {
-            // Fallback using face index
+            // Fallback
             const frameIndex = this.isCpu ? 1 : 0;
-            Assets.drawFrame(ctx, this.data.face, this.config.x, this.config.y, frameIndex, this.config.w, this.config.h);
+            // Assume fallback uses standard 48x48 or similar? 
+            // Assets.drawFrame logic is specific. 
+            // Let's just use the rect we calculated.
+            Assets.drawFrame(ctx, this.data.face, dx, dy, frameIndex, destW, destH);
         }
     }
 
@@ -405,8 +405,9 @@ class PortraitCharacter {
         // Or just compare to the render width?
         // Using 1.8x factor to be safe against minor scaling differences.
 
-        // Use this.config.w as the baseline "Frame Width" expectation.
-        const threshold = this.config.w * 1.5;
+        // Use Global BaseW for threshold
+        const baselineW = BattleUIConfig.PORTRAIT.baseW || 264;
+        const threshold = baselineW * 1.5;
         const isSheet = img.width >= threshold;
 
         if (isSheet) {

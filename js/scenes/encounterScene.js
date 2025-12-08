@@ -49,6 +49,9 @@ const EncounterScene = {
         this.state = 0;
         this.currentLineIndex = 0;
 
+        // BGM
+        Assets.playMusic('audio/bgm_trail');
+
         // Load Dialogue
         const p1 = this.characters[this.playerIndex];
         const cpu = this.characters[this.cpuIndex];
@@ -168,7 +171,7 @@ const EncounterScene = {
                 } else {
                     // Story/Normal Mode: Go to Battle
                     console.log('Go to battle');
-                    Game.changeScene(BattleScene, {
+                    Game.changeScene(BattleEngine, {
                         playerIndex: this.playerIndex,
                         cpuIndex: this.cpuIndex,
                         defeatedOpponents: this.defeatedOpponents
@@ -209,11 +212,26 @@ const EncounterScene = {
         let p1Talking = (speakerSide === 'p1');
         let cpuTalking = (speakerSide === 'cpu');
 
-        // Override from Dialogue Data
-        // Support keys: p1State, cpuState, or direct ID state (e.g. atahoState: 'smile')?
-        // User asked for "define the state in the dialogue".
-        // Let's support `p1State` and `cpuState` for generic access,
-        // and also allow explicit ID references if needed, but generic is cleaner.
+        // Logic for Speaker/Listener State
+        // This allows symmetric dialogues (e.g. data can say "listenerState: shocked")
+        // and it will apply to whoever is NOT speaking.
+        if (speakerSide !== 'none') {
+            const isP1Speaker = (speakerSide === 'p1');
+
+            // Apply 'speakerState' if present
+            if (currentLine.speakerState) {
+                if (isP1Speaker) p1State = currentLine.speakerState;
+                else cpuState = currentLine.speakerState;
+            }
+
+            // Apply 'listenerState' if present
+            if (currentLine.listenerState) {
+                if (isP1Speaker) cpuState = currentLine.listenerState;
+                else p1State = currentLine.listenerState;
+            }
+        }
+
+        // Fallback for legacy specific overrides if they exist (optional, but good for safety)
         if (currentLine.p1State) p1State = currentLine.p1State;
         if (currentLine.cpuState) cpuState = currentLine.cpuState;
 

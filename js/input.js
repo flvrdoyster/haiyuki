@@ -17,6 +17,8 @@ const Input = {
     X: 'KeyX',
     ENTER: 'Enter',
     SPACE: 'Space', // User requested fix: ' ' -> 'Space'
+    ESC: 'Escape',
+    D: 'KeyD',
 
     init: function (canvas) {
         window.addEventListener('keydown', (e) => {
@@ -41,8 +43,10 @@ const Input = {
                 this.mouseY = (e.clientY - rect.top) * scaleY;
             });
 
-            canvas.addEventListener('mousedown', () => {
-                this.isMouseDown = true;
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0) {
+                    this.isMouseDown = true;
+                }
             });
 
             window.addEventListener('mouseup', () => {

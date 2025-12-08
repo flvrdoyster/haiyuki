@@ -108,32 +108,48 @@
     <!-- Scripts -->
     <script src="js/input.js"></script>
     <script src="js/assets.js"></script>
+    <script>
+        // Request 2: Disable BGM in Debug Page
+        if (typeof Assets !== 'undefined') {
+            Assets.playMusic = function (id, loop) {
+                console.log(`[Debug] Music suppressed: ${id}`);
+            };
+        }
+    </script>
+    <script src="js/data/characterData.js"></script>
     <script src="js/data/characterData.js"></script>
     <script src="js/data/dialogueData.js"></script>
+    <script src="js/data/battleUIConfig.js"></script>
     <script src="js/data/paiData.js"></script>
     <script src="js/logic/yakuLogic.js"></script>
     <script src="js/logic/aiLogic.js"></script>
     <script src="js/data/animConfig.js"></script>
     <script src="js/objects/PortraitCharacter.js"></script>
-    <!-- Use dummy Game object -->
-    <script>
-        const Game = {
-            ctx: null,
-            canvas: null,
-            changeScene: () => console.log('Mock Scene Change'),
-            getCurrentScene: () => BattleScene
-        };
-    </script>
-    <script src="js/scenes/battleScene.js"></script>
+    <!-- Views and Logic -->
+    <script src="js/views/battleRenderer.js"></script>
+    <!-- Removed ResultDebugScene.js -->
+    <script src="js/logic/battleEngine.js"></script>
 
     <script>
-
+        // Init Game with Battle Scene in Debug Mode
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const tooltip = document.getElementById('coord-tooltip');
 
-        Game.canvas = canvas;
-        Game.ctx = ctx;
+        // Define BattleScene alias
+        const BattleScene = BattleEngine;
+
+        // Mock Game Object for Debugger
+        const Game = {
+            canvas: canvas,
+            ctx: ctx,
+            currentScene: BattleEngine,
+            changeScene: function (scene) {
+                this.currentScene = scene;
+                if (scene.init) scene.init();
+            },
+            getCurrentScene: function () { return this.currentScene; }
+        };
 
         // Mouse Tracker and Config Copy Logic (Existing)
         canvas.addEventListener('mousemove', (e) => {
@@ -165,208 +181,153 @@
 
         // Config Keys
         const CONFIG_KEYS = [
+            { path: 'POPUP', label: 'Popup (Riichi/Pon)', props: ['x', 'y', 'scale', 'align'] },
+            { path: 'ACTION', label: 'Action Menu Layout', props: ['y', 'btnWidth', 'btnHeight', 'gap'] },
+            { path: 'RESULT', label: 'Result Window', props: ['x', 'y', 'w', 'h', 'borderWidth'] },
             { path: 'INFO.roundLabel', label: 'Round Label' },
-            { path: 'INFO.roundNumber', label: 'Round Number' },
-            { path: 'INFO.turnLabel', label: 'Turn Label' },
-            { path: 'INFO.turnNumber', label: 'Turn Number' },
-            { path: 'DORA', label: 'Dora Container' },
-            { path: 'DORA.frame', label: 'Dora Frame' }
+            { path: 'DORA', label: 'Dora Container' }
         ];
 
-        // Character List (Mocked or derived if possible, but hardcoded list is easier for now)
+        // Character List
         const CHAR_LIST = [
-            { id: 0, name: 'Ataho' },
-            { id: 1, name: 'Rinxiang' },
-            { id: 2, name: 'Fari' },
-            { id: 3, name: 'Smashu' },
-            { id: 4, name: 'Petum' },
-            { id: 5, name: 'Yuri' },
-            { id: 6, name: 'Mayu' }
+            { id: 0, name: 'Ataho' }, { id: 1, name: 'Rinxiang' }, { id: 2, name: 'Fari' },
+            { id: 3, name: 'Smashu' }, { id: 4, name: 'Petum' }, { id: 5, name: 'Yuri' }, { id: 6, name: 'Mayu' }
         ];
 
         let p1Index = 0;
         let cpuIndex = 3;
 
+        // Yaku Pool (Simplified)
+        const YAKU_POOL = ['올스타즈', '국사무쌍', '대삼원', '리치', '일발', '멘젠쯔모'];
+
+        let lastRealState = 0;
+        let isOverlayActive = false;
+
         function initControls() {
             const container = document.getElementById('inputs');
             container.innerHTML = '';
 
-            // 1. Character Selectors
-            const charGroup = document.createElement('div');
-            charGroup.className = 'control-group';
-            charGroup.innerHTML = '<h3>Characters</h3>';
-
-            // P1 Select
-            const divP1 = document.createElement('div'); divP1.className = 'input-row';
-            const lblP1 = document.createElement('label'); lblP1.textContent = "Player (Left)";
-            const selP1 = document.createElement('select');
-            CHAR_LIST.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id; opt.textContent = c.name;
-                if (c.id === p1Index) opt.selected = true;
-                selP1.appendChild(opt);
-            });
-            selP1.onchange = (e) => {
-                p1Index = parseInt(e.target.value);
-                BattleScene.init({ playerIndex: p1Index, cpuIndex: cpuIndex });
+            // Helper: Create Section
+            const createSection = (title, open = false) => {
+                const det = document.createElement('details');
+                if (open) det.open = true;
+                const sum = document.createElement('summary');
+                sum.textContent = title;
+                sum.style.cursor = 'pointer';
+                sum.style.fontWeight = 'bold';
+                sum.style.marginBottom = '10px';
+                det.appendChild(sum);
+                det.style.marginBottom = '15px';
+                det.style.border = '1px solid #555';
+                det.style.padding = '10px';
+                container.appendChild(det);
+                return det;
             };
-            divP1.appendChild(lblP1); divP1.appendChild(selP1);
-            charGroup.appendChild(divP1);
 
-            // CPU Select
-            const divCPU = document.createElement('div'); divCPU.className = 'input-row';
-            const lblCPU = document.createElement('label'); lblCPU.textContent = "CPU (Right)";
-            const selCPU = document.createElement('select');
-            CHAR_LIST.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id; opt.textContent = c.name;
-                if (c.id === cpuIndex) opt.selected = true;
-                selCPU.appendChild(opt);
-            });
-            selCPU.onchange = (e) => {
-                cpuIndex = parseInt(e.target.value);
-                BattleScene.init({ playerIndex: p1Index, cpuIndex: cpuIndex });
+            const createBtn = (parent, text, onClick) => {
+                const b = document.createElement('button');
+                b.textContent = text;
+                b.onclick = onClick;
+                parent.appendChild(b);
             };
-            divCPU.appendChild(lblCPU); divCPU.appendChild(selCPU);
-            charGroup.appendChild(divCPU);
 
-            container.appendChild(charGroup);
+            // 1. POPUP TEST (Riichi/Pon)
+            const grpPopup = createSection("1. Popups & FX", true);
+            ['RIICHI', 'PON', 'RON', 'TSUMO', 'NAGARI'].forEach(type => {
+                createBtn(grpPopup, `Show ${type}`, () => BattleScene.showPopup(type));
+            });
+            createBtn(grpPopup, "Play Audio: Turn Start", () => Assets.playSound('audio/turn_start'));
 
-            // 2. Animation Controls
-            const animGroup = document.createElement('div');
-            animGroup.className = 'control-group';
-            animGroup.innerHTML = '<h3>Animation Controls</h3>';
 
-            // States
-            ['idle', 'smile', 'shocked'].forEach(state => {
-                const btn = document.createElement('button');
-                btn.textContent = `Set State: ${state}`;
-                btn.onclick = () => {
-                    if (BattleScene.p1Character) BattleScene.p1Character.setState(state);
-                    if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.setState(state);
-                };
-                animGroup.appendChild(btn);
+            // 2. ACTION MENU TEST
+            const grpAction = createSection("2. Action Menu UI", true);
+            createBtn(grpAction, "Show Action Menu (Mock)", () => {
+                BattleScene.possibleActions = [
+                    { type: 'PASS', label: 'PASS' },
+                    { type: 'PON', label: 'PON' },
+                    { type: 'CHI', label: 'CHI' },
+                    { type: 'RIICHI', label: 'RIICHI' },
+                    { type: 'RON', label: 'RON' }
+                ];
+                BattleScene.selectedActionIndex = 0;
+                BattleScene.currentState = BattleScene.STATE_ACTION_SELECT;
+            });
+            createBtn(grpAction, "Close Action Menu", () => {
+                BattleScene.currentState = BattleScene.STATE_PLAYER_TURN;
             });
 
-            // Talk Toggle
-            const btnTalk = document.createElement('button');
-            btnTalk.textContent = "Toggle Talk";
-            btnTalk.onclick = () => {
-                if (BattleScene.p1Character) BattleScene.p1Character.setTalking(!BattleScene.p1Character.isTalking);
-                if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.setTalking(!BattleScene.cpuCharacter.isTalking);
-            };
-            animGroup.appendChild(btnTalk);
 
-            container.appendChild(animGroup);
-
-            container.appendChild(animGroup);
-
-            // 3. FX Controls
-            const fxGroup = document.createElement('div');
-            fxGroup.className = 'control-group';
-            fxGroup.innerHTML = '<h3>Visual Effects</h3>';
-
-            // Global FX
-            ['pon', 'ron', 'riichi', 'tsumo', 'nagari'].forEach(type => {
-                const btn = document.createElement('button');
-                btn.textContent = `Play ${type.toUpperCase()}`;
-                btn.onclick = () => {
-                    BattleScene.playFX(`fx/${type}`, 320, 240);
-                };
-                fxGroup.appendChild(btn);
+            // 3. RESULT WINDOW TEST
+            const grpResult = createSection("3. Result Window", true);
+            createBtn(grpResult, "Toggle Result Window", () => {
+                if (BattleScene.currentState === BattleScene.STATE_WIN) {
+                    BattleScene.currentState = lastRealState || 0; // Restore
+                } else {
+                    lastRealState = BattleScene.currentState;
+                    BattleScene.currentState = BattleScene.STATE_WIN;
+                    if (!BattleScene.winningYaku) BattleScene.winningYaku = { score: 8000, yaku: ['Test Yaku 1', 'Test Yaku 2'] };
+                    // Reset timer to ensure "Press Space" blinks
+                    BattleScene.timer = 0;
+                }
             });
+            createBtn(grpResult, "Add 1000 Score", () => { if (BattleScene.winningYaku) BattleScene.winningYaku.score += 1000; });
 
-            // Positional FX (Tenpai/Noten)
-            const divStatus = document.createElement('div');
-            divStatus.style.marginTop = "10px";
 
-            const btnP1Tenpai = document.createElement('button');
-            btnP1Tenpai.textContent = "P1 Tenpai";
-            btnP1Tenpai.onclick = () => {
-                const x = BattleConfig.PORTRAIT.P1.x + BattleConfig.PORTRAIT.P1.w / 2;
-                const y = BattleConfig.PORTRAIT.P1.y + BattleConfig.PORTRAIT.P1.h / 2;
-                BattleScene.playFX('fx/tenpai', x, y, 0.4);
-            };
-
-            const btnP1Noten = document.createElement('button');
-            btnP1Noten.textContent = "P1 Noten";
-            btnP1Noten.onclick = () => {
-                const x = BattleConfig.PORTRAIT.P1.x + BattleConfig.PORTRAIT.P1.w / 2;
-                const y = BattleConfig.PORTRAIT.P1.y + BattleConfig.PORTRAIT.P1.h / 2;
-                BattleScene.playFX('fx/noten', x, y, 0.4);
-            };
-
-            const btnCPUTenpai = document.createElement('button');
-            btnCPUTenpai.textContent = "CPU Tenpai";
-            btnCPUTenpai.onclick = () => {
-                const x = BattleConfig.PORTRAIT.CPU.x + BattleConfig.PORTRAIT.CPU.w / 2;
-                const y = BattleConfig.PORTRAIT.CPU.y + BattleConfig.PORTRAIT.CPU.h / 2;
-                BattleScene.playFX('fx/tenpai', x, y, 0.4);
-            };
-
-            const btnCPUNoten = document.createElement('button');
-            btnCPUNoten.textContent = "CPU Noten";
-            btnCPUNoten.onclick = () => {
-                const x = BattleConfig.PORTRAIT.CPU.x + BattleConfig.PORTRAIT.CPU.w / 2;
-                const y = BattleConfig.PORTRAIT.CPU.y + BattleConfig.PORTRAIT.CPU.h / 2;
-                BattleScene.playFX('fx/noten', x, y, 0.4);
-            };
-
-            divStatus.appendChild(btnP1Tenpai);
-            divStatus.appendChild(btnP1Noten);
-            divStatus.appendChild(btnCPUTenpai);
-            divStatus.appendChild(btnCPUNoten);
-            fxGroup.appendChild(divStatus);
-
-            container.appendChild(fxGroup);
-
-            // 4. UI Configs (Existing)
+            // 4. CONFIG EDITORS
+            const grpConfig = createSection("4. Live Config Editor", false);
             CONFIG_KEYS.forEach(item => {
-                const group = document.createElement('div');
-                group.className = 'control-group';
+                const subDiv = document.createElement('div');
+                subDiv.style.marginBottom = '10px';
+                subDiv.innerHTML = `<strong>${item.label} (${item.path})</strong>`;
 
-                const title = document.createElement('h3');
-                title.textContent = item.label;
-                group.appendChild(title);
-
+                // Safe Traverse
                 const parts = item.path.split('.');
-                let configObj = BattleConfig;
-                for (const part of parts) configObj = configObj[part];
+                let target = BattleUIConfig;
+                parts.forEach(p => {
+                    if (target) target = target[p];
+                });
 
-                const props = [];
-                if ('x' in configObj) props.push('x');
-                if ('y' in configObj) props.push('y');
-                if ('xOffset' in configObj) props.push('xOffset');
-                if ('yOffset' in configObj) props.push('yOffset');
-                if ('align' in configObj) props.push('align');
-                if ('gap' in configObj) props.push('gap');
+                if (!target) return;
+
+                let props = item.props;
+                if (!props || props.length === 0) {
+                    props = [];
+                    // Auto-detect common props
+                    ['x', 'y', 'w', 'h', 'gap', 'scale', 'align', 'textOffsetX', 'textOffsetY', 'padding'].forEach(k => {
+                        if (k in target) props.push(k);
+                    });
+                }
+
+                if (props.length === 0) return;
 
                 props.forEach(prop => {
                     const row = document.createElement('div');
                     row.className = 'input-row';
                     const label = document.createElement('label');
-                    label.textContent = prop.toUpperCase();
+                    label.textContent = prop;
 
-                    if (prop === 'align') {
-                        const select = document.createElement('select');
-                        ['left', 'center', 'right'].forEach(opt => {
-                            const option = document.createElement('option');
-                            option.value = opt; option.textContent = opt;
-                            if (configObj[prop] === opt) option.selected = true;
-                            select.appendChild(option);
-                        });
-                        select.onchange = (e) => configObj[prop] = e.target.value;
-                        row.appendChild(label); row.appendChild(select);
-                    } else {
-                        const input = document.createElement('input');
+                    const input = document.createElement('input');
+                    const val = target[prop];
+
+                    if (prop.toLowerCase().includes('color')) {
+                        input.type = 'text';
+                    } else if (typeof val === 'number') {
                         input.type = 'number';
-                        input.value = configObj[prop];
-                        input.oninput = (e) => configObj[prop] = parseInt(e.target.value);
-                        row.appendChild(label); row.appendChild(input);
+                        input.step = (prop === 'scale' || prop.includes('gap')) ? 0.1 : 1;
+                    } else {
+                        input.type = 'text';
                     }
-                    group.appendChild(row);
+
+                    input.value = val !== undefined ? val : '';
+                    input.oninput = (e) => {
+                        const newVal = (input.type === 'number') ? parseFloat(e.target.value) : e.target.value;
+                        target[prop] = newVal;
+                    };
+
+                    row.appendChild(label); row.appendChild(input);
+                    subDiv.appendChild(row);
                 });
-                container.appendChild(group);
+                grpConfig.appendChild(subDiv);
             });
         }
 
@@ -390,20 +351,20 @@
                 ctx.fillStyle = '#333';
                 ctx.fillRect(0, 0, 640, 480);
 
-                // Update Animations
+                // 1. Battle Scene (Underlay) - Always Active
+                // If forced state is WIN, BattleScene.draw handles the result overlay internally.
                 if (BattleScene.p1Character) BattleScene.p1Character.update();
                 if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.update();
-
-                // Update FX
-                if (BattleScene.updateFX) BattleScene.updateFX();
-
-                // Draw BattleScene
                 BattleScene.draw(ctx);
+
+                Input.update();
 
                 // Overlay Debug Info
                 ctx.fillStyle = 'white';
                 ctx.font = '10px monospace';
-                ctx.fillText(`P1 State: ${BattleScene.p1Character ? BattleScene.p1Character.state : 'N/A'}`, 10, 470);
+                const charState = (BattleScene.p1Character) ? BattleScene.p1Character.state : 'N/A';
+                const sName = ["INIT", "PLAYER", "CPU", "WIN", "LOSE", "NAGARI", "MATCH_OVER"][BattleScene.currentState] || BattleScene.currentState;
+                ctx.fillText(`P1: ${charState} | State: ${sName} | Overlay: ${isOverlayActive ? 'FORCED' : 'OFF'}`, 10, 470);
 
                 requestAnimationFrame(loop);
             }

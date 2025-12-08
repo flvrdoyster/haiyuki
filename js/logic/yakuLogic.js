@@ -93,7 +93,13 @@ const YakuLogic = {
 
         if (matches.length === 0) return null;
         matches.sort((a, b) => b.score - a.score);
-        return matches[0];
+
+        // Return object compatible with BattleRenderer
+        // Renderer expects { score: number, yaku: string[] }
+        return {
+            score: matches[0].score,
+            yaku: [matches[0].name]
+        };
     },
 
     analyzeHand: function (hand) {

@@ -27,6 +27,9 @@ const TitleScene = {
         this.showPushKey = true;
         this.menuIndex = 0;
         this.pointerTimer = 0;
+
+        // Start BGM
+        Assets.playMusic('audio/bgm_title');
     },
 
     update: function () {
