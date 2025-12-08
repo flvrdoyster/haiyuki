@@ -1,7 +1,7 @@
 // Battle UI Configuration
 const BattleUIConfig = {
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
-    BG: { prefix: 'bg/', min: 0, max: 11 },
+    BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {
         P1: { x: -24, y: 60, scale: 1, align: 'left' },
         CPU: { x: 664, y: 60, scale: 1, align: 'right' },
@@ -121,15 +121,15 @@ const BattleUIConfig = {
         rowMax: 10
     },
     BATTLE_MENU: {
-        font: '16px "KoddiUDOnGothic-Regular"',
+        font: '18px "KoddiUDOnGothic-Regular"',
         textDefault: 'white',
         textSelected: '#FFFF00',
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
         dimmer: 'rgba(0, 0, 0, 0.5)',
         padding: 5, // Inner padding for content
-        textOffsetX: 15,
-        textOffsetY: 0,
-        lineHeightRatio: 7, // 1/7th of height
-        cursorYOffset: -10
+        textOffsetX: 8,
+        textOffsetY: 2,
+        lineHeightRatio: 5,
+        cursorYOffset: -8
     }
 };

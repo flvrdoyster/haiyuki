@@ -48,42 +48,41 @@ const Assets = {
         'face/CHRSELSMSH.png', 'face/CHRSELPET.png', 'face/CHRSELYURI.png',
         'face/CHRSELMAYU.png',
 
-        // Big Portraits
-        'face/FACEATA.png', 'face/FACERIN.png', 'face/FACEFARI.png',
-        'face/FACESMSH.png', 'face/FACEPET.png', 'face/FACEYURI.png',
-        'face/FACEMAYU.png',
-
         // Encounter/Dialogue Portraits (Detailed)
+        // 0. Ataho
         'face/ATA_base.png',
         'face/ATA_blink-1.png', 'face/ATA_blink-2.png',
         'face/ATA_shocked.png', 'face/ATA_smile.png',
 
-        'face/YURI_base.png',
-        'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
-        'face/YURI_shocked.png', 'face/YURI_smile.png',
-        'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
+        // 1. Rinxiang
+        'face/RIN_base.png',
+        'face/RIN_blink-1.png', 'face/RIN_blink-2.png',
+        'face/RIN_shocked.png', 'face/RIN_smile.png',
+        'face/RIN_talk-1.png', 'face/RIN_talk-2.png',
 
+        // 2. Fari
         'face/FARI_base.png',
         'face/FARI_blink-1.png', 'face/FARI_blink-2.png',
         'face/FARI_shocked.png', 'face/FARI_smile.png',
         'face/FARI_talk-1.png', 'face/FARI_talk-2.png',
 
-        // Smashu Animation Asssets
-        'face/SMSH_base.png', 'face/SMSH_idle.png',
+        // 3. Smashu
+        'face/SMSH.png', 'face/SMSH_base.png', 'face/SMSH_idle.png',
         'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png', 'face/SMSH_blink-3.png',
         'face/SMSH_shocked.png', 'face/SMSH_smile.png',
         'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png', 'face/SMSH_talk-3.png',
 
-        // Linxiang Animation Assets
-        'face/RIN_base.png',
-        'face/RIN_blink-1.png', 'face/RIN_blink-2.png', 'face/RIN_blink-3.png',
-        'face/RIN_shocked.png', 'face/RIN_smile.png',
-        'face/RIN_talk-1.png', 'face/RIN_talk-2.png', 'face/RIN_talk-3.png',
+        // 4. Petum
+        'face/PET_base.png',
+        'face/PET_blink-1.png', 'face/PET_blink-2.png',
+        'face/PET_shocked.png', 'face/PET_smile.png',
+        'face/PET_talk-1.png', 'face/PET_talk-2.png',
 
-        'face/btl/RIN_R_base.png',
-        'face/btl/RIN_R_blink-1.png', 'face/btl/RIN_R_blink-2.png', 'face/btl/RIN_R_blink-3.png',
-        'face/btl/RIN_R_shocked.png', 'face/btl/RIN_R_smile.png',
-        'face/btl/RIN_R_talk-1.png', 'face/btl/RIN_R_talk-2.png', 'face/btl/RIN_R_talk-3.png',
+        // 5. Yuri
+        'face/YURI_base.png',
+        'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
+        'face/YURI_shocked.png', 'face/YURI_smile.png',
+        'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
 
         // Tiles
         'tiles/pai_ata.png', 'tiles/pai_rin.png', 'tiles/pai_smsh.png',

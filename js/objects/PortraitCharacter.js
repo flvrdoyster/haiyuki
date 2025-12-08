@@ -297,6 +297,10 @@ class PortraitCharacter {
                     if (this.animConfig.xOffset) dx += this.animConfig.xOffset;
                     if (this.animConfig.yOffset) dy += this.animConfig.yOffset;
 
+                    // Apply Character Data Offsets (Global correction)
+                    if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
+                    if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
+
                     // Update lastRenderRect
                     this.lastRenderRect = { x: dx, y: dy, w: destW, h: destH };
 
@@ -356,6 +360,10 @@ class PortraitCharacter {
         let dx = this.config.x;
         let dy = this.config.y;
         if (this.config.align === 'right') dx -= destW;
+
+        // Apply Character Data Offsets (Global correction)
+        if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
+        if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
 
         if (img) {
             // Recalculate based on actual image

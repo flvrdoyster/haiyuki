@@ -55,15 +55,12 @@ const BattleEngine = {
     selectedActionIndex: 0,
 
     // Config for Battle Menu
-    MENU_ITEMS: [
-        '오름',     // Agari
-        '펑',       // Pon
-        '리치',     // Riichi
-        '맹호일발권', // Fierce Tiger One-Punch
-        '지옥쌓기',   // Hell Stacking
-        '도움말',     // Help
-        '환경설정'    // Option
-    ],
+    // Action Logic
+    possibleActions: [], // { type: 'PON', tile: ... }
+    actionTimer: 0,
+    selectedActionIndex: 0,
+
+    // Config for Battle Menu
     selectedMenuIndex: 0,
 
     init: function (data) {
@@ -86,6 +83,18 @@ const BattleEngine = {
         const p1Data = CharacterData.find(c => c.index === this.playerIndex) || CharacterData[this.playerIndex];
         const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
         console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
+
+        // Construct Dynamic Battle Menu
+        this.menuItems = [
+            '자동 선택',   // Auto-select
+            '다시 시작'     // Revert
+        ];
+        // Add Character Skills
+        if (p1Data && p1Data.skills) {
+            this.menuItems.push(...p1Data.skills);
+        }
+        // Add System Actions
+        this.menuItems.push('도움말');
 
         this.activeFX = [];
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
@@ -113,7 +122,7 @@ const BattleEngine = {
             }
             */
 
-            // 2. Auto-Detection
+            // Auto-Detection (Standard face folder only)
             const prefix = idMap[charData.id] || charData.id.toUpperCase();
             const base = `face/${prefix}_base.png`;
             if (Assets.get(base)) {
@@ -1349,6 +1358,36 @@ const BattleEngine = {
         }
     },
 
+    performAutoTurn: function () {
+        if (this.currentState !== this.STATE_PLAYER_TURN) {
+            console.log("Not player turn, cannot auto-select.");
+            return;
+        }
+
+        try {
+            // Delegate to AI Logic
+            // Use 'NORMAL' difficulty as standard auto-play
+            const discardIdx = AILogic.decideDiscard(this.p1.hand, AILogic.DIFFICULTY.NORMAL);
+
+            if (typeof discardIdx !== 'number' || discardIdx < 0) {
+                console.error("AILogic returned invalid index:", discardIdx);
+                // Fallback: Discard rightmost tile safely
+                this.discardTile(this.p1.hand.length - 1);
+                return;
+            }
+
+            console.log(`[Auto-Select] AI chose to discard index ${discardIdx}`);
+            this.discardTile(discardIdx);
+        } catch (e) {
+            console.error("Error during Auto-Select:", e);
+            console.error(e.stack);
+            // Fallback: Discard rightmost tile safely to prevent soft-lock
+            if (this.p1.hand.length > 0) {
+                this.discardTile(this.p1.hand.length - 1);
+            }
+        }
+    },
+
     executeAction: function (action) {
         console.log(`Executing Action: ${action.type} `);
 
@@ -1492,23 +1531,81 @@ const BattleEngine = {
     updateBattleMenu: function () {
         if (Input.isJustPressed(Input.UP)) {
             this.selectedMenuIndex--;
-            if (this.selectedMenuIndex < 0) this.selectedMenuIndex = this.MENU_ITEMS.length - 1;
+            if (this.selectedMenuIndex < 0) this.selectedMenuIndex = this.menuItems.length - 1;
         }
+        // Mouse Input Handling
+        const bg = Assets.get('ui/battle_menu.png'); // Need dimensions
+        if (bg) {
+            const conf = BattleUIConfig.BATTLE_MENU;
+            const menuX = 640 - bg.width;
+            const menuY = 480 - bg.height;
+            const startX = menuX + conf.padding;
+            const startY = menuY + conf.padding + 7;
+            const h = bg.height - (conf.padding * 2);
+            const lineHeight = h / conf.lineHeightRatio;
+
+            const mx = Input.mouseX;
+            const my = Input.mouseY;
+
+            // Check Hover
+            for (let i = 0; i < this.menuItems.length; i++) {
+                const itemY = startY + (i * lineHeight) + conf.cursorYOffset;
+                // Simple rect check for each item line
+                if (mx >= startX && mx <= startX + (bg.width - conf.padding * 2) &&
+                    my >= itemY && my <= itemY + lineHeight) {
+
+                    this.selectedMenuIndex = i; // Auto-select on hover
+
+                    if (Input.isMouseJustPressed()) {
+                        // Trigger selection
+                        const selected = this.menuItems[this.selectedMenuIndex];
+                        this.handleMenuSelection(selected);
+                        return;
+                    }
+                }
+            }
+        }
+
         if (Input.isJustPressed(Input.DOWN)) {
             this.selectedMenuIndex++;
-            if (this.selectedMenuIndex >= this.MENU_ITEMS.length) this.selectedMenuIndex = 0;
+            if (this.selectedMenuIndex >= this.menuItems.length) this.selectedMenuIndex = 0;
         }
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
-            const selected = this.MENU_ITEMS[this.selectedMenuIndex];
-            console.log("Selected Menu Item:", selected);
-            this.toggleBattleMenu();
+            const selected = this.menuItems[this.selectedMenuIndex];
+            this.handleMenuSelection(selected);
         }
-
         // Allow closing with ESC as well (Redundant but safe)
         if (Input.isJustPressed(Input.ESC)) {
             this.toggleBattleMenu();
         }
+    },
+
+    handleMenuSelection: function (selected) {
+        console.log("Selected Menu Item:", selected);
+
+        if (selected === '도움말') {
+            window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=480,status=no,toolbar=no');
+        } else if (selected === '자동 선택') {
+            if (this.lastStateBeforeMenu !== this.STATE_PLAYER_TURN) {
+                console.log("Auto-select ignored: Not player turn");
+                // Optional: Play error sound
+            } else {
+                this.toggleBattleMenu(); // Close menu
+                this.performAutoTurn();
+            }
+        } else if (selected === '다시 시작') {
+            // Restart Game / Reload
+            if (confirm("정말로 다시 시작하시겠습니까?")) {
+                location.reload();
+            }
+        } else if (selected === '환경설정') {
+            // Placeholder
+        } else {
+            // Skills or other items
+        }
+
+        this.toggleBattleMenu();
     },
 
     // Draw methods delegated to BattleRenderer

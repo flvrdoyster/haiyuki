@@ -35,8 +35,8 @@ const DialogueData = {
         { speaker: "ataho", text: "아니, 그만 두지.\n자네랑 마시면 좋을게 하나도 없으니 말야." },
         { speaker: "petum", text: "싫으신 모양이군요.\n얼마 전의 일, 아직도 화가 나신 건가요?" },
         { speaker: "ataho", text: "당연하잖아." },
-        { speaker: "petum", text: "그렇게나 마셨으면서,\n자기는 \"깜박한 일이 있었다\" 며 돌아가버려 놓곤..." },
-        { speaker: "petum", text: "자네가 살 예정이었으면서,\n결국 내가 전부 계산해 버렸지 않은가." },
+        { speaker: "ataho", text: "그렇게나 마셨으면서,\n자기는 \"깜박한 일이 있었다\" 며 돌아가버려 놓곤..." },
+        { speaker: "ataho", text: "자네가 살 예정이었으면서,\n결국 내가 전부 계산해 버렸지 않은가." },
         { speaker: "petum", text: "뭐, 그렇게 화내지 마세요." },
         { speaker: "petum", text: "너무 화내면 머리의 결함...\n아니, 혈관이 터져버린다구요?\n이제 무리하면 안되는 나이기도 하시니..." },
         { speaker: "ataho", text: "생긴 것보다 나이 먹은 자네에겐 듣고 싶지 않네!!" }

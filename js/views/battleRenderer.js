@@ -4,15 +4,24 @@ const BattleRenderer = {
         ctx.imageSmoothingEnabled = false;
 
         // 1. Random Background (Bottom Layer)
-        // state.bgPath must be accessible
+        // Fill with black first
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, 640, 480);
+
+        // Draw centered background image
         const randomBg = Assets.get(state.bgPath);
         if (randomBg) {
-            const pattern = ctx.createPattern(randomBg, 'repeat');
-            ctx.fillStyle = pattern;
-            ctx.fillRect(0, 0, 640, 480);
-        } else {
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, 640, 480);
+            const bgConf = BattleUIConfig.BG;
+            let x = bgConf.x || 320;
+            let y = bgConf.y || 240;
+
+            // Apply alignment
+            if (bgConf.align === 'center') {
+                x -= randomBg.width / 2;
+                y -= randomBg.height / 2;
+            }
+
+            ctx.drawImage(randomBg, x, y);
         }
 
         // 2. Portraits
@@ -389,7 +398,9 @@ const BattleRenderer = {
         }
 
         this.drawNumber(ctx, turn, tConf.turnNumber.x, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
-        this.drawNumber(ctx, round, tConf.roundNumber.x, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
+        // Cap round display at 20
+        const displayRound = Math.min(round, 20);
+        this.drawNumber(ctx, displayRound, tConf.roundNumber.x, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
     },
 
     drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {
@@ -573,7 +584,7 @@ const BattleRenderer = {
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
-        state.MENU_ITEMS.forEach((item, i) => {
+        state.menuItems.forEach((item, i) => {
             const itemY = startY + (i * lineHeight) + (lineHeight / 2) + conf.cursorYOffset;
 
             // 3. Selection Cursor
@@ -586,6 +597,14 @@ const BattleRenderer = {
             }
 
             ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
+
+            // Overlay Disabled State (Gray out)
+            if (item === '자동 선택' && state.lastStateBeforeMenu !== state.STATE_PLAYER_TURN) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent dimmer over text
+                // Or just overwrite color
+                ctx.fillStyle = 'gray';
+                ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
+            }
         });
     }
 };
