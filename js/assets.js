@@ -16,7 +16,9 @@ const Assets = {
         { id: 'audio/bgm_basic', src: 'assets/audio/bgm_basic.mp3', type: 'audio' },
         { id: 'audio/bgm_tension', src: 'assets/audio/bgm_tension.mp3', type: 'audio' },
         { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
+        { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
         { id: 'audio/bgm_win', src: 'assets/audio/bgm_win.mp3', type: 'audio' },
+        { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
@@ -47,6 +49,12 @@ const Assets = {
         'face/CHRSELATA.png', 'face/CHRSELRIN.png', 'face/CHRSELFARI.png',
         'face/CHRSELSMSH.png', 'face/CHRSELPET.png', 'face/CHRSELYURI.png',
         'face/CHRSELMAYU.png',
+
+        // UI Frame
+        'ui/frame/corner-lefttop.png', 'ui/frame/corner-righttop.png',
+        'ui/frame/corner-leftbottom.png', 'ui/frame/corner-rightbottom.png',
+        'ui/frame/line-top.png', 'ui/frame/line-bottom.png',
+        'ui/frame/line-left.png', 'ui/frame/line-right.png',
 
         // Encounter/Dialogue Portraits (Detailed)
         // 0. Ataho
@@ -83,6 +91,12 @@ const Assets = {
         'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
         'face/YURI_shocked.png', 'face/YURI_smile.png',
         'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
+
+        // 6. Mayu
+        'face/MAYU_base.png',
+        'face/MAYU_blink-1.png', 'face/MAYU_blink-2.png',
+        'face/MAYU_shocked.png', 'face/MAYU_smile.png',
+        'face/MAYU_unknown.png',
 
         // Tiles
         'tiles/pai_ata.png', 'tiles/pai_rin.png', 'tiles/pai_smsh.png',
@@ -305,9 +319,73 @@ const Assets = {
                 ctx.drawImage(img, sx, sy, frameWidth, frameHeight, x + (i * frameWidth), y, frameWidth, frameHeight);
             } else if (char === ' ') {
                 // Just advance for space
-                // (Loop advances x by i * frameWidth naturally, but if we wanted flexible spacing we'd do it differently. 
-                // Here we just draw nothing for space but the next character will be offset correctly by i)
             }
         }
+    },
+
+    /**
+     * Draw a 9-slice frame using registered frame assets.
+     * Edges are tiled to fill the space.
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {number} x 
+     * @param {number} y 
+     * @param {number} w 
+     * @param {number} h 
+     */
+    drawUIFrame: function (ctx, x, y, w, h) {
+        const tl = this.get('ui/frame/corner-lefttop.png');
+        const tr = this.get('ui/frame/corner-righttop.png');
+        const bl = this.get('ui/frame/corner-leftbottom.png');
+        const br = this.get('ui/frame/corner-rightbottom.png');
+
+        const top = this.get('ui/frame/line-top.png');
+        const bottom = this.get('ui/frame/line-bottom.png');
+        const left = this.get('ui/frame/line-left.png');
+        const right = this.get('ui/frame/line-right.png');
+
+        if (!tl || !tr || !bl || !br || !top || !bottom || !left || !right) {
+            return; // Assets not loaded yet
+        }
+
+        // Draw Corners
+        ctx.drawImage(tl, x, y);
+        ctx.drawImage(tr, x + w - tr.width, y);
+        ctx.drawImage(bl, x, y + h - bl.height);
+        ctx.drawImage(br, x + w - br.width, y + h - br.height);
+
+        // Draw Top/Bottom Edges (Tiled)
+        const innerX = x + tl.width;
+        const innerW = w - tl.width - tr.width;
+        if (innerW > 0) {
+            // Top
+            this.drawTiled(ctx, top, innerX, y, innerW, top.height, 'horizontal');
+            // Bottom
+            this.drawTiled(ctx, bottom, innerX, y + h - bottom.height, innerW, bottom.height, 'horizontal');
+        }
+
+        // Draw Left/Right Edges (Tiled)
+        const innerY = y + tl.height; // Assuming corners have same height
+        const innerH = h - tl.height - bl.height;
+
+        if (innerH > 0) {
+            // Left
+            this.drawTiled(ctx, left, x, innerY, left.width, innerH, 'vertical');
+            // Right
+            this.drawTiled(ctx, right, x + w - right.width, innerY, right.width, innerH, 'vertical');
+        }
+    },
+
+    /**
+     * Helper to draw a tiled image efficiently.
+     */
+    drawTiled: function (ctx, img, x, y, fillW, fillH, direction) {
+        // Option 1: Using pattern (More efficient for large areas)
+        // However, pattern origin is global. We need to translate.
+        ctx.save();
+        ctx.translate(x, y);
+        const ptrn = ctx.createPattern(img, 'repeat');
+        ctx.fillStyle = ptrn;
+        ctx.fillRect(0, 0, fillW, fillH);
+        ctx.restore();
     }
 };

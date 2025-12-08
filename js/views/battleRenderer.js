@@ -399,7 +399,10 @@ const BattleRenderer = {
             ctx.drawImage(labelImg, 0, 0, turnW, h, tConf.turnLabel.x - turnW / 2, tConf.turnLabel.y, turnW, h);
         }
 
-        this.drawNumber(ctx, turn, tConf.turnNumber.x, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
+        // Cap turn display at 20
+        const displayTurn = Math.min(turn, 20);
+        this.drawNumber(ctx, displayTurn, tConf.turnNumber.x, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
+
         // Cap round display at 20
         const displayRound = Math.min(round, 20);
         this.drawNumber(ctx, displayRound, tConf.roundNumber.x, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
@@ -469,31 +472,43 @@ const BattleRenderer = {
         const btnW = conf.btnWidth;
         const btnH = conf.btnHeight;
         const gap = conf.gap;
+        const padding = conf.padding || 20;
 
         const totalW = actions.length * btnW + (actions.length - 1) * gap;
         const startX = (640 - totalW) / 2;
         const startY = conf.y;
 
+        // Draw Container Frame
+        const frameX = startX - padding;
+        const frameY = startY - padding;
+        const frameW = totalW + (padding * 2);
+        const frameH = btnH + (padding * 2); // Assuming single row of buttons
+
+        Assets.drawUIFrame(ctx, frameX, frameY, frameW, frameH);
+
+        // Inner Dimmer
+        const border = 4;
+        ctx.fillStyle = conf.dimmer || 'rgba(0,0,0,0.5)';
+        ctx.fillRect(frameX + border, frameY + border, frameW - (border * 2), frameH - (border * 2));
+
+
         actions.forEach((act, i) => {
             const x = startX + i * (btnW + gap);
             const isSelected = (i === state.selectedActionIndex);
 
-            ctx.fillStyle = isSelected ? conf.colors.selected : conf.colors.normal;
-            ctx.fillRect(x, startY, btnW, btnH);
-            ctx.strokeStyle = conf.colors.stroke;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, startY, btnW, btnH);
+            // Selection Cursor (Pink Bar) - Only draw if selected
+            if (isSelected) {
+                ctx.fillStyle = conf.cursor;
+                ctx.fillRect(x, startY, btnW, btnH);
+            }
 
-            ctx.fillStyle = isSelected ? conf.colors.selectedText : conf.colors.text;
+            // Text Color
+            ctx.fillStyle = isSelected ? conf.textSelected : conf.textDefault;
             ctx.font = conf.buttonFont;
             ctx.textAlign = 'center';
-            ctx.fillText(act.label, x + btnW / 2, startY + btnH / 2 + 7);
+            ctx.textBaseline = 'middle'; // Fix vertical alignment
+            ctx.fillText(act.label, x + btnW / 2, startY + btnH / 2);
         });
-
-        ctx.fillStyle = 'white';
-        ctx.font = conf.helpFont;
-        ctx.textAlign = 'center';
-        ctx.fillText("Select Action!", 320, startY - 20);
     },
 
     drawResult: function (ctx, state) {
@@ -503,84 +518,116 @@ const BattleRenderer = {
         ctx.fillStyle = conf.dimmerColor || 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
-        // 2. Window Body
+        // 2. Window Body (Frame)
         // Use defaults if missing in config
         const rx = conf.x !== undefined ? conf.x : 60;
         const ry = conf.y !== undefined ? conf.y : 80;
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        ctx.fillStyle = conf.windowColor || 'rgba(0,0,0,0.9)';
-        ctx.fillRect(rx, ry, rw, rh);
+        // Draw Frame
+        Assets.drawUIFrame(ctx, rx, ry, rw, rh);
 
-        // 3. Border
-        if (conf.borderWidth > 0) {
-            ctx.strokeStyle = conf.borderColor || 'white';
-            ctx.lineWidth = conf.borderWidth;
-            ctx.strokeRect(rx, ry, rw, rh);
-        }
+        // Inner Dimmer
+        const border = 4;
+        ctx.fillStyle = conf.dimmer || 'rgba(0,0,0,0.5)';
+        ctx.fillRect(rx + border, ry + border, rw - (border * 2), rh - (border * 2));
 
-        ctx.fillStyle = conf.resultColor;
+        // 3. Border (Removed/Redundant with Frame, but kept if special overlay needed? No, Frame has border)
+        // if (conf.borderWidth > 0) { ... } -> Removed
+
+        // Content Rendering
+        const info = state.resultInfo; // { type: 'WIN', score: 1000 }
+        if (!info) return;
+
+        const typeConf = conf.TYPES[info.type] || conf.TYPES.LOSE; // Fallback
+
+        ctx.textAlign = "center";
+
+        // 1. Title
+        ctx.fillStyle = typeConf.color;
         ctx.font = conf.titleFont;
-        ctx.textAlign = 'center';
+        ctx.fillText(typeConf.title, conf.titleX, conf.titleY);
 
-        const title = (state.currentState === state.STATE_WIN) ? "WINNER!" :
-            (state.currentState === state.STATE_LOSE) ? "DEFEAT..." : "NAGARI";
+        // 2. Info Text (Score or Message)
+        ctx.fillStyle = conf.infoColor;
+        ctx.font = conf.infoFont;
 
-        ctx.fillText(title, conf.titleX, conf.titleY);
-
-        // STRUCTURED DISPLAY (Priority)
-        if (state.winningYaku) {
-            ctx.font = conf.scoreFont;
-            ctx.fillStyle = conf.subColor;
-            ctx.fillText(`${state.winningYaku.score} PTS`, conf.scoreX, conf.scoreY);
-
-            ctx.font = conf.infoFont;
-            ctx.fillStyle = conf.infoColor;
-            state.winningYaku.yaku.forEach((y, i) => {
-                ctx.fillText(y, conf.infoX, conf.infoY + (i * conf.infoLineHeight));
-            });
-
-            // STRING MESSAGE FALLBACK (If winningYaku missing but msg exists)
-        } else if (state.drawResultMsg) {
-            ctx.font = conf.scoreFont;
-            ctx.fillStyle = conf.subColor;
-            const lines = state.drawResultMsg.split('\n');
-            // Skip Title logic if reusing msg, but msg includes title usually.
-            // drawResultMsg = "WIN\nScore:...\nPress..."
-            lines.forEach((line, i) => {
-                if (i === 0) return; // Skip title specific line from msg if similar
-                ctx.fillText(line, conf.scoreX, conf.scoreY + (i * 40));
-            });
+        // Template replacement
+        let text = typeConf.text || "";
+        if (info.score !== undefined) {
+            text = text.replace("{score}", info.score);
+        }
+        if (info.yakuName !== undefined) {
+            text = text.replace("{yaku}", info.yakuName);
+        } else {
+            text = text.replace("{yaku}", "");
         }
 
-        // "Press Space" (Blinking)
+        if (info.p1Status !== undefined) text = text.replace("{p1Status}", info.p1Status);
+        if (info.cpuStatus !== undefined) text = text.replace("{cpuStatus}", info.cpuStatus);
+        if (info.damageMsg !== undefined) text = text.replace("{damageMsg}", info.damageMsg);
+        // Remove extra newline if yaku is empty and starts with newline? 
+        // Or just let it be. If {yaku} is top line and empty, we get empty first line.
+        // Ideally trim or handle nicely. But straightforward replacement is fine for now.
+        text = text.trim();
+
+        const lines = text.split('\n'); // Use actual newline char since Config might use \n or user typed it? 
+        // Previous code split by '\\n' (literal string \n). 
+        // If Config object has `\n` in string literal `"{yaku}\nScore..."`, JS parses it as newline char.
+        // So split('\n') is correct. 
+        // Check if previous code used '\\n' intentionally for literal "\n" string?
+        // Config file: `text: "{yaku}\nScore: {score}"`. This is a string literal containing a newline character.
+        // So `split('\n')` is correct. The previous code had `split('\\n')` which looks for literal backslash-n.
+        // I should fix that too if it was wrong, or check if Config uses double escape.
+        // Config: `text: "{yaku}\nScore: {score}"`. Standard JS string.
+        // Wait, if I write `\n` in a JS file string, it becomes a newline.
+        // Previous code: `const lines = text.split('\\n');` -> This splits by literal `\n` characters (backslash then n).
+        // Unless the string was `"{yaku}\\nScore..."`.
+        // Let's assume standard newline and fix the split to `\n`.
+
+        lines.forEach((line, i) => {
+            ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
+        });
+
+        // 3. Footer "Press Space"
         if (state.timer % 60 < 30) {
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = '#FFFFFF'; // or conf.infoColor
             ctx.font = "16px monospace";
-            ctx.fillText("Press SPACE to Continue", 320, 420);
+            // Position relative to frame bottom
+            const offset = (conf.pressSpaceOffset !== undefined) ? conf.pressSpaceOffset : 20;
+            const pressY = ry + rh + offset;
+            ctx.fillText(conf.TEXTS.pressSpace, conf.infoX, pressY);
         }
     },
 
     drawBattleMenu: function (ctx, state) {
-        const bg = Assets.get('ui/battle_menu.png');
-        if (!bg) return;
         const conf = BattleUIConfig.BATTLE_MENU;
 
-        const x = 640 - bg.width;
-        const y = 480 - bg.height;
+        // Use configured dimensions
+        const x = conf.x;
+        const y = conf.y;
+        const w = conf.w;
+        const h = conf.h;
 
-        // 1. Draw Menu Asset
-        ctx.drawImage(bg, x, y);
+        // 1. Draw Frame
+        Assets.drawUIFrame(ctx, x, y, w, h);
 
-        // 2. Dimmer
+        // 2. Dimmer (Optional inner background)
+        // If the frame edges have transparency or the center is empty, 
+        // we might want a solid or transparent black fill behind it?
+        // The frame logic assumes edges. Let's draw a dimmer inside just in case.
+        // Assuming frame border is approx 10px? 
+        const border = 4; // Inner pad
         ctx.fillStyle = conf.dimmer;
-        ctx.fillRect(x + conf.padding, y + conf.padding, bg.width - (conf.padding * 2), bg.height - (conf.padding * 2));
+        ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
 
         const startX = x + conf.padding;
         const startY = y + conf.padding + 7;
-        const h = bg.height - (conf.padding * 2);
-        const lineHeight = h / conf.lineHeightRatio;
+        const innerH = h - (conf.padding * 2);
+        // Calculate dynamic line height based on item count or ratio?
+        // Let's use ratio but ensure it fits.
+        const lineHeight = innerH / Math.max(state.menuItems.length, conf.lineHeightRatio);
 
         ctx.font = conf.font;
         ctx.textAlign = "left";
@@ -589,10 +636,31 @@ const BattleRenderer = {
         state.menuItems.forEach((item, i) => {
             const itemY = startY + (i * lineHeight) + (lineHeight / 2) + conf.cursorYOffset;
 
+            // Separator Lines
+            // Between 2nd(1) and 3rd(2) -> Before 2
+            // Between 4th(3) and 5th(4) -> Before 4
+            if (i === 2 || i === 4) {
+                const lineY = startY + (i * lineHeight) + conf.cursorYOffset;
+                // Adjust Y slightly to be between the rows. 
+                // itemY is center. Top of row is itemY - lineHeight/2.
+                // startY + i*lineHeight is basically the top limit of that row.
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                // Draw line with some padding
+                const linePad = 10;
+                ctx.moveTo(startX + linePad, lineY);
+                ctx.lineTo(startX + (w - (conf.padding * 2)) - linePad, lineY);
+                ctx.stroke();
+            }
+
             // 3. Selection Cursor
             if (i === state.selectedMenuIndex) {
                 ctx.fillStyle = conf.cursor;
-                ctx.fillRect(startX, startY + (i * lineHeight) + conf.cursorYOffset, bg.width - (conf.padding * 2), lineHeight);
+                // Cursor bar width
+                const barW = w - (conf.padding * 2);
+                ctx.fillRect(startX, startY + (i * lineHeight) + conf.cursorYOffset, barW, lineHeight);
                 ctx.fillStyle = conf.textSelected;
             } else {
                 ctx.fillStyle = conf.textDefault;
@@ -603,8 +671,7 @@ const BattleRenderer = {
             // Overlay Disabled State (Gray out)
             if (item === '자동 선택' && state.lastStateBeforeMenu !== state.STATE_PLAYER_TURN) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent dimmer over text
-                // Or just overwrite color
-                ctx.fillStyle = 'gray';
+                // Also can re-draw text in gray
                 ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
             }
         });

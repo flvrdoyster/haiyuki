@@ -17,12 +17,14 @@ const BattleEngine = {
     timer: 0,
 
     calculateScore: function (baseScore, isMenzen) {
+        let score = baseScore;
         // Open Hand Penalty: 75% Score (3/4)
         // Not cumulative, applies once if hand is not Menzen.
         if (!isMenzen) {
-            return Math.floor(baseScore * 0.75);
+            score = Math.floor(baseScore * 0.75);
         }
-        return baseScore;
+        // Round to nearest 10
+        return Math.round(score / 10) * 10;
     },
 
     sequencing: { active: false, steps: [], currentStep: 0, timer: 0 },
@@ -250,19 +252,17 @@ const BattleEngine = {
             steps.push({ type: 'MUSIC', id: 'audio/bgm_win', loop: false });
         }
 
-        // Apply Pon Score Penalty (2/3)
-        // Check if winner has open sets
-        if (who === 'P1' && this.p1.openSets.length > 0) {
-            score = Math.floor(score * 2 / 3);
-            console.log("Score reduced due to Pon:", score);
-        } else if (who === 'CPU' && this.cpu.openSets.length > 0) {
-            score = Math.floor(score * 2 / 3);
-        }
-
         // UPDATE STATE with Final Score for Renderer
         if (this.winningYaku) {
             this.winningYaku.score = score;
         }
+
+        const winType = (who === 'P1') ? 'WIN' : 'LOSE';
+        this.resultInfo = {
+            type: winType,
+            score: score,
+            yakuName: this.winningYaku ? this.winningYaku.yaku[0] : ''
+        };
 
         steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: score });
 
@@ -274,43 +274,133 @@ const BattleEngine = {
         };
     },
 
+    calculateTenpaiDamage: function (p1Tenpai, cpuTenpai) {
+        let damageMsg = "";
+        if (p1Tenpai && cpuTenpai) {
+            // Both Tenpai -> No payments.
+            damageMsg = "데미지: 없음";
+        } else if (p1Tenpai && !cpuTenpai) {
+            // P1 Tenpai, CPU Noten -> CPU takes damage
+            const dmg = 3000; // Tenpai penalty
+            this.pendingDamage = { target: 'CPU', amount: dmg };
+            damageMsg = `데미지: ${dmg}`;
+        } else if (!p1Tenpai && cpuTenpai) {
+            // CPU Tenpai, P1 Noten -> Player takes damage
+            const dmg = 3000;
+            this.pendingDamage = { target: 'P1', amount: dmg };
+            damageMsg = `데미지: -${dmg}`;
+        } else {
+            // Both Noten
+            damageMsg = "데미지: 없음";
+        }
+
+        return damageMsg;
+    },
+
+    checkTenpai: function (character) {
+        // Simplified Tenpai Check
+        // "One tile away from winning"
+        // Brute force: Try adding every possible tile. If any results in a Win, it's Tenpai.
+
+        // Use full hand (including open sets)
+        const fullHand = this.getFullHand(character);
+        const charId = character.id;
+
+        for (const typeInfo of PaiData.TYPES) {
+            // Colors
+            const colors = ['red', 'blue', 'yellow'];
+            if (['ataho', 'rin', 'smash', 'pet', 'fari', 'yuri'].includes(typeInfo.id)) {
+                // Characters might only have specific colors allowed? 
+                // Assuming all available.
+            }
+
+            for (const c of colors) {
+                const testTile = { type: typeInfo.id, color: c };
+                const tempHand = [...fullHand, testTile];
+                if (YakuLogic.checkYaku(tempHand, charId)) return true;
+
+                // Optimization: Don't check every color if logic is generic?
+                // YakuLogic depends on Color matches (Same Color, etc). So must check colors.
+                // 34 types * 3 colors ~ 100 checks. Fast enough.
+            }
+        }
+        return false;
+    },
+
     startNagariSequence: function () {
-        console.log("Starting Nagari Sequence");
-        Assets.playMusic('audio/bgm_basic'); // Reset BGM from Riichi tension
-        this.currentState = this.STATE_FX_PLAYING;
+        this.currentState = this.STATE_NAGARI;
 
-        this.sortHand(this.cpu.hand); // Sort CPU hand
+        // Tenpai checks (Pass character object)
+        const p1Tenpai = this.checkTenpai(this.p1);
+        const cpuTenpai = this.checkTenpai(this.cpu);
 
-        // Calculate P1 Tenpai/Noten
-        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1));
-        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu));
-        const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten';
-        const cpuFx = cpuTenpai ? 'fx/tenpai' : 'fx/noten';
+        console.log(`P1 Tenpai: ${p1Tenpai}, CPU Tenpai: ${cpuTenpai}`);
 
-        // Positions
-        const p1X = BattleUIConfig.PORTRAIT.P1.x + BattleUIConfig.PORTRAIT.P1.w / 2;
-        const p1Y = BattleUIConfig.PORTRAIT.P1.y + BattleUIConfig.PORTRAIT.P1.h / 2;
-        const cpuX = BattleUIConfig.PORTRAIT.CPU.x + BattleUIConfig.PORTRAIT.CPU.w / 2;
-        const cpuY = BattleUIConfig.PORTRAIT.CPU.y + BattleUIConfig.PORTRAIT.CPU.h / 2;
+        // Determine Damage
+        const damageMsg = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
+        console.log(`Nagari! Damage Msg: ${damageMsg}`);
+
+        const p1Tx = p1Tenpai ? BattleUIConfig.STATUS_TEXTS.TENPAI : BattleUIConfig.STATUS_TEXTS.NOTEN;
+        const cpuTx = cpuTenpai ? BattleUIConfig.STATUS_TEXTS.TENPAI : BattleUIConfig.STATUS_TEXTS.NOTEN;
+
+        // Expressions
+        if (p1Tenpai) this.p1Character.setState('smile');
+        else this.p1Character.setState('shocked');
+
+        if (cpuTenpai) this.cpuCharacter.setState('smile');
+        else this.cpuCharacter.setState('shocked');
+
+        // Visual Sequence
+        // 1. "Nagari" Text
+        // 2. Show Hands (Reveal CPU)
+        // 3. Show Tenpai/Noten status
+        // 4. Apply Damage Animation
+        // 5. Next Round
+
+        // Setup sequence steps
+        const p1X = 150; const p1Y = 300;
+        const cpuX = 490; const cpuY = 300;
+
+        const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten'; // We don't have these images yet. 
+        // Or use text bubbles.
+        // Let's use text bubble FX or specific assets if they existed.
+        // For now, use existing generic FX or popups.
+
+        // Let's assume we use valid assets or text popups. 
+        // We can create a "TextFX" type?
+        // For this task, we can assume standard assets or re-use existing system.
+        // Actually, let's just use the `damageMsg` in the Result window for now, 
+        // as `STATE_NAGARI` transitions to `drawResult` which can show the message.
 
         this.sequencing = {
             active: true,
-            timer: 0,
             currentStep: 0,
+            timer: 0,
             steps: [
-                { type: 'FX', asset: 'fx/nagari', x: 320, y: 240 },
-                { type: 'WAIT', duration: 60 },
-                { type: 'REVEAL_HAND' }, // Reveal CPU hand
-                {
-                    type: 'FX_PARALLEL', items: [
-                        { asset: p1Fx, x: p1X, y: p1Y, slideFrom: 'LEFT' },
-                        { asset: cpuFx, x: cpuX, y: cpuY, slideFrom: 'RIGHT' }
-                    ]
-                },
-                { type: 'WAIT', duration: 90 }, // Longer wait for status check
-                { type: 'STATE_NAGARI' } // Finally show result overlay
+                { type: 'WAIT', duration: 30 },
+                // Just using popups for Tenpai status if possible, or skip to result
+                // We'll rely on Result Window's text update logic (Refactoring `BattleRenderer` later?)
+                // Actually `BattleRenderer` logic for Nagari needs to show "Damage" text.
+
+                // Let's just do FX for standard reveal
+                { type: 'REVEAL_HAND' },
+                { type: 'WAIT', duration: 30 },
+
+                // We can spawn text particles?
+                // For now, simple wait and then show Result Overlay which has TEXT.
+                { type: 'STATE', state: this.STATE_NAGARI }
             ]
         };
+
+        // Add Tenpai/Noten text to resultInfo for Renderer to optionally use?
+        // Or just the damage msg.
+        this.resultInfo = {
+            type: 'NAGARI',
+            damageMsg: damageMsg,
+            p1Status: p1Tx,
+            cpuStatus: cpuTx
+        };
+        console.log('Set resultInfo:', this.resultInfo);
     },
 
     updateSequence: function () {
@@ -341,13 +431,6 @@ const BattleEngine = {
             this.sequencing.currentStep++;
         } else if (step.type === 'STATE') {
             this.currentState = step.state;
-
-            // Set Result Message
-            const winType = (step.state === this.STATE_WIN) ? "WIN" : "LOSE";
-            // Use score if provided, else default
-            const scoreMsg = step.score ? `Score: ${step.score}` : "";
-            this.drawResultMsg = `${winType}\n${scoreMsg}\nPress Space to Continue`;
-
             this.sequencing.active = false;
         } else if (step.type === 'MUSIC') {
             // New Step: Play Music
@@ -380,9 +463,7 @@ const BattleEngine = {
                 // Interpolate x from startX to endX
                 // progress: 0 (Start) -> 1 (End)
                 // We want slide to finish quickly? Or over whole duration?
-                // User said "slide in... same duration". Let's slide over first 20 frames?
-                // Or whole duration? Usually "slide in" implies entry.
-                // Let's slide over the first 0.3 seconds (18 frames).
+                // User said "slide in... same duration". Let's slide over first 0.3 seconds (18 frames).
                 const slideDur = 20;
                 const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
                 // Ease out?
@@ -443,11 +524,11 @@ const BattleEngine = {
             });
         } else {
             // Game Over -> Continue Screen
+            this.resultInfo = { type: 'GAME_OVER' }; // Set resultInfo for game over
             console.log(`Encounter Finished. Transitioning to Battle. P1: ${this.playerIndex}, CPU: ${this.cpuIndex}`);
             Game.changeScene(BattleEngine, {
                 playerIndex: this.playerIndex,
                 cpuIndex: this.cpuIndex,
-                defeatedOpponents: this.defeatedOpponents,
                 defeatedOpponents: this.defeatedOpponents,
                 hasContinued: true // Mark continue used
             });
@@ -467,7 +548,7 @@ const BattleEngine = {
         this.discards = [];
         this.currentState = this.STATE_INIT;
         this.timer = 0; // Reset timer for clean start
-        this.drawResultMsg = null; // Clear result message
+        this.resultInfo = null; // Clear result info
         this.sequencing.active = false; // Ensure sequence is off
 
         // Reset BGM to Battle Theme
@@ -779,8 +860,26 @@ const BattleEngine = {
                 // Use isDown (keys check) instead of isJustPressed for better robustness
                 // Also accept ENTER and Z
                 // Added timer check (> 180 frames / 3 sec) to prevent skipping result screen instantly
-                if (this.timer > 180 && (Input.keys[Input.SPACE] || Input.keys[Input.ENTER] || Input.keys[Input.Z] || Input.isMouseDown)) {
+                if (this.timer > 30 && (Input.keys[Input.Space] || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed())) {
                     console.log("Input Detected! Moving to Next Round.");
+
+                    if (this.pendingDamage) {
+                        // Apply Damage
+                        if (this.pendingDamage.target === 'P1') {
+                            this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
+                            this.p1Character.setState('shocked');
+                        } else if (this.pendingDamage.target === 'CPU') {
+                            this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
+                            this.cpuCharacter.setState('shocked');
+                        }
+
+                        // Play Hit Sound
+                        Assets.playSound('audio/hit');
+                        console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
+
+                        this.pendingDamage = null; // Clear
+                    }
+
                     this.handleRoundEnd();
                 }
                 break;
@@ -859,8 +958,8 @@ const BattleEngine = {
     },
 
     calculateTenpaiDamage: function (skipFX) {
-        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1));
-        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu));
+        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), this.p1.id);
+        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), this.cpu.id);
 
         // Status String
         const p1Status = p1Tenpai ? "텐파이" : "노텐";
@@ -868,10 +967,10 @@ const BattleEngine = {
         let damageMsg = "";
 
         if (p1Tenpai && !cpuTenpai) {
-            this.cpu.hp -= 1000;
+            this.pendingDamage = { target: 'CPU', amount: 1000 };
             damageMsg = "CPU -1000";
         } else if (!p1Tenpai && cpuTenpai) {
-            this.p1.hp -= 1000;
+            this.pendingDamage = { target: 'P1', amount: 1000 };
             damageMsg = "Player -1000";
         } else {
             damageMsg = "No Damage";
@@ -897,9 +996,7 @@ const BattleEngine = {
             this.playFX(cpuFx, cpuX, cpuY, { slideFrom: 'RIGHT' });
         }
 
-        // Clamp HP
-        if (this.p1.hp < 0) this.p1.hp = 0;
-        if (this.cpu.hp < 0) this.cpu.hp = 0;
+        // Clamp HP is now handled when pendingDamage is applied
     },
 
     handleRoundEnd: function () {
@@ -988,13 +1085,15 @@ const BattleEngine = {
         const difficulty = AILogic.DIFFICULTY.NORMAL; // Default to Normal for now
 
         // 1. Check Tsumo
-        if (YakuLogic.checkYaku(this.cpu.hand)) {
-            console.log("CPU Tsumo!");
-            this.winningYaku = YakuLogic.checkYaku(this.cpu.hand);
-            const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
-            this.p1.hp = Math.max(0, this.p1.hp - score);
-            this.startWinSequence('TSUMO', 'CPU', score);
-            return;
+        if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
+            this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
+            if (this.winningYaku) {
+                console.log("CPU TSUMO!");
+                const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
+                this.pendingDamage = { target: 'P1', amount: score };
+                this.startWinSequence('TSUMO', 'CPU', score);
+                return;
+            }
         }
 
         // 2. Check Riichi
@@ -1004,7 +1103,7 @@ const BattleEngine = {
             for (let i = 0; i < this.cpu.hand.length; i++) {
                 const tempHand = [...this.cpu.hand];
                 tempHand.splice(i, 1);
-                if (this.checkTenpai(tempHand)) {
+                if (this.checkTenpai(tempHand, this.cpu.id)) {
                     canRiichi = true;
                     break;
                 }
@@ -1134,12 +1233,12 @@ const BattleEngine = {
         // Check if adding this tile completes the hand
         // CPU Hand + Discarded Tile
         const checkHand = [...this.getFullHand(this.cpu), discardedTile];
-        const win = YakuLogic.checkYaku(checkHand);
+        const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
         if (win) {
             console.log("CPU RON!");
             this.winningYaku = win;
             const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
-            this.p1.hp = Math.max(0, this.p1.hp - score);
+            this.pendingDamage = { target: 'P1', amount: score };
             this.startWinSequence('RON', 'CPU', score);
             return true;
         }
@@ -1231,7 +1330,7 @@ const BattleEngine = {
         // User didn't explicitly say Pon disables Riichi, but implied "Riichi declared condition".
         // Also need to check Yaku with FULL HAND.
         const tempHand = [...fullHand, discardedTile];
-        if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand)) {
+        if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand, this.p1.id)) {
             this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
@@ -1249,7 +1348,7 @@ const BattleEngine = {
         const fullHand = this.getFullHand(this.p1);
 
         // 1. Tsumo
-        if (YakuLogic.checkYaku(fullHand)) {
+        if (YakuLogic.checkYaku(fullHand, this.p1.id)) {
             this.possibleActions.push({ type: 'TSUMO', label: '쯔모' });
         }
 
@@ -1487,10 +1586,10 @@ const BattleEngine = {
 
             const fullHand = this.getFullHand(this.p1);
             // Tsumo: Tile is already in hand
-            this.winningYaku = YakuLogic.checkYaku(fullHand);
+            this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id);
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
-                this.cpu.hp = Math.max(0, this.cpu.hp - score);
+                this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('TSUMO', 'P1', score);
             }
             this.currentState = this.STATE_WIN;
@@ -1505,10 +1604,10 @@ const BattleEngine = {
             const winningTile = this.discards[this.discards.length - 1];
             const finalHand = [...fullHand, winningTile];
 
-            this.winningYaku = YakuLogic.checkYaku(finalHand);
+            this.winningYaku = YakuLogic.checkYaku(finalHand, this.p1.id);
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
-                this.cpu.hp = Math.max(0, this.cpu.hp - score);
+                this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('RON', 'P1', score);
             }
             this.currentState = this.STATE_WIN;

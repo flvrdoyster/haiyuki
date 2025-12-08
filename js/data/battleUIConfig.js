@@ -58,18 +58,32 @@ const BattleUIConfig = {
         btnWidth: 80,
         btnHeight: 40,
         gap: 10,
+        padding: 20, // New: Frame padding
+        dimmer: 'rgba(0, 0, 0, 0.5)', // New: Dimmer color
 
         // Fonts
         buttonFont: 'bold 20px "KoddiUDOnGothic-Bold"',
         helpFont: '16px "KoddiUDOnGothic-Bold"',
 
+        // Colors (Match Battle Menu)
+        cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
+        textDefault: 'white',
+        textSelected: '#FFFF00',
+        stroke: 'white', // Keep stroke for button border if needed, or remove? 
+        // User said "Button UI... handle directly", let's keep stroke option available but maybe not used if matching Battle Menu style exactly?
+        // Battle menu has no button borders. 
+        // But Action menu implies "Buttons". 
+        // Let's keep `stroke` just in case, or default to none.
+        // But the user said "Same as Battle Menu" for SELECTION.
+        border: 'white', // For unselected buttons? Or just remove borders?
+        // "ACTION button UI ... handle directly" implies I should probably render them as buttons (boxes).
+        // But "Selection color ... same as Battle Manu" implies the pink cursor.
+        // Let's provide the palette.
+
         // Colors
-        colors: {
-            normal: 'rgba(0, 0, 0, 0.8)',
-            selected: '#FFFF00',
-            text: 'white',
-            selectedText: 'black',
-            stroke: 'white'
+        colors: { // Deprecated by above, but keeping structure for now or replacing? 
+            // Instruction says "Add setup part". 
+            // I will overwrite `colors` with flat properties for cleaner access like BATTLE_MENU.
         }
     },
     POPUP: {
@@ -89,6 +103,7 @@ const BattleUIConfig = {
         windowColor: 'rgba(0, 0, 0, 0.85)',
         borderColor: 'white',
         borderWidth: 2,
+        dimmer: 'rgba(0, 0, 0, 0.5)', // New: Inner dimmer for frame
 
         // Fonts & Text Colors
         titleFont: 'bold 48px "KoddiUDOnGothic-Bold"',
@@ -101,8 +116,118 @@ const BattleUIConfig = {
         titleX: 320, titleY: 150,
         scoreX: 320, scoreY: 220,
         infoX: 320, infoY: 260,
-        infoLineHeight: 30
+        pressSpaceOffset: -40, // Distance below frame
+        infoLineHeight: 30,
+
+        // Configuration for Result Types
+        TYPES: {
+            WIN: {
+                title: "승!",
+                text: "{yaku}\n데미지: {score}",
+                color: "white"
+            },
+            LOSE: {
+                title: "패!",
+                text: "{yaku}\n데미지: -{score}",
+                color: "white"
+            },
+            NAGARI: {
+                title: "나가리",
+                text: "MAN: {p1Status} / COM: {cpuStatus}\n{damageMsg}",
+                color: "white"
+            },
+            MATCH_WIN: {
+                title: "다음 상대로!",
+                color: "gold"
+            },
+            MATCH_LOSE: {
+                title: "게임 오버",
+                color: "white"
+            }
+        },
+        TEXTS: {
+            pressSpace: "계속 진행하기"
+        }
     },
+
+    // Yaku Names for Configuration
+    YAKU_NAMES: {
+        IP_E_DAM: '입에 담을 수도 없는 엄청난 기술',
+
+        BI_O_UI: '비오의',
+        PAL_BO_CHAE: '팔보채',
+
+        O_UI: '오의',
+        JU_HO: '주호',
+        SUN_IL_SAEK: {
+            red: '순 적일색',
+            blue: '순 청일색',
+            yellow: '순 황일색'
+        },
+        YUK_BEOP_JEON_SEO: '육법전서',
+
+        JIN_MAYU: '진 눈썹개',
+        CROSS_COMBINATION: '크로스 콤비네이션',
+        MAGU_DDAERIGI: '마구 때리기',
+        CHO_IL_SAEK: {
+            red: '초 적일색',
+            blue: '초 청일색',
+            yellow: '초 황일색'
+        },
+        NAM_TANG: '남탕',
+        YEO_TANG: '여탕',
+        CHWI_HO_JEON: '취호전',
+        PO_MUL_JANG: '포물장',
+        JAYU_BAKAE_PYEONGDEUNG: '자유 박애 평등',
+        PIL_SAL_GI: {
+            default: '필살기',
+            ataho: '맹호난무',
+            rinxiang: '유미쌍조',
+            fari: '뇌격의 주문',
+            smash: '백인일섬',
+            petum: '대폭염의 주문',
+            yuri: '선풍거합베기',
+            mayu: '필살기'
+        },
+        SA_CHEON_YO_RI: '사천요리',
+
+        SPECIAL_COMBINATION: '스페셜 콤비네이션',
+        CHO_MAYU: '초 눈썹개',
+        BYEON_TAE_GAE: '변태개',
+        IL_SAEK: {
+            red: '적일색',
+            blue: '청일색',
+            yellow: '황일색'
+        },
+
+        MAYU: '눈썹개',
+        DOUBLE_COMBINATION: '더블 콤비네이션',
+        COMBINATION: '콤비네이션',
+        SAEK_HANA_SSIK: '색 하나씩',
+        JANG_GI: {
+            default: '장기',
+            ataho: '호격권',
+            rinxiang: '선열각',
+            fari: '빙인의 주문',
+            smash: '쾌진격',
+            petum: '폭염의 주문',
+            yuri: '진공거합베기',
+            mayu: '장기'
+        },
+        SAM_DO_RIP: '삼도립',
+        ALL_STARS: '올스타즈',
+        SAM_YEON_GYEOK: '삼연격'
+    },
+
+    // Status Texts (Tenpai/Noten/Damage)
+    STATUS_TEXTS: {
+        TENPAI: "텐파이",
+        NOTEN: "노텐",
+        DAMAGE_CPU: "COM {damage}",
+        DAMAGE_PLAYER: "MAN {damage}",
+        NO_DAMAGE: "노 데미지"
+    },
+
     FALLBACK: {
         tileBg: '#EEE',
         tileTextFont: '12px Arial',
@@ -121,15 +246,19 @@ const BattleUIConfig = {
         rowMax: 10
     },
     BATTLE_MENU: {
+        w: 140,
+        h: 180,
+        x: 500, // 640 - 140
+        y: 300, // 480 - 180
         font: '18px "KoddiUDOnGothic-Regular"',
         textDefault: 'white',
         textSelected: '#FFFF00',
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
         dimmer: 'rgba(0, 0, 0, 0.5)',
-        padding: 5, // Inner padding for content
+        padding: 14, // Increased padding for 9-slice look
         textOffsetX: 8,
         textOffsetY: 2,
-        lineHeightRatio: 5,
+        lineHeightRatio: 6, // Adjusted for new height
         cursorYOffset: -8
     }
 };

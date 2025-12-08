@@ -43,53 +43,70 @@ const YakuLogic = {
         IP_E_DAM: 12800
     },
 
-    checkYaku: function (hand) {
+    checkYaku: function (hand, characterId) {
         if (!hand || hand.length !== 12) return null;
 
         const a = this.analyzeHand(hand);
         const matches = [];
 
+        // Helper to handle result: Boolean or Object { match: true, meta: {...} }
+        const pushIfMatch = (result, key, score) => {
+            let match = false;
+            let meta = {};
+            if (typeof result === 'boolean') {
+                match = result;
+            } else if (result && result.match) {
+                match = true;
+                meta = result.meta || {};
+            }
+
+            if (match) {
+                const name = this.resolveYakuName(key, meta, characterId);
+                matches.push({ name: name, score: score });
+            }
+        };
+
         // --- 9-piece Yakus ---
-        if (this.isIpEDam(a)) matches.push({ name: '입에 담을 수도 없는 엄청난 기술', score: this.SCORES.IP_E_DAM });
+        pushIfMatch(this.isIpEDam(a), 'IP_E_DAM', this.SCORES.IP_E_DAM);
 
         // --- 8-piece Yakus ---
-        if (this.isBiOUi(a)) matches.push({ name: '비오의', score: this.SCORES.BI_O_UI });
-        if (this.isPalBoChae(a)) matches.push({ name: '팔보채', score: this.SCORES.PAL_BO_CHAE });
+        pushIfMatch(this.isBiOUi(a), 'BI_O_UI', this.SCORES.BI_O_UI);
+        pushIfMatch(this.isPalBoChae(a), 'PAL_BO_CHAE', this.SCORES.PAL_BO_CHAE);
 
         // --- 6-piece Yakus ---
-        if (this.isOUi(a)) matches.push({ name: '오의', score: this.SCORES.O_UI });
-        if (this.isJuHo(a)) matches.push({ name: '주호', score: this.SCORES.JU_HO });
-        if (this.isSunIlSaek(a)) matches.push({ name: '순일색', score: this.SCORES.SUN_IL_SAEK });
-        if (this.isYukBeopJeonSeo(a)) matches.push({ name: '육법전서', score: this.SCORES.YUK_BEOP_JEON_SEO });
+        pushIfMatch(this.isOUi(a), 'O_UI', this.SCORES.O_UI);
+        pushIfMatch(this.isJuHo(a), 'JU_HO', this.SCORES.JU_HO);
+        pushIfMatch(this.isSunIlSaek(a), 'SUN_IL_SAEK', this.SCORES.SUN_IL_SAEK);
+        pushIfMatch(this.isYukBeopJeonSeo(a), 'YUK_BEOP_JEON_SEO', this.SCORES.YUK_BEOP_JEON_SEO);
 
         // --- 4-piece Yakus ---
-        if (this.isJinMayu(a)) matches.push({ name: '진 눈썹개', score: this.SCORES.JIN_MAYU });
-        if (this.isCrossCombination(a)) matches.push({ name: '크로스 콤비네이션', score: this.SCORES.CROSS_COMBINATION });
-        if (this.isMaGuTtaeRiGi(a)) matches.push({ name: '마구 때리기', score: this.SCORES.MAGU_DDAERIGI });
-        if (this.isChoIlSaek(a)) matches.push({ name: '초일색', score: this.SCORES.CHO_IL_SAEK });
-        if (this.isNamTang(a)) matches.push({ name: '남탕', score: this.SCORES.NAM_TANG });
-        if (this.isYeoTang(a)) matches.push({ name: '여탕', score: this.SCORES.YEO_TANG });
-        if (this.isChwiHoJeon(a)) matches.push({ name: '취호전', score: this.SCORES.CHWI_HO_JEON });
-        if (this.isPoMulJang(a)) matches.push({ name: '포물장', score: this.SCORES.PO_MUL_JANG });
-        if (this.isJaYuBakAePyeongDeung(a)) matches.push({ name: '자유박애평등', score: this.SCORES.JAYU_BAKAE_PYEONGDEUNG });
-        if (this.isPilSalGi(a)) matches.push({ name: '필살기', score: this.SCORES.PIL_SAL_GI });
-        if (this.isSaCheonYoRi(a)) matches.push({ name: '사천요리', score: this.SCORES.SA_CHEON_YO_RI });
+        pushIfMatch(this.isJinMayu(a), 'JIN_MAYU', this.SCORES.JIN_MAYU);
+        pushIfMatch(this.isCrossCombination(a), 'CROSS_COMBINATION', this.SCORES.CROSS_COMBINATION);
+        pushIfMatch(this.isMaGuTtaeRiGi(a), 'MAGU_DDAERIGI', this.SCORES.MAGU_DDAERIGI);
+        pushIfMatch(this.isChoIlSaek(a), 'CHO_IL_SAEK', this.SCORES.CHO_IL_SAEK);
+        pushIfMatch(this.isNamTang(a), 'NAM_TANG', this.SCORES.NAM_TANG);
+        pushIfMatch(this.isYeoTang(a), 'YEO_TANG', this.SCORES.YEO_TANG);
+        pushIfMatch(this.isChwiHoJeon(a), 'CHWI_HO_JEON', this.SCORES.CHWI_HO_JEON);
+        pushIfMatch(this.isPoMulJang(a), 'PO_MUL_JANG', this.SCORES.PO_MUL_JANG);
+        pushIfMatch(this.isJaYuBakAePyeongDeung(a), 'JAYU_BAKAE_PYEONGDEUNG', this.SCORES.JAYU_BAKAE_PYEONGDEUNG);
+        pushIfMatch(this.isPilSalGi(a), 'PIL_SAL_GI', this.SCORES.PIL_SAL_GI);
+        pushIfMatch(this.isSaCheonYoRi(a), 'SA_CHEON_YO_RI', this.SCORES.SA_CHEON_YO_RI);
 
         // --- 3-piece Yakus ---
-        if (this.isSpecialCombination(a)) matches.push({ name: '스페셜 콤비네이션', score: this.SCORES.SPECIAL_COMBINATION });
-        if (this.isChoMayu(a)) matches.push({ name: '초 눈썹개', score: this.SCORES.CHO_MAYU });
-        if (this.isByeonTaeGae(a)) matches.push({ name: '변태개', score: this.SCORES.BYEON_TAE_GAE });
-        if (this.isIlSaek(a)) matches.push({ name: '일색', score: this.SCORES.IL_SAEK }); // Requires Purple Mayu
-        if (this.isMayu(a)) matches.push({ name: '눈썹개', score: this.SCORES.MAYU });
-        if (this.isDoubleCombination(a)) matches.push({ name: '더블 콤비네이션', score: this.SCORES.DOUBLE_COMBINATION });
-        if (this.isCombination(a)) matches.push({ name: '콤비네이션', score: this.SCORES.COMBINATION });
-        if (this.isSaekHanaSsik(a)) matches.push({ name: '색 하나씩', score: this.SCORES.SAEK_HANA_SSIK });
-        if (this.isJangGi(a)) matches.push({ name: '장기', score: this.SCORES.JANG_GI });
-        if (this.isSamDoRip(a)) matches.push({ name: '삼도립', score: this.SCORES.SAM_DO_RIP });
+        pushIfMatch(this.isSpecialCombination(a), 'SPECIAL_COMBINATION', this.SCORES.SPECIAL_COMBINATION);
+        pushIfMatch(this.isChoMayu(a), 'CHO_MAYU', this.SCORES.CHO_MAYU);
+        pushIfMatch(this.isByeonTaeGae(a), 'BYEON_TAE_GAE', this.SCORES.BYEON_TAE_GAE);
+        pushIfMatch(this.isIlSaek(a), 'IL_SAEK', this.SCORES.IL_SAEK); // Requires Purple Mayu
+        pushIfMatch(this.isMayu(a), 'MAYU', this.SCORES.MAYU);
+        pushIfMatch(this.isDoubleCombination(a), 'DOUBLE_COMBINATION', this.SCORES.DOUBLE_COMBINATION);
+        pushIfMatch(this.isCombination(a), 'COMBINATION', this.SCORES.COMBINATION);
+        pushIfMatch(this.isSaekHanaSsik(a), 'SAEK_HANA_SSIK', this.SCORES.SAEK_HANA_SSIK);
+        pushIfMatch(this.isJangGi(a), 'JANG_GI', this.SCORES.JANG_GI);
+        pushIfMatch(this.isSamDoRip(a), 'SAM_DO_RIP', this.SCORES.SAM_DO_RIP);
 
         // --- 2-piece Yakus ---
-        if (this.isAllStars(a)) matches.push({ name: '올스타즈', score: this.SCORES.ALL_STARS });
-        if (this.isSamYeonGyeok(a)) matches.push({ name: '삼연격', score: this.SCORES.SAM_YEON_GYEOK });
+        pushIfMatch(this.isAllStars(a), 'ALL_STARS', this.SCORES.ALL_STARS);
+        pushIfMatch(this.isSamYeonGyeok(a), 'SAM_YEON_GYEOK', this.SCORES.SAM_YEON_GYEOK);
 
         if (matches.length === 0) return null;
         matches.sort((a, b) => b.score - a.score);
@@ -100,6 +117,25 @@ const YakuLogic = {
             score: matches[0].score,
             yaku: [matches[0].name]
         };
+    },
+
+    resolveYakuName: function (key, meta, charId) {
+        const config = BattleUIConfig.YAKU_NAMES[key];
+        if (!config) return key; // Fallback to key
+        if (typeof config === 'string') return config; // Simple string
+
+        // 1. Check Character Specific
+        if (charId && config[charId]) {
+            return config[charId];
+        }
+
+        // 2. Check Color/Variant Specific
+        if (meta && meta.color && config[meta.color]) {
+            return config[meta.color];
+        }
+
+        // 3. Fallback
+        return config.default || key;
     },
 
     analyzeHand: function (hand) {
@@ -212,7 +248,10 @@ const YakuLogic = {
 
         const color = c6.tile.color;
         const c3s = piles.filter(c => c.count >= 3 && c.tile.color === color && c !== c6);
-        return c3s.length >= 2;
+        if (c3s.length >= 2) {
+            return { match: true, meta: { color: color } };
+        }
+        return false;
     },
 
     // --- 4 Piece ---
@@ -290,7 +329,12 @@ const YakuLogic = {
             if (!colorMap[c.tile.color]) colorMap[c.tile.color] = 0;
             colorMap[c.tile.color]++;
         });
-        return Object.values(colorMap).some(count => count >= 3);
+
+        const matchedColor = Object.keys(colorMap).find(color => colorMap[color] >= 3);
+        if (matchedColor) {
+            return { match: true, meta: { color: matchedColor } };
+        }
+        return false;
     },
 
     isJinMayu(a) {
@@ -379,7 +423,12 @@ const YakuLogic = {
         threes.forEach(c => {
             if (byColor[c.tile.color] !== undefined) byColor[c.tile.color]++;
         });
-        return Object.values(byColor).some(count => count >= 3);
+
+        const matchedColor = Object.keys(byColor).find(color => byColor[color] >= 3);
+        if (matchedColor) {
+            return { match: true, meta: { color: matchedColor } };
+        }
+        return false;
     },
     isDoubleCombination(a) {
         // Char+Wep x 3 (Color A) AND Char+Wep x 3 (Color B)
