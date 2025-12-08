@@ -41,15 +41,17 @@ const BattleRenderer = {
         const gap = BattleUIConfig.HAND.gap;
 
         // CPU Hand (Top)
+        // CPU Hand (Top)
+        const cpuMetrics = this.getVisualMetrics(state.cpu, 0);
+        const cpuStartX = cpuMetrics.handStartX;
         const cpuCount = state.cpu.hand.length;
-        const cpuStartX = (640 - (cpuCount * (tileW + gap))) / 2;
 
         for (let i = 0; i < cpuCount; i++) {
             let xOffset = 0;
             const x = cpuStartX + i * (tileW + gap) + xOffset;
 
             // Reveal hand if CPU wins or Nagari or Revealed
-            if (state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI || state.cpu.isRevealed) {
+            if (state.currentState === state.STATE_LOSE || state.currentState === state.STATE_MATCH_OVER || state.currentState === state.STATE_NAGARI || state.cpu.isRevealed) {
                 this.drawTile(ctx, state.cpu.hand[i], x, BattleUIConfig.HAND.cpuY, tileW, tileH);
             } else {
                 this.drawCardBack(ctx, x, BattleUIConfig.HAND.cpuY, tileW, tileH, 'tiles/back-top.png');
@@ -57,7 +59,7 @@ const BattleRenderer = {
         }
 
         // Draw CPU Open Sets (Right of hand)
-        this.drawOpenSets(ctx, state.cpu.openSets, cpuStartX + cpuCount * (tileW + gap), BattleUIConfig.HAND.cpuY, tileW, tileH, true);
+        this.drawOpenSets(ctx, state.cpu.openSets, cpuMetrics.openStartX, BattleUIConfig.HAND.cpuY, tileW, tileH, true);
 
         // Player Hand (Bottom)
         const pCount = state.p1.hand.length;
@@ -280,7 +282,7 @@ const BattleRenderer = {
         const sideImg = !isCpu ? Assets.get('tiles/side-bottom.png') : null;
 
         if (isCpu) {
-            let currentX = startX + setGap;
+            let currentX = startX;
             openSets.forEach(set => {
                 set.tiles.forEach(tile => {
                     this.drawTile(ctx, tile, currentX, y, tileW, tileH);

@@ -1585,7 +1585,7 @@ const BattleEngine = {
         console.log("Selected Menu Item:", selected);
 
         if (selected === '도움말') {
-            window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=480,status=no,toolbar=no');
+            window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
         } else if (selected === '자동 선택') {
             if (this.lastStateBeforeMenu !== this.STATE_PLAYER_TURN) {
                 console.log("Auto-select ignored: Not player turn");
@@ -1599,7 +1599,7 @@ const BattleEngine = {
             if (confirm("정말로 다시 시작하시겠습니까?")) {
                 location.reload();
             }
-        } else if (selected === '환경설정') {
+        } else if (selected === '옵션') {
             // Placeholder
         } else {
             // Skills or other items
