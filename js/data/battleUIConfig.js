@@ -1,5 +1,8 @@
 // Battle UI Configuration
 const BattleUIConfig = {
+    RULES: {
+        INITIAL_HP: 10000
+    },
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {

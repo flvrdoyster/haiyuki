@@ -106,8 +106,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/input.js"></script>
-    <script src="js/assets.js"></script>
+    <script src="js/core/input.js"></script>
+    <script src="js/core/assets.js"></script>
     <script>
         // Request 2: Disable BGM in Debug Page
         if (typeof Assets !== 'undefined') {
@@ -124,11 +124,12 @@
     <script src="js/logic/yakuLogic.js"></script>
     <script src="js/logic/aiLogic.js"></script>
     <script src="js/data/animConfig.js"></script>
-    <script src="js/objects/PortraitCharacter.js"></script>
+    <script src="js/views/portraitCharacter.js"></script>
     <!-- Views and Logic -->
     <script src="js/views/battleRenderer.js"></script>
     <!-- Removed ResultDebugScene.js -->
     <script src="js/logic/battleEngine.js"></script>
+    <script src="js/scenes/battleScene.js"></script>
 
     <script>
         // Init Game with Battle Scene in Debug Mode
@@ -137,7 +138,8 @@
         const tooltip = document.getElementById('coord-tooltip');
 
         // Define BattleScene alias
-        const BattleScene = BattleEngine;
+        // BattleScene is now loaded globally
+        // const BattleScene = BattleEngine; // Removed alias
 
         // Mock Game Object for Debugger
         const Game = {

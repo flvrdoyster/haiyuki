@@ -300,6 +300,7 @@ class PortraitCharacter {
                     // Apply Character Data Offsets (Global correction)
                     if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
                     if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
+                    if (this.isCpu && this.data.cpuOffsetX) dx += this.data.cpuOffsetX;
 
                     // Update lastRenderRect
                     this.lastRenderRect = { x: dx, y: dy, w: destW, h: destH };
@@ -364,6 +365,7 @@ class PortraitCharacter {
         // Apply Character Data Offsets (Global correction)
         if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
         if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
+        if (this.isCpu && this.data.cpuOffsetX) dx += this.data.cpuOffsetX;
 
         if (img) {
             // Recalculate based on actual image

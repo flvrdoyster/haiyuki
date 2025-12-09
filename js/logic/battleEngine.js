@@ -15,6 +15,8 @@ const BattleEngine = {
 
     currentState: 0,
     timer: 0,
+    stateTimer: 0,
+    lastState: -1,
 
     calculateScore: function (baseScore, isMenzen) {
         let score = baseScore;
@@ -40,8 +42,9 @@ const BattleEngine = {
     cpuIndex: 0,
 
     // Battle Data
-    p1: { hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false },
-    cpu: { hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false, isRevealed: false },
+    // Battle Data
+    p1: { hp: BattleUIConfig.RULES.INITIAL_HP, maxHp: BattleUIConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false },
+    cpu: { hp: BattleUIConfig.RULES.INITIAL_HP, maxHp: BattleUIConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false, isRevealed: false },
 
     deck: [],
     discards: [],
@@ -168,11 +171,12 @@ const BattleEngine = {
         console.log(`Selected BG: ${this.bgPath}`);
 
         // Reset Stats (Only if new match)
+        // Reset Stats (Only if new match)
         if (!data.isNextRound) {
-            this.p1.hp = 10000;
-            this.cpu.hp = 10000;
-            this.p1.maxHp = 10000;
-            this.cpu.maxHp = 10000;
+            this.p1.hp = BattleUIConfig.RULES.INITIAL_HP;
+            this.cpu.hp = BattleUIConfig.RULES.INITIAL_HP;
+            this.p1.maxHp = BattleUIConfig.RULES.INITIAL_HP;
+            this.cpu.maxHp = BattleUIConfig.RULES.INITIAL_HP;
         }
 
         // Store tournament data
@@ -275,64 +279,40 @@ const BattleEngine = {
     },
 
     calculateTenpaiDamage: function (p1Tenpai, cpuTenpai) {
+        // Fallback if arguments are missing (e.g. called from sequencing without context)
+        if (p1Tenpai === undefined) p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
+        if (cpuTenpai === undefined) cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
+
         let damageMsg = "";
         if (p1Tenpai && cpuTenpai) {
             // Both Tenpai -> No payments.
-            damageMsg = "데미지: 없음";
+            damageMsg = "데미지 없음";
         } else if (p1Tenpai && !cpuTenpai) {
             // P1 Tenpai, CPU Noten -> CPU takes damage
-            const dmg = 3000; // Tenpai penalty
+            const dmg = 1000;
             this.pendingDamage = { target: 'CPU', amount: dmg };
             damageMsg = `데미지: ${dmg}`;
         } else if (!p1Tenpai && cpuTenpai) {
             // CPU Tenpai, P1 Noten -> Player takes damage
-            const dmg = 3000;
+            const dmg = 1000;
             this.pendingDamage = { target: 'P1', amount: dmg };
             damageMsg = `데미지: -${dmg}`;
         } else {
             // Both Noten
-            damageMsg = "데미지: 없음";
+            damageMsg = "데미지 없음";
         }
 
         return damageMsg;
     },
 
-    checkTenpai: function (character) {
-        // Simplified Tenpai Check
-        // "One tile away from winning"
-        // Brute force: Try adding every possible tile. If any results in a Win, it's Tenpai.
 
-        // Use full hand (including open sets)
-        const fullHand = this.getFullHand(character);
-        const charId = character.id;
-
-        for (const typeInfo of PaiData.TYPES) {
-            // Colors
-            const colors = ['red', 'blue', 'yellow'];
-            if (['ataho', 'rin', 'smash', 'pet', 'fari', 'yuri'].includes(typeInfo.id)) {
-                // Characters might only have specific colors allowed? 
-                // Assuming all available.
-            }
-
-            for (const c of colors) {
-                const testTile = { type: typeInfo.id, color: c };
-                const tempHand = [...fullHand, testTile];
-                if (YakuLogic.checkYaku(tempHand, charId)) return true;
-
-                // Optimization: Don't check every color if logic is generic?
-                // YakuLogic depends on Color matches (Same Color, etc). So must check colors.
-                // 34 types * 3 colors ~ 100 checks. Fast enough.
-            }
-        }
-        return false;
-    },
 
     startNagariSequence: function () {
         this.currentState = this.STATE_NAGARI;
 
-        // Tenpai checks (Pass character object)
-        const p1Tenpai = this.checkTenpai(this.p1);
-        const cpuTenpai = this.checkTenpai(this.cpu);
+        // Tenpai checks
+        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
+        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
 
         console.log(`P1 Tenpai: ${p1Tenpai}, CPU Tenpai: ${cpuTenpai}`);
 
@@ -490,9 +470,7 @@ const BattleEngine = {
 
     activeFX: [], // Kept as empty array to avoid undefined errors in renderer loops
 
-    drawFX: function (ctx) {
-        // FX Removed
-    },
+
 
     nextRound: function () {
         console.log("Starting Next Round...");
@@ -512,11 +490,13 @@ const BattleEngine = {
             if (mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6)) { // 6 is Mayu index
                 console.log("TRUE ENDING COMPLETED!");
                 // Return to Title (or show another ending screen if we had one)
+                Assets.stopMusic();
                 Game.changeScene(TitleScene);
                 return;
             }
 
             // Proceed to next match
+            Assets.stopMusic();
             Game.changeScene(CharacterSelectScene, {
                 mode: 'NEXT_MATCH',
                 playerIndex: this.playerIndex,
@@ -526,7 +506,8 @@ const BattleEngine = {
             // Game Over -> Continue Screen
             this.resultInfo = { type: 'GAME_OVER' }; // Set resultInfo for game over
             console.log(`Encounter Finished. Transitioning to Battle. P1: ${this.playerIndex}, CPU: ${this.cpuIndex}`);
-            Game.changeScene(BattleEngine, {
+            Assets.stopMusic();
+            Game.changeScene(BattleScene, {
                 playerIndex: this.playerIndex,
                 cpuIndex: this.cpuIndex,
                 defeatedOpponents: this.defeatedOpponents,
@@ -548,6 +529,8 @@ const BattleEngine = {
         this.discards = [];
         this.currentState = this.STATE_INIT;
         this.timer = 0; // Reset timer for clean start
+        this.stateTimer = 0;
+        this.lastState = -1;
         this.resultInfo = null; // Clear result info
         this.sequencing.active = false; // Ensure sequence is off
 
@@ -685,133 +668,46 @@ const BattleEngine = {
         return drawn;
     },
 
-    update: function () {
+    updateLogic: function () {
+        // State Timer Logic
+        if (this.currentState !== this.lastState) {
+            this.stateTimer = 0;
+            this.lastState = this.currentState;
+        }
+        this.stateTimer++;
         this.timer++;
 
-        // Debug State
-        if (this.timer % 60 === 0) {
-            console.log(`Frame ${this.timer}: CurrentState=${this.currentState}, Hover=${this.hoverIndex}`);
-            // Check if Space is held
-            if (Input.keys['Space']) console.log("Spacebar is currently HELD");
-        }
+        // Music Update
+        this.updateBattleMusic();
 
+        // 1. Timer Update
+        // this.timer++; // Removed, handled above
         // Update Characters
         if (this.p1Character) this.p1Character.update();
         if (this.cpuCharacter) this.cpuCharacter.update();
 
-        // Check for Battle Menu Toggle (ESC)
-        if (Input.isJustPressed(Input.ESC)) {
-            this.toggleBattleMenu();
-            return;
-        }
-
-        // Battle Menu State Handling
-        if (this.currentState === this.STATE_BATTLE_MENU) {
-            this.updateBattleMenu();
-            return; // Block other updates
-        }
-
         // Update FX
         this.updateFX();
 
-        // Hover Check (Mouse + Keyboard)
-        // Only reset if we change states? Or ensure valid?
-        if (this.hoverIndex === undefined) this.hoverIndex = 0;
-
-        if (this.currentState === this.STATE_PLAYER_TURN) {
-            // 1. Mouse Interaction
-            const mx = Input.mouseX;
-            const my = Input.mouseY;
-            const tileW = BattleUIConfig.HAND.tileWidth;
-            const tileH = BattleUIConfig.HAND.tileHeight;
-            const handSize = this.p1.hand.length;
-            const groupSize = this.lastDrawGroupSize || 0;
-            const hasGap = (groupSize > 0);
-
-            // Calculate Metrics to find StartX
-            const metrics = this.getVisualMetrics(this.p1, hasGap ? groupSize : 0);
-
-            // We need to iterate tiles to check collision since positions are not uniform (group gap)
-            // Optimization: Calculate expected range or just iterate. 14 iterations is cheap.
-            let hovered = -1;
-            for (let i = 0; i < handSize; i++) {
-                const pos = this.getPlayerHandPosition(i, handSize, hasGap ? groupSize : 0, metrics.startX);
-                // Log logic check for debugging if needed: console.log(mx, my, pos.x, pos.y);
-                if (mx >= pos.x && mx < pos.x + tileW &&
-                    my >= pos.y && my < pos.y + tileH) {
-                    hovered = i;
-                    break;
-                }
+        if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
+            if (this.timer % 30 === 0) {
+                this.checkRoundEnd();
             }
-
-            // Only update hover if we actually hit something
-            if (hovered !== -1) {
-                this.hoverIndex = hovered;
-            } else {
-                // Optional: Clear selection if clicking outside?
-                // User complaint: "Selecting when clicking empty space".
-                // This implies hoverIndex stays stuck or selects weirdly?
-                // If hovered is -1, usually we keep previous hover or reset?
-                // Standard UI: If mouse moves OUT of tiles, reset hover??
-                // Let's reset hover if mouse is generally in the "hand area" Y-band but missed X.
-                // Or just be strict: If misses, hoverIndex = -1?
-                // But keyboard nav relies on hoverIndex.
-                // Let's NOT reset hoverIndex to -1 on miss, but ensure we don't SET it to something wrong.
-
-                // Wait, "Clicking empty space selects tile". If I click far right, does it select last tile?
-                // Hit test above is strict.
-                // Maybe the previous logic had a fallback or broad check?
-                // Previous logic was strict.
-
-                // Let's ensure we don't auto-reset to 0 if undefined.
-            }
-
-            // 2. Keyboard Interaction
-            if (Input.isJustPressed(Input.LEFT)) {
-                this.hoverIndex--;
-                if (this.hoverIndex < 0) this.hoverIndex = handSize - 1;
-            }
-            if (Input.isJustPressed(Input.RIGHT)) {
-                this.hoverIndex++;
-                if (this.hoverIndex >= handSize) this.hoverIndex = 0;
-            }
-
-            // Safety clamp
-            if (this.hoverIndex >= handSize) this.hoverIndex = handSize - 1;
-            if (this.hoverIndex < 0) this.hoverIndex = 0;
         }
 
         switch (this.currentState) {
             case this.STATE_INIT:
-                if (this.timer > 60) { // Slight delay for Round Start text
+                if (this.timer > 60) {
                     this.playerDraw();
-                    // playerDraw sets state and hoverIndex
                 }
                 break;
 
             case this.STATE_PLAYER_TURN:
                 // Riichi Auto-Discard Logic
                 if (this.p1.isRiichi) {
-                    if (this.timer > 60) { // ~1 second delay
+                    if (this.timer > 60) {
                         console.log("Riichi Auto-Discard (Delayed)");
                         this.discardTile(this.p1.hand.length - 1);
-                    }
-                    return; // Skip input handling
-                }
-
-                if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
-
-                    if (this.hoverIndex !== -1 && this.hoverIndex < this.p1.hand.length) {
-                        // Riichi Input Lock
-                        if (this.p1.isRiichi && this.riichiTargetIndex !== undefined && this.riichiTargetIndex !== -1) {
-                            if (this.hoverIndex !== this.riichiTargetIndex) {
-                                console.log("Blocked invalid Riichi discard.");
-                                return;
-                            }
-                        }
-
-                        // Discard
-                        this.discardTile(this.hoverIndex);
                     }
                 }
                 break;
@@ -819,34 +715,28 @@ const BattleEngine = {
             case 'RIICHI':
                 console.log("Player declares Riichi");
                 this.p1.isRiichi = true;
-                this.p1.hand.sort((a, b) => a.id - b.id); // Re-sort hand just in case
+                this.p1.hand.sort((a, b) => a.id - b.id);
                 this.playFX('fx/riichi', 320, 240);
-
                 this.updateBattleMusic();
-
-                this.riichiTargetIndex = -1; // Ready to discard
+                this.riichiTargetIndex = -1;
                 this.currentState = this.STATE_PLAYER_TURN;
-                // Wait for discard input
                 break;
 
             case this.STATE_ACTION_SELECT:
                 if (this.actionTimer > 0) this.actionTimer--;
-                this.updateActionSelect();
                 break;
+
             case this.STATE_FX_PLAYING:
                 this.updateSequence();
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer === 30 && !this.cpu.needsToDiscard) { // Delay before CPU acts
+                if (this.timer === 30 && !this.cpu.needsToDiscard) {
                     this.cpuDraw();
                 }
                 if (this.timer === 60 && this.cpu.needsToDiscard) {
                     this.cpu.needsToDiscard = false;
-                    // Logic check: After Pon, must discard.
-                    // Recalculate discard choice (hand changed)
-                    const difficulty = AILogic.DIFFICULTY.NORMAL;
-                    const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty);
+                    const discardIdx = AILogic.decideDiscard(this.cpu.hand, AILogic.DIFFICULTY.NORMAL);
                     this.discardTileCPU(discardIdx);
                 }
                 break;
@@ -856,90 +746,39 @@ const BattleEngine = {
             case this.STATE_NAGARI:
                 // Debug log every 60 frames
                 if (this.timer % 60 === 0) console.log("Waiting for Next Round Input (Space/Click)... State:", this.currentState);
-
-                // Use isDown (keys check) instead of isJustPressed for better robustness
-                // Also accept ENTER and Z
-                // Added timer check (> 180 frames / 3 sec) to prevent skipping result screen instantly
-                if (this.timer > 30 && (Input.keys[Input.Space] || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed())) {
-                    console.log("Input Detected! Moving to Next Round.");
-
-                    if (this.pendingDamage) {
-                        // Apply Damage
-                        if (this.pendingDamage.target === 'P1') {
-                            this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
-                            this.p1Character.setState('shocked');
-                        } else if (this.pendingDamage.target === 'CPU') {
-                            this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
-                            this.cpuCharacter.setState('shocked');
-                        }
-
-                        // Play Hit Sound
-                        Assets.playSound('audio/hit');
-                        console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
-
-                        this.pendingDamage = null; // Clear
-                    }
-
-                    this.handleRoundEnd();
-                }
+                // Input is now handled in BattleScene.js
                 break;
 
             case this.STATE_MATCH_OVER:
-                if (Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
-                    Game.changeScene(TitleScene);
-                }
+                // Input is now handled in BattleScene.js
                 break;
         }
+    },
 
-        if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
-            // Optimization: value check doesn't need to be every frame
-            if (this.timer % 30 === 0) {
-                this.checkRoundEnd();
+    confirmResult: function () {
+        console.log("Result Confirmed. Applying Damage & Proceeding.");
+        if (this.pendingDamage) {
+            // Apply Damage
+            if (this.pendingDamage.target === 'P1') {
+                this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
+                this.p1Character.setState('shocked');
+            } else if (this.pendingDamage.target === 'CPU') {
+                this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
+                this.cpuCharacter.setState('shocked');
             }
-        }
-    },
 
-    // Assuming a 'draw' function exists where these calls should be placed.
-    // This snippet is placed here based on the provided context,
-    // assuming it's the end of a 'draw' function.
-    draw: function (ctx) {
-        // ... existing draw logic ...
+            // Play Hit Sound
+            Assets.playSound('audio/hit');
+            console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
 
-        // Result Overlay
-        if (this.currentState >= this.STATE_WIN) {
-            this.drawResult(ctx);
+            this.pendingDamage = null; // Clear
         }
 
-        // Draw FX (Top Level)
-        this.drawFX(ctx);
+        this.handleRoundEnd();
     },
 
-    drawResult: function (ctx) {
-        // Overlay
-        ctx.save();
-        ctx.fillStyle = BattleUIConfig.OVERLAY.bgColor;
-        ctx.fillRect(0, 0, 640, 480);
 
-        // Text
-        if (this.drawResultMsg) {
-            ctx.textAlign = 'center';
-            ctx.fillStyle = BattleUIConfig.OVERLAY.resultColor;
 
-            const lines = this.drawResultMsg.split('\n');
-            const totalHeight = lines.length * 40; // Approx line height
-            let startY = 240 - (totalHeight / 2);
-
-            lines.forEach((line, i) => {
-                if (i === 0) ctx.font = BattleUIConfig.OVERLAY.resultFont;
-                else if (i === 1) ctx.font = BattleUIConfig.OVERLAY.subFont;
-                else ctx.font = BattleUIConfig.OVERLAY.infoFont;
-
-                ctx.fillText(line, 320, startY + (i * 50));
-            });
-        }
-
-        ctx.restore();
-    },
 
     checkRoundEnd: function () {
         // 1. Deck Exhaustion
@@ -957,47 +796,7 @@ const BattleEngine = {
         }
     },
 
-    calculateTenpaiDamage: function (skipFX) {
-        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), this.p1.id);
-        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), this.cpu.id);
 
-        // Status String
-        const p1Status = p1Tenpai ? "텐파이" : "노텐";
-        const cpuStatus = cpuTenpai ? "텐파이" : "노텐";
-        let damageMsg = "";
-
-        if (p1Tenpai && !cpuTenpai) {
-            this.pendingDamage = { target: 'CPU', amount: 1000 };
-            damageMsg = "CPU -1000";
-        } else if (!p1Tenpai && cpuTenpai) {
-            this.pendingDamage = { target: 'P1', amount: 1000 };
-            damageMsg = "Player -1000";
-        } else {
-            damageMsg = "No Damage";
-        }
-
-        // e.g. "나가리\nP1: 텐파이 vs CPU: 노텐\nCPU -1000"
-        this.drawResultMsg = `나가리\nP1: ${p1Status} vs CPU: ${cpuStatus}\n${damageMsg}`;
-        console.log(this.drawResultMsg);
-
-        // FX Trigger
-        if (!skipFX) {
-            this.showPopup('NAGARI');
-
-            const p1X = BattleUIConfig.PORTRAIT.P1.x + BattleUIConfig.PORTRAIT.P1.w / 2;
-            const p1Y = BattleUIConfig.PORTRAIT.P1.y + BattleUIConfig.PORTRAIT.P1.h / 2;
-            const cpuX = BattleUIConfig.PORTRAIT.CPU.x + BattleUIConfig.PORTRAIT.CPU.w / 2;
-            const cpuY = BattleUIConfig.PORTRAIT.CPU.y + BattleUIConfig.PORTRAIT.CPU.h / 2;
-
-            const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten';
-            const cpuFx = cpuTenpai ? 'fx/tenpai' : 'fx/noten';
-
-            this.playFX(p1Fx, p1X, p1Y, { slideFrom: 'LEFT' });
-            this.playFX(cpuFx, cpuX, cpuY, { slideFrom: 'RIGHT' });
-        }
-
-        // Clamp HP is now handled when pendingDamage is applied
-    },
 
     handleRoundEnd: function () {
         console.log("handleRoundEnd Called. HP:", this.p1.hp, this.cpu.hp);
@@ -1296,9 +1095,7 @@ const BattleEngine = {
 
 
 
-    draw: function (ctx) {
-        BattleRenderer.draw(ctx, this);
-    },
+
 
     getVisualMetrics: function (character, groupSize) {
         return BattleRenderer.getVisualMetrics(character, groupSize);
@@ -1318,7 +1115,7 @@ const BattleEngine = {
         hand.forEach(t => {
             if (t.type === discardedTile.type) matchCount++;
         });
-        if (matchCount >= 2) {
+        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20) {
             const ponAction = { type: 'PON', label: '펑', targetTile: discardedTile };
             this.possibleActions.push(ponAction);
         }
@@ -1417,45 +1214,7 @@ const BattleEngine = {
         return false;
     },
 
-    updateActionSelect: function () {
-        const actions = this.possibleActions;
-        const btnW = 80;
-        const btnH = 40;
-        const gap = 10;
-        const totalW = actions.length * btnW + (actions.length - 1) * gap;
-        const startX = (640 - totalW) / 2;
-        const startY = 320;
 
-        // Mouse Input
-        const mx = Input.mouseX;
-        const my = Input.mouseY;
-
-        // Check hover
-        for (let i = 0; i < actions.length; i++) {
-            const x = startX + i * (btnW + gap);
-            if (mx >= x && mx <= x + btnW && my >= startY && my <= startY + btnH) {
-                this.selectedActionIndex = i; // Auto-select on hover
-                if (Input.isMouseJustPressed()) {
-                    this.executeAction(actions[i]);
-                    return;
-                }
-            }
-        }
-
-        // Keyboard Input
-        if (Input.isJustPressed(Input.LEFT)) {
-            this.selectedActionIndex--;
-            if (this.selectedActionIndex < 0) this.selectedActionIndex = this.possibleActions.length - 1;
-        } else if (Input.isJustPressed(Input.RIGHT)) {
-            this.selectedActionIndex++;
-            if (this.selectedActionIndex >= this.possibleActions.length) this.selectedActionIndex = 0;
-        }
-
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
-            const action = this.possibleActions[this.selectedActionIndex];
-            this.executeAction(action);
-        }
-    },
 
     performAutoTurn: function () {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
@@ -1627,58 +1386,7 @@ const BattleEngine = {
         }
     },
 
-    updateBattleMenu: function () {
-        if (Input.isJustPressed(Input.UP)) {
-            this.selectedMenuIndex--;
-            if (this.selectedMenuIndex < 0) this.selectedMenuIndex = this.menuItems.length - 1;
-        }
-        // Mouse Input Handling
-        const bg = Assets.get('ui/battle_menu.png'); // Need dimensions
-        if (bg) {
-            const conf = BattleUIConfig.BATTLE_MENU;
-            const menuX = 640 - bg.width;
-            const menuY = 480 - bg.height;
-            const startX = menuX + conf.padding;
-            const startY = menuY + conf.padding + 7;
-            const h = bg.height - (conf.padding * 2);
-            const lineHeight = h / conf.lineHeightRatio;
 
-            const mx = Input.mouseX;
-            const my = Input.mouseY;
-
-            // Check Hover
-            for (let i = 0; i < this.menuItems.length; i++) {
-                const itemY = startY + (i * lineHeight) + conf.cursorYOffset;
-                // Simple rect check for each item line
-                if (mx >= startX && mx <= startX + (bg.width - conf.padding * 2) &&
-                    my >= itemY && my <= itemY + lineHeight) {
-
-                    this.selectedMenuIndex = i; // Auto-select on hover
-
-                    if (Input.isMouseJustPressed()) {
-                        // Trigger selection
-                        const selected = this.menuItems[this.selectedMenuIndex];
-                        this.handleMenuSelection(selected);
-                        return;
-                    }
-                }
-            }
-        }
-
-        if (Input.isJustPressed(Input.DOWN)) {
-            this.selectedMenuIndex++;
-            if (this.selectedMenuIndex >= this.menuItems.length) this.selectedMenuIndex = 0;
-        }
-
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
-            const selected = this.menuItems[this.selectedMenuIndex];
-            this.handleMenuSelection(selected);
-        }
-        // Allow closing with ESC as well (Redundant but safe)
-        if (Input.isJustPressed(Input.ESC)) {
-            this.toggleBattleMenu();
-        }
-    },
 
     handleMenuSelection: function (selected) {
         console.log("Selected Menu Item:", selected);

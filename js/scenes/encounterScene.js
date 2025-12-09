@@ -1,8 +1,8 @@
 // UI Layout Configuration
 const EncounterLayout = {
     PORTRAIT: {
-        P1: { x: 0, y: 65, w: 280, h: 304 },
-        CPU: { x: 360, y: 65, w: 280, h: 304 }
+        P1: { x: 0, y: 65, w: 280, h: 304, align: 'left' },
+        CPU: { x: 640, y: 65, w: 280, h: 304, align: 'right' }
     },
     VS_LOGO: { y: 200, widthConstraint: 640 },
     NAME: {
@@ -171,7 +171,7 @@ const EncounterScene = {
                 } else {
                     // Story/Normal Mode: Go to Battle
                     console.log('Go to battle');
-                    Game.changeScene(BattleEngine, {
+                    Game.changeScene(BattleScene, {
                         playerIndex: this.playerIndex,
                         cpuIndex: this.cpuIndex,
                         defeatedOpponents: this.defeatedOpponents

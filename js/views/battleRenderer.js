@@ -591,13 +591,17 @@ const BattleRenderer = {
         });
 
         // 3. Footer "Press Space"
-        if (state.timer % 60 < 30) {
-            ctx.fillStyle = '#FFFFFF'; // or conf.infoColor
-            ctx.font = "16px monospace";
-            // Position relative to frame bottom
-            const offset = (conf.pressSpaceOffset !== undefined) ? conf.pressSpaceOffset : 20;
-            const pressY = ry + rh + offset;
-            ctx.fillText(conf.TEXTS.pressSpace, conf.infoX, pressY);
+        // 3. Footer "Press Space"
+        // Show only after delay allowed input
+        if (state.stateTimer > 120) {
+            if (state.stateTimer % 60 < 30) {
+                ctx.fillStyle = '#FFFFFF'; // or conf.infoColor
+                ctx.font = "16px monospace";
+                // Position relative to frame bottom
+                const offset = (conf.pressSpaceOffset !== undefined) ? conf.pressSpaceOffset : 20;
+                const pressY = ry + rh + offset;
+                ctx.fillText(conf.TEXTS.pressSpace, conf.infoX, pressY);
+            }
         }
     },
 
@@ -675,5 +679,91 @@ const BattleRenderer = {
                 ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
             }
         });
+    },
+
+    /**
+     * HIT TESTING HELPERS
+     * Centralizes coordinate logic so Scene doesn't need to know layout details.
+     */
+
+    getActionAt: function (x, y, actions) {
+        const conf = BattleUIConfig.ACTION;
+        const btnW = conf.btnWidth;
+        const btnH = conf.btnHeight;
+        const gap = conf.gap;
+        const startY = conf.y;
+        const totalW = actions.length * btnW + (actions.length - 1) * gap;
+        const startX = (640 - totalW) / 2;
+
+        // Simple bounding box check
+        if (y < startY || y > startY + btnH) return -1;
+        if (x < startX || x > startX + totalW) return -1;
+
+        // Determine Index
+        const relativeX = x - startX;
+        const stride = btnW + gap;
+        const index = Math.floor(relativeX / stride);
+
+        // Check Gap (if click falls in gap, it's invalid)
+        const offsetInStride = relativeX % stride;
+        if (offsetInStride > btnW) return -1; // Clicked in gap
+
+        if (index >= 0 && index < actions.length) return index;
+        return -1;
+    },
+
+    getMenuItemAt: function (x, y, itemCount) {
+        // Use logic matching drawBattleMenu
+        const conf = BattleUIConfig.BATTLE_MENU;
+        const xPos = conf.x;
+        const yPos = conf.y;
+        const w = conf.w;
+        const h = conf.h;
+
+        const startX = xPos + conf.padding;
+        const startY = yPos + conf.padding + 7;
+        const innerH = h - (conf.padding * 2);
+
+        // Match drawBattleMenu lineHeight calculation
+        // const lineHeight = innerH / Math.max(state.menuItems.length, conf.lineHeightRatio);
+        // We need itemCount here
+        const lineHeight = innerH / Math.max(itemCount, conf.lineHeightRatio);
+
+        if (x < startX || x > startX + w) return -1; // Broad loose check on width or inner width?
+        // drawBattleMenu draws bar with `w - (padding*2)`.
+        if (x < startX || x > startX + w - (conf.padding * 2)) return -1;
+
+        // Y check
+        // Items start at startY.
+        const totalH = itemCount * lineHeight;
+        if (y < startY || y > startY + totalH) return -1;
+
+        const relativeY = y - startY;
+        const index = Math.floor(relativeY / lineHeight);
+
+        if (index >= 0 && index < itemCount) return index;
+        return -1;
+    },
+
+    getHandTileAt: function (x, y, player, groupSize) {
+        // Reuse getVisualMetrics
+        const handSize = player.hand.length;
+        const metrics = this.getVisualMetrics(player, groupSize);
+        const tileW = BattleUIConfig.HAND.tileWidth;
+        const tileH = BattleUIConfig.HAND.tileHeight;
+
+        // Optimization: Check Y bounds first
+        if (y < BattleUIConfig.HAND.playerHandY || y > BattleUIConfig.HAND.playerHandY + tileH) return -1;
+
+        // Iterate or Calculate?
+        // `getPlayerHandPosition` includes group gap logic.
+        // Iterating is safer vs complex math inversion.
+        for (let i = 0; i < handSize; i++) {
+            const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
+            if (x >= pos.x && x < pos.x + tileW) {
+                return i;
+            }
+        }
+        return -1;
     }
 };

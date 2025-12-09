@@ -16,7 +16,6 @@ const Assets = {
         { id: 'audio/bgm_basic', src: 'assets/audio/bgm_basic.mp3', type: 'audio' },
         { id: 'audio/bgm_tension', src: 'assets/audio/bgm_tension.mp3', type: 'audio' },
         { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
-        { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
         { id: 'audio/bgm_win', src: 'assets/audio/bgm_win.mp3', type: 'audio' },
         { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
 

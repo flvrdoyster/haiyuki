@@ -6,8 +6,8 @@ const SelectConfig = {
     VS_LOGO: { path: 'ui/vs.png', y: 200 },
     PORTRAIT: {
         w: 280, h: 304,
-        P1: { x: 0, y: 65 },
-        CPU: { x: 360, y: 65 }
+        P1: { x: 0, y: 65, align: 'left' },
+        CPU: { x: 640, y: 65, align: 'right' }
     },
     NAME: {
         yOffset: 280, // from portrait Y top
@@ -41,6 +41,8 @@ const CharacterSelectScene = {
 
     playerIndex: 0,
     cpuIndex: 0,
+    p1Portrait: null,
+    cpuPortrait: null,
 
     // Timer for CPU roulette
     cpuTimer: 0,
@@ -67,12 +69,44 @@ const CharacterSelectScene = {
 
         this.defeatedOpponents = data && data.defeatedOpponents ? data.defeatedOpponents : [];
 
+        // Initial Portraits
+        this.updateP1Portrait();
+        this.updateCpuPortrait();
+
         if (this.mode === 'NEXT_MATCH') {
             this.playerIndex = data.playerIndex;
+            this.updateP1Portrait();
             this.currentState = this.STATE_CPU_SELECT; // Skip player select
 
             // Auto-select CPU
             this.selectNextOpponent();
+        }
+    },
+
+    updateP1Portrait: function () {
+        if (!this.characters[this.playerIndex]) return;
+        this.p1Portrait = new PortraitCharacter(this.characters[this.playerIndex], SelectConfig.PORTRAIT.P1, false);
+        // Optional: Setup animations if we want them in select screen?
+        this.setupPortraitAnim(this.p1Portrait, this.characters[this.playerIndex].id);
+    },
+
+    updateCpuPortrait: function () {
+        if (!this.characters[this.cpuIndex]) return;
+        this.cpuPortrait = new PortraitCharacter(this.characters[this.cpuIndex], SelectConfig.PORTRAIT.CPU, true);
+        this.setupPortraitAnim(this.cpuPortrait, this.characters[this.cpuIndex].id);
+    },
+
+    setupPortraitAnim: function (portrait, id) {
+        // Simple auto-config similar to EncounterScene
+        const idMap = {
+            'ataho': 'ATA', 'rinxiang': 'RIN', 'smash': 'SMSH',
+            'petum': 'PET', 'fari': 'FARI', 'yuri': 'YURI',
+            'mayu': 'MAYU'
+        };
+        const prefix = idMap[id] || id.toUpperCase();
+        const base = `face/${prefix}_base.png`;
+        if (Assets.get(base)) {
+            portrait.setAnimationConfig({ base: base });
         }
     },
 
@@ -109,6 +143,7 @@ const CharacterSelectScene = {
             // Randomly pick one
             const rand = Math.floor(Math.random() * candidates.length);
             this.cpuIndex = candidates[rand];
+            this.updateCpuPortrait(); // Update Visual
             console.log(`Auto - selected CPU: ${this.cpuIndex} (Rival: ${rivalId} / Index: ${rivalIndex})`);
 
             // Transition to Encounter
@@ -136,14 +171,20 @@ const CharacterSelectScene = {
     },
 
     update: function () {
+        // Update Animation States
+        if (this.p1Portrait) this.p1Portrait.update();
+        if (this.cpuPortrait) this.cpuPortrait.update();
+
         if (this.currentState === this.STATE_PLAYER_SELECT) {
             // Player Selection
             if (Input.isJustPressed(Input.LEFT)) {
                 this.playerIndex--;
                 if (this.playerIndex < 0) this.playerIndex = this.characters.length - 1;
+                this.updateP1Portrait();
             } else if (Input.isJustPressed(Input.RIGHT)) {
                 this.playerIndex++;
                 if (this.playerIndex >= this.characters.length) this.playerIndex = 0;
+                this.updateP1Portrait();
             }
 
             if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
@@ -151,6 +192,7 @@ const CharacterSelectScene = {
                 // Play sound
                 this.currentState = this.STATE_CPU_SELECT;
                 this.cpuTimer = 0;
+                this.updateCpuPortrait(); // Init CPU
 
                 // WATCH Mode Check: Skip CPU Select
                 if (this.mode === 'WATCH') {
@@ -163,9 +205,11 @@ const CharacterSelectScene = {
                 const clickedIndex = this.getClickedCharacterIndex();
                 if (clickedIndex !== -1) {
                     this.playerIndex = clickedIndex;
+                    this.updateP1Portrait();
                     if (this.playerIndex === clickedIndex) {
                         this.currentState = this.STATE_CPU_SELECT;
                         this.cpuTimer = 0;
+                        this.updateCpuPortrait();
 
                         // WATCH Mode Check: Skip CPU Select
                         if (this.mode === 'WATCH') {
@@ -181,9 +225,11 @@ const CharacterSelectScene = {
                 if (Input.isJustPressed(Input.LEFT)) {
                     this.cpuIndex--;
                     if (this.cpuIndex < 0) this.cpuIndex = this.characters.length - 1;
+                    this.updateCpuPortrait();
                 } else if (Input.isJustPressed(Input.RIGHT)) {
                     this.cpuIndex++;
                     if (this.cpuIndex >= this.characters.length) this.cpuIndex = 0;
+                    this.updateCpuPortrait();
                 }
 
                 if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
@@ -198,6 +244,7 @@ const CharacterSelectScene = {
                     const clickedIndex = this.getClickedCharacterIndex();
                     if (clickedIndex !== -1) {
                         this.cpuIndex = clickedIndex;
+                        this.updateCpuPortrait();
                         // Confirm if clicked again?
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;
@@ -212,6 +259,7 @@ const CharacterSelectScene = {
                     const clickedIndex = this.getClickedCharacterIndex();
                     if (clickedIndex !== -1) {
                         this.cpuIndex = clickedIndex;
+                        this.updateCpuPortrait();
                         // Confirm if clicked again?
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;
@@ -233,6 +281,7 @@ const CharacterSelectScene = {
                         nextIndex = Math.floor(Math.random() * this.characters.length);
                     }
                     this.cpuIndex = nextIndex;
+                    this.updateCpuPortrait();
                 }
 
                 if (this.cpuTimer > this.cpuSelectDuration) {
@@ -258,6 +307,7 @@ const CharacterSelectScene = {
 
                     const rand = Math.floor(Math.random() * candidates.length);
                     this.cpuIndex = candidates[rand];
+                    this.updateCpuPortrait();
 
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
@@ -270,7 +320,7 @@ const CharacterSelectScene = {
             if (this.readyTimer > 60) {
                 if (this.debugSkipDialogue) {
                     Game.changeScene(BattleScene, {
-                        playerIndex: this.playerIndex,
+                        playerIndex: this.playerIndex, // Use BattleScene wrapper
                         cpuIndex: this.cpuIndex
                     });
                 } else {
@@ -310,12 +360,9 @@ const CharacterSelectScene = {
         }
 
         // 4. Big Portrait (Left - Player 1)
-        const charData = this.characters[this.playerIndex];
-        const faceX = SelectConfig.PORTRAIT.P1.x;
-        const faceY = SelectConfig.PORTRAIT.P1.y;
-
-        // Draw frame 0 (Left facing)
-        Assets.drawFrame(ctx, charData.face, faceX, faceY, 0, SelectConfig.PORTRAIT.w, SelectConfig.PORTRAIT.h);
+        if (this.p1Portrait) {
+            this.p1Portrait.draw(ctx);
+        }
 
         // 5. Name (Text)
         ctx.save();
@@ -326,31 +373,40 @@ const CharacterSelectScene = {
 
         // Draw Player Name
         ctx.textAlign = 'left';
-        // Use displayName from data
-        const pNameText = charData.name;
+        if (this.characters[this.playerIndex]) {
+            const pNameText = this.characters[this.playerIndex].name;
+            // Use lastRenderRect for accurate position, OR fallback to config
+            const rectX = this.p1Portrait && this.p1Portrait.lastRenderRect ? this.p1Portrait.lastRenderRect.x : SelectConfig.PORTRAIT.P1.x;
+            const rectY = this.p1Portrait && this.p1Portrait.lastRenderRect ? this.p1Portrait.lastRenderRect.y : SelectConfig.PORTRAIT.P1.y;
 
-        const pNameX = faceX + SelectConfig.NAME.xPadding;
-        const pNameY = faceY + SelectConfig.NAME.yOffset;
-        ctx.strokeText(pNameText, pNameX, pNameY);
-        ctx.fillText(pNameText, pNameX, pNameY);
+            const pNameX = rectX + SelectConfig.NAME.xPadding;
+            const pNameY = rectY + SelectConfig.NAME.yOffset;
+            ctx.strokeText(pNameText, pNameX, pNameY);
+            ctx.fillText(pNameText, pNameX, pNameY);
+        }
 
         // Draw CPU Portrait & Name (Mirroring Player)
         if (this.currentState >= this.STATE_CPU_SELECT) {
-            const cpuCharData = this.characters[this.cpuIndex];
-            const cpuFaceX = SelectConfig.PORTRAIT.CPU.x;
-            const cpuFaceY = SelectConfig.PORTRAIT.CPU.y;
-
-            // Draw frame 1 (Right facing)
-            Assets.drawFrame(ctx, cpuCharData.face, cpuFaceX, cpuFaceY, 1, SelectConfig.PORTRAIT.w, SelectConfig.PORTRAIT.h);
+            if (this.cpuPortrait) {
+                this.cpuPortrait.draw(ctx);
+            }
 
             // CPU Name (Right Aligned)
             ctx.textAlign = 'right';
-            const cpuNameText = cpuCharData.name;
-            const cpuNameX = cpuFaceX + SelectConfig.PORTRAIT.w - SelectConfig.NAME.xPadding;
-            const cpuNameY = cpuFaceY + SelectConfig.NAME.yOffset;
+            if (this.characters[this.cpuIndex]) {
+                const cpuNameText = this.characters[this.cpuIndex].name;
 
-            ctx.strokeText(cpuNameText, cpuNameX, cpuNameY);
-            ctx.fillText(cpuNameText, cpuNameX, cpuNameY);
+                const rectX = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.x : SelectConfig.PORTRAIT.CPU.x;
+                const rectY = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.y : SelectConfig.PORTRAIT.CPU.y;
+                const rectW = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.w : SelectConfig.PORTRAIT.w;
+
+                // Align relative to the rendered portrait frame
+                const cpuNameX = rectX + rectW - SelectConfig.NAME.xPadding;
+                const cpuNameY = rectY + SelectConfig.NAME.yOffset;
+
+                ctx.strokeText(cpuNameText, cpuNameX, cpuNameY);
+                ctx.fillText(cpuNameText, cpuNameX, cpuNameY);
+            }
         }
 
         ctx.restore();
