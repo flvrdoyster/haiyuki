@@ -57,13 +57,6 @@ const BattleEngine = {
         };
 
         // Sound Logic - REMOVED (Handled by View via popupType)
-        /*
-        const soundId = typeConf.sound;
-        if (soundId) {
-            console.log(`Auto-playing sound for ${type}: ${soundId}`);
-            this.events.push({ type: 'SOUND', id: soundId });
-        }
-        */
 
         // Pass type info for View sound handling
         finalOptions.popupType = type;
@@ -124,7 +117,11 @@ const BattleEngine = {
 
         // Assign Character IDs for Logic (Yaku Names)
         if (p1Data) this.p1.id = p1Data.id;
-        if (cpuData) this.cpu.id = cpuData.id;
+        if (cpuData) {
+            this.cpu.id = cpuData.id;
+            this.cpu.aiProfile = cpuData.aiProfile || null;
+            if (this.cpu.aiProfile) console.log(`Loaded AI Profile for ${cpuData.name}:`, this.cpu.aiProfile.type);
+        }
 
         // Construct Dynamic Battle Menu
         this.menuItems = [
@@ -163,12 +160,7 @@ const BattleEngine = {
             if (!charData) return null;
 
             // 1. Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
-            /* 
-            if (typeof AnimConfig !== 'undefined' && AnimConfig[charData.id]) {
-                const config = side === 'left' ? AnimConfig[charData.id].L : AnimConfig[charData.id].R;
-                if (config) return config;
-            }
-            */
+            // 1. Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
 
             // Auto-Detection (Standard face folder only)
             const prefix = idMap[charData.id] || charData.id.toUpperCase();
@@ -653,7 +645,7 @@ const BattleEngine = {
                 }
                 if (this.timer === this.DELAY_DISCARD_AUTO && this.cpu.needsToDiscard) {
                     this.cpu.needsToDiscard = false;
-                    const discardIdx = AILogic.decideDiscard(this.cpu.hand, AILogic.DIFFICULTY.NORMAL);
+                    const discardIdx = AILogic.decideDiscard(this.cpu.hand, BattleConfig.RULES.AI_DIFFICULTY, this.cpu.aiProfile);
                     this.discardTileCPU(discardIdx);
                 }
                 break;
@@ -798,7 +790,7 @@ const BattleEngine = {
         }
 
         // CPU AI Logic
-        const difficulty = AILogic.DIFFICULTY.NORMAL; // Default to Normal for now
+        const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
 
         // 1. Check Tsumo
         if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
@@ -825,7 +817,7 @@ const BattleEngine = {
                 }
             }
 
-            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty)) {
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
                 console.log("CPU Riichi!");
                 this.cpu.isRiichi = true;
                 this.showPopup('RIICHI', { slideFrom: 'RIGHT', life: 60 });
@@ -967,8 +959,8 @@ const BattleEngine = {
         });
 
         if (pairCount >= 2 && !this.cpu.isRiichi) {
-            const difficulty = AILogic.DIFFICULTY.NORMAL;
-            if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty)) {
+            const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
+            if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty, this.cpu.aiProfile)) {
                 this.executeCpuPon(discardedTile);
                 return true;
             }
@@ -1138,7 +1130,7 @@ const BattleEngine = {
         try {
             // Delegate to AI Logic
             // Use 'NORMAL' difficulty as standard auto-play
-            const discardIdx = AILogic.decideDiscard(this.p1.hand, AILogic.DIFFICULTY.NORMAL);
+            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY);
 
             if (typeof discardIdx !== 'number' || discardIdx < 0) {
                 console.error("AILogic returned invalid index:", discardIdx);
@@ -1299,8 +1291,7 @@ const BattleEngine = {
             }
         }
 
-        // REMOVED: Unconditional reset to STATE_PLAYER_TURN. 
-        // Each action block is now responsible for setting the correct next state.
+        // Action blocks set the correct next state.
     },
 
     toggleBattleMenu: function () {

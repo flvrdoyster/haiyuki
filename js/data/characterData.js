@@ -107,12 +107,39 @@ const SkillData = {
 };
 
 const CharacterData = [
-    { id: 'ataho', name: '아타호', face: 'face/ATA_base.png', selectIcon: 'face/CHRSELATA.png', rival: 'rinxiang', skills: ['TIGER_STRIKE', 'HELL_PILE'], battleOffsetX: 0, battleOffsetY: 0 },
-    { id: 'rinxiang', name: '린샹', face: 'face/RIN_base.png', selectIcon: 'face/CHRSELRIN.png', rival: 'ataho', skills: ['WATER_MIRROR', 'DORA_BOMB'], battleOffsetX: 0, battleOffsetY: 0 },
-    { id: 'fari', name: '화린', face: 'face/FARI_base.png', selectIcon: 'face/CHRSELFARI.png', rival: 'petum', skills: ['RECOVERY', 'DISCARD_GUARD'], battleOffsetX: 0, battleOffsetY: 0 },
-    { id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/CHRSELSMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 0, battleOffsetY: 0 },
-    { id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/CHRSELPET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20 },
-    { id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/CHRSELYURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], battleOffsetX: 0, battleOffsetY: 0 },
+    {
+        id: 'ataho', name: '아타호', face: 'face/ATA_base.png', selectIcon: 'face/CHRSELATA.png', rival: 'rinxiang', skills: ['TIGER_STRIKE', 'HELL_PILE'], battleOffsetX: 0, battleOffsetY: 0,
+        // Ataho: Power Type. Aims for big hands (One-Shot Reversal). High Color Bias to force specific Yaku.
+        aiProfile: { type: 'POWER', aggression: 0.6, speed: 0.1, defense: 0.5, colorBias: 0.9 }
+    },
+    {
+        id: 'rinxiang', name: '린샹', face: 'face/RIN_base.png', selectIcon: 'face/CHRSELRIN.png', rival: 'ataho', skills: ['WATER_MIRROR', 'DORA_BOMB'], battleOffsetX: 0, battleOffsetY: 0,
+        // Rinxiang: Balanced Type. Equipped with both Attack and Defense skills.
+        aiProfile: { type: 'BALANCED', aggression: 0.55, speed: 0.4, defense: 0.55, colorBias: 0.4 }
+    },
+    {
+        id: 'fari', name: '화린', face: 'face/FARI_base.png', selectIcon: 'face/CHRSELFARI.png', rival: 'petum', skills: ['RECOVERY', 'DISCARD_GUARD'], battleOffsetX: 0, battleOffsetY: 0,
+        // Fari: Support/Healing but "Good Luck" = Early Riichi. High Aggression (Riichi chance) + Good Defense.
+        aiProfile: { type: 'LUCKY', aggression: 0.8, speed: 0.3, defense: 0.7, colorBias: 0.3 }
+    },
+    {
+        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/CHRSELSMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 0, battleOffsetY: 0,
+        // Smash: Ninja = Quick movements. High Speed (Calls often).
+        aiProfile: { type: 'ZAP_SPEED', aggression: 0.4, speed: 0.9, defense: 0.6, colorBias: 0.2 }
+    },
+    {
+        id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/CHRSELPET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20,
+        // Petum: Tricky / Attack Skills. Opposite of Fari. Unpredictable.
+        aiProfile: { type: 'TRICKY_ATTACK', aggression: 0.75, speed: 0.6, defense: 0.2, colorBias: 0.7 }
+    },
+    {
+        id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/CHRSELYURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], battleOffsetX: 0, battleOffsetY: 0,
+        // Yuri: Master of Iai. Powerful Attack AND Defense. High Stats overall.
+        aiProfile: { type: 'ELITE', aggression: 0.8, speed: 0.5, defense: 0.8, colorBias: 0.5 }
+    },
     // Hidden / Bosses
-    { id: 'mayu', name: '눈썹 개', face: 'face/MAYU_base.png', selectIcon: 'face/CHRSELMAYU.png', hidden: true, skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: 0 }
+    {
+        id: 'mayu', name: '눈썹 개', face: 'face/MAYU_base.png', selectIcon: 'face/CHRSELMAYU.png', hidden: true, skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: 0,
+        aiProfile: { type: 'GOD', aggression: 0.9, speed: 0.9, defense: 0.9, colorBias: 0.5 }
+    }
 ];

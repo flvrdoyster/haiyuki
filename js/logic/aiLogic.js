@@ -6,18 +6,13 @@ const AILogic = {
     },
 
     // Main decision function for Discard
-    decideDiscard: function (hand, difficulty) {
-        // 1. Check for Tenpai (and potential Riichi)
-        // If discarding a tile leads to Tenpai, prioritize it?
-        // For now, let's stick to the strategy:
-        // - Keep Pairs/Triplets
-        // - Keep Color
-        // - Discard Useless
+    decideDiscard: function (hand, difficulty, profile) {
+        // Default profile if missing
+        if (!profile) profile = { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3 };
 
         // Analyze hand
         const analysis = YakuLogic.analyzeHand(hand);
         const counts = analysis.counts; // Key: "color_id"
-        const typeCounts = analysis.typeCounts; // Key: "id"
 
         // Strategy: Color Priority
         // Count tiles per color
@@ -46,9 +41,6 @@ const AILogic = {
         // Candidates for discard
         let candidates = [];
 
-        // 1. Singles (Count == 1)
-        // 2. Wrong Color (if Normal/Hard)
-
         hand.forEach((tile, index) => {
             const key = `${tile.color}_${tile.type}`;
             const count = counts[key].count;
@@ -62,9 +54,17 @@ const AILogic = {
 
             // Color Score (Normal+)
             if (difficulty >= this.DIFFICULTY.NORMAL) {
-                if (tile.color === minColor) score += 5; // Discard minority color
-                if (tile.color === maxColor) score -= 5; // Keep majority color
+                // Bias Influence: 0.0 ~ 1.0 (Current Logic was static +/- 5)
+                // New Logic: 
+                // Discard Minority: Base 5 + (Bias * 10) -> Stronger bias = Hates wrong color more
+                // Keep Majority: Base -5 - (Bias * 10) -> Stronger bias = Loves main color more
+
+                if (tile.color === minColor) score += (5 + (profile.colorBias * 10));
+                if (tile.color === maxColor) score -= (5 + (profile.colorBias * 10));
             }
+
+            // Defense Logic (Placeholder for future)
+            // if (profile.defense > 0.7) { ... }
 
             candidates.push({ index: index, score: score, tile: tile });
         });
@@ -72,39 +72,86 @@ const AILogic = {
         // Sort by score descending (Higher score = Better to discard)
         candidates.sort((a, b) => b.score - a.score);
 
+        if (candidates.length > 0) {
+            console.log(`[AI Discard] Top: ${candidates[0].tile.type} (${candidates[0].score}), 2nd: ${candidates[1]?.tile.type} (${candidates[1]?.score})`);
+        }
+
         // Add some randomness for Easy/Normal
+        // Difficulty Logic
         if (difficulty === this.DIFFICULTY.EASY) {
-            // Pick random from top 5?
-            const range = Math.min(candidates.length, 5);
+            // Easy: Pick random from top 4 (Frequent mistakes)
+            const range = Math.min(candidates.length, 4);
             const r = Math.floor(Math.random() * range);
             return candidates[r].index;
+
+        } else if (difficulty === this.DIFFICULTY.NORMAL) {
+            // Normal: Weighted Random from Top 3
+            // Higher score = Higher chance
+            const range = Math.min(candidates.length, 3);
+            const topCandidates = candidates.slice(0, range);
+
+            // Calculate total weight (offset by min score to keep positive if negative exist, though scores here are usually >=0)
+            // Just use simple weighting: Score + 10 to ensure base weight
+            const weightTotal = topCandidates.reduce((sum, c) => sum + (c.score + 10), 0);
+            let r = Math.random() * weightTotal;
+
+            for (let i = 0; i < range; i++) {
+                r -= (topCandidates[i].score + 10);
+                if (r <= 0) return topCandidates[i].index;
+            }
+            return topCandidates[0].index; // Fallback
+
         } else {
-            // Normal: Top 1
+            // Hard: Always Top 1 (Optimal for Profile)
             return candidates[0].index;
         }
     },
 
-    shouldRiichi: function (hand, difficulty) {
-        // If Tenpai and Menzen (assumed checked by caller or passed in), declare Riichi
-        // For simple AI, always Riichi if possible
+    shouldRiichi: function (hand, difficulty, profile) {
+        if (!profile) profile = { aggression: 0.5 };
+
+        // Aggression check
+        // Higher aggression = More likely to Riichi instantly
+        // Lower aggression = Might stay silent (Dama) to surprise? (Not implemented yet, just chance to NOT do it if < threshold?)
+        // For now: 
+        // If Aggression > 0.3, do it. 
+        // If Aggression is low, maybe 30% chance to skip?
+
+        // Difficulty Effect: Easy AI might miss the chance to Riichi
+        if (difficulty === this.DIFFICULTY.EASY && Math.random() < 0.5) return false;
+
+        if (profile.aggression < 0.3) {
+            return Math.random() < 0.5; // 50% chance to skip Riichi if very passive
+        }
         return true;
     },
 
-    shouldRon: function (hand, discardedTile, difficulty) {
-        // Always Ron if possible
+    shouldRon: function (hand, discardedTile, difficulty, profile) {
+        // Always Ron if possible, winning is paramount.
         return true;
     },
 
-    shouldTsumo: function (hand, difficulty) {
+    shouldTsumo: function (hand, difficulty, profile) {
         // Always Tsumo if possible
         return true;
     },
 
-    shouldPon: function (hand, tile, difficulty) {
-        // Simple Logic: Always Pon if we have a pair?
-        // Or if it matches target color?
-        // For now, allow it fairly often (e.g. 50% or always if Normal+)
-        // Let's say: 100% chance for now to verify it works.
-        return true;
+    shouldPon: function (hand, tile, difficulty, profile) {
+        if (!profile) profile = { speed: 0.5 };
+
+        // Speed check
+        // High speed = Likes to Pon (Open Hand)
+        // Low speed = Dislikes Pon (Menzen)
+
+        // Base chance: Speed value (0.2 ~ 0.9)
+        // If has pair, Logic usually asks.
+
+        // If Speed is high (0.8), 80% chance to Pon.
+        // If Speed is low (0.2), 20% chance to Pon.
+
+        // Difficulty Effect: Easy AI might miss the chance to Pon
+        if (difficulty === this.DIFFICULTY.EASY && Math.random() < 0.5) return false;
+
+        return Math.random() < profile.speed;
     }
 };

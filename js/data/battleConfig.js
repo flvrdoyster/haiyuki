@@ -3,7 +3,16 @@ const BattleConfig = {
     RULES: {
         INITIAL_HP: 10000,
         NAGARI_DAMAGE: 1000,
-        SKILLS_ENABLED: false
+        SKILLS_ENABLED: false,
+
+        // AI Difficulty Settings
+        // 0: EASY   - Discard: Random from Top 4 (Frequent mistakes)
+        //             Action: 50% chance to miss Riichi/Pon opportunities
+        // 1: NORMAL - Discard: Weighted Random from Top 3 (Standard personality behavior)
+        //             Action: Standard profile chance
+        // 2: HARD   - Discard: Always Top 1 (Optimal play)
+        //             Action: Standard profile chance (Optimal)
+        AI_DIFFICULTY: 1
     },
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
