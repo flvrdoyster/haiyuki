@@ -870,15 +870,22 @@ const BattleRenderer = {
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
 
-        // Optimization: Check Y bounds first
-        if (y < BattleConfig.HAND.playerHandY || y > BattleConfig.HAND.playerHandY + tileH) return -1;
+        // TIGHTER HITBOX LOGIC
+        // Reduce clickable area to prevent edge mis-clicks
+        const xPad = tileW * 0.15; // 15% padding on each side (30% total reduction)
+        const yPad = tileH * 0.1;  // 10% padding on each side
+
+        // Optimization: Check Y bounds first (with padding)
+        const handY = BattleConfig.HAND.playerHandY;
+        if (y < handY + yPad || y > handY + tileH - yPad) return -1;
 
         // Iterate or Calculate?
         // `getPlayerHandPosition` includes group gap logic.
         // Iterating is safer vs complex math inversion.
         for (let i = 0; i < handSize; i++) {
             const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
-            if (x >= pos.x && x < pos.x + tileW) {
+            // Check X with padding
+            if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
                 return i;
             }
         }

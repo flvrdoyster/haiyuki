@@ -316,7 +316,20 @@ const BattleScene = {
 
         // Select / Discard
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
-            if (engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
+
+            // Mouse Interaction: Strict Check
+            if (Input.isMouseJustPressed()) {
+                const clickIndex = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
+                if (clickIndex !== -1) {
+                    engine.hoverIndex = clickIndex; // Select the clicked tile
+                    engine.discardTile(clickIndex);
+                } else {
+                    // Clicked empty space -> Clear selection to prevent accidents
+                    engine.hoverIndex = -1;
+                }
+            }
+            // Keyboard Interaction: Use current hover
+            else if (engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
                 engine.discardTile(engine.hoverIndex);
             }
         }
