@@ -1424,7 +1424,28 @@ const BattleEngine = {
         const selectedId = selectedItem.id;
 
         if (selectedId === 'HELP') {
-            window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
+            const yakuContainer = document.getElementById('yaku-container');
+            if (yakuContainer) {
+                const isHidden = yakuContainer.classList.contains('hidden');
+                yakuContainer.classList.toggle('hidden');
+
+                // Sync toolbar button state
+                const yakuBtn = document.getElementById('yaku-btn');
+                if (yakuBtn) {
+                    yakuBtn.classList.remove('toggle-on', 'toggle-off');
+                    yakuBtn.classList.add(isHidden ? 'toggle-on' : 'toggle-off');
+                }
+
+                if (isHidden) {
+                    // Reload iframe src to force scroll to anchor
+                    const iframe = document.getElementById('yaku-frame');
+                    if (iframe) {
+                        iframe.src = iframe.src;
+                    }
+                }
+            } else {
+                window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
+            }
         } else if (selectedId === 'AUTO') {
             if (this.lastStateBeforeMenu !== this.STATE_PLAYER_TURN) {
                 console.log("Auto-select ignored: Not player turn");

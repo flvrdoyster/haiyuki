@@ -15,8 +15,25 @@
 </head>
 
 <body>
-    <div id="game-container">
-        <canvas id="game-canvas" width="640" height="480"></canvas>
+    <div id="main-wrapper">
+        <div id="toolbar-row">
+            <div class="toolbar-group">
+                <span class="toolbar-label">소리</span>
+                <button id="mute-btn" class="toolbar-btn toggle-on"></button>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-label">역 일람</span>
+                <button id="yaku-btn" class="toolbar-btn toggle-off"></button>
+            </div>
+        </div>
+        <div id="play-area">
+            <div id="game-container">
+                <canvas id="game-canvas" width="640" height="480"></canvas>
+            </div>
+            <div id="yaku-container" class="hidden">
+                <iframe id="yaku-frame" src="https://atah.io/haiyuki_manual/index.html#yaku"></iframe>
+            </div>
+        </div>
     </div>
     <script src="js/core/input.js"></script>
     <script src="js/core/assets.js"></script>

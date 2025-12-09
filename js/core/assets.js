@@ -2,6 +2,8 @@ const Assets = {
     images: {},
     audio: {}, // New: Audio storage
     currentMusic: null, // Track currently playing music
+    muted: false, // Global Mute State
+
     toLoad: [
         'ui/title.png',
         'ui/pushok.png',   // "PUSH SPACE KEY"
@@ -209,6 +211,8 @@ const Assets = {
     },
 
     playSound: function (id) {
+        if (this.muted) return; // Mute Check
+
         const audio = this.getAudio(id);
         if (audio) {
             // Clone node to allow overlapping playback of same sound
@@ -229,6 +233,7 @@ const Assets = {
             audio.currentTime = 0;
             audio.loop = loop;
             audio.volume = 0.5;
+            audio.muted = this.muted; // Apply mute state
 
             const playPromise = audio.play();
             if (playPromise !== undefined) {
@@ -256,6 +261,14 @@ const Assets = {
         } else {
             console.warn(`Music audio not found: ${id}`);
         }
+    },
+
+    toggleMute: function () {
+        this.muted = !this.muted;
+        if (this.currentMusic) {
+            this.currentMusic.muted = this.muted;
+        }
+        return this.muted;
     },
 
     stopMusic: function () {

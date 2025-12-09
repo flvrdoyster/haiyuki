@@ -14,6 +14,43 @@ const Game = {
         // Initialize modules with canvas for mouse input
         Input.init(this.canvas);
 
+        // Setup Mute Button
+        const muteBtn = document.getElementById('mute-btn');
+        if (muteBtn) {
+            // Set initial state
+            muteBtn.classList.remove('toggle-on', 'toggle-off');
+            muteBtn.classList.add(Assets.muted ? 'toggle-off' : 'toggle-on');
+
+            muteBtn.onclick = () => {
+                const isMuted = Assets.toggleMute();
+                muteBtn.classList.remove('toggle-on', 'toggle-off');
+                muteBtn.classList.add(isMuted ? 'toggle-off' : 'toggle-on');
+                muteBtn.blur();
+            };
+        }
+
+        // Setup Yaku Toggle Button
+        const yakuBtn = document.getElementById('yaku-btn');
+        const yakuContainer = document.getElementById('yaku-container');
+        if (yakuBtn && yakuContainer) {
+            yakuBtn.onclick = () => {
+                const isHidden = yakuContainer.classList.toggle('hidden');
+
+                // Update Button State (Red/On = Open, Blue/Off = Closed)
+                yakuBtn.classList.remove('toggle-on', 'toggle-off');
+                yakuBtn.classList.add(isHidden ? 'toggle-off' : 'toggle-on');
+
+                // Reload iframe if showing (to fix scroll/rendering)
+                if (!isHidden) {
+                    const iframe = document.getElementById('yaku-frame');
+                    if (iframe) {
+                        iframe.src = iframe.src;
+                    }
+                }
+                yakuBtn.blur();
+            };
+        }
+
         // Load assets
         Assets.load(() => {
             console.log('Assets loaded. Starting game...');
