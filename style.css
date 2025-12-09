@@ -117,6 +117,14 @@ canvas {
     background: white;
 }
 
+#footer {
+    font-size: small;
+    text-align: right;
+    display: block;
+    color: white;
+    font-family: 'KoddiUDOnGothic-Regular', sans-serif;
+}
+
 @font-face {
     font-family: 'KoddiUDOnGothic-Regular';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Regular.woff') format('woff');
@@ -131,8 +139,3 @@ canvas {
     font-style: normal;
 }
 
-#footer {
-    font-size: small;
-    text-align: right;
-    display: block;
-}
