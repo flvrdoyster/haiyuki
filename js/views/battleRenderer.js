@@ -134,6 +134,11 @@ const BattleRenderer = {
         if (state.currentState === state.STATE_BATTLE_MENU) {
             this.drawBattleMenu(ctx, state);
         }
+
+        // Wait for Draw Button
+        if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
+            this.drawDrawButton(ctx);
+        }
     },
 
     getVisualMetrics: function (character, groupSize) {
@@ -224,46 +229,94 @@ const BattleRenderer = {
         const max = BattleConfig.DISCARDS.rowMax;
 
         const allDiscards = state.discards;
-        let p1Idx = 0;
-        let cpuIdx = 0;
 
-        // Visual enhancement: Draw highlighted last discard
+        // Layout State Tracking
+        const p1Layout = { col: 0, row: 0, x: BattleConfig.DISCARDS.P1.x, y: BattleConfig.DISCARDS.P1.y };
+        const cpuLayout = { col: 0, row: 0, x: BattleConfig.DISCARDS.CPU.x, y: BattleConfig.DISCARDS.CPU.y };
+
         const lastDiscard = allDiscards.length > 0 ? allDiscards[allDiscards.length - 1] : null;
 
         allDiscards.forEach(t => {
-            let dx, dy;
-            let isP1 = (t.owner === 'P1' || t.owner === 'p1'); // Handle both cases just in case
+            let layout;
+            let isP1 = (t.owner === 'P1' || t.owner === 'p1');
 
-            if (isP1) {
-                const row = Math.floor(p1Idx / max);
-                const col = p1Idx % max;
-                dx = BattleConfig.DISCARDS.P1.x + col * (dw + gap);
-                dy = BattleConfig.DISCARDS.P1.y + row * (dh + gap);
-                p1Idx++;
-            } else {
-                const row = Math.floor(cpuIdx / max);
-                const col = cpuIdx % max;
-                dx = BattleConfig.DISCARDS.CPU.x + col * (dw + gap);
-                // CPU fills downwards
-                dy = BattleConfig.DISCARDS.CPU.y + row * (dh + gap);
-                cpuIdx++;
+            if (isP1) layout = p1Layout;
+            else layout = cpuLayout;
+
+            // Determine effective dimensions for this slot
+            // If Riichi, width is Height (rotated 90 deg)
+            const slotW = t.isRiichi ? dh : dw;
+
+            // Check Wrap (Pre-check to move to next row if needed? No, standard is Max items per row)
+            // But if we wrap, we reset X.
+            if (layout.col >= max) {
+                layout.col = 0;
+                layout.row++;
+                layout.x = isP1 ? BattleConfig.DISCARDS.P1.x : BattleConfig.DISCARDS.CPU.x;
+                layout.y += dh + gap;
             }
 
-            // Check if last
+            const dx = layout.x;
+            const dy = layout.y;
+
+            // Update Layout for NEXT item
+            layout.x += slotW + gap;
+            layout.col++;
+
+            // Draw Logic
+            // Check if last (Highlight)
             if (t === lastDiscard) {
-                // Draw Larger centered on slot
+                // Determine highlight size
                 const w = BattleConfig.HAND.tileWidth;
                 const h = BattleConfig.HAND.tileHeight;
-                const cx = dx + (dw - w) / 2;
-                const cy = dy + (dh - h) / 2;
-                // Draw highlight effect?
-                this.drawTile(ctx, t, cx, cy, w, h);
-                // Highlight border
-                ctx.strokeStyle = 'yellow';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(cx, cy, w, h);
+
+                // Rotated logic for highlight
+                if (t.isRiichi) {
+                    // Center based on Visual Width (slotW = dh)
+                    // Center of slot
+                    const cx = dx + slotW / 2;
+                    const cy = dy + dh / 2;
+
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(-Math.PI / 2); // Rotate 90 deg CCW
+
+                    // Draw centered
+                    this.drawTile(ctx, t, -w / 2, -h / 2, w, h);
+
+                    // Highlight border
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+                    ctx.restore();
+                } else {
+                    // Standard Highlight
+                    // Center in slot (dw width)
+                    const cx = dx + (dw - w) / 2;
+                    const cy = dy + (dh - h) / 2;
+
+                    this.drawTile(ctx, t, cx, cy, w, h);
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(cx, cy, w, h);
+                }
             } else {
-                this.drawTile(ctx, t, dx, dy, dw, dh);
+                // Normal Draw
+                if (t.isRiichi) {
+                    // Center in the allocated slot (which is dh wide)
+                    const cx = dx + slotW / 2;
+                    const cy = dy + dh / 2;
+
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(-Math.PI / 2);
+                    // Draw normal dimensions (dw x dh) rotated
+                    this.drawTile(ctx, t, -dw / 2, -dh / 2, dw, dh);
+                    ctx.restore();
+                } else {
+                    this.drawTile(ctx, t, dx, dy, dw, dh);
+                }
             }
         });
     },
@@ -629,42 +682,49 @@ const BattleRenderer = {
         const startX = x + conf.padding;
         const startY = y + conf.padding + 7;
         const innerH = h - (conf.padding * 2);
-        // Calculate dynamic line height based on item count or ratio?
-        // Let's use ratio but ensure it fits.
-        const lineHeight = innerH / Math.max(state.menuItems.length, conf.lineHeightRatio);
+
+        // Use Fixed Line Height
+        const lineHeight = conf.fixedLineHeight || 28;
 
         ctx.font = conf.font;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
+        // Helper to get item height
+        const getItemHeight = (item) => {
+            if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
+            return lineHeight;
+        };
+
+        let currentY = startY;
+
         state.menuItems.forEach((item, i) => {
-            const itemY = startY + (i * lineHeight) + (lineHeight / 2) + conf.cursorYOffset;
+            const h = getItemHeight(item);
 
-            // Separator Lines
-            // Between 2nd(1) and 3rd(2) -> Before 2
-            // Between 4th(3) and 5th(4) -> Before 4
-            if (i === 2 || i === 4) {
-                const lineY = startY + (i * lineHeight) + conf.cursorYOffset;
-                // Adjust Y slightly to be between the rows. 
-                // itemY is center. Top of row is itemY - lineHeight/2.
-                // startY + i*lineHeight is basically the top limit of that row.
-
+            if (item.type === 'SEPARATOR') {
+                // Draw Separator
+                const lineY = Math.floor(currentY + (h / 2) + conf.cursorYOffset);
                 ctx.beginPath();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
                 ctx.lineWidth = 1;
-                // Draw line with some padding
                 const linePad = 10;
                 ctx.moveTo(startX + linePad, lineY);
                 ctx.lineTo(startX + (w - (conf.padding * 2)) - linePad, lineY);
                 ctx.stroke();
+
+                currentY += h;
+                return; // Skip text rendering
             }
+
+            // Normal Item
+            const itemY = Math.floor(currentY + (h / 2) + conf.cursorYOffset);
 
             // 3. Selection Cursor
             if (i === state.selectedMenuIndex) {
                 ctx.fillStyle = conf.cursor;
                 // Cursor bar width
                 const barW = w - (conf.padding * 2);
-                ctx.fillRect(startX, startY + (i * lineHeight) + conf.cursorYOffset, barW, lineHeight);
+                ctx.fillRect(startX, Math.floor(currentY + conf.cursorYOffset), barW, h);
                 ctx.fillStyle = conf.textSelected;
             } else {
                 ctx.fillStyle = conf.textDefault;
@@ -683,13 +743,59 @@ const BattleRenderer = {
                 // Also can re-draw text in gray
                 ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
             }
+
+            currentY += h;
         });
     },
-
     /**
      * HIT TESTING HELPERS
      * Centralizes coordinate logic so Scene doesn't need to know layout details.
      */
+
+    drawDrawButton: function (ctx) {
+        const conf = BattleConfig.DRAW_BUTTON;
+        const x = conf.x;
+        const y = conf.y;
+        const w = conf.w;
+        const h = conf.h;
+
+        // Draw Frame
+        Assets.drawUIFrame(ctx, x, y, w, h);
+
+        // Dimmer
+        ctx.fillStyle = conf.dimmer;
+        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+
+        // Text
+        ctx.fillStyle = conf.textColor;
+        ctx.font = conf.font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(conf.text, x + w / 2, y + h / 2);
+
+        // Highlight if hovered
+        // Use global Input if available, otherwise would need state
+        if (Input && Input.mouseX >= x && Input.mouseX <= x + w &&
+            Input.mouseY >= y && Input.mouseY <= y + h) {
+
+            ctx.fillStyle = conf.cursor || 'rgba(255, 105, 180, 0.5)';
+            ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+
+            // Re-draw text on top of cursor?
+            ctx.fillStyle = conf.textSelected || '#FFFF00'; // Or keep white
+            ctx.fillText(conf.text, x + w / 2, y + h / 2);
+        }
+    },
+
+    checkDrawButton: function (x, y) {
+        const conf = BattleConfig.DRAW_BUTTON;
+        if (x >= conf.x && x <= conf.x + conf.w &&
+            y >= conf.y && y <= conf.y + conf.h) {
+            return true;
+        }
+        return false;
+    },
+
 
     getActionAt: function (x, y, actions) {
         const conf = BattleConfig.ACTION;
@@ -717,7 +823,7 @@ const BattleRenderer = {
         return -1;
     },
 
-    getMenuItemAt: function (x, y, itemCount) {
+    getMenuItemAt: function (x, y, menuItems) {
         // Use logic matching drawBattleMenu
         const conf = BattleConfig.BATTLE_MENU;
         const xPos = conf.x;
@@ -727,26 +833,33 @@ const BattleRenderer = {
 
         const startX = xPos + conf.padding;
         const startY = yPos + conf.padding + 7;
-        const innerH = h - (conf.padding * 2);
 
-        // Match drawBattleMenu lineHeight calculation
-        // const lineHeight = innerH / Math.max(state.menuItems.length, conf.lineHeightRatio);
-        // We need itemCount here
-        const lineHeight = innerH / Math.max(itemCount, conf.lineHeightRatio);
+        // Use Fixed Line Height
+        const lineHeight = conf.fixedLineHeight || 28;
 
-        if (x < startX || x > startX + w) return -1; // Broad loose check on width or inner width?
-        // drawBattleMenu draws bar with `w - (padding*2)`.
         if (x < startX || x > startX + w - (conf.padding * 2)) return -1;
 
-        // Y check
-        // Items start at startY.
-        const totalH = itemCount * lineHeight;
-        if (y < startY || y > startY + totalH) return -1;
+        // Iteration Check
+        let currentY = startY;
+        const getItemHeight = (item) => {
+            if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
+            return lineHeight;
+        };
 
-        const relativeY = y - startY;
-        const index = Math.floor(relativeY / lineHeight);
+        for (let i = 0; i < menuItems.length; i++) {
+            const item = menuItems[i];
+            const itemH = getItemHeight(item);
 
-        if (index >= 0 && index < itemCount) return index;
+            // Check Y bounds for this item
+            if (y >= currentY && y < currentY + itemH) {
+                // Return index ONLY if it's not a separator
+                if (item.type === 'SEPARATOR') return -1;
+                return i;
+            }
+
+            currentY += itemH;
+        }
+
         return -1;
     },
 

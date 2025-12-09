@@ -22,6 +22,11 @@ const Assets = {
         { id: 'audio/riichi', src: 'assets/audio/riichi.mp3', type: 'audio' },
         { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
         { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
+        { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
+        { id: 'audio/hit-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
+        { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
+        { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
+        { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one

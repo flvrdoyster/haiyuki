@@ -17,8 +17,8 @@ const BattleConfig = {
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {
-        P1: { x: -24, y: 60, scale: 1, align: 'left' },
-        CPU: { x: 664, y: 60, scale: 1, align: 'right' },
+        P1: { x: -34, y: 60, scale: 1, align: 'left' },
+        CPU: { x: 674, y: 60, scale: 1, align: 'right' },
         baseW: 264,
         baseH: 280
     },
@@ -70,13 +70,13 @@ const BattleConfig = {
         // Menu Layout
         y: 320,
         btnWidth: 80,
-        btnHeight: 40,
-        gap: 10,
-        padding: 20, // New: Frame padding
+        btnHeight: 32,
+        gap: 4,
+        padding: 2, // New: Frame padding
         dimmer: 'rgba(0, 0, 0, 0.5)', // New: Dimmer color
 
         // Fonts
-        buttonFont: 'bold 20px "KoddiUDOnGothic-Bold"',
+        buttonFont: 'bold 16px "KoddiUDOnGothic-Bold"',
         helpFont: '16px "KoddiUDOnGothic-Bold"',
 
         // Colors (Match Battle Menu)
@@ -115,7 +115,7 @@ const BattleConfig = {
             'PON': { sound: 'audio/pon' },
             'RON': { sound: 'audio/fanfare' },
             'TSUMO': { life: 120, anim: 'ZOOM_IN', sound: 'audio/fanfare' },
-            'NAGARI': {} // Default
+            'NAGARI': { sound: 'audio/wrong' } // Default
         },
 
         // Legacy Sound map (if needed, but TYPES should supersede)
@@ -159,7 +159,7 @@ const BattleConfig = {
                 color: "white"
             },
             NAGARI: {
-                title: "나가리",
+                title: "무승부!",
                 text: "MAN: {p1Status} / COM: {cpuStatus}\n{damageMsg}",
                 color: "white"
             },
@@ -272,20 +272,42 @@ const BattleConfig = {
         gap: 2,
         rowMax: 10
     },
+    DRAW_BUTTON: {
+        x: 270,
+        y: 280,
+        w: 100,
+        h: 40,
+        text: "패 가져오기",
+        font: 'bold 16px "KoddiUDOnGothic-Bold"',
+        dimmer: 'rgba(0, 0, 0, 0.5)',
+        cursor: 'rgba(255, 105, 180, 0.5)',
+        textColor: 'white'
+    },
     BATTLE_MENU: {
         w: 140,
-        h: 180,
+        h: 150,
         x: 500, // 640 - 140
-        y: 300, // 480 - 180
-        font: '18px "KoddiUDOnGothic-Regular"',
+        y: 330, // 480 - 150
+        font: 'bold 16px "KoddiUDOnGothic-Bold"',
         textDefault: 'white',
         textSelected: '#FFFF00',
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
         dimmer: 'rgba(0, 0, 0, 0.5)',
-        padding: 14, // Increased padding for 9-slice look
+        padding: 2, // Increased padding for 9-slice look
         textOffsetX: 8,
         textOffsetY: 2,
-        lineHeightRatio: 6, // Adjusted for new height
-        cursorYOffset: -8
+        fixedLineHeight: 24, // Fixed height per item
+        separatorHeight: 8, // Height for separator items
+        cursorYOffset: -6,
+
+        // Menu Layout Definition
+        layout: [
+            { id: 'AUTO', label: '자동 선택' },
+            { id: 'RESTART', label: '다시 시작' },
+            { type: 'SEPARATOR' },
+            { id: 'SKILLS_PLACEHOLDER' }, // Insert Skills Here
+            { type: 'SEPARATOR' },
+            { id: 'HELP', label: '역 일람' }
+        ]
     }
 };

@@ -6,9 +6,13 @@ const AILogic = {
     },
 
     // Main decision function for Discard
-    decideDiscard: function (hand, difficulty, profile) {
+    decideDiscard: function (hand, difficulty, profile, context) {
         // Default profile if missing
         if (!profile) profile = { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3 };
+
+        // Extract Context
+        const discards = context ? context.discards : [];
+        const opponentRiichi = context ? context.opponentRiichi : false;
 
         // Analyze hand
         const analysis = YakuLogic.analyzeHand(hand);
@@ -63,7 +67,28 @@ const AILogic = {
                 if (tile.color === maxColor) score -= (5 + (profile.colorBias * 10));
             }
 
-            // Defense Logic (Placeholder for future)
+            // Defense Logic: Against Riichi
+            if (opponentRiichi && difficulty >= this.DIFFICULTY.NORMAL) {
+                // Check if tile matches any in discards (Genbutsu / Safe)
+                const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
+
+                // Scale defense strength by profile
+                // Strong defense (>0.8) = Huge shift (+/- 80)
+                // Weak defense (<0.3) = Tiny shift (+/- 20)
+                const defenseMod = Math.floor(100 * profile.defense);
+
+                if (isSafe) {
+                    // Safe Tile: Bonus to Discard Score (Encourage discard)
+                    score += defenseMod;
+                    // Log debug
+                    // console.log(`[AI Defense] Safe Tile identified: ${tile.type}`);
+                } else {
+                    // Dangerous Tile: Penalty to Discard Score (Discourage discard)
+                    score -= defenseMod;
+                }
+            }
+
+            // Defense Logic (General Profile) - Deprecated/Merged above
             // if (profile.defense > 0.7) { ... }
 
             candidates.push({ index: index, score: score, tile: tile });

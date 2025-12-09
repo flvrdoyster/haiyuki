@@ -30,16 +30,16 @@ const BattleScene = {
                 }
 
                 if (evt.type === 'DAMAGE') {
-                    // Play Damage Sound Customized by Target Character
-                    let targetCharId = null;
+                    // Play Damage Sound Customized by Attacker Character (Source of Damage)
+                    let attackerId = null;
                     if (evt.target === 'P1') {
-                        targetCharId = engine.p1.id;
+                        attackerId = engine.cpu.id; // CPU attacked P1
                     } else if (evt.target === 'CPU') {
-                        targetCharId = engine.cpu.id;
+                        attackerId = engine.p1.id; // P1 attacked CPU
                     }
 
-                    if (targetCharId) {
-                        const isSword = (targetCharId === 'smash' || targetCharId === 'yuri');
+                    if (attackerId) {
+                        const isSword = (attackerId === 'smash' || attackerId === 'yuri');
                         if (isSword) {
                             Assets.playSound('audio/hit-4');
                         } else {
@@ -213,6 +213,15 @@ const BattleScene = {
             this.handleActionSelectInput(engine);
         } else if (engine.currentState === engine.STATE_PLAYER_TURN) {
             this.handlePlayerTurnInput(engine);
+        } else if (engine.currentState === engine.STATE_WAIT_FOR_DRAW) {
+            // Manual Draw Input
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER)) {
+                engine.confirmDraw();
+            } else if (Input.isMouseJustPressed()) {
+                if (BattleRenderer.checkDrawButton(Input.mouseX, Input.mouseY)) {
+                    engine.confirmDraw();
+                }
+            }
         } else if (engine.currentState === engine.STATE_WIN ||
             engine.currentState === engine.STATE_LOSE ||
             engine.currentState === engine.STATE_NAGARI) {
@@ -236,7 +245,7 @@ const BattleScene = {
         }
 
         // Mouse Hover using Renderer Helper
-        const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, engine.menuItems.length);
+        const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, engine.menuItems);
         if (hovered !== -1) {
             engine.selectedMenuIndex = hovered;
             if (Input.isMouseJustPressed()) {

@@ -12,6 +12,8 @@ const BattleEngine = {
     STATE_ACTION_SELECT: 7, // Menu for Pon/Ron
     STATE_FX_PLAYING: 8, // New: Block input during FX sequences
     STATE_BATTLE_MENU: 9, // New: Battle Menu Overlay
+    STATE_WAIT_FOR_DRAW: 10, // Wait for user input before drawing
+    STATE_DAMAGE_ANIMATION: 11, // New: Damage Animation
 
     currentState: 0,
     timer: 0,
@@ -123,23 +125,25 @@ const BattleEngine = {
             if (this.cpu.aiProfile) console.log(`Loaded AI Profile for ${cpuData.name}:`, this.cpu.aiProfile.type);
         }
 
-        // Construct Dynamic Battle Menu
-        this.menuItems = [
-            { id: 'AUTO', label: '자동 선택' },
-            { id: 'RESTART', label: '다시 시작' }
-        ];
-        // Add Character Skills
-        if (p1Data && p1Data.skills) {
-            p1Data.skills.forEach(skillId => {
-                const skill = SkillData[skillId];
-                if (skill) {
-                    const isDisabled = !BattleConfig.RULES.SKILLS_ENABLED;
-                    this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
+        // Construct Dynamic Battle Menu based on Config
+        this.menuItems = [];
+        const layout = BattleConfig.BATTLE_MENU.layout;
+
+        layout.forEach(item => {
+            if (item.id === 'SKILLS_PLACEHOLDER') {
+                if (p1Data && p1Data.skills) {
+                    p1Data.skills.forEach(skillId => {
+                        const skill = SkillData[skillId];
+                        if (skill) {
+                            const isDisabled = !BattleConfig.RULES.SKILLS_ENABLED;
+                            this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
+                        }
+                    });
                 }
-            });
-        }
-        // Add System Actions
-        this.menuItems.push({ id: 'HELP', label: '도움말' });
+            } else {
+                this.menuItems.push(item);
+            }
+        });
 
         this.activeFX = [];
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
@@ -310,7 +314,7 @@ const BattleEngine = {
 
 
     startNagariSequence: function () {
-        this.currentState = this.STATE_NAGARI;
+        this.currentState = this.STATE_FX_PLAYING;
         this.events.push({ type: 'STOP_MUSIC' });
 
         // Tenpai checks
@@ -360,6 +364,7 @@ const BattleEngine = {
             currentStep: 0,
             timer: 0,
             steps: [
+                { type: 'CALLBACK', callback: () => this.showPopup('NAGARI') }, // Nagari Popup via Config
                 { type: 'WAIT', duration: 30 },
                 // Just using popups for Tenpai status if possible, or skip to result
                 // We'll rely on Result Window's text update logic (Refactoring `BattleRenderer` later?)
@@ -481,6 +486,12 @@ const BattleEngine = {
             // Update Global Continue Count
             Game.continueCount++;
         }
+    },
+
+    startNextRound: function () {
+        console.log("Starting Next Round...");
+        this.currentRound++;
+        this.startRound();
     },
 
     startRound: function () {
@@ -619,8 +630,15 @@ const BattleEngine = {
         switch (this.currentState) {
             case this.STATE_INIT:
                 if (this.timer > this.DELAY_DRAW) {
-                    this.playerDraw();
+                    // Transition to Wait for Draw instead of direct draw
+                    this.currentState = this.STATE_WAIT_FOR_DRAW;
+                    this.timer = 0;
                 }
+                break;
+
+            case this.STATE_WAIT_FOR_DRAW:
+                // Waiting for User Input (Space / Click)
+                // Logic handled in BattleScene.js
                 break;
 
             case this.STATE_PLAYER_TURN:
@@ -665,29 +683,51 @@ const BattleEngine = {
             case this.STATE_MATCH_OVER:
                 // Input is now handled in BattleScene.js
                 break;
+
+            case this.STATE_DAMAGE_ANIMATION:
+                // Animation Logic
+                // 1. Init (Timer 0): Play Sound, Start Visuals?
+                // Sound handled by Event?
+                if (this.timer === 1) {
+                    if (this.pendingDamage) {
+                        // Emit Damage Event (Sound + Renderer Shake)
+                        this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
+                        console.log(`[Anim] Applying Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
+
+                        // Apply actual HP change (Render will handle bar sliding if optimized, or jump)
+                        // If we want sliding, we need to interpolate in Renderer.
+                        // For now, jump is acceptable as per previous design, but maybe delay it?
+                        // Let's apply it now so bars update.
+                        if (this.pendingDamage.target === 'P1') {
+                            this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
+                            this.p1Character.setState('shocked');
+                        } else if (this.pendingDamage.target === 'CPU') {
+                            this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
+                            this.cpuCharacter.setState('shocked');
+                        }
+                    }
+                }
+
+                if (this.timer > 60) { // 1 Second delay for animation
+                    this.pendingDamage = null;
+                    if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
+                        this.currentState = this.STATE_MATCH_OVER;
+                        this.matchOver(this.p1.hp > 0 ? 'P1' : 'CPU');
+                    } else {
+                        this.startNextRound();
+                    }
+                }
+                break;
         }
     },
 
     confirmResult: function () {
-        console.log("Result Confirmed. Applying Damage & Proceeding.");
-        if (this.pendingDamage) {
-            // Apply Damage
-            if (this.pendingDamage.target === 'P1') {
-                this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
-                this.p1Character.setState('shocked');
-            } else if (this.pendingDamage.target === 'CPU') {
-                this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
-                this.cpuCharacter.setState('shocked');
-            }
-
-            // Emit Damage Event
-            this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
-            console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
-
-            this.pendingDamage = null; // Clear
-        }
-
-        this.handleRoundEnd();
+        console.log("Result Confirmed. Transitioning to Damage Animation.");
+        this.currentState = this.STATE_DAMAGE_ANIMATION;
+        this.timer = 0;
+        // Stop Victory BGM?
+        // this.events.push({ type: 'STOP_MUSIC' }); // Optional: Stop fanfare?
+        // Usually fanfare plays once.
     },
 
 
@@ -696,15 +736,16 @@ const BattleEngine = {
     checkRoundEnd: function () {
         // 1. Deck Exhaustion
         if (this.deck.length === 0) {
-            this.startNagariSequence();
             console.log("Deck Empty -> NAGARI Sequence");
+            this.startNagariSequence();
             return;
         }
 
         // 2. Turn Limit
+        // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
+            console.log(`Turn Limit Exceeded (${this.turnCount}) -> NAGARI Sequence`);
             this.startNagariSequence();
-            console.log("Turn Limit -> NAGARI Sequence");
             return;
         }
     },
@@ -824,6 +865,7 @@ const BattleEngine = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
                 console.log("CPU Riichi!");
                 this.cpu.isRiichi = true;
+                this.cpu.declaringRiichi = true; // Mark next discard as Riichi declaration
 
                 // Start Riichi Sequence (Delay Discard)
                 this.currentState = this.STATE_FX_PLAYING;
@@ -858,7 +900,11 @@ const BattleEngine = {
         if (this.cpu.isRiichi) {
             this.discardTileCPU(this.cpu.hand.length - 1);
         } else {
-            const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty);
+            const context = {
+                discards: this.discards,
+                opponentRiichi: this.p1.isRiichi
+            };
+            const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty, this.cpu.aiProfile, context);
             this.discardTileCPU(discardIdx);
         }
     },
@@ -868,6 +914,10 @@ const BattleEngine = {
         this.events.push({ type: 'DISCARD', player: 'CPU' });
         const discarded = this.cpu.hand.splice(index, 1)[0];
         discarded.owner = 'cpu';
+        if (this.cpu.declaringRiichi) {
+            discarded.isRiichi = true;
+            this.cpu.declaringRiichi = false;
+        }
         this.discards.push(discarded);
 
         // Check Player Ron/Pon
@@ -892,7 +942,25 @@ const BattleEngine = {
             this.selectedActionIndex = 0;
         } else {
             this.turnCount++;
-            this.playerDraw();
+
+            this.checkRoundEnd();
+            if (this.currentState !== this.STATE_CPU_TURN) return; // Transitioned to End State
+
+            // Check Riichi Auto Draw
+            if (this.p1.isRiichi) {
+                console.log("Riichi Auto-Draw");
+                this.currentState = this.STATE_PLAYER_TURN; // Will trigger logic? No, PLAYER_TURN just waits.
+                // We need to CALL playerDraw explicitly or setup state such that it draws.
+                // currentState=PLAYER_TURN -> updateLogic -> ?
+                // updateLogic just checks timers.
+                // We should call playerDraw directly logic?
+                // Logic: playerDraw sets state to PLAYER_TURN.
+                this.playerDraw();
+            } else {
+                // Transition to Wait for Draw
+                this.currentState = this.STATE_WAIT_FOR_DRAW;
+                this.timer = 0;
+            }
         }
     },
 
@@ -937,6 +1005,10 @@ const BattleEngine = {
         this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
+        if (this.p1.declaringRiichi) {
+            discarded.isRiichi = true;
+            this.p1.declaringRiichi = false;
+        }
         this.discards.push(discarded);
 
         console.log("DISCARDS:", this.discards.map(d => d.type).join(", ")); // Log discards
@@ -1151,7 +1223,11 @@ const BattleEngine = {
         try {
             // Delegate to AI Logic
             // Use 'NORMAL' difficulty as standard auto-play
-            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY);
+            const context = {
+                discards: this.discards,
+                opponentRiichi: this.cpu.isRiichi // Auto-play defends against CPU Riichi
+            };
+            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY, null, context);
 
             if (typeof discardIdx !== 'number' || discardIdx < 0) {
                 console.error("AILogic returned invalid index:", discardIdx);
@@ -1180,11 +1256,26 @@ const BattleEngine = {
             if (this.currentState === this.STATE_ACTION_SELECT && action.type === 'PASS_SELF') {
                 // Return to player turn for discard
                 this.currentState = this.STATE_PLAYER_TURN;
-            } else {
-                // Pass on opponent discard -> Next turn (draw)
+            } else if (action.type === 'PASS') {
+                console.log("Player Passed.");
+                // Turn count increment only if we are ending CPU turn?
+                // CPU discarded -> We checked actions -> Pass.
+                // CPU turn IS ending.
                 this.turnCount++;
-                this.playerDraw();
-                // this.currentState = this.STATE_PLAYER_TURN; // playerDraw sets this check
+
+                this.checkRoundEnd();
+                if (this.currentState !== this.STATE_ACTION_SELECT) return; // Transitioned to End State (from Action Select context)
+
+                // Check Riichi Auto Draw
+                if (this.p1.isRiichi) {
+                    console.log("Riichi Auto-Draw");
+                    this.playerDraw();
+                } else {
+                    this.currentState = this.STATE_WAIT_FOR_DRAW; // Manual Draw
+                    this.timer = 0;
+                }
+                // Clear actions
+                this.possibleActions = [];
             }
         } else if (action.type === 'PON') {
             // Move tiles from hand to openSets
@@ -1226,6 +1317,7 @@ const BattleEngine = {
 
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
+            this.p1.declaringRiichi = true; // Mark next discard
             this.showPopup('RIICHI');
 
             // Expression: Smile -> Idle
@@ -1340,11 +1432,13 @@ const BattleEngine = {
             } else {
                 this.toggleBattleMenu(); // Close menu
                 this.performAutoTurn();
+                return; // Prevent double toggle
             }
         } else if (selectedId === 'RESTART') {
-            // Restart Game / Reload
-            if (confirm("정말로 다시 시작하시겠습니까?")) {
-                location.reload();
+            // Restart Round Strategy
+            if (confirm("정말로 이 라운드를 다시 시작할까요?")) {
+                this.toggleBattleMenu(); // Close menu
+                this.startRound();
             }
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
@@ -1370,6 +1464,11 @@ const BattleEngine = {
             tiles = tiles.concat(set.tiles);
         });
         return tiles;
+    },
+
+    confirmDraw: function () {
+        if (this.currentState !== this.STATE_WAIT_FOR_DRAW) return;
+        this.playerDraw();
     },
 
 
