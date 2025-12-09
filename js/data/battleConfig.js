@@ -1,7 +1,9 @@
-// Battle UI Configuration
-const BattleUIConfig = {
+// Battle Configuration (Rules & UI)
+const BattleConfig = {
     RULES: {
-        INITIAL_HP: 10000
+        INITIAL_HP: 10000,
+        NAGARI_DAMAGE: 1000,
+        SKILLS_ENABLED: false
     },
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
@@ -100,10 +102,10 @@ const BattleUIConfig = {
         // Sound mapping for Popups
         // Now merging Visual Params here too for centralized control
         TYPES: {
-            'RIICHI': { slideFrom: 'LEFT', life: 60, sound: 'audio/call' }, // Example sound
+            'RIICHI': { slideFrom: 'LEFT', life: 60, sound: 'audio/riichi' },
             'PON': { sound: 'audio/pon' },
-            'RON': { sound: 'audio/hit' }, // Assuming hit sound
-            'TSUMO': { life: 120, anim: 'ZOOM_IN', sound: 'audio/hit' }, // Assuming hit sound
+            'RON': { sound: 'audio/fanfare' },
+            'TSUMO': { life: 120, anim: 'ZOOM_IN', sound: 'audio/fanfare' },
             'NAGARI': {} // Default
         },
 

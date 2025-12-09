@@ -11,7 +11,7 @@ const BattleRenderer = {
         // Draw centered background image
         const randomBg = Assets.get(state.bgPath);
         if (randomBg) {
-            const bgConf = BattleUIConfig.BG;
+            const bgConf = BattleConfig.BG;
             let x = bgConf.x || 320;
             let y = bgConf.y || 240;
 
@@ -29,16 +29,16 @@ const BattleRenderer = {
         if (state.cpuCharacter) state.cpuCharacter.draw(ctx);
 
         // 3. UI Background (Over Characters)
-        const uiBg = Assets.get(BattleUIConfig.UI_BG.path);
+        const uiBg = Assets.get(BattleConfig.UI_BG.path);
         if (uiBg) ctx.drawImage(uiBg, 0, 0);
 
         // 4.5 Discards
         this.drawDiscards(ctx, state);
 
         // 5. Hands
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const tileH = BattleUIConfig.HAND.tileHeight;
-        const gap = BattleUIConfig.HAND.gap;
+        const tileW = BattleConfig.HAND.tileWidth;
+        const tileH = BattleConfig.HAND.tileHeight;
+        const gap = BattleConfig.HAND.gap;
 
         // CPU Hand (Top)
         // CPU Hand (Top)
@@ -52,14 +52,14 @@ const BattleRenderer = {
 
             // Reveal hand if CPU wins or Nagari or Revealed
             if (state.currentState === state.STATE_LOSE || state.currentState === state.STATE_MATCH_OVER || state.currentState === state.STATE_NAGARI || state.cpu.isRevealed) {
-                this.drawTile(ctx, state.cpu.hand[i], x, BattleUIConfig.HAND.cpuY, tileW, tileH);
+                this.drawTile(ctx, state.cpu.hand[i], x, BattleConfig.HAND.cpuY, tileW, tileH);
             } else {
-                this.drawCardBack(ctx, x, BattleUIConfig.HAND.cpuY, tileW, tileH, 'tiles/back-top.png');
+                this.drawCardBack(ctx, x, BattleConfig.HAND.cpuY, tileW, tileH, 'tiles/back-top.png');
             }
         }
 
         // Draw CPU Open Sets (Right of hand)
-        this.drawOpenSets(ctx, state.cpu.openSets, cpuMetrics.openStartX, BattleUIConfig.HAND.cpuY, tileW, tileH, true);
+        this.drawOpenSets(ctx, state.cpu.openSets, cpuMetrics.openStartX, BattleConfig.HAND.cpuY, tileW, tileH, true);
 
         // Player Hand (Bottom)
         const pCount = state.p1.hand.length;
@@ -76,7 +76,7 @@ const BattleRenderer = {
             const isHover = (state.currentState === state.STATE_PLAYER_TURN && i === state.hoverIndex);
 
             if (isHover) {
-                y += BattleUIConfig.HAND.hoverYOffset;
+                y += BattleConfig.HAND.hoverYOffset;
             }
 
             const sideImg = Assets.get('tiles/side-bottom.png');
@@ -95,7 +95,7 @@ const BattleRenderer = {
                 if (cursorImg) {
                     ctx.drawImage(cursorImg, pos.x, y, tileW, tileH);
                 } else {
-                    ctx.fillStyle = BattleUIConfig.HAND.hoverColor;
+                    ctx.fillStyle = BattleConfig.HAND.hoverColor;
                     ctx.fillRect(pos.x - 2, y - 2, tileW + 4, tileH + 4);
                 }
             }
@@ -103,7 +103,7 @@ const BattleRenderer = {
 
         // Player Open Sets
         // Use calculated openStartX instead of fixed anchor
-        this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleUIConfig.HAND.openSetY, tileW, tileH, false);
+        this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleConfig.HAND.openSetY, tileW, tileH, false);
 
         // 6. Dora
         this.drawDora(ctx, state.doras, state.uraDoraRevealed);
@@ -112,11 +112,11 @@ const BattleRenderer = {
         this.drawInfo(ctx, state.turnCount, state.currentRound);
 
         // 8. Bars
-        this.drawBar(ctx, BattleUIConfig.BARS.P1.x, BattleUIConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
-        this.drawBar(ctx, BattleUIConfig.BARS.P1.x, BattleUIConfig.BARS.P1.y + BattleUIConfig.BARS.height + BattleUIConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP"); // P1 MP
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP"); // P1 MP
 
-        this.drawBar(ctx, BattleUIConfig.BARS.CPU.x, BattleUIConfig.BARS.CPU.y, state.cpu.hp, state.cpu.maxHp, "HP");
-        this.drawBar(ctx, BattleUIConfig.BARS.CPU.x, BattleUIConfig.BARS.CPU.y + BattleUIConfig.BARS.height + BattleUIConfig.BARS.gap, state.cpu.mp, state.cpu.maxMp, "MP"); // CPU MP
+        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, state.cpu.hp, state.cpu.maxHp, "HP");
+        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.cpu.mp, state.cpu.maxMp, "MP"); // CPU MP
 
         // 9. FX
         // FX handling is usually stateless drawing, but depends on activeFX array
@@ -137,10 +137,10 @@ const BattleRenderer = {
     },
 
     getVisualMetrics: function (character, groupSize) {
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const gap = BattleUIConfig.HAND.gap;
+        const tileW = BattleConfig.HAND.tileWidth;
+        const gap = BattleConfig.HAND.gap;
         const setGap = 15;
-        const groupGap = BattleUIConfig.HAND.groupGap;
+        const groupGap = BattleConfig.HAND.groupGap;
         const sectionGap = 20; // Gap between hand and open sets
 
         // 1. Calculate Hand Width
@@ -176,16 +176,16 @@ const BattleRenderer = {
     },
 
     getPlayerHandPosition: function (index, count, groupSize, startX) {
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const gap = BattleUIConfig.HAND.gap;
-        const groupGap = BattleUIConfig.HAND.groupGap;
+        const tileW = BattleConfig.HAND.tileWidth;
+        const gap = BattleConfig.HAND.gap;
+        const groupGap = BattleConfig.HAND.groupGap;
 
         let x = startX + index * (tileW + gap);
         if (groupSize > 0 && index >= count - groupSize) {
             x += groupGap;
         }
 
-        return { x: x, y: BattleUIConfig.HAND.playerHandY };
+        return { x: x, y: BattleConfig.HAND.playerHandY };
     },
 
     drawTile: function (ctx, tile, x, y, w, h) {
@@ -193,12 +193,12 @@ const BattleRenderer = {
         if (img) {
             ctx.drawImage(img, x, y, w, h);
         } else {
-            ctx.fillStyle = BattleUIConfig.FALLBACK.tileBg;
+            ctx.fillStyle = BattleConfig.FALLBACK.tileBg;
             ctx.fillRect(x, y, w, h);
             ctx.strokeRect(x, y, w, h);
             ctx.fillStyle = 'black';
             ctx.textAlign = 'center';
-            ctx.font = BattleUIConfig.FALLBACK.tileTextFont;
+            ctx.font = BattleConfig.FALLBACK.tileTextFont;
             ctx.fillText(tile.type, x + w / 2, y + h / 2);
         }
     },
@@ -209,19 +209,19 @@ const BattleRenderer = {
             ctx.drawImage(img, x, y, w, h);
         } else {
             // Fallback
-            ctx.fillStyle = BattleUIConfig.FALLBACK.cardBackBg;
+            ctx.fillStyle = BattleConfig.FALLBACK.cardBackBg;
             ctx.fillRect(x, y, w, h);
             ctx.lineWidth = 1;
-            ctx.strokeStyle = BattleUIConfig.FALLBACK.cardBackStroke;
+            ctx.strokeStyle = BattleConfig.FALLBACK.cardBackStroke;
             ctx.strokeRect(x, y, w, h);
         }
     },
 
     drawDiscards: function (ctx, state) {
-        const dw = BattleUIConfig.DISCARDS.tileWidth;
-        const dh = BattleUIConfig.DISCARDS.tileHeight;
-        const gap = BattleUIConfig.DISCARDS.gap;
-        const max = BattleUIConfig.DISCARDS.rowMax;
+        const dw = BattleConfig.DISCARDS.tileWidth;
+        const dh = BattleConfig.DISCARDS.tileHeight;
+        const gap = BattleConfig.DISCARDS.gap;
+        const max = BattleConfig.DISCARDS.rowMax;
 
         const allDiscards = state.discards;
         let p1Idx = 0;
@@ -237,23 +237,23 @@ const BattleRenderer = {
             if (isP1) {
                 const row = Math.floor(p1Idx / max);
                 const col = p1Idx % max;
-                dx = BattleUIConfig.DISCARDS.P1.x + col * (dw + gap);
-                dy = BattleUIConfig.DISCARDS.P1.y + row * (dh + gap);
+                dx = BattleConfig.DISCARDS.P1.x + col * (dw + gap);
+                dy = BattleConfig.DISCARDS.P1.y + row * (dh + gap);
                 p1Idx++;
             } else {
                 const row = Math.floor(cpuIdx / max);
                 const col = cpuIdx % max;
-                dx = BattleUIConfig.DISCARDS.CPU.x + col * (dw + gap);
+                dx = BattleConfig.DISCARDS.CPU.x + col * (dw + gap);
                 // CPU fills downwards
-                dy = BattleUIConfig.DISCARDS.CPU.y + row * (dh + gap);
+                dy = BattleConfig.DISCARDS.CPU.y + row * (dh + gap);
                 cpuIdx++;
             }
 
             // Check if last
             if (t === lastDiscard) {
                 // Draw Larger centered on slot
-                const w = BattleUIConfig.HAND.tileWidth;
-                const h = BattleUIConfig.HAND.tileHeight;
+                const w = BattleConfig.HAND.tileWidth;
+                const h = BattleConfig.HAND.tileHeight;
                 const cx = dx + (dw - w) / 2;
                 const cy = dy + (dh - h) / 2;
                 // Draw highlight effect?
@@ -271,8 +271,8 @@ const BattleRenderer = {
     drawOpenSets: function (ctx, openSets, startX, y, tileW, tileH, isCpu) {
         if (!openSets || openSets.length === 0) return;
 
-        const gap = BattleUIConfig.HAND.openSetTileGap !== undefined ? BattleUIConfig.HAND.openSetTileGap : 0;
-        const setGap = BattleUIConfig.HAND.openSetGap || 10;
+        const gap = BattleConfig.HAND.openSetTileGap !== undefined ? BattleConfig.HAND.openSetTileGap : 0;
+        const setGap = BattleConfig.HAND.openSetGap || 10;
 
         // P1: Draw from Right to Left? Or Left to Right from Anchor?
         // Original: "openSetRightAnchor: 620"
@@ -310,11 +310,11 @@ const BattleRenderer = {
 
     drawDora: function (ctx, doras, isRevealed) {
         // Dora Indicator Frame
-        const frameConf = BattleUIConfig.DORA.frame;
+        const frameConf = BattleConfig.DORA.frame;
         const frameImg = Assets.get(frameConf.path);
 
-        const cx = BattleUIConfig.DORA.x;
-        const cy = BattleUIConfig.DORA.y;
+        const cx = BattleConfig.DORA.x;
+        const cy = BattleConfig.DORA.y;
 
         // Draw Frame
         let fx = cx + frameConf.xOffset;
@@ -330,9 +330,9 @@ const BattleRenderer = {
         }
 
         // Draw Doras
-        const tileW = BattleUIConfig.DORA.tileWidth;
-        const tileH = BattleUIConfig.DORA.tileHeight;
-        const gap = BattleUIConfig.DORA.gap;
+        const tileW = BattleConfig.DORA.tileWidth;
+        const tileH = BattleConfig.DORA.tileHeight;
+        const gap = BattleConfig.DORA.gap;
 
         // Visual Correction: Align Tiles to Frame
         // Recalculate Frame X in case it wasn't drawn (fallback) logic needs check, but FrameImg exists mostly.
@@ -346,8 +346,8 @@ const BattleRenderer = {
         }
 
         // Use Configured Offsets
-        const tOffX = BattleUIConfig.DORA.tileXOffset || 0;
-        const tOffY = BattleUIConfig.DORA.tileYOffset || 0;
+        const tOffX = BattleConfig.DORA.tileXOffset || 0;
+        const tOffY = BattleConfig.DORA.tileYOffset || 0;
 
         let startX = alignedFrameX + tOffX;
 
@@ -382,7 +382,7 @@ const BattleRenderer = {
     },
 
     drawInfo: function (ctx, turn, round) {
-        const tConf = BattleUIConfig.INFO;
+        const tConf = BattleConfig.INFO;
         const labelImg = Assets.get(tConf.labels.path);
 
         if (labelImg) {
@@ -412,9 +412,9 @@ const BattleRenderer = {
         let str = number.toString();
         if (pad > 0 && str.length < pad) str = str.padStart(pad, '0');
 
-        const numW = BattleUIConfig.INFO.numbers.w;
-        const gap = BattleUIConfig.INFO.numbers.gap;
-        const img = Assets.get(BattleUIConfig.INFO.numbers.path);
+        const numW = BattleConfig.INFO.numbers.w;
+        const gap = BattleConfig.INFO.numbers.gap;
+        const img = Assets.get(BattleConfig.INFO.numbers.path);
 
         if (!img) return;
 
@@ -433,22 +433,22 @@ const BattleRenderer = {
     drawBar: function (ctx, x, y, val, max, label) {
         // Background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(x, y, BattleUIConfig.BARS.width, BattleUIConfig.BARS.height);
+        ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
 
         // Fill
         const pct = Math.max(0, Math.min(1, val / max));
-        const fillW = Math.floor(BattleUIConfig.BARS.width * pct);
+        const fillW = Math.floor(BattleConfig.BARS.width * pct);
 
-        const path = label === 'HP' ? BattleUIConfig.BARS.hpPath : BattleUIConfig.BARS.mpPath;
+        const path = label === 'HP' ? BattleConfig.BARS.hpPath : BattleConfig.BARS.mpPath;
         const img = Assets.get(path);
 
         if (img) {
             // Slice/Stretch logic? 
             // Simple stretch for now
-            ctx.drawImage(img, 0, 0, img.width, img.height, x, y, fillW, BattleUIConfig.BARS.height);
+            ctx.drawImage(img, 0, 0, img.width, img.height, x, y, fillW, BattleConfig.BARS.height);
         } else {
             ctx.fillStyle = label === 'HP' ? 'blue' : 'yellow';
-            ctx.fillRect(x, y, fillW, BattleUIConfig.BARS.height);
+            ctx.fillRect(x, y, fillW, BattleConfig.BARS.height);
         }
     },
 
@@ -467,7 +467,7 @@ const BattleRenderer = {
     },
 
     drawActionMenu: function (ctx, state) {
-        const conf = BattleUIConfig.ACTION;
+        const conf = BattleConfig.ACTION;
         const actions = state.possibleActions;
         const btnW = conf.btnWidth;
         const btnH = conf.btnHeight;
@@ -512,7 +512,7 @@ const BattleRenderer = {
     },
 
     drawResult: function (ctx, state) {
-        const conf = BattleUIConfig.RESULT;
+        const conf = BattleConfig.RESULT;
 
         // 1. Dimmer
         ctx.fillStyle = conf.dimmerColor || 'rgba(0,0,0,0.5)';
@@ -606,7 +606,7 @@ const BattleRenderer = {
     },
 
     drawBattleMenu: function (ctx, state) {
-        const conf = BattleUIConfig.BATTLE_MENU;
+        const conf = BattleConfig.BATTLE_MENU;
 
         // Use configured dimensions
         const x = conf.x;
@@ -670,13 +670,18 @@ const BattleRenderer = {
                 ctx.fillStyle = conf.textDefault;
             }
 
-            ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
+            // Handle Objects vs Strings (Transition Support)
+            const label = item.label || item;
+            const isAuto = (item.id === 'AUTO') || (item === '자동 선택');
+            const isDisabled = item.disabled || (isAuto && state.lastStateBeforeMenu !== state.STATE_PLAYER_TURN);
+
+            ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
 
             // Overlay Disabled State (Gray out)
-            if (item === '자동 선택' && state.lastStateBeforeMenu !== state.STATE_PLAYER_TURN) {
+            if (isDisabled) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent dimmer over text
                 // Also can re-draw text in gray
-                ctx.fillText(item, startX + conf.textOffsetX, itemY + conf.textOffsetY);
+                ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
             }
         });
     },
@@ -687,7 +692,7 @@ const BattleRenderer = {
      */
 
     getActionAt: function (x, y, actions) {
-        const conf = BattleUIConfig.ACTION;
+        const conf = BattleConfig.ACTION;
         const btnW = conf.btnWidth;
         const btnH = conf.btnHeight;
         const gap = conf.gap;
@@ -714,7 +719,7 @@ const BattleRenderer = {
 
     getMenuItemAt: function (x, y, itemCount) {
         // Use logic matching drawBattleMenu
-        const conf = BattleUIConfig.BATTLE_MENU;
+        const conf = BattleConfig.BATTLE_MENU;
         const xPos = conf.x;
         const yPos = conf.y;
         const w = conf.w;
@@ -749,11 +754,11 @@ const BattleRenderer = {
         // Reuse getVisualMetrics
         const handSize = player.hand.length;
         const metrics = this.getVisualMetrics(player, groupSize);
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const tileH = BattleUIConfig.HAND.tileHeight;
+        const tileW = BattleConfig.HAND.tileWidth;
+        const tileH = BattleConfig.HAND.tileHeight;
 
         // Optimization: Check Y bounds first
-        if (y < BattleUIConfig.HAND.playerHandY || y > BattleUIConfig.HAND.playerHandY + tileH) return -1;
+        if (y < BattleConfig.HAND.playerHandY || y > BattleConfig.HAND.playerHandY + tileH) return -1;
 
         // Iterate or Calculate?
         // `getPlayerHandPosition` includes group gap logic.

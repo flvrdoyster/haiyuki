@@ -18,6 +18,10 @@ const BattleEngine = {
     stateTimer: 0,
     lastState: -1,
 
+    // Constants
+    DELAY_DRAW: 60,
+    DELAY_DISCARD_AUTO: 60,
+
     calculateScore: function (baseScore, isMenzen) {
         let score = baseScore;
         // Open Hand Penalty: 75% Score (3/4)
@@ -32,7 +36,7 @@ const BattleEngine = {
     sequencing: { active: false, steps: [], currentStep: 0, timer: 0 },
 
     showPopup: function (type, options = {}) {
-        const conf = BattleUIConfig.POPUP;
+        const conf = BattleConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
         const typeConf = conf.TYPES[type] || {};
 
@@ -52,12 +56,17 @@ const BattleEngine = {
             blocking: options.blocking // blocking usually passed by logic context
         };
 
-        // Sound Logic
+        // Sound Logic - REMOVED (Handled by View via popupType)
+        /*
         const soundId = typeConf.sound;
         if (soundId) {
             console.log(`Auto-playing sound for ${type}: ${soundId}`);
             this.events.push({ type: 'SOUND', id: soundId });
         }
+        */
+
+        // Pass type info for View sound handling
+        finalOptions.popupType = type;
 
         this.playFX(asset, conf.x, conf.y, finalOptions);
     },
@@ -67,8 +76,8 @@ const BattleEngine = {
 
     // Battle Data
     // Battle Data
-    p1: { hp: BattleUIConfig.RULES.INITIAL_HP, maxHp: BattleUIConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false },
-    cpu: { hp: BattleUIConfig.RULES.INITIAL_HP, maxHp: BattleUIConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false, isRevealed: false },
+    p1: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false },
+    cpu: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false, isRevealed: false },
 
     deck: [],
     discards: [],
@@ -119,15 +128,21 @@ const BattleEngine = {
 
         // Construct Dynamic Battle Menu
         this.menuItems = [
-            '자동 선택',   // Auto-select
-            '다시 시작'     // Revert
+            { id: 'AUTO', label: '자동 선택' },
+            { id: 'RESTART', label: '다시 시작' }
         ];
         // Add Character Skills
         if (p1Data && p1Data.skills) {
-            this.menuItems.push(...p1Data.skills);
+            p1Data.skills.forEach(skillId => {
+                const skill = SkillData[skillId];
+                if (skill) {
+                    const isDisabled = !BattleConfig.RULES.SKILLS_ENABLED;
+                    this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
+                }
+            });
         }
         // Add System Actions
-        this.menuItems.push('도움말');
+        this.menuItems.push({ id: 'HELP', label: '도움말' });
 
         this.activeFX = [];
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
@@ -170,16 +185,16 @@ const BattleEngine = {
         Assets.playMusic('audio/bgm_basic'); // Will upgrade to dynamic later
 
         this.p1Character = new PortraitCharacter(p1Data, {
-            ...BattleUIConfig.PORTRAIT.P1,
-            baseW: BattleUIConfig.PORTRAIT.baseW,
-            baseH: BattleUIConfig.PORTRAIT.baseH
+            ...BattleConfig.PORTRAIT.P1,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH
         }, false);
         this.p1Character.setAnimationConfig(getAnimConfig(p1Data, 'left'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
-            ...BattleUIConfig.PORTRAIT.CPU,
-            baseW: BattleUIConfig.PORTRAIT.baseW,
-            baseH: BattleUIConfig.PORTRAIT.baseH
+            ...BattleConfig.PORTRAIT.CPU,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH
         }, true);
         this.cpuCharacter.setAnimationConfig(getAnimConfig(cpuData, 'right'));
 
@@ -193,18 +208,18 @@ const BattleEngine = {
         this.currentRound = 1;
 
         // Select Random Background
-        const bgIndex = Math.floor(Math.random() * (BattleUIConfig.BG.max - BattleUIConfig.BG.min + 1)) + BattleUIConfig.BG.min;
+        const bgIndex = Math.floor(Math.random() * (BattleConfig.BG.max - BattleConfig.BG.min + 1)) + BattleConfig.BG.min;
         const bgName = bgIndex.toString().padStart(2, '0');
-        this.bgPath = `${BattleUIConfig.BG.prefix}${bgName}.png`;
+        this.bgPath = `${BattleConfig.BG.prefix}${bgName}.png`;
         console.log(`Selected BG: ${this.bgPath}`);
 
         // Reset Stats (Only if new match)
         // Reset Stats (Only if new match)
         if (!data.isNextRound) {
-            this.p1.hp = BattleUIConfig.RULES.INITIAL_HP;
-            this.cpu.hp = BattleUIConfig.RULES.INITIAL_HP;
-            this.p1.maxHp = BattleUIConfig.RULES.INITIAL_HP;
-            this.cpu.maxHp = BattleUIConfig.RULES.INITIAL_HP;
+            this.p1.hp = BattleConfig.RULES.INITIAL_HP;
+            this.cpu.hp = BattleConfig.RULES.INITIAL_HP;
+            this.p1.maxHp = BattleConfig.RULES.INITIAL_HP;
+            this.cpu.maxHp = BattleConfig.RULES.INITIAL_HP;
         }
 
         // Store tournament data
@@ -281,27 +296,19 @@ const BattleEngine = {
     },
 
     calculateTenpaiDamage: function (p1Tenpai, cpuTenpai) {
-        // Fallback if arguments are missing (e.g. called from sequencing without context)
+        // Fallback checks
         if (p1Tenpai === undefined) p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
         if (cpuTenpai === undefined) cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
 
-        let damageMsg = "";
-        if (p1Tenpai && cpuTenpai) {
-            // Both Tenpai -> No payments.
-            damageMsg = "데미지 없음";
-        } else if (p1Tenpai && !cpuTenpai) {
-            // P1 Tenpai, CPU Noten -> CPU takes damage
-            const dmg = 1000;
-            this.pendingDamage = { target: 'CPU', amount: dmg };
-            damageMsg = `데미지: ${dmg}`;
+        const damage = BattleConfig.RULES.NAGARI_DAMAGE;
+        let damageMsg = "데미지 없음";
+
+        if (p1Tenpai && !cpuTenpai) {
+            this.pendingDamage = { target: 'CPU', amount: damage };
+            damageMsg = `데미지: ${damage}`;
         } else if (!p1Tenpai && cpuTenpai) {
-            // CPU Tenpai, P1 Noten -> Player takes damage
-            const dmg = 1000;
-            this.pendingDamage = { target: 'P1', amount: dmg };
-            damageMsg = `데미지: -${dmg}`;
-        } else {
-            // Both Noten
-            damageMsg = "데미지 없음";
+            this.pendingDamage = { target: 'P1', amount: damage };
+            damageMsg = `데미지: -${damage}`;
         }
 
         return damageMsg;
@@ -323,8 +330,8 @@ const BattleEngine = {
         const damageMsg = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
         console.log(`Nagari! Damage Msg: ${damageMsg}`);
 
-        const p1Tx = p1Tenpai ? BattleUIConfig.STATUS_TEXTS.TENPAI : BattleUIConfig.STATUS_TEXTS.NOTEN;
-        const cpuTx = cpuTenpai ? BattleUIConfig.STATUS_TEXTS.TENPAI : BattleUIConfig.STATUS_TEXTS.NOTEN;
+        const p1Tx = p1Tenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
+        const cpuTx = cpuTenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
 
         // Expressions
         if (p1Tenpai) this.p1Character.setState('smile');
@@ -615,7 +622,7 @@ const BattleEngine = {
 
         switch (this.currentState) {
             case this.STATE_INIT:
-                if (this.timer > 60) {
+                if (this.timer > this.DELAY_DRAW) {
                     this.playerDraw();
                 }
                 break;
@@ -623,7 +630,7 @@ const BattleEngine = {
             case this.STATE_PLAYER_TURN:
                 // Riichi Auto-Discard Logic
                 if (this.p1.isRiichi) {
-                    if (this.timer > 60) {
+                    if (this.timer > this.DELAY_DISCARD_AUTO) {
                         console.log("Riichi Auto-Discard (Delayed)");
                         this.discardTile(this.p1.hand.length - 1);
                     }
@@ -644,7 +651,7 @@ const BattleEngine = {
                 if (this.timer === 30 && !this.cpu.needsToDiscard) {
                     this.cpuDraw();
                 }
-                if (this.timer === 60 && this.cpu.needsToDiscard) {
+                if (this.timer === this.DELAY_DISCARD_AUTO && this.cpu.needsToDiscard) {
                     this.cpu.needsToDiscard = false;
                     const discardIdx = AILogic.decideDiscard(this.cpu.hand, AILogic.DIFFICULTY.NORMAL);
                     this.discardTileCPU(discardIdx);
@@ -677,8 +684,8 @@ const BattleEngine = {
                 this.cpuCharacter.setState('shocked');
             }
 
-            // Play Hit Sound
-            this.events.push({ type: 'SOUND', id: 'audio/hit' });
+            // Emit Damage Event
+            this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
             console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
 
             this.pendingDamage = null; // Clear
@@ -740,7 +747,7 @@ const BattleEngine = {
         if (t.length > 0) {
             const drawnTile = t[0];
             console.log("Player Draws:", drawnTile.type); // Log
-            this.events.push({ type: 'SOUND', id: 'audio/draw' });
+            this.events.push({ type: 'DRAW', player: 'P1' });
             this.p1.hand.push(drawnTile);
 
             // Grouping Logic Removed as per user request.
@@ -786,7 +793,7 @@ const BattleEngine = {
         const t = this.drawTiles(1);
         if (t.length > 0) {
             console.log("CPU Draws:", t[0].type); // Log
-            this.events.push({ type: 'SOUND', id: 'audio/draw' });
+            this.events.push({ type: 'DRAW', player: 'CPU' });
             this.cpu.hand.push(t[0]);
         }
 
@@ -845,7 +852,7 @@ const BattleEngine = {
 
     discardTileCPU: function (index) {
         console.log(`CPU discards index ${index} `);
-        this.events.push({ type: 'SOUND', id: 'audio/discard' });
+        this.events.push({ type: 'DISCARD', player: 'CPU' });
         const discarded = this.cpu.hand.splice(index, 1)[0];
         discarded.owner = 'cpu';
         this.discards.push(discarded);
@@ -914,7 +921,7 @@ const BattleEngine = {
         }
 
         console.log(`Player discards index ${index}: ${this.p1.hand[index].type}`); // Log
-        this.events.push({ type: 'SOUND', id: 'audio/discard' });
+        this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
         this.discards.push(discarded);
@@ -973,7 +980,8 @@ const BattleEngine = {
     executeCpuPon: function (tile) {
         console.log("CPU Calls PON!", tile.type);
         this.showPopup('PON');
-        this.events.push({ type: 'SOUND', id: 'audio/call' });
+        // Sound handled by showPopup -> FX event
+        // this.events.push({ type: 'SOUND', id: 'audio/call' });
         // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
         // Remove 2 matching tiles logic
@@ -1008,13 +1016,7 @@ const BattleEngine = {
 
 
 
-    getVisualMetrics: function (character, groupSize) {
-        return BattleRenderer.getVisualMetrics(character, groupSize);
-    },
-
-    getPlayerHandPosition: function (index, count, groupSize, startX) {
-        return BattleRenderer.getPlayerHandPosition(index, count, groupSize, startX);
-    },
+    // View proxies removed (Use BattleRenderer directly)
 
     checkPlayerActions: function (discardedTile) {
         this.possibleActions = [];
@@ -1313,12 +1315,13 @@ const BattleEngine = {
 
 
 
-    handleMenuSelection: function (selected) {
-        console.log("Selected Menu Item:", selected);
+    handleMenuSelection: function (selectedItem) {
+        console.log("Selected Menu Item:", selectedItem);
+        const selectedId = selectedItem.id;
 
-        if (selected === '도움말') {
+        if (selectedId === 'HELP') {
             window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
-        } else if (selected === '자동 선택') {
+        } else if (selectedId === 'AUTO') {
             if (this.lastStateBeforeMenu !== this.STATE_PLAYER_TURN) {
                 console.log("Auto-select ignored: Not player turn");
                 // Optional: Play error sound
@@ -1326,15 +1329,19 @@ const BattleEngine = {
                 this.toggleBattleMenu(); // Close menu
                 this.performAutoTurn();
             }
-        } else if (selected === '다시 시작') {
+        } else if (selectedId === 'RESTART') {
             // Restart Game / Reload
             if (confirm("정말로 다시 시작하시겠습니까?")) {
                 location.reload();
             }
-        } else if (selected === '옵션') {
-            // Placeholder
-        } else {
-            // Skills or other items
+        } else if (selectedItem.type === 'SKILL') {
+            if (selectedItem.disabled) {
+                console.log(`Skill Disabled: ${selectedItem.label}`);
+                // Play error sound?
+                return; // Do not close menu
+            }
+            console.log(`Skill Selected: ${selectedItem.label} (${selectedId})`);
+            // Skill Logic Placeholder
         }
 
         this.toggleBattleMenu();

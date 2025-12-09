@@ -29,10 +29,57 @@ const BattleScene = {
                     continue;
                 }
 
+                if (evt.type === 'DAMAGE') {
+                    // Play Damage Sound Customized by Target Character
+                    let targetCharId = null;
+                    if (evt.target === 'P1') {
+                        targetCharId = engine.p1.id;
+                    } else if (evt.target === 'CPU') {
+                        targetCharId = engine.cpu.id;
+                    }
+
+                    if (targetCharId) {
+                        const isSword = (targetCharId === 'smash' || targetCharId === 'yuri');
+                        if (isSword) {
+                            Assets.playSound('audio/hit-4');
+                        } else {
+                            // Random 1-3
+                            const r = Math.floor(Math.random() * 3) + 1;
+                            Assets.playSound(`audio/hit-${r}`);
+                        }
+                    } else {
+                        // Fallback
+                        Assets.playSound('audio/hit-1');
+                    }
+
+                    engine.events.splice(i, 1);
+                    continue;
+                }
+
+                if (evt.type === 'DRAW') {
+                    Assets.playSound('audio/draw');
+                    engine.events.splice(i, 1);
+                    continue;
+                }
+
+                if (evt.type === 'DISCARD') {
+                    Assets.playSound('audio/discard');
+                    engine.events.splice(i, 1);
+                    continue;
+                }
+
                 // Visual Event (FX)
                 const isBlocked = this.activeFX.some(fx => fx.blocking);
                 if (!isBlocked) {
                     if (evt.type === 'FX') {
+                        // Check for Popup Type Sound
+                        if (evt.options && evt.options.popupType) {
+                            const conf = BattleConfig.POPUP.TYPES[evt.options.popupType];
+                            if (conf && conf.sound) {
+                                console.log(`[Scene] Playing Popup Sound for ${evt.options.popupType}: ${conf.sound}`);
+                                Assets.playSound(conf.sound);
+                            }
+                        }
                         this.spawnFX(evt.asset, evt.x, evt.y, evt.options);
                     }
                     engine.events.splice(i, 1);

@@ -260,7 +260,7 @@ class PortraitCharacter {
         // Safe check if data exists
         if (!this.data) return;
 
-        const globalBaseW = BattleUIConfig.PORTRAIT.baseW || 264;
+        const globalBaseW = BattleConfig.PORTRAIT.baseW || 264;
 
         // ANIMATION RENDER PATH
         if (this.animConfig) {
@@ -416,7 +416,7 @@ class PortraitCharacter {
         // Using 1.8x factor to be safe against minor scaling differences.
 
         // Use Global BaseW for threshold
-        const baselineW = BattleUIConfig.PORTRAIT.baseW || 264;
+        const baselineW = BattleConfig.PORTRAIT.baseW || 264;
         const threshold = baselineW * 1.5;
         const isSheet = img.width >= threshold;
 

@@ -19,6 +19,8 @@ const Assets = {
         { id: 'audio/bgm_win', src: 'assets/audio/bgm_win.mp3', type: 'audio' },
         { id: 'audio/bgm_lose', src: 'assets/audio/bgm_lose.mp3', type: 'audio' },
         { id: 'audio/pon', src: 'assets/audio/pon.mp3', type: 'audio' },
+        { id: 'audio/riichi', src: 'assets/audio/riichi.mp3', type: 'audio' },
+        { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
         { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
 
         // Character Select Assets

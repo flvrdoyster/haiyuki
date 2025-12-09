@@ -120,7 +120,7 @@ const YakuLogic = {
     },
 
     resolveYakuName: function (key, meta, charId) {
-        const config = BattleUIConfig.YAKU_NAMES[key];
+        const config = BattleConfig.YAKU_NAMES[key];
         if (!config) return key; // Fallback to key
         if (typeof config === 'string') return config; // Simple string
 
