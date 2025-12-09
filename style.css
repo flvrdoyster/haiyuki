@@ -130,3 +130,9 @@ canvas {
     font-weight: bold;
     font-style: normal;
 }
+
+#footer {
+    font-size: small;
+    text-align: right;
+    display: block;
+}
