@@ -98,11 +98,17 @@ const BattleUIConfig = {
         align: 'center',
 
         // Sound mapping for Popups
-        SOUNDS: {
-            'PON': 'audio/pon',
-            // 'RIICHI': 'audio/call', // Example
-            // 'RON': 'audio/hit'
-        }
+        // Now merging Visual Params here too for centralized control
+        TYPES: {
+            'RIICHI': { slideFrom: 'LEFT', life: 60, sound: 'audio/call' }, // Example sound
+            'PON': { sound: 'audio/pon' },
+            'RON': { sound: 'audio/hit' }, // Assuming hit sound
+            'TSUMO': { life: 120, anim: 'ZOOM_IN', sound: 'audio/hit' }, // Assuming hit sound
+            'NAGARI': {} // Default
+        },
+
+        // Legacy Sound map (if needed, but TYPES should supersede)
+        SOUNDS: {}
     },
     RESULT: {
         // Window Layout

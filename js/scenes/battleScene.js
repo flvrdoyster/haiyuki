@@ -12,34 +12,39 @@ const BattleScene = {
         // 1. Audio -> Play & Remove
         // 2. Visual -> Check Blocking. If blocked, skip (i++). If not, Play & Remove.
         while (i < engine.events.length) {
-            const evt = engine.events[i];
-            const isAudio = (evt.type === 'MUSIC' || evt.type === 'SOUND' || evt.type === 'STOP_MUSIC');
+            try {
+                const evt = engine.events[i];
+                const isAudio = (evt.type === 'MUSIC' || evt.type === 'SOUND' || evt.type === 'STOP_MUSIC');
 
-            if (isAudio) {
-                if (evt.type === 'MUSIC') {
-                    console.log(`[Scene] Play Music: ${evt.id}`);
-                    Assets.playMusic(evt.id, evt.loop);
-                } else if (evt.type === 'SOUND') {
-                    Assets.playSound(evt.id);
-                } else if (evt.type === 'STOP_MUSIC') {
-                    Assets.stopMusic();
+                if (isAudio) {
+                    if (evt.type === 'MUSIC') {
+                        console.log(`[Scene] Play Music: ${evt.id}`);
+                        Assets.playMusic(evt.id, evt.loop);
+                    } else if (evt.type === 'SOUND') {
+                        Assets.playSound(evt.id);
+                    } else if (evt.type === 'STOP_MUSIC') {
+                        Assets.stopMusic();
+                    }
+                    engine.events.splice(i, 1);
+                    continue;
                 }
-                engine.events.splice(i, 1);
-                continue;
-            }
 
-            // Visual Event (FX)
-            const isBlocked = this.activeFX.some(fx => fx.blocking);
-            if (!isBlocked) {
-                if (evt.type === 'FX') {
-                    this.spawnFX(evt.asset, evt.x, evt.y, evt.options);
+                // Visual Event (FX)
+                const isBlocked = this.activeFX.some(fx => fx.blocking);
+                if (!isBlocked) {
+                    if (evt.type === 'FX') {
+                        this.spawnFX(evt.asset, evt.x, evt.y, evt.options);
+                    }
+                    engine.events.splice(i, 1);
+                    // Note: If we just spawned a blocking FX, isBlocked will be true for subsequent items in this loop
+                    continue;
+                } else {
+                    // Blocked: Leave in queue, move to next item check
+                    i++;
                 }
-                engine.events.splice(i, 1);
-                // Note: If we just spawned a blocking FX, isBlocked will be true for subsequent items in this loop
-                continue;
-            } else {
-                // Blocked: Leave in queue, move to next item check
-                i++;
+            } catch (e) {
+                console.error("Error processing event:", e);
+                engine.events.splice(i, 1); // Remove problematic event
             }
         }
     },

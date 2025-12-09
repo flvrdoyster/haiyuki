@@ -34,19 +34,32 @@ const BattleEngine = {
     showPopup: function (type, options = {}) {
         const conf = BattleUIConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
-        console.log(`Showing Popup: ${type} at ${conf.x}, ${conf.y}`);
+        const typeConf = conf.TYPES[type] || {};
 
-        // Default to blocking if not specified
-        if (options.blocking === undefined) options.blocking = true;
+        // Merge options: Defaults < Config < Arguments
+        // Note: options arg overrides config if specific overrides needed
+        const fAnim = options.anim || typeConf.anim;
+        const fSlide = options.slideFrom || typeConf.slideFrom;
+        const fLife = options.life || typeConf.life || 45;
+        const fScale = options.scale || typeConf.scale || conf.scale;
 
-        // Check for associated sound
-        const soundId = conf.SOUNDS && conf.SOUNDS[type];
+        // Construct final options
+        const finalOptions = {
+            scale: fScale,
+            slideFrom: fSlide,
+            life: fLife,
+            anim: fAnim,
+            blocking: options.blocking // blocking usually passed by logic context
+        };
+
+        // Sound Logic
+        const soundId = typeConf.sound;
         if (soundId) {
             console.log(`Auto-playing sound for ${type}: ${soundId}`);
             this.events.push({ type: 'SOUND', id: soundId });
         }
 
-        this.playFX(asset, conf.x, conf.y, options);
+        this.playFX(asset, conf.x, conf.y, finalOptions);
     },
 
     playerIndex: 0,
@@ -99,6 +112,10 @@ const BattleEngine = {
         const p1Data = CharacterData.find(c => c.index === this.playerIndex) || CharacterData[this.playerIndex];
         const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
         console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
+
+        // Assign Character IDs for Logic (Yaku Names)
+        if (p1Data) this.p1.id = p1Data.id;
+        if (cpuData) this.cpu.id = cpuData.id;
 
         // Construct Dynamic Battle Menu
         this.menuItems = [
@@ -1194,7 +1211,7 @@ const BattleEngine = {
 
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
-            this.showPopup('RIICHI', { slideFrom: 'LEFT', life: 60 });
+            this.showPopup('RIICHI');
 
             // Expression: Smile -> Idle
             this.p1Character.setState('smile');
@@ -1233,23 +1250,30 @@ const BattleEngine = {
             console.log("Riichi Declared! Target Index:", this.riichiTargetIndex);
 
         } else if (action.type === 'TSUMO') {
-            console.log("TSUMO! Player Wins.");
-            this.showPopup('TSUMO', { life: 120, anim: 'ZOOM_IN' });
+            const fullHand = this.getFullHand(this.p1);
+            console.log("Excuting TSUMO. Hand:", fullHand.map(t => t.type), "ID:", this.p1.id);
+            this.showPopup('TSUMO');
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
 
-            const fullHand = this.getFullHand(this.p1);
             // Tsumo: Tile is already in hand
             this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id);
+
             if (this.winningYaku) {
+                console.log("Winning Yaku Found:", this.winningYaku);
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('TSUMO', 'P1', score);
+            } else {
+                console.error("CRITICAL: TSUMO allowed but checkYaku failed during execution!");
+                // Fallback to prevent soft-lock
+                const score = 1000;
+                this.winningYaku = { yaku: ['Unknown Yaku'], score: score };
+                this.startWinSequence('TSUMO', 'P1', score);
             }
-            // this.currentState = this.STATE_WIN; // Removed to allow sequence to play
 
         } else if (action.type === 'RON') {
-            console.log("RON! Player Wins.");
+            console.log("Excuting RON.");
             this.showPopup('RON');
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
@@ -1260,11 +1284,17 @@ const BattleEngine = {
 
             this.winningYaku = YakuLogic.checkYaku(finalHand, this.p1.id);
             if (this.winningYaku) {
+                console.log("Winning Yaku Found:", this.winningYaku);
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('RON', 'P1', score);
+            } else {
+                console.error("CRITICAL: RON allowed but checkYaku failed during execution!");
+                // Fallback
+                const score = 1000;
+                this.winningYaku = { yaku: ['Unknown Yaku'], score: score };
+                this.startWinSequence('RON', 'P1', score);
             }
-            // this.currentState = this.STATE_WIN; // Removed to allow sequence to play
         }
 
         // REMOVED: Unconditional reset to STATE_PLAYER_TURN. 
