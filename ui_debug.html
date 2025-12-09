@@ -233,46 +233,49 @@
                 parent.appendChild(b);
             };
 
-            // 1. POPUP TEST (Riichi/Pon)
+            // 1. POPUP TEST
             const grpPopup = createSection("1. Popups & FX", true);
-            ['RIICHI', 'PON', 'RON', 'TSUMO', 'NAGARI'].forEach(type => {
-                createBtn(grpPopup, `Show ${type}`, () => BattleScene.showPopup(type));
-            });
+            createBtn(grpPopup, "Show RIICHI", () => BattleEngine.showPopup('RIICHI', { slideFrom: 'LEFT', life: 60 }));
+            createBtn(grpPopup, "Show PON", () => BattleEngine.showPopup('PON'));
+            createBtn(grpPopup, "Show RON", () => BattleEngine.showPopup('RON'));
+            createBtn(grpPopup, "Show TSUMO", () => BattleEngine.showPopup('TSUMO', { life: 120, anim: 'ZOOM_IN' }));
+            createBtn(grpPopup, "Show NAGARI", () => BattleEngine.showPopup('NAGARI'));
             createBtn(grpPopup, "Play Audio: Turn Start", () => Assets.playSound('audio/turn_start'));
 
 
             // 2. ACTION MENU TEST
             const grpAction = createSection("2. Action Menu UI", true);
             createBtn(grpAction, "Show Action Menu (Mock)", () => {
-                BattleScene.possibleActions = [
+                BattleEngine.possibleActions = [
                     { type: 'PASS', label: 'PASS' },
                     { type: 'PON', label: 'PON' },
                     { type: 'CHI', label: 'CHI' },
                     { type: 'RIICHI', label: 'RIICHI' },
                     { type: 'RON', label: 'RON' }
                 ];
-                BattleScene.selectedActionIndex = 0;
-                BattleScene.currentState = BattleScene.STATE_ACTION_SELECT;
+                BattleEngine.selectedActionIndex = 0;
+                BattleEngine.currentState = BattleEngine.STATE_ACTION_SELECT;
             });
             createBtn(grpAction, "Close Action Menu", () => {
-                BattleScene.currentState = BattleScene.STATE_PLAYER_TURN;
+                BattleEngine.currentState = BattleEngine.STATE_PLAYER_TURN;
             });
 
 
             // 3. RESULT WINDOW TEST
             const grpResult = createSection("3. Result Window", true);
             createBtn(grpResult, "Toggle Result Window", () => {
-                if (BattleScene.currentState === BattleScene.STATE_WIN) {
-                    BattleScene.currentState = lastRealState || 0; // Restore
+                if (BattleEngine.currentState === BattleEngine.STATE_WIN) {
+                    BattleEngine.currentState = lastRealState || 0; // Restore
                 } else {
-                    lastRealState = BattleScene.currentState;
-                    BattleScene.currentState = BattleScene.STATE_WIN;
-                    if (!BattleScene.winningYaku) BattleScene.winningYaku = { score: 8000, yaku: ['Test Yaku 1', 'Test Yaku 2'] };
+                    lastRealState = BattleEngine.currentState;
+                    BattleEngine.currentState = BattleEngine.STATE_WIN;
+                    if (!BattleEngine.winningYaku) BattleEngine.winningYaku = { score: 8000, yaku: ['Test Yaku 1', 'Test Yaku 2'] };
                     // Reset timer to ensure "Press Space" blinks
-                    BattleScene.timer = 0;
+                    BattleEngine.stateTimer = 0;
+                    BattleEngine.timer = 0;
                 }
             });
-            createBtn(grpResult, "Add 1000 Score", () => { if (BattleScene.winningYaku) BattleScene.winningYaku.score += 1000; });
+            createBtn(grpResult, "Add 1000 Score", () => { if (BattleEngine.winningYaku) BattleEngine.winningYaku.score += 1000; });
 
 
             // 4. CONFIG EDITORS
@@ -353,10 +356,10 @@
                 ctx.fillStyle = '#333';
                 ctx.fillRect(0, 0, 640, 480);
 
-                // 1. Battle Scene (Underlay) - Always Active
-                // If forced state is WIN, BattleScene.draw handles the result overlay internally.
-                if (BattleScene.p1Character) BattleScene.p1Character.update();
-                if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.update();
+                // 1. Battle Scene Loop
+                // Use BattleScene.update() to drive Logic + FX + Input
+                BattleScene.update();
+
                 BattleScene.draw(ctx);
 
                 Input.update();
@@ -364,8 +367,8 @@
                 // Overlay Debug Info
                 ctx.fillStyle = 'white';
                 ctx.font = '10px monospace';
-                const charState = (BattleScene.p1Character) ? BattleScene.p1Character.state : 'N/A';
-                const sName = ["INIT", "PLAYER", "CPU", "WIN", "LOSE", "NAGARI", "MATCH_OVER"][BattleScene.currentState] || BattleScene.currentState;
+                const charState = (BattleEngine.p1Character) ? BattleEngine.p1Character.state : 'N/A';
+                const sName = ["INIT", "PLAYER", "CPU", "WIN", "LOSE", "NAGARI", "MATCH_OVER"][BattleEngine.currentState] || BattleEngine.currentState;
                 ctx.fillText(`P1: ${charState} | State: ${sName} | Overlay: ${isOverlayActive ? 'FORCED' : 'OFF'}`, 10, 470);
 
                 requestAnimationFrame(loop);

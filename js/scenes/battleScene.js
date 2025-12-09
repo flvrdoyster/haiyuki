@@ -1,9 +1,148 @@
 const BattleScene = {
     init: function (data) {
         BattleEngine.init(data);
+        this.activeFX = [];
+    },
+
+    processEvents: function (engine) {
+        if (!engine.events) return;
+
+        let i = 0;
+        // Simple queue scan:
+        // 1. Audio -> Play & Remove
+        // 2. Visual -> Check Blocking. If blocked, skip (i++). If not, Play & Remove.
+        while (i < engine.events.length) {
+            const evt = engine.events[i];
+            const isAudio = (evt.type === 'MUSIC' || evt.type === 'SOUND' || evt.type === 'STOP_MUSIC');
+
+            if (isAudio) {
+                if (evt.type === 'MUSIC') {
+                    console.log(`[Scene] Play Music: ${evt.id}`);
+                    Assets.playMusic(evt.id, evt.loop);
+                } else if (evt.type === 'SOUND') {
+                    Assets.playSound(evt.id);
+                } else if (evt.type === 'STOP_MUSIC') {
+                    Assets.stopMusic();
+                }
+                engine.events.splice(i, 1);
+                continue;
+            }
+
+            // Visual Event (FX)
+            const isBlocked = this.activeFX.some(fx => fx.blocking);
+            if (!isBlocked) {
+                if (evt.type === 'FX') {
+                    this.spawnFX(evt.asset, evt.x, evt.y, evt.options);
+                }
+                engine.events.splice(i, 1);
+                // Note: If we just spawned a blocking FX, isBlocked will be true for subsequent items in this loop
+                continue;
+            } else {
+                // Blocked: Leave in queue, move to next item check
+                i++;
+            }
+        }
+    },
+
+    spawnFX: function (type, x, y, options = {}) {
+        const img = Assets.get(type);
+        if (img) {
+            const life = options.life || 45;
+            const scale = options.scale || 1.0;
+            const slideFrom = options.slideFrom;
+            const anim = options.anim; // New: Animation Type
+            const blocking = options.blocking || false;
+
+            let startX = x;
+            let endX = x;
+            let startY = y;
+            let endY = y;
+
+            if (slideFrom === 'LEFT') {
+                startX = -img.width * scale;
+                endX = x;
+            } else if (slideFrom === 'RIGHT') {
+                startX = 640 + img.width * scale;
+                endX = x;
+            } else if (slideFrom === 'TOP') {
+                startY = -img.height * scale;
+                endY = y;
+            } else if (slideFrom === 'BOTTOM') {
+                startY = 480 + img.height * scale;
+                endY = y;
+            }
+
+            this.activeFX.push({
+                type: type, img: img,
+                x: startX, y: startY,
+                startX: startX, startY: startY,
+                endX: endX, endY: endY,
+                timer: 0, life: life, maxLife: life,
+                scale: scale, alpha: 0,
+                baseScale: scale, // Store original target scale
+                anim: anim,
+                slideFrom: slideFrom,
+                blocking: blocking
+            });
+        }
+    },
+
+    updateFX: function () {
+        for (let i = this.activeFX.length - 1; i >= 0; i--) {
+            const fx = this.activeFX[i];
+            fx.life--;
+
+            // Animation Logic
+            // Fade In (0-10)
+            const fadeInDur = 10;
+            if (fx.maxLife - fx.life <= fadeInDur) {
+                fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
+            }
+
+            // Slide Logic
+            if (fx.slideFrom) {
+                const slideDur = 20;
+                const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
+                const ease = p * (2 - p); // Quad ease out
+                fx.x = fx.startX + (fx.endX - fx.startX) * ease;
+                fx.y = fx.startY + (fx.endY - fx.startY) * ease;
+            } else if (fx.anim === 'ZOOM_IN') {
+                // Zoom In Pulse: 0 -> 1.2 -> 1.0
+                const age = fx.maxLife - fx.life;
+                if (age < 20) {
+                    // 0 -> 1.2
+                    const p = age / 20;
+                    fx.scale = fx.baseScale * (p * 1.2);
+                } else if (age < 30) {
+                    // 1.2 -> 1.0
+                    const p = (age - 20) / 10;
+                    fx.scale = fx.baseScale * (1.2 - (p * 0.2));
+                } else {
+                    fx.scale = fx.baseScale;
+                }
+            }
+
+            // Fade Out (Last 20 frames)
+            if (fx.life < 20) {
+                fx.alpha = fx.life / 20;
+            } else {
+                if (fx.maxLife - fx.life > fadeInDur) fx.alpha = 1.0;
+            }
+
+            if (fx.life <= 0) {
+                this.activeFX.splice(i, 1);
+            }
+        }
     },
 
     update: function () {
+        this.processEvents(BattleEngine);
+        this.updateFX();
+
+        // Check Blocking Status
+        const isBlocking = this.activeFX.some(fx => fx.blocking);
+        if (isBlocking) return; // Pause Logic and Input
+
         // Logic Update
         BattleEngine.updateLogic();
 
@@ -123,6 +262,21 @@ const BattleScene = {
     },
 
     draw: function (ctx) {
+        const renderState = Object.create(BattleEngine); // Prototype chain or shallow copy? 
+        // BattleRenderer likely reads properties directly.
+        // It's safer to just pass BattleEngine and override activeFX if possible, 
+        // OR pass a proxy object.
+        // BattleEngine is a singleton object, not a class instance unless we treat it so.
+        // Let's assume BattleRenderer reads `state.activeFX`.
+
+        // We can temporarily attach activeFX to BattleEngine before drawing? 
+        // Or better, BattleRenderer.draw accepts an options or we wrap it.
+        // But since JS objects are mutable...
+        BattleEngine.activeFX = this.activeFX;
+
         BattleRenderer.draw(ctx, BattleEngine);
+
+        // Cleanup? 
+        // No need, BattleEngine doesn't use it.
     }
 };

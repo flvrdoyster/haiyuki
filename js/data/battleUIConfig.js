@@ -95,7 +95,14 @@ const BattleUIConfig = {
         x: 320,
         y: 240,
         scale: 1.0,
-        align: 'center'
+        align: 'center',
+
+        // Sound mapping for Popups
+        SOUNDS: {
+            'PON': 'audio/pon',
+            // 'RIICHI': 'audio/call', // Example
+            // 'RON': 'audio/hit'
+        }
     },
     RESULT: {
         // Window Layout

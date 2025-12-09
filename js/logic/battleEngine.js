@@ -31,11 +31,22 @@ const BattleEngine = {
 
     sequencing: { active: false, steps: [], currentStep: 0, timer: 0 },
 
-    showPopup: function (type) {
+    showPopup: function (type, options = {}) {
         const conf = BattleUIConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
         console.log(`Showing Popup: ${type} at ${conf.x}, ${conf.y}`);
-        this.playFX(asset, conf.x, conf.y);
+
+        // Default to blocking if not specified
+        if (options.blocking === undefined) options.blocking = true;
+
+        // Check for associated sound
+        const soundId = conf.SOUNDS && conf.SOUNDS[type];
+        if (soundId) {
+            console.log(`Auto-playing sound for ${type}: ${soundId}`);
+            this.events.push({ type: 'SOUND', id: soundId });
+        }
+
+        this.playFX(asset, conf.x, conf.y, options);
     },
 
     playerIndex: 0,
@@ -186,42 +197,14 @@ const BattleEngine = {
     },
 
     playFX: function (type, x, y, options = {}) {
-        // Default duration reduced to 45 frames (approx 0.75s at 60fps)
-        const img = Assets.get(type);
-        if (img) {
-            const life = options.life || 45;
-            const scale = options.scale || 1.0;
-            const slideFrom = options.slideFrom;
-
-            let startX = x;
-            let endX = x;
-            let startY = y;
-            let endY = y;
-
-            if (slideFrom === 'LEFT') {
-                startX = -img.width * scale; // Start off-screen left
-                endX = x;
-            } else if (slideFrom === 'RIGHT') {
-                startX = 640 + img.width * scale; // Start off-screen right
-                endX = x;
-            } else if (slideFrom === 'TOP') {
-                startY = -img.height * scale; // Start off-screen top
-                endY = y;
-            } else if (slideFrom === 'BOTTOM') {
-                startY = 480 + img.height * scale; // Start off-screen bottom
-                endY = y;
-            }
-
-            this.activeFX.push({
-                type: type, img: img,
-                x: startX, y: startY,
-                startX: startX, startY: startY,
-                endX: endX, endY: endY,
-                timer: 0, life: life, maxLife: life,
-                scale: scale, alpha: 0,
-                slideFrom: slideFrom
-            });
-        }
+        // Push event for BattleScene to handle
+        this.events.push({
+            type: 'FX',
+            asset: type,
+            x: x,
+            y: y,
+            options: options
+        });
     },
 
     startWinSequence: function (type, who, score) {
@@ -254,6 +237,8 @@ const BattleEngine = {
 
         if (who === 'P1') {
             steps.push({ type: 'MUSIC', id: 'audio/bgm_win', loop: false });
+        } else {
+            steps.push({ type: 'MUSIC', id: 'audio/bgm_lose', loop: false });
         }
 
         // UPDATE STATE with Final Score for Renderer
@@ -309,6 +294,7 @@ const BattleEngine = {
 
     startNagariSequence: function () {
         this.currentState = this.STATE_NAGARI;
+        this.events.push({ type: 'STOP_MUSIC' });
 
         // Tenpai checks
         const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
@@ -414,7 +400,7 @@ const BattleEngine = {
             this.sequencing.active = false;
         } else if (step.type === 'MUSIC') {
             // New Step: Play Music
-            Assets.playMusic(step.id, step.loop);
+            this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
             this.sequencing.currentStep++;
         } else if (step.type === 'STATE_NAGARI') {
             // FIX: Must set state to NAGARI to allow input (Next Round)
@@ -423,52 +409,11 @@ const BattleEngine = {
             this.sequencing.active = false;
         }
     },
-    updateFX: function () {
-        for (let i = this.activeFX.length - 1; i >= 0; i--) {
-            const fx = this.activeFX[i];
-            fx.life--;
 
-            // Animation Logic
-            // Fade In (0-10)
-            const fadeInDur = 10;
-            const progress = (fx.maxLife - fx.life) / fx.maxLife; // 0.0 to 1.0
 
-            if (fx.maxLife - fx.life <= fadeInDur) {
-                fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
-            }
 
-            // Slide Logic
-            if (fx.slideFrom) {
-                // Easing? Linear for now.
-                // Interpolate x from startX to endX
-                // progress: 0 (Start) -> 1 (End)
-                // We want slide to finish quickly? Or over whole duration?
-                // User said "slide in... same duration". Let's slide over first 0.3 seconds (18 frames).
-                const slideDur = 20;
-                const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
-                // Ease out?
-                const ease = p * (2 - p); // Quad ease out
-                fx.x = fx.startX + (fx.endX - fx.startX) * ease;
-                fx.y = fx.startY + (fx.endY - fx.startY) * ease; // Also slide Y
-            }
-            // Fade Out (Last 20 frames)
-            else if (fx.life < 20) {
-                fx.alpha = fx.life / 20;
-            } else {
-                fx.alpha = 1.0;
-            }
 
-            if (fx.life <= 0) {
-                this.activeFX.splice(i, 1);
-            }
-        }
-    },
 
-    playFX: function (asset, x, y, options) {
-        // FX Removed as per user request
-    },
-
-    activeFX: [], // Kept as empty array to avoid undefined errors in renderer loops
 
 
 
@@ -490,7 +435,7 @@ const BattleEngine = {
             if (mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6)) { // 6 is Mayu index
                 console.log("TRUE ENDING COMPLETED!");
                 // Return to Title (or show another ending screen if we had one)
-                Assets.stopMusic();
+                this.events.push({ type: 'STOP_MUSIC' });
                 Game.changeScene(TitleScene);
                 return;
             }
@@ -506,7 +451,7 @@ const BattleEngine = {
             // Game Over -> Continue Screen
             this.resultInfo = { type: 'GAME_OVER' }; // Set resultInfo for game over
             console.log(`Encounter Finished. Transitioning to Battle. P1: ${this.playerIndex}, CPU: ${this.cpuIndex}`);
-            Assets.stopMusic();
+            this.events.push({ type: 'STOP_MUSIC' });
             Game.changeScene(BattleScene, {
                 playerIndex: this.playerIndex,
                 cpuIndex: this.cpuIndex,
@@ -533,9 +478,12 @@ const BattleEngine = {
         this.lastState = -1;
         this.resultInfo = null; // Clear result info
         this.sequencing.active = false; // Ensure sequence is off
+        this.events = []; // Clear event queue
 
         // Reset BGM to Battle Theme
-        Assets.playMusic('audio/bgm_basic', true);
+        // Reset BGM to Battle Theme
+        this.currentBgm = 'audio/bgm_basic';
+        this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
 
         // Init Deck
         this.deck = this.generateDeck();
@@ -585,57 +533,7 @@ const BattleEngine = {
         console.log(`Round ${this.currentRound} Start! Visible Dora: ${this.doras[0].type}`);
     },
 
-    drawTile: function (ctx, tile, x, y, w, h) {
-        // Just draw the image as requested
-        const img = Assets.get(tile.img);
-        if (img) {
-            ctx.drawImage(img, x, y, w, h);
-        } else {
-            // Fallback if image missing
-            ctx.fillStyle = '#EEE';
-            ctx.fillRect(x, y, w, h);
-            ctx.strokeRect(x, y, w, h);
-            ctx.fillStyle = 'red'; // Changed to red for visibility
-            ctx.textAlign = 'center';
-            ctx.font = '8px Arial'; // Tiny font to fit path
-            ctx.fillText(tile.img, x + w / 2, y + h / 2); // Show path
-            ctx.font = '10px Arial';
-            ctx.fillStyle = 'black';
-            ctx.fillText(tile.type, x + w / 2, y + h / 2 + 10);
-        }
-    },
 
-    drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {
-        let str = number.toString();
-        // Zero Padding if requested (e.g. pad=2, number=1 -> "01")
-        if (pad > 0 && str.length < pad) {
-            str = str.padStart(pad, '0');
-        }
-
-        const numW = BattleUIConfig.INFO.numbers.w;
-        const gap = BattleUIConfig.INFO.numbers.gap;
-        const img = Assets.get(BattleUIConfig.INFO.numbers.path);
-
-        if (!img) return;
-
-        // Calculate total width for alignment
-        const totalW = str.length * numW + (str.length - 1) * gap;
-        let startX = x;
-        if (align === 'center') startX -= totalW / 2;
-        else if (align === 'right') startX -= totalW;
-
-        for (let i = 0; i < str.length; i++) {
-            const digit = parseInt(str[i]);
-            // Source X: digit * (14 + 2)
-            const sx = digit * (numW + gap);
-            ctx.drawImage(img,
-                sx, 0, numW, img.height,
-                startX + i * (numW + gap), y, numW, img.height
-            );
-        }
-
-        return totalW; // Return width if needed for chaining
-    },
 
     generateDeck: function () {
         const deck = [];
@@ -678,7 +576,10 @@ const BattleEngine = {
         this.timer++;
 
         // Music Update
-        this.updateBattleMusic();
+        // Only update battle music during active battle states
+        if (this.currentState <= this.STATE_CPU_TURN && !this.sequencing.active) {
+            this.updateBattleMusic();
+        }
 
         // 1. Timer Update
         // this.timer++; // Removed, handled above
@@ -687,7 +588,7 @@ const BattleEngine = {
         if (this.cpuCharacter) this.cpuCharacter.update();
 
         // Update FX
-        this.updateFX();
+
 
         if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
             if (this.timer % 30 === 0) {
@@ -712,15 +613,7 @@ const BattleEngine = {
                 }
                 break;
 
-            case 'RIICHI':
-                console.log("Player declares Riichi");
-                this.p1.isRiichi = true;
-                this.p1.hand.sort((a, b) => a.id - b.id);
-                this.playFX('fx/riichi', 320, 240);
-                this.updateBattleMusic();
-                this.riichiTargetIndex = -1;
-                this.currentState = this.STATE_PLAYER_TURN;
-                break;
+
 
             case this.STATE_ACTION_SELECT:
                 if (this.actionTimer > 0) this.actionTimer--;
@@ -768,7 +661,7 @@ const BattleEngine = {
             }
 
             // Play Hit Sound
-            Assets.playSound('audio/hit');
+            this.events.push({ type: 'SOUND', id: 'audio/hit' });
             console.log(`Applied Pending Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
 
             this.pendingDamage = null; // Clear
@@ -830,7 +723,7 @@ const BattleEngine = {
         if (t.length > 0) {
             const drawnTile = t[0];
             console.log("Player Draws:", drawnTile.type); // Log
-            Assets.playSound('audio/draw'); // Play sound
+            this.events.push({ type: 'SOUND', id: 'audio/draw' });
             this.p1.hand.push(drawnTile);
 
             // Grouping Logic Removed as per user request.
@@ -876,7 +769,7 @@ const BattleEngine = {
         const t = this.drawTiles(1);
         if (t.length > 0) {
             console.log("CPU Draws:", t[0].type); // Log
-            Assets.playSound('audio/draw'); // Play sound
+            this.events.push({ type: 'SOUND', id: 'audio/draw' });
             this.cpu.hand.push(t[0]);
         }
 
@@ -911,7 +804,7 @@ const BattleEngine = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty)) {
                 console.log("CPU Riichi!");
                 this.cpu.isRiichi = true;
-                this.showPopup('RIICHI');
+                this.showPopup('RIICHI', { slideFrom: 'RIGHT', life: 60 });
 
                 this.updateBattleMusic();
 
@@ -935,7 +828,7 @@ const BattleEngine = {
 
     discardTileCPU: function (index) {
         console.log(`CPU discards index ${index} `);
-        Assets.playSound('audio/discard'); // Play sound
+        this.events.push({ type: 'SOUND', id: 'audio/discard' });
         const discarded = this.cpu.hand.splice(index, 1)[0];
         discarded.owner = 'cpu';
         this.discards.push(discarded);
@@ -1004,7 +897,7 @@ const BattleEngine = {
         }
 
         console.log(`Player discards index ${index}: ${this.p1.hand[index].type}`); // Log
-        Assets.playSound('audio/discard'); // Play sound
+        this.events.push({ type: 'SOUND', id: 'audio/discard' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
         this.discards.push(discarded);
@@ -1049,7 +942,7 @@ const BattleEngine = {
             if (t.type === discardedTile.type && t.color === discardedTile.color) pairCount++;
         });
 
-        if (pairCount >= 2) {
+        if (pairCount >= 2 && !this.cpu.isRiichi) {
             const difficulty = AILogic.DIFFICULTY.NORMAL;
             if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty)) {
                 this.executeCpuPon(discardedTile);
@@ -1063,7 +956,8 @@ const BattleEngine = {
     executeCpuPon: function (tile) {
         console.log("CPU Calls PON!", tile.type);
         this.showPopup('PON');
-        Assets.playSound('audio/call');
+        this.events.push({ type: 'SOUND', id: 'audio/call' });
+        // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
         // Remove 2 matching tiles logic
         let removed = 0;
@@ -1115,7 +1009,7 @@ const BattleEngine = {
         hand.forEach(t => {
             if (t.type === discardedTile.type) matchCount++;
         });
-        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20) {
+        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20 && !this.p1.isRiichi) {
             const ponAction = { type: 'PON', label: '펑', targetTile: discardedTile };
             this.possibleActions.push(ponAction);
         }
@@ -1290,6 +1184,7 @@ const BattleEngine = {
                 this.p1Character.setState('smile');
                 this.cpuCharacter.setState('shocked');
                 this.showPopup('PON');
+                // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
                 // Force Discard State (Turn continues but starts at discard phase)
                 this.currentState = this.STATE_PLAYER_TURN;
@@ -1299,7 +1194,7 @@ const BattleEngine = {
 
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
-            this.showPopup('RIICHI');
+            this.showPopup('RIICHI', { slideFrom: 'LEFT', life: 60 });
 
             // Expression: Smile -> Idle
             this.p1Character.setState('smile');
@@ -1339,7 +1234,7 @@ const BattleEngine = {
 
         } else if (action.type === 'TSUMO') {
             console.log("TSUMO! Player Wins.");
-            this.showPopup('TSUMO');
+            this.showPopup('TSUMO', { life: 120, anim: 'ZOOM_IN' });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
 
@@ -1351,7 +1246,7 @@ const BattleEngine = {
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('TSUMO', 'P1', score);
             }
-            this.currentState = this.STATE_WIN;
+            // this.currentState = this.STATE_WIN; // Removed to allow sequence to play
 
         } else if (action.type === 'RON') {
             console.log("RON! Player Wins.");
@@ -1369,7 +1264,7 @@ const BattleEngine = {
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('RON', 'P1', score);
             }
-            this.currentState = this.STATE_WIN;
+            // this.currentState = this.STATE_WIN; // Removed to allow sequence to play
         }
 
         // REMOVED: Unconditional reset to STATE_PLAYER_TURN. 
@@ -1417,165 +1312,8 @@ const BattleEngine = {
 
     // Draw methods delegated to BattleRenderer
 
-    drawTile: function (ctx, tile, x, y, w, h) {
-        // Just draw the image as requested
-        const img = Assets.get(tile.img);
-        if (img) {
-            ctx.drawImage(img, x, y, w, h);
-        } else {
-            // Fallback if image missing
-            ctx.fillStyle = BattleUIConfig.FALLBACK.tileBg;
-            ctx.fillRect(x, y, w, h);
-            ctx.strokeRect(x, y, w, h);
-            ctx.fillStyle = 'black';
-            ctx.textAlign = 'center'; // Ensure text is centered for fallback
-            ctx.font = BattleUIConfig.FALLBACK.tileTextFont; // Smaller font for fallback
-            ctx.fillText(tile.type, x + w / 2, y + h / 2);
-        }
-    },
-
-    drawBar: function (ctx, x, y, val, max, label) {
-        // Bar bg (Removed)
-        // ctx.fillStyle = BattleUIConfig.BARS.BG_COLOR;
-        // ctx.fillRect(x, y, BattleUIConfig.BARS.width, BattleUIConfig.BARS.height);
-
-        // Bar fill (Pattern)
-        const pct = Math.max(0, Math.min(1, val / max));
-        const fillW = Math.floor(BattleUIConfig.BARS.width * pct);
 
 
-
-        // Draw Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(x, y, BattleUIConfig.BARS.width, BattleUIConfig.BARS.height);
-
-        if (fillW > 0) {
-            const path = (label === 'HP') ? BattleUIConfig.BARS.hpPath : BattleUIConfig.BARS.mpPath;
-            const barImg = Assets.get(path);
-            if (barImg) {
-                // Draw Image Cropped
-                ctx.drawImage(barImg,
-                    0, 0, barImg.width * pct, barImg.height,
-                    x, y, fillW, BattleUIConfig.BARS.height
-                );
-            } else {
-                // Fallback
-                ctx.fillStyle = (label === 'HP') ? '#ff4d4d' : '#4d4dff';
-                ctx.fillRect(x, y, fillW, BattleUIConfig.BARS.height);
-            }
-        }
-
-        // Border - Removed as per request
-        // ctx.strokeStyle = 'black';
-        // ctx.lineWidth = 2;
-        // ctx.strokeRect(x, y, BattleUIConfig.BARS.width, BattleUIConfig.BARS.height);
-    },
-    drawUnknownTile: function (ctx, x, y, w, h) {
-        // Use pai_uradora.png for hidden dora
-        this.drawCardBack(ctx, x, y, w, h, 'tiles/pai_uradora.png');
-    },
-
-    drawCardBack: function (ctx, x, y, w, h, assetPath) {
-        // Default to back-top if not specified
-        const path = assetPath || 'tiles/back-top.png';
-        const img = Assets.get(path);
-
-        if (img) {
-            ctx.drawImage(img, x, y, w, h);
-        } else {
-            // Fallback
-            ctx.fillStyle = BattleUIConfig.FALLBACK.cardBackBg;
-            ctx.fillRect(x, y, w, h);
-            ctx.strokeStyle = BattleUIConfig.FALLBACK.cardBackStroke;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, w, h);
-
-            // X Pattern
-            ctx.beginPath();
-            ctx.strokeStyle = BattleUIConfig.FALLBACK.cardBackPattern;
-            ctx.moveTo(x, y); ctx.lineTo(x + w, y + h);
-            ctx.moveTo(x + w, y); ctx.lineTo(x, y + h);
-            ctx.stroke();
-
-            // Debug text
-            ctx.fillStyle = 'white';
-            ctx.font = '8px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText("IMG?", x + w / 2, y + h / 2);
-        }
-    },
-
-    drawDiscards: function (ctx) {
-        const p1Discards = this.discards.filter(d => d.owner === 'p1');
-        const cpuDiscards = this.discards.filter(d => d.owner === 'cpu');
-
-        // Draw P1 Discards
-        p1Discards.forEach((tile, i) => {
-            const row = Math.floor(i / BattleUIConfig.DISCARDS.rowMax);
-            const col = i % BattleUIConfig.DISCARDS.rowMax;
-            const x = BattleUIConfig.DISCARDS.P1.x + col * (BattleUIConfig.DISCARDS.tileWidth + BattleUIConfig.DISCARDS.gap);
-            const y = BattleUIConfig.DISCARDS.P1.y + row * (BattleUIConfig.DISCARDS.tileHeight + BattleUIConfig.DISCARDS.gap);
-
-            const isLast = (tile === this.discards[this.discards.length - 1]);
-            if (isLast) {
-                // Draw Larger (Hand Size)
-                const w = BattleUIConfig.HAND.tileWidth;
-                const h = BattleUIConfig.HAND.tileHeight;
-                // Center on the slot
-                const cx = x + (BattleUIConfig.DISCARDS.tileWidth - w) / 2;
-                const cy = y + (BattleUIConfig.DISCARDS.tileHeight - h) / 2;
-
-                this.drawTile(ctx, tile, cx, cy, w, h);
-                // Optional: Highlight? User didn't ask, but size diff is the main request.
-            } else {
-                this.drawTile(ctx, tile, x, y, BattleUIConfig.DISCARDS.tileWidth, BattleUIConfig.DISCARDS.tileHeight);
-            }
-        });
-
-        // Draw CPU Discards
-        cpuDiscards.forEach((tile, i) => {
-            const row = Math.floor(i / BattleUIConfig.DISCARDS.rowMax);
-            const col = i % BattleUIConfig.DISCARDS.rowMax;
-            const x = BattleUIConfig.DISCARDS.CPU.x + col * (BattleUIConfig.DISCARDS.tileWidth + BattleUIConfig.DISCARDS.gap);
-            const y = BattleUIConfig.DISCARDS.CPU.y + row * (BattleUIConfig.DISCARDS.tileHeight + BattleUIConfig.DISCARDS.gap);
-
-            const isLast = (tile === this.discards[this.discards.length - 1]);
-            if (isLast) {
-                // Draw Larger (Hand Size)
-                const w = BattleUIConfig.HAND.tileWidth;
-                const h = BattleUIConfig.HAND.tileHeight;
-                // Center on the slot
-                const cx = x + (BattleUIConfig.DISCARDS.tileWidth - w) / 2;
-                const cy = y + (BattleUIConfig.DISCARDS.tileHeight - h) / 2;
-
-                this.drawTile(ctx, tile, cx, cy, w, h);
-            } else {
-                this.drawTile(ctx, tile, x, y, BattleUIConfig.DISCARDS.tileWidth, BattleUIConfig.DISCARDS.tileHeight);
-            }
-        });
-    },
-
-    drawOpenSets: function (ctx, openSets, startX, y, tileW, tileH, isCpu) {
-        if (!openSets || openSets.length === 0) return;
-
-        const gap = 5;
-        const setGap = 15;
-        let currentX = startX;
-
-        // Draw Side Asset if Player (isCpu false)
-        const sideImg = !isCpu ? Assets.get('tiles/side-bottom.png') : null;
-
-        openSets.forEach(set => {
-            set.tiles.forEach(tile => {
-                if (sideImg) {
-                    ctx.drawImage(sideImg, currentX, y + tileH, tileW, sideImg.height);
-                }
-                this.drawTile(ctx, tile, currentX, y, tileW, tileH);
-                currentX += tileW + gap;
-            });
-            currentX += setGap - gap; // Add gap (remove existing tile gap compensation)
-        });
-    },
 
     getFullHand: function (player) {
         let tiles = [...player.hand];
@@ -1585,53 +1323,7 @@ const BattleEngine = {
         return tiles;
     },
 
-    getVisualMetrics: function (player, groupSize) {
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const gap = BattleUIConfig.HAND.gap;
-        const setGap = 15;
-        const groupGap = BattleUIConfig.HAND.groupGap;
-        const sectionGap = 20; // Gap between hand and open sets
 
-        // 1. Calculate Hand Width
-        const handCount = player.hand.length;
-        let handW = handCount * (tileW + gap);
-        if (groupSize > 0) handW += groupGap;
-
-        // 2. Calculate Open Sets Width
-        let openW = 0;
-        if (player.openSets.length > 0) {
-            player.openSets.forEach(set => {
-                openW += (set.tiles.length * tileW) + ((set.tiles.length - 1) * gap) + setGap;
-            });
-            openW -= setGap; // Remove last gap
-        }
-
-        // 3. Total Width
-        let totalW = handW;
-        if (openW > 0) totalW += sectionGap + openW;
-
-        // 4. Start X (Centered)
-        const startX = (640 - totalW) / 2;
-
-        return { startX, handW, openW, sectionGap };
-    },
-
-    getPlayerHandPosition: function (index, totalTiles, groupSize, startX) {
-        const tileW = BattleUIConfig.HAND.tileWidth;
-        const gap = BattleUIConfig.HAND.gap;
-
-        let x = startX || 0; // Use provided startX
-
-        // Add individual offset
-        x += index * (tileW + gap);
-
-        // Add group gap offset
-        if (groupSize > 0 && index >= totalTiles - groupSize) {
-            x += BattleUIConfig.HAND.groupGap;
-        }
-
-        return { x: x, y: BattleUIConfig.HAND.playerHandY };
-    },
 
     checkTenpai: function (hand, returnDetails) {
         // Hand should be 11 tiles.
@@ -1677,9 +1369,10 @@ const BattleEngine = {
         }
 
         // Only switch if different
-        if (!Assets.currentMusic || Assets.currentMusic._id !== targetBgm) {
+        if (this.currentBgm !== targetBgm) {
             console.log(`Switching Battle BGM to: ${targetBgm}`);
-            Assets.playMusic(targetBgm);
+            this.currentBgm = targetBgm;
+            this.events.push({ type: 'MUSIC', id: targetBgm, loop: true });
         }
     }
 };
