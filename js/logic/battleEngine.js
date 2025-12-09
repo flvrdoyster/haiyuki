@@ -233,6 +233,7 @@ const BattleEngine = {
 
     startWinSequence: function (type, who, score) {
         console.log(`Starting Win Sequence: ${type} by ${who}`);
+        this.events.push({ type: 'STOP_MUSIC' }); // NEW: Stop BGM on Ron/Tsumo
 
         // Sort CPU Hand if revealed
         if (who === 'CPU' || type === 'RON') { // If CPU wins or we win (Ron from CPU?), usually we only show CPU hand if WE win (Ron/Tsumo) or CPU wins.
@@ -417,6 +418,9 @@ const BattleEngine = {
         } else if (step.type === 'MUSIC') {
             // New Step: Play Music
             this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
+            this.sequencing.currentStep++;
+        } else if (step.type === 'CALLBACK') {
+            if (step.callback) step.callback();
             this.sequencing.currentStep++;
         } else if (step.type === 'STATE_NAGARI') {
             // FIX: Must set state to NAGARI to allow input (Next Round)
@@ -820,22 +824,39 @@ const BattleEngine = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
                 console.log("CPU Riichi!");
                 this.cpu.isRiichi = true;
-                this.showPopup('RIICHI', { slideFrom: 'RIGHT', life: 60 });
 
-                this.updateBattleMusic();
+                // Start Riichi Sequence (Delay Discard)
+                this.currentState = this.STATE_FX_PLAYING;
 
-                // Auto-discard logic will handle the discard below
+                // Identify discard index (last drawn)
+                const discardIdx = this.cpu.hand.length - 1;
+
+                this.sequencing = {
+                    active: true,
+                    timer: 0,
+                    currentStep: 0,
+                    steps: [
+                        { type: 'FX', asset: 'fx/riichi', x: BattleConfig.POPUP.x, y: BattleConfig.POPUP.y, slideFrom: 'RIGHT', scale: 1.0 },
+                        { type: 'MUSIC', id: 'audio/bgm_tension', loop: true }, // Music update handled here
+                        { type: 'WAIT', duration: 60 },
+                        {
+                            type: 'CALLBACK', callback: () => {
+                                // Finish Sequence
+                                this.sequencing.active = false;
+                                // Proceed to Discard
+                                this.discardTileCPU(discardIdx);
+                            }
+                        }
+                    ]
+                };
+                return; // Stop CPU turn logic here
             }
         }
 
         // 3. Decide Discard
-        // If Riichi, must discard drawn tile (unless Tsumo, checked above)
+        // If Riichi (existing state), discard drawn tile
         if (this.cpu.isRiichi) {
-            // Discard last drawn
-            const discardIdx = this.cpu.hand.length - 1;
-            // Delay? CPU doesn't need visual delay for itself, but for player experience?
-            // Let's just discard immediately for now.
-            this.discardTileCPU(discardIdx);
+            this.discardTileCPU(this.cpu.hand.length - 1);
         } else {
             const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty);
             this.discardTileCPU(discardIdx);
