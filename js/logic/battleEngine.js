@@ -255,7 +255,7 @@ const BattleEngine = {
         // Build Sequence
         const steps = [
             // FX Removed
-            { type: 'WAIT', duration: 30 }, // Reduced wait
+            { type: 'WAIT', duration: 120 }, // Increased wait to ensure FX finish (30 -> 120)
             { type: 'REVEAL_HAND' } // Reveal CPU hand
         ];
 
