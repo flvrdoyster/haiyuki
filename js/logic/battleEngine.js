@@ -842,6 +842,7 @@ const BattleEngine = {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
             if (this.winningYaku) {
                 console.log("CPU TSUMO!");
+                this.showPopup('TSUMO');
                 const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
                 this.pendingDamage = { target: 'P1', amount: score };
                 this.startWinSequence('TSUMO', 'CPU', score);
@@ -1031,12 +1032,14 @@ const BattleEngine = {
 
     checkCpuActions: function (discardedTile) {
         // 1. RON
+        // Rule: Ron is allowed ONLY if Riichi is declared (same as player)
+        // This prevents Ron after Pon (since Pon makes hand open and prevents Riichi)
         // Check if adding this tile completes the hand
-        // CPU Hand + Discarded Tile
         const checkHand = [...this.getFullHand(this.cpu), discardedTile];
         const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
-        if (win) {
+        if (win && this.cpu.isRiichi) { // Added Riichi requirement
             console.log("CPU RON!");
+            this.showPopup('RON');
             this.winningYaku = win;
             const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
             this.pendingDamage = { target: 'P1', amount: score };
@@ -1351,6 +1354,12 @@ const BattleEngine = {
             } else {
                 this.riichiTargetIndex = -1; // Should not happen if Riichi was allowed
             }
+
+            // Clear possibleActions to allow progression
+            this.possibleActions = [];
+
+            // Update BGM immediately (Tension or Showdown)
+            this.updateBattleMusic();
 
             // Go to discard
             this.currentState = this.STATE_PLAYER_TURN;
