@@ -455,6 +455,9 @@ const BattleEngine = {
             // New Step: Play Music
             this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
             this.sequencing.currentStep++;
+        } else if (step.type === 'SOUND') {
+            this.events.push({ type: 'SOUND', id: step.id });
+            this.sequencing.currentStep++;
         } else if (step.type === 'CALLBACK') {
             const prevSeq = this.sequencing;
             if (step.callback) step.callback();
@@ -1035,7 +1038,7 @@ const BattleEngine = {
             const context = {
                 discards: this.discards,
                 opponentRiichi: this.p1.isRiichi,
-                doras: this.doras,
+                doras: this.doras, // Pass Doras for AI
                 turnCount: this.turnCount
             };
             const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty, this.cpu.aiProfile, context);

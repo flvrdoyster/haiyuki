@@ -100,16 +100,38 @@ const BattleConfig = {
 
         // Sound mapping for Popups
         TYPES: {
-            'RIICHI': { slideFrom: 'LEFT', life: 60, sound: 'audio/riichi' },
-            'PON': { sound: 'audio/pon' },
-            'RON': {},
-            'TSUMO': { life: 120, anim: 'ZOOM_IN' },
-            'NAGARI': { sound: 'audio/wrong' } // Default
+            'RIICHI': { slideFrom: 'LEFT', life: 60, scale: 1.0, sound: 'audio/riichi' },
+            'PON': { scale: 1.0, sound: 'audio/pon' },
+            'RON': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'NAGARI': { scale: 1.0, sound: 'audio/wrong' }
         },
 
         // Legacy Sound map
         SOUNDS: {}
     },
+
+    // Global Audio Configuration
+    AUDIO: {
+        // Generic Battle Sounds
+        DRAW: 'audio/draw',
+        DISCARD: 'audio/discard',
+        HIT: 'audio/hit', // Default hit sound
+        DAMAGE: 'audio/hit', // Used if specific damage sound needed
+    },
+
+    // Background Music Configuration
+    BGM: {
+        BASIC: 'audio/bgm_basic',
+        TENSION: 'audio/bgm_tension',
+        SHOWDOWN: 'audio/bgm_showdown',
+        WIN: 'audio/bgm_win',
+        LOSE: 'audio/bgm_lose',
+        ENDING: 'audio/bgm_ending',
+        TITLE: 'audio/bgm_title',
+        CHRSEL: 'audio/bgm_chrsel'
+    },
+
     RESULT: {
         // Window Layout
         x: 120, y: 90, w: 400, h: 300,

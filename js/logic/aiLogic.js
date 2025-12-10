@@ -8,156 +8,158 @@ const AILogic = {
     // Main decision function for Discard
     decideDiscard: function (hand, difficulty, profile, context) {
         // Default profile if missing
-        if (!profile) profile = { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3 };
+        if (!profile) profile = { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3, greed: 0.3 };
 
         // Extract Context
         const discards = context ? context.discards : [];
         const opponentRiichi = context ? context.opponentRiichi : false;
-
-        // Analyze hand
-        const analysis = YakuLogic.analyzeHand(hand);
-        const counts = analysis.counts; // Key: "color_id"
-
-        // Strategy: Color Priority
-        // Count tiles per color
-        const colorCounts = { red: 0, blue: 0, yellow: 0, purple: 0 };
-        hand.forEach(t => {
-            if (colorCounts[t.color] !== undefined) colorCounts[t.color]++;
-        });
-
-        // Find most and least frequent colors
-        let maxColor = 'red';
-        let minColor = 'red';
-        let maxCount = -1;
-        let minCount = 99;
-
-        for (const col in colorCounts) {
-            if (colorCounts[col] > maxCount) {
-                maxCount = colorCounts[col];
-                maxColor = col;
-            }
-            if (colorCounts[col] < minCount) {
-                minCount = colorCounts[col];
-                minColor = col;
-            }
-        }
+        const doras = context ? context.doras : [];
 
         // Candidates for discard
         let candidates = [];
 
-        hand.forEach((tile, index) => {
-            const key = `${tile.color}_${tile.type}`;
-            const count = counts[key].count;
-            let score = 0;
+        // Difficulty Modifiers (Strategic Blindness)
+        let defenseModifier = 1.0;
+        let doraModifier = 1.0;
 
-            // 1. Efficiency (Isolation vs Connection)
-            // Check Neighbors (Connectivity)
-            const typeIdx = PaiData.TYPES.findIndex(t => t.id === tile.type && t.color === tile.color);
-            let hasNeighbor = false;
-            // Simple check: Look for +/- 1 or +/- 2 index in same color group (assuming PaiData is ordered or we check hand)
-            // Better: Check HAND for neighbors.
-            const value = parseInt(tile.type) || 0; // If numeric. But types are 'pai_ata', etc. Not numeric sequences?
-            // Wait, this is Character Mahjong. There are NO sequences (Shuntsu) in Hwanse Paeyugi!
-            // It's all about Triplets (Koutsu) and Pairs (Toitsu)!
-            // **Correction**: Hwanse Paeyugi rules are standard Mahjong-ish?
-            // Logic/YakuLogic Check: "checkYaku" usually supports Pon?
-            // Re-reading visual evidence/previous code:
-            // - "Triplets are very valuable" comment in existing AI.
-            // - YakuLogic.js (I should have checked this).
-            // - File `assets.js` has tiles like `pai_ata`. These are character faces.
-            // - THIS IS NOT NUMERIC MAHJONG.
-            // - **CRITICAL REALIZATION**: Connectivity (+/- 1) adds NOTHING if sequences aren't valid.
-            // - If sequences ARE valid (e.g. Ata-Rin-Smash?), then heuristics apply.
-            // - Let's assume ONLY Triplets/Pairs matter for now unless I verify YakuLogic.
-            // - Previous conversation mentions "Pon" but not "Chi". "Chi" is usually for sequences.
-            // - "Remove the Kan action... Ensure Pon is allowed". No mention of Chi.
-            // - **Safest Bet**: Assume Triplet-based game for "Connectivity" means "How many copies do I have?".
-            // - Wait, if it's purely triplet based (Pong/Kong), then "Isolation" simply means "I have 1 of this".
-            // - So "Connectivity" = "Do I have 2 or 3?" (Already covered by `count`).
-            // - **BUT**: Maybe the user wants "Color Bias" to be smarter?
-            // - Or maybe "Connectivity" implies "Pairs are good, Singles are bad".
-            // - Let's STICK to the plan but refined:
-            //   - Prioritize Pairs/Triplets (Keep).
-            //   - Discard Singles.
-            //   - **DORA**: This is the big weakness.
-            //   - **Defense**: If Opponent Riichi, discard Safe tiles.
+        if (difficulty === this.DIFFICULTY.EASY) {
+            defenseModifier = 0.0; // Completely ignore opponent threats
+            doraModifier = 0.0;    // Ignore Dora value (treat as normal)
+        } else if (difficulty === this.DIFFICULTY.NORMAL) {
+            defenseModifier = 0.5; // Partial awareness
+            doraModifier = 1.0;
+        } else {
+            defenseModifier = 1.0; // Full awareness
+            doraModifier = 1.0;
+        }
 
-            // Base Score: Inverse of count
-            if (count === 1) score += 20; // Single? Trash it.
-            else if (count === 2) score -= 20; // Pair? Keep it! (Was +2 in old logic, which was weird if high score = discard)
-            // Wait, old logic: "if (count === 1) score += 10; else if (count === 2) score += 2;"
-            // Old logic: Higher score = Discard.
-            // So Single (+10) > Pair (+2). So it preferred discarding singles. Correct.
-            // We want to make it STRONGER.
-            // Single (+20), Pair (-20).
+        // Evaluate each potential discard
+        for (let i = 0; i < hand.length; i++) {
+            const tile = hand[i];
 
-            else if (count >= 3) score -= 50; // Triplet? NEVER discard.
+            // 1. Simulate Discard
+            const remainingHand = [...hand];
+            remainingHand.splice(i, 1);
 
-            // 2. Dora Awareness
-            if (context && context.doras) {
-                const isDora = context.doras.some(d => d.type === tile.type && d.color === tile.color);
-                if (isDora) {
-                    score -= 30; // Huge penalty to discard Dora
-                    // console.log(`[AI] Dora protection: ${tile.type}`);
-                }
-            }
+            // 2. Calculate Potential of Remaining Hand
+            // We want to MAXIMIZE the potential of what's left.
+            // Pass modifiers to calculation if needed, or apply here.
+            // Currently calculateHandPotential uses hardcoded weights, let's inject modifier there or wrap it.
+            // Actually, let's keep calc pure and apply modifiers to the *result* or *inputs*.
 
-            // 3. Color Strategy (Bias)
-            if (difficulty >= this.DIFFICULTY.NORMAL) {
-                if (tile.color === minColor) score += (5 + (profile.colorBias * 10)); // Dump minority
-                if (tile.color === maxColor) score -= (5 + (profile.colorBias * 10)); // Keep majority
-            }
+            // Dora Check locally to apply modifier? 
+            // calculateHandPotential handles Dora. We should pass the modifier.
+            const potential = this.calculateHandPotential(remainingHand, profile, doras, doraModifier);
+            let score = potential;
 
-            // 4. Defense Logic (Against Riichi)
-            if (opponentRiichi && difficulty >= this.DIFFICULTY.NORMAL) {
+            // 3. Defense Logic (If Opponent Riichi)
+            // If Riichi, we prioritise SAFETY over potential.
+            if (opponentRiichi && defenseModifier > 0) {
                 const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
-                const defenseMod = Math.floor(100 * profile.defense); // e.g. 50
+                const defenseFactor = profile.defense * 200 * defenseModifier; // Strong weight * difficulty
+
                 if (isSafe) {
-                    score += defenseMod; // Boost discard score (Do it!)
+                    score += defenseFactor; // Good to discard (Safe)
                 } else {
-                    score -= defenseMod; // Penalty (Don't do it!)
+                    // Penalty logic if needed
                 }
             }
 
-            candidates.push({ index: index, score: score, tile: tile });
-        });
+            // 4. Synergies with already discarded tiles? (Genbutsu logic is above)
+            // If we have 3, and we discard 1, we are left with Pair.
+            // If we have 1, and discard 1, we are left with 0. 
+            // Potential calc handles this.
+
+            candidates.push({ index: i, score: score, tile: tile });
+        }
 
         // Sort by score descending (Higher score = Better to discard)
+        // Because Score = Potential of Remaining Hand. 
+        // We want to keep the best hand, implies we discard the tile that leaves the best hand.
         candidates.sort((a, b) => b.score - a.score);
 
         if (candidates.length > 0) {
-            // console.log(`[AI Discard] Top: ${candidates[0].tile.type} (${candidates[0].score}), 2nd: ${candidates[1]?.tile.type} (${candidates[1]?.score})`);
+            // console.log(`[AI Discard] Top: ${candidates[0].tile.type} (${candidates[0].score})`);
         }
 
-        // Add some randomness for Easy/Normal
-        // Difficulty Logic
+        // Difficulty Logic - Selection
         if (difficulty === this.DIFFICULTY.EASY) {
-            // Easy: Pick random from top 4 (Frequent mistakes)
-            const range = Math.min(candidates.length, 4);
+            // Random top 3 (Mistakes)
+            const range = Math.min(candidates.length, 3);
             const r = Math.floor(Math.random() * range);
             return candidates[r].index;
-
         } else if (difficulty === this.DIFFICULTY.NORMAL) {
-            // Normal: Weighted Random from Top 3
-            // Higher score = Higher chance
-            const range = Math.min(candidates.length, 3);
-            const topCandidates = candidates.slice(0, range);
-
-            // Calculate total weight (offset by min score to keep positive if negative exist, though scores here are usually >=0)
-            // Just use simple weighting: Score + 10 to ensure base weight
-            const weightTotal = topCandidates.reduce((sum, c) => sum + (c.score + 10), 0);
-            let r = Math.random() * weightTotal;
-
-            for (let i = 0; i < range; i++) {
-                r -= (topCandidates[i].score + 10);
-                if (r <= 0) return topCandidates[i].index;
-            }
-            return topCandidates[0].index; // Fallback
-
+            // Weighted top 2
+            return candidates[Math.random() < 0.7 ? 0 : 1].index;
         } else {
-            // Hard: Always Top 1 (Optimal for Profile)
+            // Hard: Optimal
             return candidates[0].index;
         }
+    },
+
+    calculateHandPotential: function (hand, profile, doras, doraModifier = 1.0) {
+        const analysis = YakuLogic.analyzeHand(hand);
+        const counts = analysis.counts;
+        let score = 0;
+
+        // 1. Set Efficiency (Speed)
+        // Prefer Pairs (2) and Triplets (3+).
+        // Heavily penalize Singles (1).
+
+        Object.values(counts).forEach(c => {
+            const count = c.count;
+            if (count >= 3) {
+                score += (100 * (0.5 + profile.speed)); // Triplet
+            } else if (count === 2) {
+                score += (40 * (0.5 + profile.speed)); // Pair
+            } else {
+                // Single: 0 points.
+                // Maybe small penalty to encourage clearing? 
+                // No, simply having 0 vs 40 makes pairs better.
+            }
+        });
+
+        // 2. Color Bias (Greed / Strategy)
+        // If colorBias is high, boost score for tiles of dominant color.
+        const byColor = { red: 0, blue: 0, yellow: 0, purple: 0 };
+        hand.forEach(t => {
+            if (byColor[t.color] !== undefined) byColor[t.color]++;
+        });
+
+        // Find max color count
+        let maxColorCount = 0;
+        let maxColor = 'red';
+        for (const c in byColor) {
+            if (byColor[c] > maxColorCount) {
+                maxColorCount = byColor[c];
+                maxColor = c;
+            }
+        }
+
+        // Apply Bonus for dominant color tiles
+        // Only if we actually have a significant bias
+        if (profile.colorBias > 0.3) {
+            hand.forEach(t => {
+                if (t.color === maxColor) {
+                    score += (10 * profile.colorBias);
+                }
+            });
+        }
+
+        // 3. Dora Bonus
+        if (doras && doras.length > 0 && doraModifier > 0) {
+            hand.forEach(t => {
+                const isDora = doras.some(d => d.type === t.type && d.color === t.color);
+                if (isDora) {
+                    score += (50 * doraModifier); // Protect Dora scaled by difficulty awareness
+                }
+            });
+        }
+
+        // 4. Character Specific Synergies? (Simple heuristic from YakuLogic)
+        // E.g. Check for Char+Weapon pairs if aggression/greed is high
+
+        return score;
     },
 
     shouldRiichi: function (hand, difficulty, profile) {

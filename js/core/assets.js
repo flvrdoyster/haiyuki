@@ -25,6 +25,7 @@ const Assets = {
         { id: 'audio/pon', src: 'assets/audio/pon.mp3', type: 'audio' },
         { id: 'audio/riichi', src: 'assets/audio/riichi.mp3', type: 'audio' },
         { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
+        { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' }, // Gong Sound
         { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' }, // New Victory Sound
         { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
         { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },

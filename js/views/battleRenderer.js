@@ -125,7 +125,7 @@ const BattleRenderer = {
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {
             this.drawActionMenu(ctx, state);
-        } else if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI) {
+        } else if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI || state.currentState === state.STATE_MATCH_OVER) {
             // Draw Result uses state variables
             this.drawResult(ctx, state);
         }

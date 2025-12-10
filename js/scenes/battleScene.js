@@ -57,13 +57,13 @@ const BattleScene = {
                 }
 
                 if (evt.type === 'DRAW') {
-                    Assets.playSound('audio/draw');
+                    Assets.playSound(BattleConfig.AUDIO.DRAW);
                     engine.events.splice(i, 1);
                     continue;
                 }
 
                 if (evt.type === 'DISCARD') {
-                    Assets.playSound('audio/discard');
+                    Assets.playSound(BattleConfig.AUDIO.DISCARD);
                     engine.events.splice(i, 1);
                     continue;
                 }
