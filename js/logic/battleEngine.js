@@ -754,7 +754,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer > (Game.isAutoTest ? 5 : 60)) { // Speed up CPU
+                if (this.timer > (Game.isAutoTest ? 5 : 20)) { // Speed up CPU
                     this.cpuDraw();
                 }
                 break;
