@@ -42,7 +42,7 @@ const BattleRenderer = {
 
         // CPU Hand (Top)
         // CPU Hand (Top)
-        const cpuMetrics = this.getVisualMetrics(state.cpu, 0);
+        const cpuMetrics = this.getVisualMetrics(state.cpu, 0, 'cpu');
         const cpuStartX = cpuMetrics.handStartX;
         const cpuCount = state.cpu.hand.length;
 
@@ -67,7 +67,7 @@ const BattleRenderer = {
         // Check state constants from state object
         const hasGap = (groupSize > 0) && (state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_BATTLE_MENU);
 
-        const metrics = this.getVisualMetrics(state.p1, hasGap ? groupSize : 0);
+        const metrics = this.getVisualMetrics(state.p1, hasGap ? groupSize : 0, 'p1');
         const pStartX = metrics.handStartX;
 
         for (let i = 0; i < pCount; i++) {
@@ -142,16 +142,10 @@ const BattleRenderer = {
     },
 
     // Cached Metrics Object to reduce GC
-    _visualMetrics: {
-        totalW: 0,
-        startX: 0,
-        handStartX: 0,
-        openStartX: 0,
-        handW: 0,
-        openW: 0
-    },
+    _cpuMetrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
+    _p1Metrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
 
-    getVisualMetrics: function (character, groupSize) {
+    getVisualMetrics: function (character, groupSize, target) {
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.gap;
         const setGap = 15;
@@ -181,7 +175,7 @@ const BattleRenderer = {
         const startX = (640 - totalW) / 2;
 
         // Update Cached Object
-        const m = this._visualMetrics;
+        const m = (target === 'cpu') ? this._cpuMetrics : this._p1Metrics;
         m.totalW = totalW;
         m.startX = startX;
         m.handStartX = startX;
@@ -239,6 +233,10 @@ const BattleRenderer = {
         }
     },
 
+    // Cached Layout Objects for Discards
+    _p1DiscardLayout: { col: 0, row: 0, x: 0, y: 0 },
+    _cpuDiscardLayout: { col: 0, row: 0, x: 0, y: 0 },
+
     drawDiscards: function (ctx, state) {
         const dw = BattleConfig.DISCARDS.tileWidth;
         const dh = BattleConfig.DISCARDS.tileHeight;
@@ -247,9 +245,16 @@ const BattleRenderer = {
 
         const allDiscards = state.discards;
 
-        // Layout State Tracking
-        const p1Layout = { col: 0, row: 0, x: BattleConfig.DISCARDS.P1.x, y: BattleConfig.DISCARDS.P1.y };
-        const cpuLayout = { col: 0, row: 0, x: BattleConfig.DISCARDS.CPU.x, y: BattleConfig.DISCARDS.CPU.y };
+        // Reset & Use Cached Layouts
+        const p1Layout = this._p1DiscardLayout;
+        p1Layout.col = 0; p1Layout.row = 0;
+        p1Layout.x = BattleConfig.DISCARDS.P1.x;
+        p1Layout.y = BattleConfig.DISCARDS.P1.y;
+
+        const cpuLayout = this._cpuDiscardLayout;
+        cpuLayout.col = 0; cpuLayout.row = 0;
+        cpuLayout.x = BattleConfig.DISCARDS.CPU.x;
+        cpuLayout.y = BattleConfig.DISCARDS.CPU.y;
 
         const lastDiscard = allDiscards.length > 0 ? allDiscards[allDiscards.length - 1] : null;
 
@@ -278,7 +283,7 @@ const BattleRenderer = {
 
             // Update Layout for NEXT item
             layout.x += slotW + gap;
-            layout.col++;
+            layout.col++; layout.col++;
 
             // Draw Logic
             // Check if last (Highlight)
