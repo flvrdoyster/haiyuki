@@ -41,7 +41,7 @@ const TitleScene = {
 
         if (this.currentState === this.STATE_PRESS_KEY) {
             // Space to start
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.currentState = this.STATE_MODE_SELECT;
                 // Game.changeScene(CharacterSelectScene);
             }
@@ -50,8 +50,9 @@ const TitleScene = {
                 this.menuIndex = (this.menuIndex === 0) ? 1 : 0;
             }
 
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 const mode = (this.menuIndex === 0) ? 'STORY' : 'WATCH';
+                Assets.stopMusic(); // Ensure title music stops
                 Game.changeScene(CharacterSelectScene, { mode: mode });
             }
 

@@ -135,6 +135,7 @@ const CharacterSelectScene = {
             if (available.length > 1 && rivalIndex !== -1) {
                 // Filter out rival from candidates
                 candidates = available.filter(idx => idx !== rivalIndex);
+                console.log(`Excluding Rival (Index ${rivalIndex}) from selection. Candidates left: ${candidates.length}`);
             }
 
             // Fallback if candidates became empty (shouldn't happen if logic is correct, but just in case)
@@ -160,7 +161,8 @@ const CharacterSelectScene = {
             // Determine Rival Index from ID
             const myChar = this.characters[this.playerIndex];
             const rivalId = myChar.rival;
-            const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+            let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+            if (rivalIndex === -1) rivalIndex = 0; // Safeguard
 
             Game.changeScene(EncounterScene, {
                 playerIndex: this.playerIndex,
@@ -176,6 +178,13 @@ const CharacterSelectScene = {
         if (this.cpuPortrait) this.cpuPortrait.update();
 
         if (this.currentState === this.STATE_PLAYER_SELECT) {
+            // Auto Test: Select First Character
+            if (Game.isAutoTest) {
+                this.currentState = this.STATE_CPU_SELECT;
+                this.cpuTimer = 0;
+                this.updateCpuPortrait();
+            }
+
             // Player Selection
             if (Input.isJustPressed(Input.LEFT)) {
                 this.playerIndex--;
@@ -302,8 +311,26 @@ const CharacterSelectScene = {
                     let candidates = available;
                     if (available.length > 1 && rivalIndex !== -1) {
                         candidates = available.filter(idx => idx !== rivalIndex);
+                        console.log(`Excluding Rival (Index ${rivalIndex}) from Roulette. Candidates left: ${candidates.length}`);
                     }
                     if (candidates.length === 0) candidates = available;
+
+                    // Fix: If still empty (e.g. all defeated but loop restart issue), or naturally empty in Roulette mode
+                    if (candidates.length === 0) {
+                        console.log("Roulette determined No Opponents -> Trigger Ending");
+                        // Reuse Ending Logic
+                        const myChar = this.characters[this.playerIndex];
+                        const rivalId = myChar.rival;
+                        let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+                        if (rivalIndex === -1) rivalIndex = 0; // Safeguard
+
+                        Game.changeScene(EncounterScene, {
+                            playerIndex: this.playerIndex,
+                            cpuIndex: rivalIndex,
+                            mode: 'ENDING'
+                        });
+                        return;
+                    }
 
                     const rand = Math.floor(Math.random() * candidates.length);
                     this.cpuIndex = candidates[rand];
@@ -317,7 +344,7 @@ const CharacterSelectScene = {
         } else if (this.currentState === this.STATE_READY) {
             // Auto transition after a short delay
             this.readyTimer++;
-            if (this.readyTimer > 60) {
+            if (this.readyTimer > (Game.isAutoTest ? 10 : 60)) {
                 if (this.debugSkipDialogue) {
                     Game.changeScene(BattleScene, {
                         playerIndex: this.playerIndex, // Use BattleScene wrapper

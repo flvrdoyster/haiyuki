@@ -33,12 +33,12 @@ const EndingScene = {
     update: function () {
         this.timer++;
 
-        if (this.timer > 60) {
+        if (this.timer > (Game.isAutoTest ? 10 : 60)) {
             this.canSkip = true;
         }
 
         if (this.canSkip) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.checkTrueEnding();
             }
         }
@@ -88,6 +88,7 @@ const EndingScene = {
 
         if (this.skipTrueEnd) {
             console.log("Skipping True Ending Check (Watch Mode). Returning to Title.");
+            Game.isAutoTest = false; // Stop Auto-Test
             Game.changeScene(TitleScene);
             return;
         }
@@ -113,11 +114,13 @@ const EndingScene = {
                 });
             } else {
                 console.error("Mayu not found!");
+                Game.isAutoTest = false; // Stop Auto-Test
                 Game.changeScene(TitleScene);
             }
 
         } else {
             console.log("Normal Ending. Returning to Title.");
+            Game.isAutoTest = false; // Stop Auto-Test
             Game.changeScene(TitleScene);
         }
     }

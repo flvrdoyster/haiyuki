@@ -12,7 +12,7 @@ const BattleConfig = {
         //             Action: Standard profile chance
         // 2: HARD   - Discard: Always Top 1 (Optimal play)
         //             Action: Standard profile chance (Optimal)
-        AI_DIFFICULTY: 1
+        AI_DIFFICULTY: 2
     },
     UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },

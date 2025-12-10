@@ -145,6 +145,14 @@ const BattleEngine = {
             }
         });
 
+        if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
+            console.log("AUTO-LOSE MODE ACTIVE: Setting Player HP to 1000");
+            this.p1.hp = 1000;
+            this.p1.maxHp = 1000;
+            this.cpu.hp = 99999;
+            this.cpu.maxHp = 99999;
+        }
+
         this.activeFX = [];
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
@@ -425,8 +433,13 @@ const BattleEngine = {
             this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
             this.sequencing.currentStep++;
         } else if (step.type === 'CALLBACK') {
+            const prevSeq = this.sequencing;
             if (step.callback) step.callback();
-            this.sequencing.currentStep++;
+
+            // Critical Fix: If callback started a NEW sequence, do not increment step
+            if (this.sequencing === prevSeq) {
+                this.sequencing.currentStep++;
+            }
         } else if (step.type === 'STATE_NAGARI') {
             // FIX: Must set state to NAGARI to allow input (Next Round)
             this.currentState = this.STATE_NAGARI;
@@ -457,11 +470,17 @@ const BattleEngine = {
             // SPECIAL: If we just beat Mayu (True Ending Boss)
             // Check if CPU was Mayu
             const mayuInfo = CharacterData.find(c => c.id === 'mayu');
-            if (mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6)) { // 6 is Mayu index
+            const isTrueEnding = mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6); // 6 is Mayu index
+            if (isTrueEnding) {
                 console.log("TRUE ENDING COMPLETED!");
-                // Return to Title (or show another ending screen if we had one)
-                this.events.push({ type: 'STOP_MUSIC' });
-                Game.changeScene(TitleScene);
+                Game.isAutoTest = false; // Stop Auto Test
+                // Transition to Post-Victory Dialogue
+                Game.changeScene(EncounterScene, {
+                    playerIndex: this.playerIndex,
+                    cpuIndex: this.cpuIndex,
+                    mode: 'TRUE_ENDING_CLEAR',
+                    defeatedOpponents: [] // Reset
+                });
                 return;
             }
 
@@ -475,13 +494,14 @@ const BattleEngine = {
         } else {
             // Game Over -> Continue Screen
             this.resultInfo = { type: 'GAME_OVER' }; // Set resultInfo for game over
-            console.log(`Encounter Finished. Transitioning to Battle. P1: ${this.playerIndex}, CPU: ${this.cpuIndex}`);
+            console.log(`Encounter Finished. Transitioning to Continue Screen.`);
             this.events.push({ type: 'STOP_MUSIC' });
-            Game.changeScene(BattleScene, {
+
+            Game.changeScene(ContinueScene, {
                 playerIndex: this.playerIndex,
                 cpuIndex: this.cpuIndex,
                 defeatedOpponents: this.defeatedOpponents,
-                hasContinued: true // Mark continue used
+                isNextRound: false // Fresh rematch if continued
             });
             // Update Global Continue Count
             Game.continueCount++;
@@ -520,11 +540,13 @@ const BattleEngine = {
         this.deck = this.generateDeck();
         console.log(`Deck generated. Size: ${this.deck.length}`);
 
+        // CRITICAL: Clear hands before drawing new tiles
+        this.p1.hand = [];
+        this.cpu.hand = [];
+
         // Init Hands
         this.p1.hand = this.drawTiles(11);
         console.log(`Player Hand drawn. Size: ${this.p1.hand.length}`);
-
-
 
         this.cpu.hand = this.drawTiles(11);
         this.cpu.isRevealed = false; // Reset reveal status
@@ -560,6 +582,15 @@ const BattleEngine = {
         if (this.p1Character) this.p1Character.setState('idle');
         if (this.cpuCharacter) this.cpuCharacter.setState('idle');
 
+
+        // Auto-Lose Mode Check (Re-apply effectively)
+        if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
+            console.log("AUTO-LOSE MODE (startRound): Setting P1 HP=1, CPU HP=99999");
+            this.p1.hp = 1;      // Instant Death next hit
+            this.p1.maxHp = 1;
+            this.cpu.hp = 99999;
+            this.cpu.maxHp = 99999;
+        }
 
         console.log(`Round ${this.currentRound} Start! Visible Dora: ${this.doras[0].type}`);
     },
@@ -612,14 +643,23 @@ const BattleEngine = {
             this.updateBattleMusic();
         }
 
+        // AUTO TEST LOGIC
+        if (Game.isAutoTest && this.currentState === this.STATE_PLAYER_TURN && this.timer > 5) {
+            this.performAutoTurn();
+            return;
+        }
+
         // 1. Timer Update
         // this.timer++; // Removed, handled above
         // Update Characters
         if (this.p1Character) this.p1Character.update();
         if (this.cpuCharacter) this.cpuCharacter.update();
 
-        // Update FX
-
+        // Update Sequencing
+        if (this.sequencing.active) {
+            this.updateSequence();
+            return; // Block other logic
+        }
 
         if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
             if (this.timer % 30 === 0) {
@@ -629,59 +669,85 @@ const BattleEngine = {
 
         switch (this.currentState) {
             case this.STATE_INIT:
-                if (this.timer > this.DELAY_DRAW) {
-                    // Transition to Wait for Draw instead of direct draw
-                    this.currentState = this.STATE_WAIT_FOR_DRAW;
-                    this.timer = 0;
-                }
-                break;
-
-            case this.STATE_WAIT_FOR_DRAW:
-                // Waiting for User Input (Space / Click)
-                // Logic handled in BattleScene.js
-                break;
-
-            case this.STATE_PLAYER_TURN:
-                // Riichi Auto-Discard Logic
-                if (this.p1.isRiichi) {
-                    if (this.timer > this.DELAY_DISCARD_AUTO) {
-                        console.log("Riichi Auto-Discard (Delayed)");
-                        this.discardTile(this.p1.hand.length - 1);
+                if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
+                    if (this.turnCount === 1) {
+                        this.playerDraw();
                     }
                 }
                 break;
 
+            case this.STATE_WAIT_FOR_DRAW:
+                // Wait for click to confirm draw
+                if (window.Input && Input.isMousePressed || (Game.isAutoTest && this.timer > 5)) {
+                    this.confirmDraw();
+                }
+                break;
 
+            case this.STATE_PLAYER_TURN:
+                // Waiting for input... (Handled by Auto Test above or manual click)
+                break;
 
             case this.STATE_ACTION_SELECT:
                 if (this.actionTimer > 0) this.actionTimer--;
+
+                if (Game.isAutoTest && this.actionTimer <= 0) {
+                    // AUTO-LOSE SABOTAGE: actively avoid winning
+                    const isLoseMode = (Game.autoTestOptions && Game.autoTestOptions.loseMode);
+
+                    // Priority: TSUMO > RON > RIICHI > PASS
+                    const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
+                    if (tsumoAction && !isLoseMode) { // Skip if loseMode
+                        this.executeAction(tsumoAction);
+                        return;
+                    }
+
+                    const ronAction = this.possibleActions.find(a => a.type === 'RON');
+                    if (ronAction && !isLoseMode) {
+                        this.executeAction(ronAction);
+                        return;
+                    }
+
+                    const riichiAction = this.possibleActions.find(a => a.type === 'RIICHI');
+                    if (riichiAction && !isLoseMode) {
+                        this.executeAction(riichiAction);
+                        return;
+                    }
+
+                    const passAction = this.possibleActions.find(a => a.type === 'PASS');
+                    if (passAction) this.executeAction(passAction);
+                }
                 break;
 
             case this.STATE_FX_PLAYING:
-                this.updateSequence();
+                // Blocked until FX finishes
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer === 30 && !this.cpu.needsToDiscard) {
+                if (this.timer > (Game.isAutoTest ? 5 : 60)) { // Speed up CPU
                     this.cpuDraw();
-                }
-                if (this.timer === this.DELAY_DISCARD_AUTO && this.cpu.needsToDiscard) {
-                    this.cpu.needsToDiscard = false;
-                    const discardIdx = AILogic.decideDiscard(this.cpu.hand, BattleConfig.RULES.AI_DIFFICULTY, this.cpu.aiProfile);
-                    this.discardTileCPU(discardIdx);
                 }
                 break;
 
             case this.STATE_WIN:
             case this.STATE_LOSE:
+                if (window.Input && Input.isMousePressed || (Game.isAutoTest && this.timer > 30)) {
+                    this.confirmResult();
+                }
+                break;
+
             case this.STATE_NAGARI:
-                // Debug log every 60 frames
-                if (this.timer % 60 === 0) console.log("Waiting for Next Round Input (Space/Click)... State:", this.currentState);
-                // Input is now handled in BattleScene.js
+                if (window.Input && Input.isMousePressed || (Game.isAutoTest && this.timer > 30)) {
+                    this.startNextRound();
+                }
                 break;
 
             case this.STATE_MATCH_OVER:
-                // Input is now handled in BattleScene.js
+                // logic handled inside matchOver function usually, but if we are waiting for click to proceed?
+                // matchOver transitions scene immediately in current code.
+                // Wait, matchOver function calls Game.changeScene.
+                // So we might not stay in STATE_MATCH_OVER unless waiting for interaction?
+                // Looking at matchOver implementation:
+                // It calls Game.changeScene immediately. So this state might be transient.
                 break;
 
             case this.STATE_DAMAGE_ANIMATION:
@@ -708,7 +774,7 @@ const BattleEngine = {
                     }
                 }
 
-                if (this.timer > 60) { // 1 Second delay for animation
+                if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up damage anim
                     this.pendingDamage = null;
                     if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
                         this.currentState = this.STATE_MATCH_OVER;
@@ -851,7 +917,7 @@ const BattleEngine = {
         }
 
         // 2. Check Riichi
-        if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2) {
+        if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
             // Check if can Riichi (Tenpai check)
             let canRiichi = false;
             for (let i = 0; i < this.cpu.hand.length; i++) {
@@ -934,7 +1000,14 @@ const BattleEngine = {
                 }
                 // Auto-Pass if only Pass available
                 console.log("Riichi Auto-Pass");
-                this.executeAction({ type: 'PASS' });
+                // Manually proceed to next turn logic (Fixing executeAction state check issue)
+                this.turnCount++;
+                this.checkRoundEnd();
+
+                if (this.currentState === this.STATE_NAGARI || this.currentState === this.STATE_MATCH_OVER) return; // Round ended
+
+                console.log("Riichi Auto-Draw");
+                this.playerDraw();
                 return;
             }
 
@@ -945,7 +1018,7 @@ const BattleEngine = {
             this.turnCount++;
 
             this.checkRoundEnd();
-            if (this.currentState !== this.STATE_CPU_TURN) return; // Transitioned to End State
+            if (this.currentState === this.STATE_NAGARI || this.currentState === this.STATE_MATCH_OVER) return; // Transitioned to End State
 
             // Check Riichi Auto Draw
             if (this.p1.isRiichi) {
@@ -1158,7 +1231,7 @@ const BattleEngine = {
         // Check openSets length
         const isMenzen = this.p1.openSets.length === 0;
 
-        if (!this.p1.isRiichi && isMenzen && hand.length >= 2) {
+        if (!this.p1.isRiichi && isMenzen && hand.length >= 2 && this.turnCount < 20) {
             // Check if any discard leads to Tenpai
             // We have 12 tiles now (after draw).
             // We need to check if discarding any tile results in a hand that is Tenpai (1 away from win).
@@ -1221,6 +1294,40 @@ const BattleEngine = {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
             console.log("Not player turn, cannot auto-select.");
             return;
+        }
+
+        // Riichi Enforcement: Must discard drawn tile (last one)
+        if (this.p1.isRiichi) {
+            console.log("[Auto-Select] Player is Riichi. Auto-Discard drawn tile.");
+            this.discardTile(this.p1.hand.length - 1);
+            return;
+        }
+
+        // Auto-Riichi Check
+        if (this.p1.isMenzen && this.p1.hand.length >= 2) {
+            let canRiichi = false;
+            let riichiDiscardIndex = -1;
+
+            for (let i = 0; i < this.p1.hand.length; i++) {
+                const tempHand = [...this.p1.hand];
+                tempHand.splice(i, 1);
+                if (this.checkTenpai(tempHand)) {
+                    canRiichi = true;
+                    riichiDiscardIndex = i;
+                    break;
+                }
+            }
+
+            if (canRiichi) {
+                console.log("[Auto-Select] Auto-Riichi!");
+                this.p1.isRiichi = true;
+                this.p1.declaringRiichi = true;
+                this.showPopup('RIICHI');
+                this.events.push({ type: 'SOUND', id: 'audio/riichi' });
+                this.updateBattleMusic();
+                this.discardTile(riichiDiscardIndex);
+                return;
+            }
         }
 
         try {

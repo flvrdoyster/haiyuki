@@ -338,6 +338,51 @@ const DialogueData = {
     ],
 
     // Default Fallback
+    // Ataho vs Mayu (Ending)
+    "ataho_mayu_ending": [
+        { speaker: "mayu", text: "깨갱... 깽!" },
+        { speaker: "ataho", text: "허허, 이제야 좀 얌전해졌구만.\n어떤가, 패배를 인정하겠나?" },
+        { speaker: "mayu", text: "멍! (끄덕끄덕)" },
+        { speaker: "ataho", text: "좋아, 그럼 다시는 사람을 놀래키지 말게.\n알겠지?" },
+        { speaker: "mayu", text: "멍멍!" }
+    ],
+
+    // Rinxiang vs Mayu (Ending)
+    "rinxiang_mayu_ending": [
+        { speaker: "mayu", text: "깨갱..." },
+        { speaker: "rinxiang", text: "어때, 내 실력을 알겠어?\n이제 장난치면 안 돼!" },
+        { speaker: "mayu", text: "쿠~웅..." }
+    ],
+
+    // Fari vs Mayu (Ending)
+    "fari_mayu_ending": [
+        { speaker: "mayu", text: "깨갱..." },
+        { speaker: "fari", text: "자, 이제 착한 아이가 되기로 약속해요.\n아시겠죠?" },
+        { speaker: "mayu", text: "멍!" }
+    ],
+
+    // Smash vs Mayu (Ending)
+    "smash_mayu_ending": [
+        { speaker: "mayu", text: "깨갱..." },
+        { speaker: "smash", text: "하하하! 이 몸의 승리다!\n이제 복종하라고, 눈썹 개!" },
+        { speaker: "mayu", text: "으르릉..." },
+        { speaker: "smash", text: "히익?! 알았어, 알았다고!" }
+    ],
+
+    // Petum vs Mayu (Ending)
+    "petum_mayu_ending": [
+        { speaker: "mayu", text: "깨갱..." },
+        { speaker: "petum", text: "이런이런, 너무 심하게 다뤘나요.\n상처 좀 볼까요?" },
+        { speaker: "mayu", text: "멍? (갸웃)" }
+    ],
+
+    // Yuri vs Mayu (Ending)
+    "yuri_mayu_ending": [
+        { speaker: "mayu", text: "깨갱..." },
+        { speaker: "yuri", text: "흥, 제법 즐거웠어.\n다음에 또 놀아주지." },
+        { speaker: "mayu", text: "멍멍!" }
+    ],
+
     "default": [
         { speaker: 'p1', text: "자, 승부다!" },
         { speaker: 'cpu', text: "지지 않아!" }

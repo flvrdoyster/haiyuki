@@ -37,7 +37,7 @@ const EncounterScene = {
     currentLineIndex: 0,
     textTimer: 0,
 
-    characters: CharacterData.filter(c => !c.hidden),
+    characters: CharacterData, // Use full list to support Hidden/Boss characters (e.g. Mayu)
 
     init: function (data) {
         this.playerIndex = data.playerIndex;
@@ -49,16 +49,34 @@ const EncounterScene = {
         this.state = 0;
         this.currentLineIndex = 0;
 
-        // BGM
+        // BGM - Ensure previous music is stopped before starting new track
+        Assets.stopMusic();
         Assets.playMusic('audio/bgm_trail');
 
         // Load Dialogue
-        const p1 = this.characters[this.playerIndex];
-        const cpu = this.characters[this.cpuIndex];
+        let p1 = this.characters[this.playerIndex];
+        let cpu = this.characters[this.cpuIndex];
+
+        // Safeguard for undefined characters (prevents Ending Crash)
+        if (!p1) {
+            console.error(`P1 undefined (Index: ${this.playerIndex}). Fallback to 0.`);
+            this.playerIndex = 0;
+            p1 = this.characters[0];
+        }
+        if (!cpu) {
+            console.error(`CPU undefined (Index: ${this.cpuIndex}). Fallback to valid opponent.`);
+            // Pick anyone who isn't P1
+            this.cpuIndex = (this.playerIndex === 0) ? 1 : 0;
+            cpu = this.characters[this.cpuIndex];
+        }
+
         let key = `${p1.id}_${cpu.id}`;
 
-        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
+        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR') {
             key += "_ending";
+        } else if (this.mode === 'TRUE_ENDING' || cpu.id === 'mayu') {
+            // Use True Ending Intrusion Dialogue
+            key += "_true_ending";
         }
 
         console.log(`Loading dialogue for: ${key}`);
@@ -132,8 +150,11 @@ const EncounterScene = {
         if (this.p1Portrait) this.p1Portrait.update();
         if (this.cpuPortrait) this.cpuPortrait.update();
 
-        // Simple input to advance text
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+        // Simple input to advance text OR Auto Test
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || (Game.isAutoTest && ++this.textTimer > 2)) {
+
+            if (Game.isAutoTest) this.textTimer = 0;
+
             this.currentLineIndex++;
             if (this.currentLineIndex >= this.dialogueSequence.length) {
                 console.log('Dialogue finished.');
@@ -161,12 +182,12 @@ const EncounterScene = {
                             defeatedOpponents: []
                         });
                     }
-                } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
+                } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR') {
                     // Ending Dialogue Finished -> Go to Ending Image
                     console.log('Ending Dialogue finished. Go to Ending Scene.');
                     Game.changeScene(EndingScene, {
                         playerIndex: this.playerIndex,
-                        skipTrueEnd: (this.mode === 'ENDING_WATCH')
+                        skipTrueEnd: (this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR')
                     });
                 } else {
                     // Story/Normal Mode: Go to Battle

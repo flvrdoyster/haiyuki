@@ -34,6 +34,14 @@ const Game = {
         const yakuContainer = document.getElementById('yaku-container');
         if (yakuBtn && yakuContainer) {
             yakuBtn.onclick = () => {
+                // Mobile: Open in new tab
+                if (window.innerWidth <= 768) {
+                    window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank');
+                    yakuBtn.blur();
+                    return;
+                }
+
+                // Desktop: Toggle Iframe
                 const isHidden = yakuContainer.classList.toggle('hidden');
 
                 // Update Button State (Red/On = Open, Blue/Off = Closed)
@@ -81,8 +89,39 @@ const Game = {
         }
     },
 
+    isAutoTest: false,
+    autoTestOptions: {}, // { loseMode: true }
+    testLogs: [],
+
+    startAutoTest: function (options = {}) {
+        console.log("=== STARTING AUTO-TEST MODE ===");
+        this.isAutoTest = true;
+        this.autoTestOptions = options;
+        this.testLogs = [];
+        // Force start if not already
+        if (!this.currentScene) this.init();
+    },
+
+    startAutoLoseTest: function () {
+        console.log("=== STARTING AUTO-LOSE TEST MODE ===");
+        this.startAutoTest({ loseMode: true });
+    },
+
+    stopAutoTest: function () {
+        console.log("=== STOPPING AUTO-TEST MODE ===");
+        console.log("Test Results:", this.testLogs);
+        this.isAutoTest = false;
+        this.autoTestOptions = {};
+    },
+
     loop: function () {
-        Game.update();
+        // Speed up in Auto Test Mode (10x speed)
+        const iterations = Game.isAutoTest ? 10 : 1;
+
+        for (let i = 0; i < iterations; i++) {
+            Game.update();
+        }
+
         Game.draw();
         requestAnimationFrame(Game.loop);
     }

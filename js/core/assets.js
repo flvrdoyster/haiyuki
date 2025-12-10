@@ -225,11 +225,13 @@ const Assets = {
     },
 
     playMusic: function (id, loop = true) {
-        // Stop current music if playing
+        // CRITICAL: Stop current music if playing to prevent overlap
         this.stopMusic();
 
         const audio = this.getAudio(id);
         if (audio) {
+            // Ensure audio is fully reset
+            audio.pause();
             audio.currentTime = 0;
             audio.loop = loop;
             audio.volume = 0.5;
@@ -258,6 +260,7 @@ const Assets = {
             }
             audio._id = id; // Store ID for state checking
             this.currentMusic = audio;
+            console.log(`[BGM] Now playing: ${id}`);
         } else {
             console.warn(`Music audio not found: ${id}`);
         }
@@ -273,9 +276,14 @@ const Assets = {
 
     stopMusic: function () {
         if (this.currentMusic) {
+            console.log(`[BGM] Stopping: ${this.currentMusic._id || 'unknown'}`);
             this.currentMusic.pause();
             this.currentMusic.currentTime = 0;
+            // Clear the reference immediately to prevent any race conditions
+            const stoppedMusic = this.currentMusic;
             this.currentMusic = null;
+            // Ensure it's truly stopped
+            stoppedMusic.pause();
         }
     },
 
