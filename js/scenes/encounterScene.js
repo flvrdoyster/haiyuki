@@ -50,7 +50,7 @@ const EncounterScene = {
         this.currentLineIndex = 0;
 
         // BGM - Ensure previous music is stopped before starting new track
-        Assets.stopMusic();
+        Assets.stopAll();
         Assets.playMusic('audio/bgm_trail');
 
         // Load Dialogue

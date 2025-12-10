@@ -287,6 +287,18 @@ const Assets = {
         }
     },
 
+    stopAll: function () {
+        this.stopMusic();
+        // Brute force stop all audio instances (except clones which we can't track)
+        Object.values(this.audio).forEach(audio => {
+            if (!audio.paused) {
+                console.log(`[Assets] Force stopping: ${audio._id || 'unknown'}`);
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+    },
+
     /**
      * Draw a specific frame from a spritesheet.
      * Assumes horizontal strip by default.
