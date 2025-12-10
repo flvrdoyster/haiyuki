@@ -2,7 +2,7 @@
 // Scene Configuration
 const SelectConfig = {
     BACKGROUND: { path: 'bg/CHRBAK.png' },
-    TITLE: { path: 'face/CHRSELE.png', y: 20 },
+    TITLE: { y: 20 },
     VS_LOGO: { path: 'ui/vs.png', y: 200 },
     PORTRAIT: {
         w: 280, h: 304,

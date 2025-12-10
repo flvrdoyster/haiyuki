@@ -142,6 +142,33 @@ window.UIPreview = {
     },
 
     startMockResult: function (type) {
+        // Read bonus configuration
+        const bonuses = [];
+        let bonusScore = 0;
+
+        if (document.getElementById('bonus-tenho').checked) {
+            bonuses.push('Tenho');
+            bonusScore += 800;
+        }
+        if (document.getElementById('bonus-haitei').checked) {
+            bonuses.push('Haitei');
+            bonusScore += 800;
+        }
+        if (document.getElementById('bonus-houtei').checked) {
+            bonuses.push('Houtei');
+            bonusScore += 800;
+        }
+        if (document.getElementById('bonus-dora').checked) {
+            const doraCount = parseInt(document.getElementById('bonus-dora-count').value) || 0;
+            if (doraCount > 0) {
+                bonuses.push(`Dora x${doraCount}`);
+                bonusScore += (400 * doraCount);
+            }
+        }
+
+        const baseScore = (type === 'WIN') ? 8000 : 12000;
+        const finalScore = baseScore + bonusScore;
+
         const MockResult = {
             // Mock Logic Constants
             STATE_WIN: 5,
@@ -153,8 +180,10 @@ window.UIPreview = {
 
             resultInfo: {
                 type: type,
-                score: (type === 'WIN') ? 8000 : 12000,
-                yakuName: (type === 'WIN') ? "맹호일발권\n올스타즈" : "국사무쌍",
+                score: finalScore,
+                yakuName: (type === 'WIN') ? "맹호일발권\\n올스타즈" : "국사무쌍",
+                bonuses: bonuses,
+                bonusScore: bonusScore,
                 p1Status: (type === 'WIN') ? "WIN" : "LOSE",
                 cpuStatus: (type === 'WIN') ? "LOSE" : "WIN",
                 damageMsg: ""

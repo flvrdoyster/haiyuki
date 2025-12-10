@@ -578,13 +578,8 @@ const BattleRenderer = {
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        // Draw Frame
-        Assets.drawUIFrame(ctx, rx, ry, rw, rh);
-
-        // Inner Dimmer
-        const border = 4;
-        ctx.fillStyle = conf.dimmer || 'rgba(0,0,0,0.5)';
-        ctx.fillRect(rx + border, ry + border, rw - (border * 2), rh - (border * 2));
+        // Draw Window using UI helper
+        UI.drawWindow(ctx, rx, ry, rw, rh);
 
         // 3. Border (Removed/Redundant with Frame, but kept if special overlay needed? No, Frame has border)
         // if (conf.borderWidth > 0) { ... } -> Removed
@@ -643,6 +638,18 @@ const BattleRenderer = {
             ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
         });
 
+        // Display Bonuses (Config-based)
+        if (info.bonuses && info.bonuses.length > 0) {
+            const bonusConf = conf.BONUS;
+            ctx.fillStyle = bonusConf.color;
+            ctx.font = bonusConf.font;
+            const bonusStartY = conf.scoreY + (lines.length * conf.infoLineHeight) + bonusConf.startYOffset;
+
+            info.bonuses.forEach((bonus, i) => {
+                ctx.fillText(bonusConf.prefix + bonus, conf.scoreX, bonusStartY + (i * bonusConf.lineHeight));
+            });
+        }
+
         // 3. Footer "Press Space"
         // 3. Footer "Press Space"
         // Show only after delay allowed input
@@ -667,17 +674,8 @@ const BattleRenderer = {
         const w = conf.w;
         const h = conf.h;
 
-        // 1. Draw Frame
-        Assets.drawUIFrame(ctx, x, y, w, h);
-
-        // 2. Dimmer (Optional inner background)
-        // If the frame edges have transparency or the center is empty, 
-        // we might want a solid or transparent black fill behind it?
-        // The frame logic assumes edges. Let's draw a dimmer inside just in case.
-        // Assuming frame border is approx 10px? 
-        const border = 4; // Inner pad
-        ctx.fillStyle = conf.dimmer;
-        ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
+        // 1. Draw Window using UI helper
+        UI.drawWindow(ctx, x, y, w, h);
 
         const startX = x + conf.padding;
         const startY = y + conf.padding + 7;
@@ -759,32 +757,18 @@ const BattleRenderer = {
         const w = conf.w;
         const h = conf.h;
 
-        // Draw Frame
-        Assets.drawUIFrame(ctx, x, y, w, h);
+        // Draw Button using UI helper
+        // Map config to match UI.drawButton expectations
+        // Is selected/hovered?
+        const isHovered = (Input && Input.mouseX >= x && Input.mouseX <= x + w &&
+            Input.mouseY >= y && Input.mouseY <= y + h);
 
-        // Dimmer
-        ctx.fillStyle = conf.dimmer;
-        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        const options = {
+            font: conf.font,
+            cursorColor: conf.cursor
+        };
 
-        // Text
-        ctx.fillStyle = conf.textColor;
-        ctx.font = conf.font;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(conf.text, x + w / 2, y + h / 2);
-
-        // Highlight if hovered
-        // Use global Input if available, otherwise would need state
-        if (Input && Input.mouseX >= x && Input.mouseX <= x + w &&
-            Input.mouseY >= y && Input.mouseY <= y + h) {
-
-            ctx.fillStyle = conf.cursor || 'rgba(255, 105, 180, 0.5)';
-            ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-
-            // Re-draw text on top of cursor?
-            ctx.fillStyle = conf.textSelected || '#FFFF00'; // Or keep white
-            ctx.fillText(conf.text, x + w / 2, y + h / 2);
-        }
+        UI.drawButton(ctx, x, y, w, h, conf.text, isHovered, options);
     },
 
     checkDrawButton: function (x, y) {

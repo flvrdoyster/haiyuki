@@ -160,7 +160,7 @@ const BattleConfig = {
             },
             NAGARI: {
                 title: "무승부!",
-                text: "MAN: {p1Status} / COM: {cpuStatus}\n{damageMsg}",
+                text: "플레이어: {p1Status} / 상대: {cpuStatus}\n{damageMsg}",
                 color: "white"
             },
             MATCH_WIN: {
@@ -174,6 +174,15 @@ const BattleConfig = {
         },
         TEXTS: {
             pressSpace: "계속 진행하기"
+        },
+
+        // Bonus Display Configuration
+        BONUS: {
+            font: '16px "Noto Sans KR", sans-serif',
+            color: '#FFD700', // Gold
+            startYOffset: 10, // Offset from last info line
+            lineHeight: 16,   // Spacing between bonus lines
+            prefix: '+ '      // Prefix for each bonus line
         }
     },
 

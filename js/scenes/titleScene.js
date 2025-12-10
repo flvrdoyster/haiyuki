@@ -4,8 +4,9 @@ const TitleConfig = {
     PUSH_KEY: { path: 'ui/pushok.png', y: 360, centered: true },
     COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 430, centered: true },
     MENU: {
-        ITEM1: { text: "BATTLE MODE", y: 300 },
-        ITEM2: { text: "STORY ONLY", y: 340 }
+        ITEM1: { text: "BATTLE", y: 300 },
+        ITEM2: { text: "STORY ONLY", y: 340 },
+        ITEM3: { text: "RESET", y: 380 }
     }
 };
 
@@ -33,6 +34,10 @@ const TitleScene = {
     },
 
     update: function () {
+        // Update ConfirmDialog first (blocks other input when active)
+        UI.Confirm.update();
+        if (UI.Confirm.isActive) return; // Block scene input when dialog is active
+
         this.blinkTimer++;
         if (this.blinkTimer > 40) { // Slower blink
             this.showPushKey = !this.showPushKey;
@@ -46,14 +51,65 @@ const TitleScene = {
                 // Game.changeScene(CharacterSelectScene);
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
-            if (Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
-                this.menuIndex = (this.menuIndex === 0) ? 1 : 0;
+            // Mouse Interaction Logic
+            const mx = Input.mouseX;
+            const my = Input.mouseY;
+
+            // Helper to check bounds
+            const checkHover = (text, y, index) => {
+                const w = text.length * 32;
+                const h = 32;
+                const x = (640 - w) / 2;
+                if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
+                    return true;
+                }
+                return false;
+            };
+
+            const t1 = TitleConfig.MENU.ITEM1.text;
+            const t2 = TitleConfig.MENU.ITEM2.text;
+            const t3 = TitleConfig.MENU.ITEM3.text;
+
+            if (checkHover(t1, TitleConfig.MENU.ITEM1.y, 0)) this.menuIndex = 0;
+            else if (checkHover(t2, TitleConfig.MENU.ITEM2.y, 1)) this.menuIndex = 1;
+            else if (checkHover(t3, TitleConfig.MENU.ITEM3.y, 2)) this.menuIndex = 2;
+
+            if (Input.isJustPressed(Input.UP)) {
+                this.menuIndex = (this.menuIndex - 1 + 3) % 3;
+            }
+            if (Input.isJustPressed(Input.DOWN)) {
+                this.menuIndex = (this.menuIndex + 1) % 3;
             }
 
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
-                const mode = (this.menuIndex === 0) ? 'STORY' : 'WATCH';
-                Assets.stopMusic(); // Ensure title music stops
-                Game.changeScene(CharacterSelectScene, { mode: mode });
+                // If Mouse Click, double check we are hovering correct item to avoid misclicks?
+                // Or just trust menuIndex which updates on hover.
+                // Current behavior: Trust menuIndex.
+
+                if (this.menuIndex === 0) {
+                    // Battle
+                    Assets.stopMusic();
+                    Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
+                } else if (this.menuIndex === 1) {
+                    // Story Only
+                    Assets.stopMusic();
+                    Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
+                } else if (this.menuIndex === 2) {
+                    // Reset Save Data 
+                    UI.Confirm.show(
+                        '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.',
+                        () => {
+                            // On Confirm
+                            Game.saveData = { unlocked: [], clearedOpponents: [] };
+                            Game.continueCount = 0;
+                            Game.save();
+                            // Show success message (could be another dialog or just return to menu)
+                        },
+                        () => {
+                            // On Cancel - do nothing
+                        }
+                    );
+                }
             }
 
             this.pointerTimer++;
@@ -95,10 +151,25 @@ const TitleScene = {
             const x2 = (640 - (text2.length * 32)) / 2;
             Assets.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
 
+            // Item 3: RESET SAVE DATA
+            const text3 = TitleConfig.MENU.ITEM3.text;
+            const color3 = (this.menuIndex === 2) ? 'yellow' : 'orange';
+            const x3 = (640 - (text3.length * 32)) / 2;
+            Assets.drawAlphabet(ctx, text3, x3, TitleConfig.MENU.ITEM3.y, color3);
+
             // Draw Pointer
-            let targetText = (this.menuIndex === 0) ? text1 : text2;
-            let targetY = (this.menuIndex === 0) ? TitleConfig.MENU.ITEM1.y : TitleConfig.MENU.ITEM2.y;
-            let targetX = (640 - (targetText.length * 32)) / 2;
+            let targetText, targetY, targetX;
+            if (this.menuIndex === 0) {
+                targetText = text1;
+                targetY = TitleConfig.MENU.ITEM1.y;
+            } else if (this.menuIndex === 1) {
+                targetText = text2;
+                targetY = TitleConfig.MENU.ITEM2.y;
+            } else {
+                targetText = text3;
+                targetY = TitleConfig.MENU.ITEM3.y;
+            }
+            targetX = (640 - (targetText.length * 32)) / 2;
 
             // Pointer Animation
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
@@ -111,5 +182,8 @@ const TitleScene = {
         if (copy) {
             ctx.drawImage(copy, (640 - copy.width) / 2, TitleConfig.COPYRIGHT.y);
         }
+
+        // 5. Confirmation Dialog (drawn on top)
+        UI.Confirm.draw(ctx);
     }
 };

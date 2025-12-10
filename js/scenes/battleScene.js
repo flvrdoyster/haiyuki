@@ -188,6 +188,10 @@ const BattleScene = {
     },
 
     update: function () {
+        // Update ConfirmDialog first (blocks other input)
+        UI.Confirm.update();
+        if (UI.Confirm.isActive) return;
+
         this.processEvents(BattleEngine);
         this.updateFX();
 
@@ -359,7 +363,7 @@ const BattleScene = {
 
         BattleRenderer.draw(ctx, BattleEngine);
 
-        // Cleanup? 
-        // No need, BattleEngine doesn't use it.
+        // Draw Confirmation Dialog on top
+        UI.Confirm.draw(ctx);
     }
 };

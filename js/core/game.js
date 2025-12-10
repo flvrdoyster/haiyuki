@@ -111,6 +111,11 @@ const Game = {
         }
     },
 
+    // Auto-Test Mode
+    // Console Commands:
+    //   Game.startAutoTest()         - Start auto-test (10x speed, auto-progress)
+    //   Game.startAutoLoseTest()     - Start auto-test in lose mode (P1 HP=1)
+    //   Game.stopAutoTest()          - Stop auto-test and show logs
     isAutoTest: false,
     autoTestOptions: {}, // { loseMode: true }
     testLogs: [],

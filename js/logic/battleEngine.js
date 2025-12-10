@@ -285,11 +285,21 @@ const BattleEngine = {
             this.winningYaku.score = score;
         }
 
+        // Calculate Bonuses
+        const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
+        const bonusResult = this.calculateBonuses(winnerHand, type);
+        const finalScore = score + bonusResult.score;
+
+        console.log(`Base Score: ${score}, Bonus: ${bonusResult.score}, Final: ${finalScore}`);
+        console.log(`Bonuses: ${bonusResult.names.join(', ')}`);
+
         const winType = (who === 'P1') ? 'WIN' : 'LOSE';
         this.resultInfo = {
             type: winType,
-            score: score,
-            yakuName: this.winningYaku ? this.winningYaku.yaku[0] : ''
+            score: finalScore,
+            yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
+            bonuses: bonusResult.names,
+            bonusScore: bonusResult.score
         };
 
         steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: score });
@@ -1146,7 +1156,8 @@ const BattleEngine = {
             if (t.type === discardedTile.type && t.color === discardedTile.color) pairCount++;
         });
 
-        if (pairCount >= 2 && !this.cpu.isRiichi) {
+        // Require at least 3 tiles in hand to Pon (need 1 tile left to discard)
+        if (pairCount >= 2 && !this.cpu.isRiichi && this.cpu.hand.length >= 3) {
             const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
             if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty, this.cpu.aiProfile)) {
                 this.executeCpuPon(discardedTile);
@@ -1208,7 +1219,8 @@ const BattleEngine = {
         hand.forEach(t => {
             if (t.type === discardedTile.type) matchCount++;
         });
-        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20 && !this.p1.isRiichi) {
+        // Require at least 3 tiles in hand to Pon (need 1 tile left to discard)
+        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20 && !this.p1.isRiichi && hand.length >= 3) {
             const ponAction = { type: 'PON', label: '펑', targetTile: discardedTile };
             this.possibleActions.push(ponAction);
         }
@@ -1606,11 +1618,20 @@ const BattleEngine = {
                 return; // Prevent double toggle
             }
         } else if (selectedId === 'RESTART') {
-            // Restart Round Strategy
-            if (confirm("정말로 이 라운드를 다시 시작할까요?")) {
-                this.toggleBattleMenu(); // Close menu
-                this.startRound();
-            }
+            // Restart Round Strategy - Show in-game confirmation
+            UI.Confirm.show(
+                '정말로 이 라운드를 다시 시작할까요?',
+                () => {
+                    // On Confirm
+                    this.toggleBattleMenu(); // Close menu
+                    this.startRound();
+                },
+                () => {
+                    // On Cancel
+                    this.toggleBattleMenu(); // Close menu
+                }
+            );
+            return; // Don't auto-close menu, let dialog handle it
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
                 console.log(`Skill Disabled: ${selectedItem.label}`);
@@ -1695,7 +1716,71 @@ const BattleEngine = {
         }
     },
 
-    // --- Riichi AI Helper ---
+    // --- Bonus Logic ---
+    calculateBonuses: function (hand, winType) {
+        let totalBonus = 0;
+        let bonusNames = [];
+
+        // 1. Tenho (Heavenly Hand)
+        // 1st Turn & Tsumo
+        if (this.turnCount <= 1 && winType === 'TSUMO') {
+            totalBonus += 800;
+            bonusNames.push('텐호 보너스');
+        }
+
+        // 2 & 3. Haitei / Houtei (Last Turn)
+        // Check if it's the 20th turn (or last turn context)
+        // Using strict 20 for now as requested. 
+        if (this.turnCount >= 20) {
+            if (winType === 'TSUMO') {
+                totalBonus += 800;
+                bonusNames.push('해저 보너스');
+            } else if (winType === 'RON') {
+                totalBonus += 800;
+                bonusNames.push('하저 보너스');
+            }
+        }
+
+        // 4. Dora
+        // Check visible Doras
+        let doraCount = 0;
+        this.doras.forEach(dora => {
+            hand.forEach(tile => {
+                if (tile.type === dora.type && tile.color === dora.color) {
+                    doraCount++;
+                }
+            });
+        });
+
+        // Check Ura Dora (Hidden) - Only if Riichi?
+        if (this.p1.isRiichi) {
+            // Ensure Ura Doras exist
+            if (!this.uraDoras || this.uraDoras.length === 0) {
+                this.uraDoras = [];
+                // Generate 2 random Ura Doras safely (using deck logic might be better but simple random for now)
+                for (let i = 0; i < 2; i++) {
+                    const t = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+                    this.uraDoras.push({ type: t.id, color: t.color, img: t.img });
+                }
+            }
+
+            this.uraDoras.forEach(dora => {
+                hand.forEach(tile => {
+                    if (tile.type === dora.type && tile.color === dora.color) {
+                        doraCount++;
+                    }
+                });
+            });
+        }
+
+        if (doraCount > 0) {
+            totalBonus += (400 * doraCount);
+            bonusNames.push(`도라 보너스 x ${doraCount}개`);
+        }
+
+        return { score: totalBonus, names: bonusNames };
+    },
+
     getRiichiScore: function (discardIdx) {
         // Simulate Discard
         const tempHand = [...this.p1.hand];
