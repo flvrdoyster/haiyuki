@@ -6,6 +6,7 @@ const Game = {
     isTrueEndingPath: false,
 
     init: function () {
+        this.load(); // Load saved data
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.continueCount = 0;
@@ -65,6 +66,27 @@ const Game = {
             this.changeScene(TitleScene);
             this.loop();
         });
+    },
+
+    saveData: {
+        unlocked: []
+    },
+
+    load: function () {
+        const data = localStorage.getItem('haiyuki_save');
+        if (data) {
+            try {
+                this.saveData = JSON.parse(data);
+                console.log("Save data loaded:", this.saveData);
+            } catch (e) {
+                console.error("Failed to parse save data:", e);
+            }
+        }
+    },
+
+    save: function () {
+        localStorage.setItem('haiyuki_save', JSON.stringify(this.saveData));
+        console.log("Game saved.");
     },
 
     changeScene: function (scene, data) {

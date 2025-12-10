@@ -106,10 +106,10 @@ const EndingScene = {
                 // Determine Mayu's index in the original array
                 const mayuIndex = CharacterData.indexOf(mayu);
 
-                Game.changeScene(EncounterScene, {
+                // Transition to Intrusion Scene (Warning)
+                Game.changeScene(HerecomeScene, {
                     playerIndex: this.playerIndex,
                     cpuIndex: mayuIndex,
-                    mode: 'TRUE_ENDING',
                     defeatedOpponents: []
                 });
             } else {

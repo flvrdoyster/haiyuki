@@ -325,9 +325,29 @@ const Assets = {
      * @param {number} y - Start y position
      * @param {string} color - 'orange' (default) or 'yellow'
      */
-    drawAlphabet: function (ctx, text, x, y, color = 'orange') {
+    /**
+     * Draw text using 'ui/alphabet.png'.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {string} text - Text to draw (A-Z, ?)
+     * @param {number} x - Start x position
+     * @param {number} y - Start y position
+     * @param {string|object} options - 'orange' (default) or { color: 'orange', spacing: 32, spaceWidth: 32 }
+     */
+    drawAlphabet: function (ctx, text, x, y, options = 'orange') {
         const img = this.get('ui/alphabet.png');
         if (!img) return;
+
+        let color = 'orange';
+        let letterSpacing = 32;
+        let spaceWidth = 32;
+
+        if (typeof options === 'string') {
+            color = options;
+        } else {
+            color = options.color || 'orange';
+            letterSpacing = options.spacing !== undefined ? options.spacing : 32;
+            spaceWidth = options.spaceWidth !== undefined ? options.spaceWidth : 32;
+        }
 
         const frameWidth = 32;
         const frameHeight = 32;
@@ -338,17 +358,23 @@ const Assets = {
         const sy = row * frameHeight;
 
         text = text.toUpperCase();
+        let currentX = x;
 
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            const index = chars.indexOf(char);
 
+            if (char === ' ') {
+                currentX += spaceWidth;
+                continue;
+            }
+
+            const index = chars.indexOf(char);
             if (index !== -1) {
                 const sx = index * frameWidth;
-                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, x + (i * frameWidth), y, frameWidth, frameHeight);
-            } else if (char === ' ') {
-                // Just advance for space
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, frameWidth, frameHeight);
             }
+
+            currentX += letterSpacing;
         }
     },
 

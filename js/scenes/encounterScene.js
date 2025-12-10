@@ -182,12 +182,16 @@ const EncounterScene = {
                             defeatedOpponents: []
                         });
                     }
-                } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR') {
+                } else if (this.mode === 'TRUE_ENDING_CLEAR') {
+                    // True Ending Clear -> Credits
+                    console.log('True Ending Dialogue finished. Go to Credits.');
+                    Game.changeScene(CreditsScene);
+                } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
                     // Ending Dialogue Finished -> Go to Ending Image
                     console.log('Ending Dialogue finished. Go to Ending Scene.');
                     Game.changeScene(EndingScene, {
                         playerIndex: this.playerIndex,
-                        skipTrueEnd: (this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR')
+                        skipTrueEnd: (this.mode === 'ENDING_WATCH')
                     });
                 } else {
                     // Story/Normal Mode: Go to Battle

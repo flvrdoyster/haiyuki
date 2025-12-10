@@ -32,12 +32,8 @@ const CharacterSelectScene = {
     currentState: 0,
 
     // Character Data
-    // We assume frames are horizontal strips in CHRSELEF_face.png
-    // Character Data
-    // Loaded from js/data/characterData.js
-    // Filter out hidden characters if needed, or handle them in UI
-    characters: CharacterData.filter(c => !c.hidden),
-
+    // Loaded dynamically in init to support unlocking
+    characters: [],
 
     playerIndex: 0,
     cpuIndex: 0,
@@ -53,6 +49,13 @@ const CharacterSelectScene = {
     debugSkipDialogue: false, // Skip EncounterScene if true
 
     init: function (data) {
+        // Refresh character list (Check for unlocks)
+        this.characters = CharacterData.filter(c => {
+            if (!c.hidden) return true;
+            if (Game.saveData && Game.saveData.unlocked.includes(c.id)) return true;
+            return false;
+        });
+
         this.currentState = this.STATE_PLAYER_SELECT;
         this.playerIndex = 0;
         this.cpuIndex = 0; // Initialize to 0 to avoid draw crash

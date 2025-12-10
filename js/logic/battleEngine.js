@@ -191,14 +191,16 @@ const BattleEngine = {
         this.p1Character = new PortraitCharacter(p1Data, {
             ...BattleConfig.PORTRAIT.P1,
             baseW: BattleConfig.PORTRAIT.baseW,
-            baseH: BattleConfig.PORTRAIT.baseH
+            baseH: BattleConfig.PORTRAIT.baseH,
+            isBattle: true
         }, false);
         this.p1Character.setAnimationConfig(getAnimConfig(p1Data, 'left'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
             ...BattleConfig.PORTRAIT.CPU,
             baseW: BattleConfig.PORTRAIT.baseW,
-            baseH: BattleConfig.PORTRAIT.baseH
+            baseH: BattleConfig.PORTRAIT.baseH,
+            isBattle: true
         }, true);
         this.cpuCharacter.setAnimationConfig(getAnimConfig(cpuData, 'right'));
 
@@ -473,6 +475,14 @@ const BattleEngine = {
             const isTrueEnding = mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6); // 6 is Mayu index
             if (isTrueEnding) {
                 console.log("TRUE ENDING COMPLETED!");
+
+                // Unlock Mayu
+                if (!Game.saveData.unlocked.includes('mayu')) {
+                    Game.saveData.unlocked.push('mayu');
+                    Game.save();
+                    console.log("Mayu unlocked!");
+                }
+
                 Game.isAutoTest = false; // Stop Auto Test
                 // Transition to Post-Victory Dialogue
                 Game.changeScene(EncounterScene, {

@@ -298,8 +298,11 @@ class PortraitCharacter {
                     if (this.animConfig.yOffset) dy += this.animConfig.yOffset;
 
                     // Apply Character Data Offsets (Global correction)
-                    if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
-                    if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
+                    // Only apply battle offsets if explicitly in Battle Mode
+                    if (this.config.isBattle) {
+                        if (this.data.battleOffsetX) dx += this.data.battleOffsetX;
+                        if (this.data.battleOffsetY) dy += this.data.battleOffsetY;
+                    }
                     if (this.isCpu && this.data.cpuOffsetX) dx += this.data.cpuOffsetX;
 
                     // Update lastRenderRect
@@ -409,6 +412,12 @@ class PortraitCharacter {
      * Uses this.isCpu to determine which half to draw (False=Left/0, True=Right/1).
      */
     _drawImageAutoSlice(ctx, img, dx, dy, dw, dh) {
+        // Explicit Overrides
+        if (this.data && this.data.singleSprite) {
+            ctx.drawImage(img, dx, dy, dw, dh);
+            return;
+        }
+
         // Heuristic: If image width is significantly larger than target width, assume strip.
         // Specifically for this project, combined sheets are usually 2 frames side-by-side.
         // Check if width is approx >= 2 * original config width? 

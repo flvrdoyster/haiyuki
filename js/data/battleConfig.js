@@ -123,7 +123,7 @@ const BattleConfig = {
     },
     RESULT: {
         // Window Layout
-        x: 70, y: 70, w: 500, h: 360,
+        x: 120, y: 90, w: 400, h: 300,
 
         // Colors
         dimmerColor: 'rgba(0, 0, 0, 0.5)',
