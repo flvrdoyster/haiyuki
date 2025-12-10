@@ -28,10 +28,10 @@ class PortraitCharacter {
 
         // --- OPTIMIZATION: Defaults & Auto-Generation ---
 
-        // 1. Scalar Defaults
+        // 1. Scalar Defaults - TUNED FOR SNAPPIER FEEL
         if (!this.animConfig.interval) this.animConfig.interval = 200; // Blink Interval
-        if (!this.animConfig.speed) this.animConfig.speed = 5;       // Blink Speed
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 8; // Talk Speed (Slower)
+        if (!this.animConfig.speed) this.animConfig.speed = 4;       // Blink Speed (was 5)
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 5; // Talk Speed (was 8 - too slow)
 
         // 2. Asset Auto-Generation (Convention over Configuration)
         // If 'base' exists (e.g., ".../NAME_SIDE_base.png"), try to generate blink/talk if missing.
@@ -100,6 +100,11 @@ class PortraitCharacter {
         console.log(`[PortraitCharacter] Animation Config Set. Blink: ${this.animConfig.blink ? this.animConfig.blink.length : 0}, Talk: ${this.animConfig.talk ? this.animConfig.talk.length : 0}`);
 
         this.blinkTimer = Math.floor(Math.random() * this.animConfig.interval);
+
+        // Pre-allocate rect to reduce GC
+        this.lastRenderRect = { x: 0, y: 0, w: 0, h: 0 };
+        // Cache sheet status
+        this._sheetCache = {};
     }
 
     setState(newState) {
@@ -143,7 +148,7 @@ class PortraitCharacter {
 
         this.talkFrameIndex = 0;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || 10;
+        this.talkTimer = this.animConfig.talkSpeed || 5;
         return true;
     }
 
@@ -151,7 +156,7 @@ class PortraitCharacter {
 
     _drawOverlay(ctx, imgKey, offset = { x: 0, y: 0 }) {
         const img = Assets.get(imgKey);
-        if (img && this.lastRenderRect) {
+        if (img && this.lastRenderRect.w > 0) {
             // Apply specific offset for this overlay (e.g. blink/talk misalignment fix)
             const targetX = this.lastRenderRect.x + (offset.x || 0);
             const targetY = this.lastRenderRect.y + (offset.y || 0);
@@ -203,7 +208,7 @@ class PortraitCharacter {
             this.talkFrameIndex = 0; // Loop
         }
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || 6;
+        this.talkTimer = this.animConfig.talkSpeed || 5;
     }
 
     updateTalkFrame() {
@@ -232,7 +237,7 @@ class PortraitCharacter {
 
         this.blinkFrameIndex = 0;
         this.updateBlinkFrame();
-        this.blinkTimer = this.animConfig.speed || 5;
+        this.blinkTimer = this.animConfig.speed || 4;
     }
 
     advanceBlink() {
@@ -244,7 +249,7 @@ class PortraitCharacter {
             this.blinkTimer = this.animConfig.interval || 80;
         } else {
             this.updateBlinkFrame();
-            this.blinkTimer = this.animConfig.speed || 5;
+            this.blinkTimer = this.animConfig.speed || 4;
         }
     }
 
@@ -272,8 +277,13 @@ class PortraitCharacter {
             if (this.animConfig.base) {
                 const baseImg = Assets.get(this.animConfig.base);
                 if (baseImg) {
-                    // Determine Frame Size
-                    const isSheet = baseImg.width >= (globalBaseW * 1.5);
+                    // Determine Frame Size using Cached Check
+                    if (this._sheetCache[this.animConfig.base] === undefined) {
+                        const threshold = globalBaseW * 1.5;
+                        this._sheetCache[this.animConfig.base] = (baseImg.width >= threshold);
+                    }
+                    const isSheet = this._sheetCache[this.animConfig.base];
+
                     const frameW = isSheet ? (baseImg.width / 2) : baseImg.width;
                     const frameH = baseImg.height;
 
@@ -305,8 +315,12 @@ class PortraitCharacter {
                     }
                     if (this.isCpu && this.data.cpuOffsetX) dx += this.data.cpuOffsetX;
 
-                    // Update lastRenderRect
-                    this.lastRenderRect = { x: dx, y: dy, w: destW, h: destH };
+                    // Update lastRenderRect (In-place update to avoid GC)
+                    if (!this.lastRenderRect) this.lastRenderRect = {};
+                    this.lastRenderRect.x = dx;
+                    this.lastRenderRect.y = dy;
+                    this.lastRenderRect.w = destW;
+                    this.lastRenderRect.h = destH;
 
                     // Draw Base
                     this._drawImageAutoSlice(ctx, baseImg, dx, dy, destW, destH);
@@ -398,7 +412,7 @@ class PortraitCharacter {
         const yo = (offset && offset.y) ? offset.y : 0;
 
         const img = Assets.get(imgKey);
-        if (img && this.lastRenderRect) {
+        if (img && this.lastRenderRect && this.lastRenderRect.w > 0) {
             // Apply specific offset for this overlay relative to lastRenderRect
             const targetX = this.lastRenderRect.x + xo;
             const targetY = this.lastRenderRect.y + yo;
@@ -418,16 +432,17 @@ class PortraitCharacter {
             return;
         }
 
-        // Heuristic: If image width is significantly larger than target width, assume strip.
-        // Specifically for this project, combined sheets are usually 2 frames side-by-side.
-        // Check if width is approx >= 2 * original config width? 
-        // Or just compare to the render width?
-        // Using 1.8x factor to be safe against minor scaling differences.
-
-        // Use Global BaseW for threshold
-        const baselineW = BattleConfig.PORTRAIT.baseW || 264;
-        const threshold = baselineW * 1.5;
-        const isSheet = img.width >= threshold;
+        // Use Cached Check if available (populated by primary draw path)
+        let isSheet = false;
+        if (this._sheetCache && this._sheetCache[img.src] !== undefined) {
+            isSheet = this._sheetCache[img.src];
+        } else {
+            // Calculate and cache
+            const baselineW = BattleConfig.PORTRAIT.baseW || 264;
+            const threshold = baselineW * 1.5;
+            isSheet = (img.width >= threshold);
+            if (this._sheetCache) this._sheetCache[img.src] = isSheet;
+        }
 
         if (isSheet) {
             const frameIndex = this.isCpu ? 1 : 0;
