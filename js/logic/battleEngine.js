@@ -673,7 +673,7 @@ const BattleEngine = {
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         if (!Game.isAutoTest && this.p1.isRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
-            console.log("Riichi Auto-Discard (Normal)");
+            // console.log("Riichi Auto-Discard (Normal)");
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -931,7 +931,7 @@ const BattleEngine = {
         } else {
             const t = this.drawTiles(1);
             if (t.length > 0) {
-                console.log("CPU Draws:", t[0].type); // Log
+                // console.log("CPU Draws:", t[0].type); // Log
                 this.events.push({ type: 'DRAW', player: 'CPU' });
                 this.cpu.hand.push(t[0]);
             }
@@ -944,7 +944,7 @@ const BattleEngine = {
         if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
             if (this.winningYaku) {
-                console.log("CPU TSUMO!");
+                // console.log("CPU TSUMO!");
                 this.showPopup('TSUMO');
                 const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
                 this.pendingDamage = { target: 'P1', amount: score };
@@ -970,7 +970,7 @@ const BattleEngine = {
             }
 
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
-                console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
+                // console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard as Riichi declaration
 
