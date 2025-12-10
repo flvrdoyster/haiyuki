@@ -283,7 +283,7 @@ const BattleRenderer = {
 
             // Update Layout for NEXT item
             layout.x += slotW + gap;
-            layout.col++; layout.col++;
+            layout.col++;
 
             // Draw Logic
             // Check if last (Highlight)
