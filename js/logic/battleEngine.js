@@ -924,11 +924,17 @@ const BattleEngine = {
     },
 
     cpuDraw: function () {
-        const t = this.drawTiles(1);
-        if (t.length > 0) {
-            console.log("CPU Draws:", t[0].type); // Log
-            this.events.push({ type: 'DRAW', player: 'CPU' });
-            this.cpu.hand.push(t[0]);
+        // Fix: If CPU just Pon-ed, they don't draw, they just discard.
+        if (this.cpu.needsToDiscard) {
+            console.log("CPU needs to discard (After Pon), skipping draw.");
+            this.cpu.needsToDiscard = false;
+        } else {
+            const t = this.drawTiles(1);
+            if (t.length > 0) {
+                console.log("CPU Draws:", t[0].type); // Log
+                this.events.push({ type: 'DRAW', player: 'CPU' });
+                this.cpu.hand.push(t[0]);
+            }
         }
 
         // CPU AI Logic
