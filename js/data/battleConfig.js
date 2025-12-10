@@ -83,21 +83,11 @@ const BattleConfig = {
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
         textDefault: 'white',
         textSelected: '#FFFF00',
-        stroke: 'white', // Keep stroke for button border if needed, or remove? 
-        // User said "Button UI... handle directly", let's keep stroke option available but maybe not used if matching Battle Menu style exactly?
-        // Battle menu has no button borders. 
-        // But Action menu implies "Buttons". 
-        // Let's keep `stroke` just in case, or default to none.
-        // But the user said "Same as Battle Menu" for SELECTION.
-        border: 'white', // For unselected buttons? Or just remove borders?
-        // "ACTION button UI ... handle directly" implies I should probably render them as buttons (boxes).
-        // But "Selection color ... same as Battle Manu" implies the pink cursor.
-        // Let's provide the palette.
+        stroke: 'white',
+        border: 'white',
 
         // Colors
-        colors: { // Deprecated by above, but keeping structure for now or replacing? 
-            // Instruction says "Add setup part". 
-            // I will overwrite `colors` with flat properties for cleaner access like BATTLE_MENU.
+        colors: {
         }
     },
     POPUP: {
@@ -109,16 +99,15 @@ const BattleConfig = {
         align: 'center',
 
         // Sound mapping for Popups
-        // Now merging Visual Params here too for centralized control
         TYPES: {
             'RIICHI': { slideFrom: 'LEFT', life: 60, sound: 'audio/riichi' },
             'PON': { sound: 'audio/pon' },
-            'RON': { sound: 'audio/fanfare' },
-            'TSUMO': { life: 120, anim: 'ZOOM_IN', sound: 'audio/fanfare' },
+            'RON': {},
+            'TSUMO': { life: 120, anim: 'ZOOM_IN' },
             'NAGARI': { sound: 'audio/wrong' } // Default
         },
 
-        // Legacy Sound map (if needed, but TYPES should supersede)
+        // Legacy Sound map
         SOUNDS: {}
     },
     RESULT: {
@@ -151,25 +140,30 @@ const BattleConfig = {
             WIN: {
                 title: "승!",
                 text: "{yaku}\n데미지: {score}",
-                color: "white"
+                color: "white",
+                sound: "audio/fanfare" // Configurable Sound
             },
             LOSE: {
                 title: "패!",
                 text: "{yaku}\n데미지: -{score}",
-                color: "white"
+                color: "white",
+                sound: "audio/lose" // Configurable Sound
             },
             NAGARI: {
                 title: "무승부!",
                 text: "플레이어: {p1Status} / 상대: {cpuStatus}\n{damageMsg}",
-                color: "white"
+                color: "white",
+                sound: "audio/wrong" // Configurable Sound
             },
             MATCH_WIN: {
                 title: "다음 상대로!",
-                color: "gold"
+                color: "gold",
+                sound: "audio/victory" // Configurable Sound
             },
             MATCH_LOSE: {
                 title: "게임 오버",
-                color: "white"
+                color: "white",
+                sound: "audio/lose" // Configurable Sound
             }
         },
         TEXTS: {

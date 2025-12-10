@@ -276,9 +276,13 @@ const BattleEngine = {
         ];
 
         if (who === 'P1') {
-            steps.push({ type: 'MUSIC', id: 'audio/bgm_win', loop: false });
+            // WIN: Play Configured Sound
+            const sound = BattleConfig.RESULT.TYPES.WIN.sound;
+            if (sound) steps.push({ type: 'SOUND', id: sound });
         } else {
-            steps.push({ type: 'MUSIC', id: 'audio/bgm_lose', loop: false });
+            // LOSE: Play Configured Sound
+            const sound = BattleConfig.RESULT.TYPES.LOSE.sound;
+            if (sound) steps.push({ type: 'SOUND', id: sound });
         }
 
         // UPDATE STATE with Final Score for Renderer
@@ -385,7 +389,13 @@ const BattleEngine = {
             currentStep: 0,
             timer: 0,
             steps: [
-                { type: 'CALLBACK', callback: () => this.showPopup('NAGARI') }, // Nagari Popup via Config
+                {
+                    type: 'CALLBACK', callback: () => {
+                        this.showPopup('NAGARI');
+                        const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
+                        if (sound) this.events.push({ type: 'SOUND', id: sound });
+                    }
+                }, // Nagari Popup & Sound via Config
                 { type: 'WAIT', duration: 30 },
                 // Just using popups for Tenpai status if possible, or skip to result
                 // We'll rely on Result Window's text update logic (Refactoring `BattleRenderer` later?)
@@ -476,6 +486,28 @@ const BattleEngine = {
 
     matchOver: function (winner) {
         console.log(`Match Over! Winner: ${winner}`);
+        this.currentState = this.STATE_MATCH_OVER;
+        this.timer = 0;
+        this.stateTimer = 0;
+        this.matchWinner = winner; // Store for transition
+
+        // Stop BGM
+        this.events.push({ type: 'STOP_MUSIC' });
+
+        if (winner === 'P1') {
+            this.resultInfo = { type: 'MATCH_WIN' };
+            const sound = BattleConfig.RESULT.TYPES.MATCH_WIN.sound;
+            if (sound) this.events.push({ type: 'SOUND', id: sound });
+        } else {
+            this.resultInfo = { type: 'MATCH_LOSE' };
+            const sound = BattleConfig.RESULT.TYPES.MATCH_LOSE.sound;
+            if (sound) this.events.push({ type: 'SOUND', id: sound });
+        }
+    },
+
+    proceedFromMatchOver: function () {
+        const winner = this.matchWinner;
+
         if (winner === 'P1') {
             // Add current CPU to defeated list
             this.defeatedOpponents.push(this.cpuIndex);
@@ -514,9 +546,9 @@ const BattleEngine = {
             });
         } else {
             // Game Over -> Continue Screen
-            this.resultInfo = { type: 'GAME_OVER' }; // Set resultInfo for game over
             console.log(`Encounter Finished. Transitioning to Continue Screen.`);
-            this.events.push({ type: 'STOP_MUSIC' });
+            // Update Global Continue Count
+            Game.continueCount++;
 
             Game.changeScene(ContinueScene, {
                 playerIndex: this.playerIndex,
@@ -524,8 +556,6 @@ const BattleEngine = {
                 defeatedOpponents: this.defeatedOpponents,
                 isNextRound: false // Fresh rematch if continued
             });
-            // Update Global Continue Count
-            Game.continueCount++;
         }
     },
 
@@ -773,12 +803,10 @@ const BattleEngine = {
                 break;
 
             case this.STATE_MATCH_OVER:
-                // logic handled inside matchOver function usually, but if we are waiting for click to proceed?
-                // matchOver transitions scene immediately in current code.
-                // Wait, matchOver function calls Game.changeScene.
-                // So we might not stay in STATE_MATCH_OVER unless waiting for interaction?
-                // Looking at matchOver implementation:
-                // It calls Game.changeScene immediately. So this state might be transient.
+                // Wait for input to transition
+                if (this.stateTimer > 60 && (window.Input && (Input.isMousePressed || Input.isKeyPressed('Space')))) {
+                    this.proceedFromMatchOver();
+                }
                 break;
 
             case this.STATE_DAMAGE_ANIMATION:
