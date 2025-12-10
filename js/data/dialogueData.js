@@ -1,6 +1,6 @@
 const DialogueData = {
     // ----------------------------------------------------------------
-    // Encounter Dialogues
+    // 1. Encounter Dialogues (Pre-Battle)
     // ----------------------------------------------------------------
 
     // Ataho vs Rinxiang
@@ -200,8 +200,44 @@ const DialogueData = {
         { speaker: "yuri", text: "바라던 바다." }
     ],
 
+    // Ataho vs Mayu
+    "ataho_mayu": [
+        { speaker: "ataho", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
+    // Rinxiang vs Mayu
+    "rinxiang_mayu": [
+        { speaker: "rinxiang", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
+    // Fari vs Mayu
+    "fari_mayu": [
+        { speaker: "fari", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
+    // Petum vs Mayu
+    "petum_mayu": [
+        { speaker: "petum", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
+    // Smash vs Mayu
+    "smash_mayu": [
+        { speaker: "smash", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
+    // Yuri vs Mayu
+    "yuri_mayu": [
+        { speaker: "yuri", text: "..." },
+        { speaker: "mayu", text: "쿠웅..." }
+    ],
+
     // ----------------------------------------------------------------
-    // Endings / True Endings (Stored for future use)
+    // 2. Ending Dialogues (Post-Battle)
     // ----------------------------------------------------------------
 
     // Ataho vs Rinxiang (Ending)
@@ -217,13 +253,6 @@ const DialogueData = {
         { speaker: "rinxiang", text: "응? 아타호.\n도대체 무슨 얘기라고 생각했어요?" },
         { speaker: "ataho", text: "그... 그게 말이지....\n아무 것도 아니네, 잊어 주게!" },
         { speaker: "rinxiang", text: "뭐? 뭐랑 착각했던 거야?\n알려줘요, 아타호!" }
-    ],
-
-    // Ataho vs Mayu (True Ending)
-    "ataho_mayu_true_ending": [
-        { speaker: "ataho", text: "어이쿠야, 자네의 정체는 눈썹 개였던 건가!\n그러면, 어째서 내게 대결을 청해온겐가?" },
-        { speaker: "mayu", text: "크~응..." },
-        { speaker: "ataho", text: "흠. 무슨 말을 하는 건지 모르겠지만,\n아무튼 이 몸에게 도전한 것은, 조금 무모했던 것 같구먼." }
     ],
 
     // Rinxiang vs Ataho (Ending)
@@ -244,13 +273,6 @@ const DialogueData = {
         { speaker: "rinxiang", text: "앗... 기다려, 아타호!" }
     ],
 
-    // Rinxiang vs Mayu (True Ending)
-    "rinxiang_mayu_true_ending": [
-        { speaker: "rinxiang", text: "너는 눈썹 개였구나!" },
-        { speaker: "rinxiang", text: "이 나에게 도전하다니, 10년은 일러. \n더 수행을 쌓고 오라구!" },
-        { speaker: "mayu", text: "큐~웅..." }
-    ],
-
     // Fari vs Petum (Ending)
     "fari_petum_ending": [
         { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?" },
@@ -261,15 +283,6 @@ const DialogueData = {
         { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요." }
     ],
 
-    // Fari vs Mayu (True Ending)
-    "fari_mayu_true_ending": [
-        { speaker: "fari", text: "당신은... 눈썹 개였던 건가요?" },
-        { speaker: "mayu", text: "큐~웅..." },
-        { speaker: "fari", text: "당신은 사람을 갑자기 습격하는 것이\n얼마나 잘못된 일인지 알고 있는 건가요!" },
-        { speaker: "fari", text: "지금부터 그 일에 대해, 차분하게 잔소리해 줄테니\n잘 들으세요. 알겠죠!!" },
-        { speaker: "mayu", text: "큐~웅..." }
-    ],
-
     // Petum vs Fari (Ending)
     "petum_fari_ending": [
         { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?" },
@@ -278,15 +291,6 @@ const DialogueData = {
         { speaker: "petum", text: "그렇군요.\n사양하지 않고 같이 어울려볼까요." },
         { speaker: "petum", text: "그러면 저는\n맛있는 화과자라도 들고 오죠." },
         { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요." }
-    ],
-
-    // Petum vs Mayu (True Ending)
-    "petum_mayu_true_ending": [
-        { speaker: "petum", text: "어라, 당신은 눈썹개씨였던 겁니까." },
-        { speaker: "mayu", text: "쿠웅..." },
-        { speaker: "petum", text: "그렇군요, 사람을 찾고 있었던 건가요.\n그 사람이라면, 아까 전에 저쪽에 있었답니다." },
-        { speaker: "mayu", text: "멍멍" },
-        { speaker: "petum", text: "아니, 감사는 됐어요.\n그럼 건강히." }
     ],
 
     // Smash vs Yuri (Ending)
@@ -302,15 +306,6 @@ const DialogueData = {
         { speaker: "smash", text: "우승해서 여자애들에게 인기폭발이 되려던 계획이...\n기둥서방이 되려던 계획이..." },
         { speaker: "smash", text: "어... 어째서..." },
         { speaker: "yuri", text: "훗, 저런저런...\n여전한 바보로구만..." }
-    ],
-
-    // Smash vs Mayu (True Ending)
-    "smash_mayu_true_ending": [
-        { speaker: "smash", text: "네...네 놈은 눈썹 개!!" },
-        { speaker: "mayu", text: "쿠~웅..." },
-        { speaker: "smash", text: "잘 지냈어?\n만나고 싶었다고~!" },
-        { speaker: "mayu", text: "멍머~엉!" },
-        { speaker: "smash", text: "아우~웅!!" }
     ],
 
     // Yuri vs Smash (Ending)
@@ -329,60 +324,66 @@ const DialogueData = {
         { speaker: "yuri", text: "당연하잖아!\n나는 여자라고~!!" }
     ],
 
+    // Normal Mayu Endings (Placeholder: Add here if needed for Normal Endings vs Mayu)
+    // Currently relying on defaults or empty (removed as per user request), 
+    // but if we had them, they would go here.
+
+    // ----------------------------------------------------------------
+    // 3. True Ending Dialogues (Post-Battle)
+    // ----------------------------------------------------------------
+
+    // Ataho vs Mayu (True Ending)
+    "ataho_mayu_true_ending": [
+        { speaker: "ataho", text: "어이쿠야, 자네의 정체는 눈썹개였던 건가!\n그러면, 어째서 내게 대결을 청해온겐가?" },
+        { speaker: "mayu", text: "크~웅..." },
+        { speaker: "ataho", text: "흠. 무슨 말을 하는 건지 모르겠지만,\n아무튼 이 몸에게 도전한 것은, 조금 무모했던 것 같구먼." }
+    ],
+
+    // Rinxiang vs Mayu (True Ending)
+    "rinxiang_mayu_true_ending": [
+        { speaker: "rinxiang", text: "너는 눈썹개였구나!" },
+        { speaker: "rinxiang", text: "이 나에게 도전하다니, 10년은 일러. \n더 수행을 쌓고 오라구!" },
+        { speaker: "mayu", text: "큐~웅..." }
+    ],
+
+    // Fari vs Mayu (True Ending)
+    "fari_mayu_true_ending": [
+        { speaker: "fari", text: "당신은... 눈썹개였던 건가요?" },
+        { speaker: "mayu", text: "큐~웅..." },
+        { speaker: "fari", text: "당신은 사람을 갑자기 습격하는 것이\n얼마나 잘못된 일인지 알고 있는 건가요!" },
+        { speaker: "fari", text: "지금부터 그 일에 대해, 차분하게 잔소리해 줄테니\n잘 들으세요. 알겠죠!!" },
+        { speaker: "mayu", text: "큐~웅..." }
+    ],
+
+    // Petum vs Mayu (True Ending)
+    "petum_mayu_true_ending": [
+        { speaker: "petum", text: "어라, 당신은 눈썹개씨였던 겁니까." },
+        { speaker: "mayu", text: "쿠웅..." },
+        { speaker: "petum", text: "그렇군요, 사람을 찾고 있었던 건가요.\n그 사람이라면, 아까 전에 저쪽에 있었답니다." },
+        { speaker: "mayu", text: "멍멍" },
+        { speaker: "petum", text: "아니, 감사는 됐어요.\n그럼 건강히." }
+    ],
+
+    // Smash vs Mayu (True Ending)
+    "smash_mayu_true_ending": [
+        { speaker: "smash", text: "네...네 놈은 눈썹개!!" },
+        { speaker: "mayu", text: "쿠~웅..." },
+        { speaker: "smash", text: "잘 지냈어?\n만나고 싶었다고~!" },
+        { speaker: "mayu", text: "멍머~엉!" },
+        { speaker: "smash", text: "아우~웅!!" }
+    ],
+
     // Yuri vs Mayu (True Ending)
     "yuri_mayu_true_ending": [
-        { speaker: "yuri", text: "뭐야 너, 눈썹 개였던 건가.\n여전히 웃긴 얼굴이네~" },
+        { speaker: "yuri", text: "뭐야 너, 눈썹개였던 건가.\n여전히 웃긴 얼굴이네~" },
         { speaker: "mayu", text: "쿠~웅..." },
         { speaker: "yuri", text: "좋~아, 재회한 기념으로, 또 낙서나 해줄~까.\n어떤 얼굴로 해줄~까나~?" },
         { speaker: "mayu", text: "캬아~앙!!" }
     ],
 
-    // Default Fallback
-    // Ataho vs Mayu (Ending)
-    "ataho_mayu_ending": [
-        { speaker: "mayu", text: "깨갱... 깽!" },
-        { speaker: "ataho", text: "허허, 이제야 좀 얌전해졌구만.\n어떤가, 패배를 인정하겠나?" },
-        { speaker: "mayu", text: "멍! (끄덕끄덕)" },
-        { speaker: "ataho", text: "좋아, 그럼 다시는 사람을 놀래키지 말게.\n알겠지?" },
-        { speaker: "mayu", text: "멍멍!" }
-    ],
-
-    // Rinxiang vs Mayu (Ending)
-    "rinxiang_mayu_ending": [
-        { speaker: "mayu", text: "깨갱..." },
-        { speaker: "rinxiang", text: "어때, 내 실력을 알겠어?\n이제 장난치면 안 돼!" },
-        { speaker: "mayu", text: "쿠~웅..." }
-    ],
-
-    // Fari vs Mayu (Ending)
-    "fari_mayu_ending": [
-        { speaker: "mayu", text: "깨갱..." },
-        { speaker: "fari", text: "자, 이제 착한 아이가 되기로 약속해요.\n아시겠죠?" },
-        { speaker: "mayu", text: "멍!" }
-    ],
-
-    // Smash vs Mayu (Ending)
-    "smash_mayu_ending": [
-        { speaker: "mayu", text: "깨갱..." },
-        { speaker: "smash", text: "하하하! 이 몸의 승리다!\n이제 복종하라고, 눈썹 개!" },
-        { speaker: "mayu", text: "으르릉..." },
-        { speaker: "smash", text: "히익?! 알았어, 알았다고!" }
-    ],
-
-    // Petum vs Mayu (Ending)
-    "petum_mayu_ending": [
-        { speaker: "mayu", text: "깨갱..." },
-        { speaker: "petum", text: "이런이런, 너무 심하게 다뤘나요.\n상처 좀 볼까요?" },
-        { speaker: "mayu", text: "멍? (갸웃)" }
-    ],
-
-    // Yuri vs Mayu (Ending)
-    "yuri_mayu_ending": [
-        { speaker: "mayu", text: "깨갱..." },
-        { speaker: "yuri", text: "흥, 제법 즐거웠어.\n다음에 또 놀아주지." },
-        { speaker: "mayu", text: "멍멍!" }
-    ],
-
+    // ----------------------------------------------------------------
+    // 4. Default Fallbacks
+    // ----------------------------------------------------------------
     "default": [
         { speaker: 'p1', text: "자, 승부다!" },
         { speaker: 'cpu', text: "지지 않아!" }

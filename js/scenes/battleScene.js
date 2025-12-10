@@ -289,7 +289,7 @@ const BattleScene = {
 
     handlePlayerTurnInput: function (engine) {
         // Riichi Locked Input
-        if (engine.p1.isRiichi) return;
+        if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
 
         // Mouse Interaction
         const groupSize = engine.lastDrawGroupSize || 0;
@@ -321,6 +321,11 @@ const BattleScene = {
             if (Input.isMouseJustPressed()) {
                 const clickIndex = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
                 if (clickIndex !== -1) {
+                    // Check Strict Target (Riichi Auto-Move)
+                    if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== clickIndex) {
+                        return;
+                    }
+
                     engine.hoverIndex = clickIndex; // Select the clicked tile
                     engine.discardTile(clickIndex);
                 } else {
@@ -330,6 +335,10 @@ const BattleScene = {
             }
             // Keyboard Interaction: Use current hover
             else if (engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
+                // Check Strict Target
+                if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== engine.hoverIndex) {
+                    return;
+                }
                 engine.discardTile(engine.hoverIndex);
             }
         }

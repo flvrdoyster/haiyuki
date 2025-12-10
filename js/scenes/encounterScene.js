@@ -72,10 +72,10 @@ const EncounterScene = {
 
         let key = `${p1.id}_${cpu.id}`;
 
-        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING_CLEAR') {
+        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
             key += "_ending";
-        } else if (this.mode === 'TRUE_ENDING' || cpu.id === 'mayu') {
-            // Use True Ending Intrusion Dialogue
+        } else if (this.mode === 'TRUE_ENDING' || this.mode === 'TRUE_ENDING_CLEAR') {
+            // Use True Ending Dialogue (Post-Battle)
             key += "_true_ending";
         }
 

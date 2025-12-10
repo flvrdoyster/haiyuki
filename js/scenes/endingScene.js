@@ -93,7 +93,9 @@ const EndingScene = {
             return;
         }
 
-        if (Game.continueCount === 0) {
+        const isMayuUnlocked = Game.saveData && Game.saveData.unlocked && Game.saveData.unlocked.includes('mayu');
+
+        if (Game.continueCount === 0 && !isMayuUnlocked) {
             console.log("TRUE ENDING PATH TRIGGERED!");
             // Transition to Mayu Encounter
             // Transition to Mayu Encounter

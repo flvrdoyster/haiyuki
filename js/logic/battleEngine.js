@@ -585,6 +585,7 @@ const BattleEngine = {
         // Reset Riichi & Menzen
         this.p1.isRiichi = false;
         this.cpu.isRiichi = false;
+        this.riichiTargetIndex = -1; // Reset Riichi Lock (Bug Fix)
         this.p1.isMenzen = true; // Reset Menzen (Closed Hand)
         this.cpu.isMenzen = true; // Ensure CPU logic resets too
 
@@ -656,6 +657,13 @@ const BattleEngine = {
         // AUTO TEST LOGIC
         if (Game.isAutoTest && this.currentState === this.STATE_PLAYER_TURN && this.timer > 5) {
             this.performAutoTurn();
+            return;
+        }
+
+        // RIICHI AUTO-PLAY LOGIC (Normal Game)
+        if (!Game.isAutoTest && this.p1.isRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
+            console.log("Riichi Auto-Discard (Normal)");
+            this.discardTile(this.p1.hand.length - 1);
             return;
         }
 
@@ -1092,6 +1100,7 @@ const BattleEngine = {
         if (this.p1.declaringRiichi) {
             discarded.isRiichi = true;
             this.p1.declaringRiichi = false;
+            this.riichiTargetIndex = -1; // Reset Logic
         }
         this.discards.push(discarded);
 
@@ -1447,33 +1456,48 @@ const BattleEngine = {
             }, 1000); // 60 frames approx
 
             // Logic:
-            // Find valid discard for Riichi (move to end)
-            // ... Identify valid discards
+            // Smart Auto-Select: Evaluate all valid discards and pick the best one.
             const hand = this.p1.hand;
-            let targetIdx = -1;
+            let candidates = [];
+
+            console.time('RiichiCalc'); // Performance Check
 
             for (let i = 0; i < hand.length; i++) {
                 const temp = [...hand];
                 temp.splice(i, 1);
-                if (this.checkTenpai(temp, false)) { // Just check if it leads to Tenpai
-                    targetIdx = i;
-                    break;
+                // Check if Tenpai is maintained
+                if (this.checkTenpai(temp, false)) {
+                    const metrics = this.getRiichiScore(i);
+                    candidates.push({ index: i, ...metrics, tile: hand[i] });
                 }
             }
 
-            if (targetIdx !== -1) {
-                // Move tile at targetIdx to end
+            console.timeEnd('RiichiCalc'); // End Performance Check
+
+            if (candidates.length > 0) {
+                // Sort: Max Score DESC -> Wait Count DESC
+                candidates.sort((a, b) => {
+                    if (b.maxScore !== a.maxScore) return b.maxScore - a.maxScore;
+                    return b.waitCount - a.waitCount;
+                });
+
+                const best = candidates[0];
+                console.log("Riichi Smart Select Candidates:", candidates);
+                console.log(`Selected Best: ${best.tile.type} (Score: ${best.maxScore}, Waits: ${best.waitCount})`);
+
+                // Force Selection Logic (Original Style)
+                const targetIdx = best.index;
                 const tile = hand.splice(targetIdx, 1)[0];
                 hand.push(tile);
 
                 this.lastDrawGroupSize = 1; // Force visual gap
                 this.riichiTargetIndex = hand.length - 1; // Strict target
             } else {
-                this.riichiTargetIndex = -1; // Should not happen if Riichi was allowed
+                console.error("Riichi declared but no valid discards found? Should not happen.");
+                this.riichiTargetIndex = -1;
             }
 
-            // Clear possibleActions to allow progression
-            this.possibleActions = [];
+            this.p1.riichiValidDiscards = null; // Clear manual list just in case
 
             // Update BGM immediately (Tension or Showdown)
             this.updateBattleMusic();
@@ -1669,6 +1693,39 @@ const BattleEngine = {
             this.currentBgm = targetBgm;
             this.events.push({ type: 'MUSIC', id: targetBgm, loop: true });
         }
+    },
+
+    // --- Riichi AI Helper ---
+    getRiichiScore: function (discardIdx) {
+        // Simulate Discard
+        const tempHand = [...this.p1.hand];
+        tempHand.splice(discardIdx, 1);
+
+        let maxScore = 0;
+        let totalScore = 0;
+        let waitCount = 0; // Number of unique tile types that win
+
+        // Iterate ALL possible tiles to see if they complete the hand
+        PaiData.TYPES.forEach(type => {
+            // Add theoretical tile
+            const testHand = [...tempHand, { type: type.id, color: type.color, img: type.img }];
+
+            // Check Yaku (Win Condition?)
+            // We use checkYaku directly. 
+            // Note: checkYaku determines score based on completed hand.
+            const result = YakuLogic.checkYaku(testHand, this.p1.id);
+            if (result) {
+                waitCount++;
+                if (result.score > maxScore) maxScore = result.score;
+                totalScore += result.score;
+            }
+        });
+
+        return {
+            maxScore: maxScore,
+            avgScore: waitCount > 0 ? (totalScore / waitCount) : 0,
+            waitCount: waitCount
+        };
     }
 };
 
