@@ -18,7 +18,7 @@ const BattleScene = {
 
                 if (isAudio) {
                     if (evt.type === 'MUSIC') {
-                        console.log(`[Scene] Play Music: ${evt.id}`);
+                        // console.log(`[Scene] Play Music: ${evt.id}`);
                         Assets.playMusic(evt.id, evt.loop);
                     } else if (evt.type === 'SOUND') {
                         Assets.playSound(evt.id);
@@ -76,7 +76,7 @@ const BattleScene = {
                         if (evt.options && evt.options.popupType) {
                             const conf = BattleConfig.POPUP.TYPES[evt.options.popupType];
                             if (conf && conf.sound) {
-                                console.log(`[Scene] Playing Popup Sound for ${evt.options.popupType}: ${conf.sound}`);
+                                // console.log(`[Scene] Playing Popup Sound for ${evt.options.popupType}: ${conf.sound}`);
                                 Assets.playSound(conf.sound);
                             }
                         }

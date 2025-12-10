@@ -78,7 +78,7 @@ class PortraitCharacter {
                         this.animConfig.talkSequence = [0, 2, 1, 2];
                     }
                 }
-                console.log(`[PortraitCharacter] Auto-detected Talk for ${prefix}: ${detectedTalks.length - 1} extra frames.`);
+                // console.log(`[PortraitCharacter] Auto-detected Talk for ${prefix}: ${detectedTalks.length - 1} extra frames.`);
             }
 
             // Auto-generate Expressions
@@ -97,7 +97,7 @@ class PortraitCharacter {
                 if (Assets.get(key)) this.animConfig.idle = key;
             }
         }
-        console.log(`[PortraitCharacter] Animation Config Set. Blink: ${this.animConfig.blink ? this.animConfig.blink.length : 0}, Talk: ${this.animConfig.talk ? this.animConfig.talk.length : 0}`);
+        // console.log(`[PortraitCharacter] Animation Config Set. Blink: ${this.animConfig.blink ? this.animConfig.blink.length : 0}, Talk: ${this.animConfig.talk ? this.animConfig.talk.length : 0}`);
 
         this.blinkTimer = Math.floor(Math.random() * this.animConfig.interval);
 
