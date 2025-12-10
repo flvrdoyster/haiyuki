@@ -9,14 +9,14 @@ const DialogueData = {
         { speaker: "ataho", text: "자....자네는 린샹." },
         { speaker: "rinxiang", text: "아타호...\n당신을 계속 찾고있었다구요." },
         { speaker: "rinxiang", text: "오늘에야말로, 나랑 함께해줘야겠어요!" },
-        { speaker: "ataho", text: "그...그건 말이지...\n그게\n그런 얘길, 갑자기 들어도..." },
-        { speaker: "rinxiang", text: "이젠 애가 탄다구요." },
-        { speaker: "rinxiang", text: "좋아, 알았어요.\n그러면, 이렇게 하는 건 어때요?" },
+        { speaker: "ataho", text: "그...그건 말이지...\n그게\n그런 얘길, 갑자기 들어도..." , speakerState: 'shocked'},
+        { speaker: "rinxiang", text: "이젠 애가 탄다구요." , speakerState: 'shocked', listenerState: 'shocked'},
+        { speaker: "rinxiang", text: "좋아, 알았어요.\n그러면, 이렇게 하는 건 어때요?" , listenerState: 'shocked'},
         { speaker: "ataho", text: "뭐... 뭔가?" },
         { speaker: "rinxiang", text: "내가 이기면, \n당신이 나랑 함께하는 거고." },
         { speaker: "rinxiang", text: "당신이 이기면, \n내가 당신과 함께하는 거에요." },
-        { speaker: "ataho", text: "그... 그래선\n전혀 달라진 게 없는 느낌인데..." },
-        { speaker: "rinxiang", text: "알아들었죠?\n그럼, 승부에요!" }
+        { speaker: "ataho", text: "그... 그래선\n전혀 달라진 게 없는 느낌인데..." , speakerState: 'shocked'},
+        { speaker: "rinxiang", text: "알아들었죠?\n그럼, 승부에요!" , speakerState: 'smile', listenerState: 'shocked'}
     ],
 
     // Ataho vs Fari
@@ -25,21 +25,21 @@ const DialogueData = {
         { speaker: "fari", text: "아니요, 저는 이쪽이 너무나도 시끌벅적하기에 \n아무 생각 없이 들렀더니,\n어느샌가 참가하는 게 되어 버려서..." },
         { speaker: "ataho", text: "나도 비슷한 상황이라구." },
         { speaker: "ataho", text: "대회가 열린다고 하길래 실력 확인차 나가볼까...\n싶어서 출장해보니, 웬걸 게임 대회였지 뭔가.\n이제 와서 참가를 취소하는 것도 폐만 끼칠 뿐이니..." },
-        { speaker: "fari", text: "그렇네요.\n다른 분께 폐를 끼칠 수는 없으니..." },
+        { speaker: "fari", text: "그렇네요.\n다른 분께 폐를 끼칠 수는 없으니..." , speakerState: 'shocked'},
         { speaker: "ataho", text: "그러면, 슬슬 시작해볼까나." }
     ],
 
     // Ataho vs Petum
     "ataho_petum": [
-        { speaker: "petum", text: "어라, 아타호씨 아니십니까?\n어때요? 다음에 또 한 잔 하러 가실까요?" },
-        { speaker: "ataho", text: "아니, 그만 두지.\n자네랑 마시면 좋을게 하나도 없으니 말야." },
-        { speaker: "petum", text: "싫으신 모양이군요.\n얼마 전의 일, 아직도 화가 나신 건가요?" },
-        { speaker: "ataho", text: "당연하잖아." },
-        { speaker: "ataho", text: "그렇게나 마셨으면서,\n자기는 \"깜박한 일이 있었다\" 며 돌아가버려 놓곤..." },
-        { speaker: "ataho", text: "자네가 살 예정이었으면서,\n결국 내가 전부 계산해 버렸지 않은가." },
-        { speaker: "petum", text: "뭐, 그렇게 화내지 마세요." },
-        { speaker: "petum", text: "너무 화내면 머리의 결함...\n아니, 혈관이 터져버린다구요?\n이제 무리하면 안되는 나이기도 하시니..." },
-        { speaker: "ataho", text: "생긴 것보다 나이 먹은 자네에겐 듣고 싶지 않네!!" }
+        { speaker: "petum", text: "어라, 아타호씨 아니십니까?\n어때요? 다음에 또 한 잔 하러 가실까요?" , speakerState: 'smile'},
+        { speaker: "ataho", text: "아니, 그만 두지.\n자네랑 마시면 좋을게 하나도 없으니 말야." , speakerState: 'shocked' },
+        { speaker: "petum", text: "싫으신 모양이군요.\n얼마 전의 일, 아직도 화가 나신 건가요?" , listenerState: 'shocked'},
+        { speaker: "ataho", text: "당연하잖아." , speakerState: 'shocked' },
+        { speaker: "ataho", text: "그렇게나 마셨으면서,\n자기는 \"깜박한 일이 있었다\" 며 돌아가버려 놓곤..." , speakerState: 'shocked' },
+        { speaker: "ataho", text: "자네가 살 예정이었으면서,\n결국 내가 전부 계산해 버렸지 않은가." , speakerState: 'shocked' },
+        { speaker: "petum", text: "뭐, 그렇게 화내지 마세요." , listenerState: 'shocked'},
+        { speaker: "petum", text: "너무 화내면 머리의 결함...\n아니, 혈관이 터져버린다구요?\n이제 무리하면 안되는 나이기도 하시니..." , listenerState: 'shocked'},
+        { speaker: "ataho", text: "생긴 것보다 나이 먹은 자네에겐 듣고 싶지 않네!!" , listenerState: 'shocked'}
     ],
 
     // Ataho vs Smash
@@ -53,69 +53,69 @@ const DialogueData = {
 
     // Ataho vs Yuriwakamaru
     "ataho_yuri": [
-        { speaker: "ataho", text: "어라, 자네는!", listenerState: 'shocked' },
-        { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?" },
-        { speaker: "ataho", text: "나야, 아타호라고." },
-        { speaker: "ataho", text: "있잖아, 그 때의..." },
-        { speaker: "ataho", text: "그 때..." },
+        { speaker: "ataho", text: "어라, 자네는!", speakerState: 'smile' },
+        { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?" , listenerState: 'smile' },
+        { speaker: "ataho", text: "나야, 아타호라고." , speakerState: 'smile' },
+        { speaker: "ataho", text: "있잖아, 그 때의..." , speakerState: 'smile' },
+        { speaker: "ataho", text: "그 때..." , speakerState: 'smile' },
         { speaker: "ataho", text: "그" },
         { speaker: "ataho", text: "………………………………" },
-        { speaker: "ataho", text: "그~게." },
+        { speaker: "ataho", text: "그~게." , speakerState: 'shocked'},
         { speaker: "ataho", text: "그래그래." },
-        { speaker: "ataho", text: "뭐였더라." },
-        { speaker: "ataho", text: "어라라." },
-        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!", listenerState: 'shocked' },
+        { speaker: "ataho", text: "뭐였더라." , speakerState: 'shocked'},
+        { speaker: "ataho", text: "어라라." , speakerState: 'shocked'},
+        { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!"},
         { speaker: "yuri", text: "뭐야, 넌!", listenerState: 'shocked' }
     ],
 
     // Rinxiang vs Fari
     "rinxiang_fari": [
-        { speaker: "fari", text: "안녕하세요." },
-        { speaker: "rinxiang", text: "아...안녕하세요." },
-        { speaker: "rinxiang", text: "당신이 혹시 화린씨?" },
+        { speaker: "fari", text: "안녕하세요." , speakerState: 'smile'},
+        { speaker: "rinxiang", text: "아...안녕하세요." , listenerState: 'smile'},
+        { speaker: "rinxiang", text: "당신이 혹시 화린씨?" , listenerState: 'smile'},
         { speaker: "fari", text: "그렇습니다만, 어떻게 제 이름을 알고 계신건가요?" },
-        { speaker: "rinxiang", text: "과연, 아타호가 얘기했던 대로네.\n한 눈에 그런 줄 알았다구요." },
-        { speaker: "fari", text: "네에, 아타호씨랑 아는 사이신가요?" },
-        { speaker: "rinxiang", text: "말해두겠지만 아타호는 제 거니까,\n손대거나 하면 용서하지 않을 거에요!" },
-        { speaker: "rinxiang", text: "당신에겐 스마슈가 어울려!" },
-        { speaker: "fari", text: "뭐... 뭐라구요!\n하필이면 스마슈씨라니..." },
-        { speaker: "fari", text: "세상에는 말해도 되는 것과 안 되는 것이 있다구요!!" }
+        { speaker: "rinxiang", text: "과연, 아타호가 얘기했던 대로네.\n한 눈에 그런 줄 알았다구요." , speakerState: 'shocked'},
+        { speaker: "fari", text: "네에, 아타호씨랑 아는 사이신가요?" , listenerState: 'shocked'},
+        { speaker: "rinxiang", text: "말해두겠지만 아타호는 제 거니까,\n손대거나 하면 용서하지 않을 거에요!" , speakerState: 'shocked'},
+        { speaker: "rinxiang", text: "당신에겐 스마슈가 어울려!" , speakerState: 'shocked'},
+        { speaker: "fari", text: "뭐... 뭐라구요!\n하필이면 스마슈씨라니..." , speakerState: 'shocked', listenerState: 'shocked'},
+        { speaker: "fari", text: "세상에는 해도 될 말과 안 될 말이 있다구요!!" , speakerState: 'shocked', listenerState: 'shocked'}
     ],
 
     // Rinxiang vs Petum
     "rinxiang_petum": [
         { speaker: "petum", text: "처음 뵙겠습니다.\n당신이 린샹씨군요?" },
         { speaker: "rinxiang", text: "아... 당신은...?" },
-        { speaker: "petum", text: "앗, 이것 참 소개가 늦었습니다.\n저는 아타호의 친구인\n페톰이라는 사람입니다." },
+        { speaker: "petum", text: "앗, 이것 참 소개가 늦었습니다.\n저는 아타호의 친구인\n페톰이라는 사람입니다." , speakerState: 'smile'},
         { speaker: "petum", text: "당신에 대해서는 아타호에게 많이 들었습니다." },
         { speaker: "rinxiang", text: "!\n그래서 아타호는\n저에 대해서 뭐라고 했어요?" },
         { speaker: "petum", text: "대단한 얘기는 안 했지만,\n무척이나 신경쓰고 있는 모습이었어요." },
-        { speaker: "rinxiang", text: "그래요, 고마워요.\n그러면, 또." },
-        { speaker: "petum", text: "어라, 벌써 가시려는 건가요?\n성격이 급하시네요. " },
+        { speaker: "rinxiang", text: "그래요, 고마워요.\n그러면, 또." , speakerState: 'smile'},
+        { speaker: "petum", text: "어라, 벌써 가시려는 건가요?\n성격이 급하시네요. " , listenerState: 'smile' },
         { speaker: "petum", text: "한 번 정도는 같이 어울려 달라구요." }
     ],
 
     // Rinxiang vs Smash
     "rinxiang_smash": [
-        { speaker: "smash", text: "여, 린샹.\n오랜만이네." },
-        { speaker: "rinxiang", text: "어머 스마슈잖아, 우연이네.\n여전히 여자애들 꽁무니나 쫓아다니는 거에요?" },
+        { speaker: "smash", text: "여, 린샹.\n오랜만이네." , speakerState: 'smile'},
+        { speaker: "rinxiang", text: "어머 스마슈잖아, 우연이네.\n여전히 여자애들 꽁무니나 쫓아다니는 거에요?" , listenerState: 'smile'},
         { speaker: "smash", text: "말이 심하구만." },
-        { speaker: "rinxiang", text: "뭐 대충, 이 대회에 나온 것도\n출전하는 여자애들이 목적인 거 아냐?" },
-        { speaker: "smash", text: "쯧쯧쯧.\n그게 아니라구.\n됐으니까 잘 들어봐." },
-        { speaker: "smash", text: "내가 이 대회에 참가한 진짜 목적은 말야,\n우승하고 유명해져서\nGIRL들한테 인기폭발이 되는 것이지." },
-        { speaker: "smash", text: "여자애들 꽁무니나 쫓아다니기 위해\n참가한 게 아니라구!!" },
-        { speaker: "rinxiang", text: "둘 다 마찬가지잖아, 바보." },
-        { speaker: "smash", text: "뭐라구~!!" }
+        { speaker: "rinxiang", text: "뭐 대충, 이 대회에 나온 것도\n출전하는 여자애들이 목적인 거 아냐?" , speakerState: 'shocked' },
+        { speaker: "smash", text: "쯧쯧쯧.\n그게 아니라구.\n됐으니까 잘 들어봐." , speakerState: 'smile', listenerState: 'shocked'},
+        { speaker: "smash", text: "내가 이 대회에 참가한 진짜 목적은 말야,\n우승하고 유명해져서\nGIRL들한테 인기폭발이 되는 것이지." , speakerState: 'smile', listenerState: 'shocked'},
+        { speaker: "smash", text: "여자애들 꽁무니나 쫓아다니기 위해\n참가한 게 아니라구!!" , speakerState: 'smile', listenerState: 'shocked'},
+        { speaker: "rinxiang", text: "둘 다 마찬가지잖아, 바보." , speakerState: 'shocked', listenerState: 'smile'},
+        { speaker: "smash", text: "뭐라구~!!" , speakerState: 'shocked', listenerState: 'shocked'}
     ],
 
     // Rinxiang vs Yuriwakamaru
     "rinxiang_yuri": [
         { speaker: "yuri", text: "거기 여자, 잠깐 기다려!\n너, 분명 린샹이지?" },
-        { speaker: "rinxiang", text: "누구야, 당신?\n사람 이름을 함부로 부르고..." },
-        { speaker: "yuri", text: "너, 요새 좀 인기가 생긴 모양이네." },
+        { speaker: "rinxiang", text: "누구야, 당신?\n사람 이름을 함부로 부르고..." , speakerState: 'shocked' },
+        { speaker: "yuri", text: "너, 요새 좀 인기가 생긴 모양이네." , listenerState: 'shocked' },
         { speaker: "rinxiang", text: "당신은 설마하니...." },
         { speaker: "rinxiang", text: "화려한 걸 좋아하는 방탕아면서 요새 존재감이 없는\n유리와카마루인가요?" },
-        { speaker: "yuri", text: "시... 시끄러워.\n신경쓰고 있는 부분을..." }
+        { speaker: "yuri", text: "시... 시끄러워.\n신경쓰고 있는 부분을..." , speakerState: 'shocked'}
     ],
 
     // Fari vs Petum
@@ -257,19 +257,19 @@ const DialogueData = {
 
     // Rinxiang vs Ataho (Ending)
     "rinxiang_ataho_ending": [
-        { speaker: "rinxiang", text: "약속대로, 나랑 함께해요.\n아타호." },
-        { speaker: "ataho", text: "음. 조금 성급한 느낌이긴 하지만.\n약속은 약속이니까." },
-        { speaker: "rinxiang", text: "조금도 성급하지 않거든요.\n게다가..." },
-        { speaker: "rinxiang", text: "아타호가 함께 있다면,\n어떤 어려움이 있어도\n극복해낼 수 있을 기분이 드는 걸요." },
-        { speaker: "ataho", text: "그런 말을 들으니, 조금 부끄럽구만." },
+        { speaker: "rinxiang", text: "약속대로, 나랑 함께해요.\n아타호." , speakerState: 'smile' },
+        { speaker: "ataho", text: "음. 조금 성급한 느낌이긴 하지만.\n약속은 약속이니까." , speakerState: 'shocked' , listenerState: 'smile' },
+        { speaker: "rinxiang", text: "조금도 성급하지 않거든요.\n게다가..." , listenerState: 'shocked' },
+        { speaker: "rinxiang", text: "아타호가 함께 있다면,\n어떤 어려움이 있어도\n극복해낼 수 있을 기분이 드는 걸요." , listenerState: 'shocked' },
+        { speaker: "ataho", text: "그런 말을 들으니, 조금 부끄럽구만." , speakerState: 'smile'},
         { speaker: "ataho", text: "별 수 없지. 나도 이번 기회로,\n슬슬 자리를 잡을 각오를 가져볼까." },
-        { speaker: "rinxiang", text: "자리를 잡다니, 무슨 얘기에요, 아타호.\n혹시, 나랑 무사 수행을 떠나는 게\n그렇게 싫은 거에요?" },
-        { speaker: "ataho", text: "무... 무사 수행?!\n뭐야, 무사 수행에\n함께 해달라는 말이었나..." },
-        { speaker: "ataho", text: "난 또 틀림없이..." },
-        { speaker: "rinxiang", text: "틀림없이, 뭘?" },
-        { speaker: "ataho", text: "그... 그게 말이지\n아무 것도 아냐, 잊어 주게!" },
-        { speaker: "rinxiang", text: "틀림없이 뭘요?\n뭐랑 착각했던 거야?" },
-        { speaker: "ataho", text: "그... 그래, 무사 수행 여행을 출발하자고!" },
+        { speaker: "rinxiang", text: "자리를 잡다니, 무슨 얘기에요, 아타호.\n혹시, 나랑 무사 수행을 떠나는 게\n그렇게 싫은 거에요?" , speakerState: 'shocked' },
+        { speaker: "ataho", text: "무... 무사 수행?!\n뭐야, 무사 수행에\n함께 해달라는 말이었나..." , speakerState: 'shocked' , listenerState: 'shocked' },
+        { speaker: "ataho", text: "난 또 틀림없이..." , speakerState: 'shocked' , listenerState: 'shocked'},
+        { speaker: "rinxiang", text: "틀림없이, 뭘?" , listenerState: 'shocked'},
+        { speaker: "ataho", text: "그... 그게 말이지\n아무 것도 아냐, 잊어 주게!" , speakerState: 'shocked'},
+        { speaker: "rinxiang", text: "틀림없이 뭘요?\n뭐랑 착각했던 거야?" , speakerState: 'smile', listenerState: 'shocked'},
+        { speaker: "ataho", text: "그... 그래, 무사 수행 여행을 출발하자고!" , listenerState: 'smile'},
         { speaker: "rinxiang", text: "앗... 기다려, 아타호!" }
     ],
 
