@@ -957,25 +957,25 @@ const BattleEngine = {
         if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
             // Check if can Riichi (Tenpai check)
             let canRiichi = false;
+            let riichiDiscardIndex = -1;
+
             for (let i = 0; i < this.cpu.hand.length; i++) {
                 const tempHand = [...this.cpu.hand];
                 tempHand.splice(i, 1);
                 if (this.checkTenpai(tempHand, this.cpu.id)) {
                     canRiichi = true;
+                    riichiDiscardIndex = i; // Store the correct discard for Tenpai
                     break;
                 }
             }
 
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
-                console.log("CPU Riichi!");
+                console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard as Riichi declaration
 
                 // Start Riichi Sequence (Delay Discard)
                 this.currentState = this.STATE_FX_PLAYING;
-
-                // Identify discard index (last drawn)
-                const discardIdx = this.cpu.hand.length - 1;
 
                 this.sequencing = {
                     active: true,
@@ -990,7 +990,7 @@ const BattleEngine = {
                                 // Finish Sequence
                                 this.sequencing.active = false;
                                 // Proceed to Discard
-                                this.discardTileCPU(discardIdx);
+                                this.discardTileCPU(riichiDiscardIndex);
                             }
                         }
                     ]
