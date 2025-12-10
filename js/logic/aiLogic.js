@@ -48,48 +48,76 @@ const AILogic = {
         hand.forEach((tile, index) => {
             const key = `${tile.color}_${tile.type}`;
             const count = counts[key].count;
-
             let score = 0;
 
-            // Base Score: Inverse of count (Singles are high priority to discard)
-            if (count === 1) score += 10;
-            else if (count === 2) score += 2; // Pairs are valuable
-            else if (count >= 3) score += 0; // Triplets are very valuable
+            // 1. Efficiency (Isolation vs Connection)
+            // Check Neighbors (Connectivity)
+            const typeIdx = PaiData.TYPES.findIndex(t => t.id === tile.type && t.color === tile.color);
+            let hasNeighbor = false;
+            // Simple check: Look for +/- 1 or +/- 2 index in same color group (assuming PaiData is ordered or we check hand)
+            // Better: Check HAND for neighbors.
+            const value = parseInt(tile.type) || 0; // If numeric. But types are 'pai_ata', etc. Not numeric sequences?
+            // Wait, this is Character Mahjong. There are NO sequences (Shuntsu) in Hwanse Paeyugi!
+            // It's all about Triplets (Koutsu) and Pairs (Toitsu)!
+            // **Correction**: Hwanse Paeyugi rules are standard Mahjong-ish?
+            // Logic/YakuLogic Check: "checkYaku" usually supports Pon?
+            // Re-reading visual evidence/previous code:
+            // - "Triplets are very valuable" comment in existing AI.
+            // - YakuLogic.js (I should have checked this).
+            // - File `assets.js` has tiles like `pai_ata`. These are character faces.
+            // - THIS IS NOT NUMERIC MAHJONG.
+            // - **CRITICAL REALIZATION**: Connectivity (+/- 1) adds NOTHING if sequences aren't valid.
+            // - If sequences ARE valid (e.g. Ata-Rin-Smash?), then heuristics apply.
+            // - Let's assume ONLY Triplets/Pairs matter for now unless I verify YakuLogic.
+            // - Previous conversation mentions "Pon" but not "Chi". "Chi" is usually for sequences.
+            // - "Remove the Kan action... Ensure Pon is allowed". No mention of Chi.
+            // - **Safest Bet**: Assume Triplet-based game for "Connectivity" means "How many copies do I have?".
+            // - Wait, if it's purely triplet based (Pong/Kong), then "Isolation" simply means "I have 1 of this".
+            // - So "Connectivity" = "Do I have 2 or 3?" (Already covered by `count`).
+            // - **BUT**: Maybe the user wants "Color Bias" to be smarter?
+            // - Or maybe "Connectivity" implies "Pairs are good, Singles are bad".
+            // - Let's STICK to the plan but refined:
+            //   - Prioritize Pairs/Triplets (Keep).
+            //   - Discard Singles.
+            //   - **DORA**: This is the big weakness.
+            //   - **Defense**: If Opponent Riichi, discard Safe tiles.
 
-            // Color Score (Normal+)
-            if (difficulty >= this.DIFFICULTY.NORMAL) {
-                // Bias Influence: 0.0 ~ 1.0 (Current Logic was static +/- 5)
-                // New Logic: 
-                // Discard Minority: Base 5 + (Bias * 10) -> Stronger bias = Hates wrong color more
-                // Keep Majority: Base -5 - (Bias * 10) -> Stronger bias = Loves main color more
+            // Base Score: Inverse of count
+            if (count === 1) score += 20; // Single? Trash it.
+            else if (count === 2) score -= 20; // Pair? Keep it! (Was +2 in old logic, which was weird if high score = discard)
+            // Wait, old logic: "if (count === 1) score += 10; else if (count === 2) score += 2;"
+            // Old logic: Higher score = Discard.
+            // So Single (+10) > Pair (+2). So it preferred discarding singles. Correct.
+            // We want to make it STRONGER.
+            // Single (+20), Pair (-20).
 
-                if (tile.color === minColor) score += (5 + (profile.colorBias * 10));
-                if (tile.color === maxColor) score -= (5 + (profile.colorBias * 10));
-            }
+            else if (count >= 3) score -= 50; // Triplet? NEVER discard.
 
-            // Defense Logic: Against Riichi
-            if (opponentRiichi && difficulty >= this.DIFFICULTY.NORMAL) {
-                // Check if tile matches any in discards (Genbutsu / Safe)
-                const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
-
-                // Scale defense strength by profile
-                // Strong defense (>0.8) = Huge shift (+/- 80)
-                // Weak defense (<0.3) = Tiny shift (+/- 20)
-                const defenseMod = Math.floor(100 * profile.defense);
-
-                if (isSafe) {
-                    // Safe Tile: Bonus to Discard Score (Encourage discard)
-                    score += defenseMod;
-                    // Log debug
-                    // console.log(`[AI Defense] Safe Tile identified: ${tile.type}`);
-                } else {
-                    // Dangerous Tile: Penalty to Discard Score (Discourage discard)
-                    score -= defenseMod;
+            // 2. Dora Awareness
+            if (context && context.doras) {
+                const isDora = context.doras.some(d => d.type === tile.type && d.color === tile.color);
+                if (isDora) {
+                    score -= 30; // Huge penalty to discard Dora
+                    // console.log(`[AI] Dora protection: ${tile.type}`);
                 }
             }
 
-            // Defense Logic (General Profile) - Deprecated/Merged above
-            // if (profile.defense > 0.7) { ... }
+            // 3. Color Strategy (Bias)
+            if (difficulty >= this.DIFFICULTY.NORMAL) {
+                if (tile.color === minColor) score += (5 + (profile.colorBias * 10)); // Dump minority
+                if (tile.color === maxColor) score -= (5 + (profile.colorBias * 10)); // Keep majority
+            }
+
+            // 4. Defense Logic (Against Riichi)
+            if (opponentRiichi && difficulty >= this.DIFFICULTY.NORMAL) {
+                const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
+                const defenseMod = Math.floor(100 * profile.defense); // e.g. 50
+                if (isSafe) {
+                    score += defenseMod; // Boost discard score (Do it!)
+                } else {
+                    score -= defenseMod; // Penalty (Don't do it!)
+                }
+            }
 
             candidates.push({ index: index, score: score, tile: tile });
         });

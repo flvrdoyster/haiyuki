@@ -1006,7 +1006,9 @@ const BattleEngine = {
         } else {
             const context = {
                 discards: this.discards,
-                opponentRiichi: this.p1.isRiichi
+                opponentRiichi: this.p1.isRiichi,
+                doras: this.doras,
+                turnCount: this.turnCount
             };
             const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty, this.cpu.aiProfile, context);
             this.discardTileCPU(discardIdx);
