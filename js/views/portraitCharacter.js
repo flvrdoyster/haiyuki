@@ -30,8 +30,8 @@ class PortraitCharacter {
 
         // 1. Scalar Defaults - TUNED FOR SNAPPIER FEEL
         if (!this.animConfig.interval) this.animConfig.interval = 200; // Blink Interval
-        if (!this.animConfig.speed) this.animConfig.speed = 4;       // Blink Speed (was 5)
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 5; // Talk Speed (was 8 - too slow)
+        if (!this.animConfig.speed) this.animConfig.speed = 5;       // Blink Speed (Reverted to 5)
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 8; // Talk Speed (Reverted to 8)
 
         // 2. Asset Auto-Generation (Convention over Configuration)
         // If 'base' exists (e.g., ".../NAME_SIDE_base.png"), try to generate blink/talk if missing.
@@ -438,10 +438,13 @@ class PortraitCharacter {
             isSheet = this._sheetCache[img.src];
         } else {
             // Calculate and cache
-            const baselineW = BattleConfig.PORTRAIT.baseW || 264;
-            const threshold = baselineW * 1.5;
-            isSheet = (img.width >= threshold);
-            if (this._sheetCache) this._sheetCache[img.src] = isSheet;
+            // CRITICAL FIX: Do NOT cache if image is not loaded (width=0)
+            if (img.width > 0) {
+                const baselineW = BattleConfig.PORTRAIT.baseW || 264;
+                const threshold = baselineW * 1.5;
+                isSheet = (img.width >= threshold);
+                if (this._sheetCache) this._sheetCache[img.src] = isSheet;
+            }
         }
 
         if (isSheet) {

@@ -16,6 +16,12 @@ const UI = {
         // 1. Frame
         Assets.drawUIFrame(ctx, x, y, w, h);
 
+        // Fallback: If UI Frame assets missing, draw a border
+        if (!Assets.get('ui/frame/corner-lefttop.png')) {
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(x, y, w, h);
+        }
+
         // 2. Inner Dimmer / Highlight
         if (isSelected) {
             // Selected: Pink highlight

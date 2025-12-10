@@ -141,6 +141,16 @@ const BattleRenderer = {
         }
     },
 
+    // Cached Metrics Object to reduce GC
+    _visualMetrics: {
+        totalW: 0,
+        startX: 0,
+        handStartX: 0,
+        openStartX: 0,
+        handW: 0,
+        openW: 0
+    },
+
     getVisualMetrics: function (character, groupSize) {
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.gap;
@@ -170,14 +180,16 @@ const BattleRenderer = {
         // 4. Start X (Centered)
         const startX = (640 - totalW) / 2;
 
-        return {
-            totalW,
-            startX, // Logic: Hand is first, so startX is handStartX
-            handStartX: startX,
-            openStartX: startX + handW + sectionGap,
-            handW,
-            openW
-        };
+        // Update Cached Object
+        const m = this._visualMetrics;
+        m.totalW = totalW;
+        m.startX = startX;
+        m.handStartX = startX;
+        m.openStartX = startX + handW + sectionGap;
+        m.handW = handW;
+        m.openW = openW;
+
+        return m;
     },
 
     getPlayerHandPosition: function (index, count, groupSize, startX) {
@@ -519,6 +531,17 @@ const BattleRenderer = {
         ctx.restore();
     },
 
+    // Cached Action Menu Metrics
+    _actionMenuMetrics: {
+        totalW: 0,
+        startX: 0,
+        startY: 0,
+        frameX: 0,
+        frameY: 0,
+        frameW: 0,
+        frameH: 0
+    },
+
     drawActionMenu: function (ctx, state) {
         const conf = BattleConfig.ACTION;
         const actions = state.possibleActions;
@@ -527,32 +550,32 @@ const BattleRenderer = {
         const gap = conf.gap;
         const padding = conf.padding || 20;
 
-        const totalW = actions.length * btnW + (actions.length - 1) * gap;
-        const startX = (640 - totalW) / 2;
-        const startY = conf.y;
+        // Calculate Metrics (using cached object)
+        const m = this._actionMenuMetrics;
+        m.totalW = actions.length * btnW + (actions.length - 1) * gap;
+        m.startX = (640 - m.totalW) / 2;
+        m.startY = conf.y;
+        m.frameX = m.startX - padding;
+        m.frameY = m.startY - padding;
+        m.frameW = m.totalW + (padding * 2);
+        m.frameH = btnH + (padding * 2);
 
-        // Draw Container Frame
-        const frameX = startX - padding;
-        const frameY = startY - padding;
-        const frameW = totalW + (padding * 2);
-        const frameH = btnH + (padding * 2); // Assuming single row of buttons
-
-        Assets.drawUIFrame(ctx, frameX, frameY, frameW, frameH);
+        Assets.drawUIFrame(ctx, m.frameX, m.frameY, m.frameW, m.frameH);
 
         // Inner Dimmer
         const border = 4;
         ctx.fillStyle = conf.dimmer || 'rgba(0,0,0,0.5)';
-        ctx.fillRect(frameX + border, frameY + border, frameW - (border * 2), frameH - (border * 2));
+        ctx.fillRect(m.frameX + border, m.frameY + border, m.frameW - (border * 2), m.frameH - (border * 2));
 
 
         actions.forEach((act, i) => {
-            const x = startX + i * (btnW + gap);
+            const x = m.startX + i * (btnW + gap);
             const isSelected = (i === state.selectedActionIndex);
 
             // Selection Cursor (Pink Bar) - Only draw if selected
             if (isSelected) {
                 ctx.fillStyle = conf.cursor;
-                ctx.fillRect(x, startY, btnW, btnH);
+                ctx.fillRect(x, m.startY, btnW, btnH);
             }
 
             // Text Color
@@ -560,7 +583,7 @@ const BattleRenderer = {
             ctx.font = conf.buttonFont;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle'; // Fix vertical alignment
-            ctx.fillText(act.label, x + btnW / 2, startY + btnH / 2);
+            ctx.fillText(act.label, x + btnW / 2, m.startY + btnH / 2);
         });
     },
 
