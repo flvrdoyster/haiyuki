@@ -1,5 +1,5 @@
 const BattleRenderer = {
-    draw: function (ctx, state) {
+    draw: function (ctx, state, activeFX) {
         // Disable interpolation for pixel art / precise layering
         ctx.imageSmoothingEnabled = false;
 
@@ -120,7 +120,7 @@ const BattleRenderer = {
 
         // 9. FX
         // FX handling is usually stateless drawing, but depends on activeFX array
-        this.drawFX(ctx, state.activeFX);
+        this.drawFX(ctx, activeFX);
 
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {
@@ -192,6 +192,8 @@ const BattleRenderer = {
         return m;
     },
 
+    _tempPos: { x: 0, y: 0 },
+
     getPlayerHandPosition: function (index, count, groupSize, startX) {
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.gap;
@@ -202,7 +204,10 @@ const BattleRenderer = {
             x += groupGap;
         }
 
-        return { x: x, y: BattleConfig.HAND.playerHandY };
+        // Reuse Object
+        this._tempPos.x = x;
+        this._tempPos.y = BattleConfig.HAND.playerHandY;
+        return this._tempPos;
     },
 
     drawTile: function (ctx, tile, x, y, w, h) {

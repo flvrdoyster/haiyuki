@@ -349,19 +349,8 @@ const BattleScene = {
     },
 
     draw: function (ctx) {
-        const renderState = Object.create(BattleEngine); // Prototype chain or shallow copy? 
-        // BattleRenderer likely reads properties directly.
-        // It's safer to just pass BattleEngine and override activeFX if possible, 
-        // OR pass a proxy object.
-        // BattleEngine is a singleton object, not a class instance unless we treat it so.
-        // Let's assume BattleRenderer reads `state.activeFX`.
-
-        // We can temporarily attach activeFX to BattleEngine before drawing? 
-        // Or better, BattleRenderer.draw accepts an options or we wrap it.
-        // But since JS objects are mutable...
-        BattleEngine.activeFX = this.activeFX;
-
-        BattleRenderer.draw(ctx, BattleEngine);
+        // Optimized Draw: Pass BattleEngine directly + ActiveFX argument
+        BattleRenderer.draw(ctx, BattleEngine, this.activeFX);
 
         // Draw Confirmation Dialog on top
         UI.Confirm.draw(ctx);

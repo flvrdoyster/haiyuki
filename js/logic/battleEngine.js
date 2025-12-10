@@ -186,7 +186,8 @@ const BattleEngine = {
         };
 
         // BGM (Basic Battle Theme)
-        Assets.playMusic('audio/bgm_basic'); // Will upgrade to dynamic later
+        // BGM (Basic Battle Theme) - REMOVED: Managed by startRound() events to prevent double-play
+        // Assets.playMusic('audio/bgm_basic');
 
         this.p1Character = new PortraitCharacter(p1Data, {
             ...BattleConfig.PORTRAIT.P1,
@@ -699,7 +700,9 @@ const BattleEngine = {
             case this.STATE_INIT:
                 if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
                     if (this.turnCount === 1) {
-                        this.playerDraw();
+                        // Fix: Go to Wait State to show Draw Button
+                        this.currentState = this.STATE_WAIT_FOR_DRAW;
+                        this.timer = 0;
                     }
                 }
                 break;
