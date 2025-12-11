@@ -55,12 +55,15 @@ const UI = {
         lastMouseX: 0,
         lastMouseY: 0,
 
+        inputCooldown: 0,
+
         show: function (message, onConfirm, onCancel) {
             this.isActive = true;
             this.message = message;
             this.selectedOption = 0;
             this.onConfirm = onConfirm || function () { };
             this.onCancel = onCancel || function () { };
+            this.inputCooldown = 15; // Wait 15 frames (~0.25s) before accepting input
             // Reset last mouse position
             if (window.Input) {
                 this.lastMouseX = Input.mouseX;
@@ -77,6 +80,12 @@ const UI = {
 
         update: function () {
             if (!this.isActive) return;
+
+            // Input Cooldown
+            if (this.inputCooldown > 0) {
+                this.inputCooldown--;
+                return;
+            }
 
             // Button Layout Calculation (must match draw)
             const boxX = 120;

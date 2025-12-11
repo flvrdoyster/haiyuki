@@ -123,7 +123,7 @@ const CharacterData = [
         aiProfile: { type: 'LUCKY', aggression: 0.8, speed: 0.3, defense: 0.7, colorBias: 0.3 }
     },
     {
-        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/CHRSELSMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 0, battleOffsetY: 0,
+        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/CHRSELSMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 5, battleOffsetY: 0,
         // Smash: Ninja = Quick movements. High Speed (Calls often).
         aiProfile: { type: 'ZAP_SPEED', aggression: 0.4, speed: 0.9, defense: 0.6, colorBias: 0.2 }
     },
