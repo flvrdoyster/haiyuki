@@ -2,19 +2,20 @@
 
 const BattleEngine = {
     // States
+    // States - Reordered to Chronological Flow
     STATE_INIT: 0,
-    STATE_PLAYER_TURN: 1, // Draw -> Discard
-    STATE_CPU_TURN: 2,
-    STATE_WIN: 3,   // Round Win
-    STATE_LOSE: 4,  // Round Lose
-    STATE_NAGARI: 5,  // Round Draw (Nagari)
-    STATE_MATCH_OVER: 6, // Game Over (HP 0)
-    STATE_ACTION_SELECT: 7, // Menu for Pon/Ron
-    STATE_FX_PLAYING: 8, // New: Block input during FX sequences
-    STATE_BATTLE_MENU: 9, // New: Battle Menu Overlay
-    STATE_WAIT_FOR_DRAW: 10, // Wait for user input before drawing
-    STATE_DAMAGE_ANIMATION: 11, // New: Damage Animation
-    STATE_DEALING: 12, // New: Dealing Sequence
+    STATE_DEALING: 1,      // Start of Round
+    STATE_WAIT_FOR_DRAW: 2,
+    STATE_PLAYER_TURN: 3,
+    STATE_ACTION_SELECT: 4, // Interjection (Pon/Ron)
+    STATE_BATTLE_MENU: 5,   // Overlay
+    STATE_CPU_TURN: 6,
+    STATE_FX_PLAYING: 7,    // Animations / Inter-turn
+    STATE_DAMAGE_ANIMATION: 8, // Result Processing
+    STATE_WIN: 9,           // Round End
+    STATE_LOSE: 10,
+    STATE_NAGARI: 11,
+    STATE_MATCH_OVER: 12,   // Game End
 
     currentState: 0,
     timer: 0,
@@ -782,7 +783,17 @@ const BattleEngine = {
 
         // Music Update
         // Only update battle music during active battle states
-        if (this.currentState <= this.STATE_CPU_TURN && !this.sequencing.active) {
+        // Refactored to allow arbitrary state order
+        const activeMusicStates = [
+            this.STATE_DEALING,
+            this.STATE_WAIT_FOR_DRAW,
+            this.STATE_PLAYER_TURN,
+            this.STATE_ACTION_SELECT,
+            this.STATE_BATTLE_MENU,
+            this.STATE_CPU_TURN
+        ];
+
+        if (activeMusicStates.includes(this.currentState) && !this.sequencing.active) {
             this.updateBattleMusic();
         }
 
@@ -811,7 +822,18 @@ const BattleEngine = {
             return; // Block other logic
         }
 
-        if (this.currentState < this.STATE_WIN && this.currentState !== this.STATE_INIT) {
+        // Check Round End Condition (Deck Empty etc)
+        // Ensure we are not already in an end sequence
+        const endStates = [
+            this.STATE_WIN,
+            this.STATE_LOSE,
+            this.STATE_NAGARI,
+            this.STATE_MATCH_OVER,
+            this.STATE_FX_PLAYING,
+            this.STATE_DAMAGE_ANIMATION
+        ];
+
+        if (!endStates.includes(this.currentState) && this.currentState !== this.STATE_INIT) {
             if (this.timer % 30 === 0) {
                 this.checkRoundEnd();
             }
