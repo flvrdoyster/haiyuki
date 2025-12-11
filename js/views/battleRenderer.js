@@ -88,7 +88,12 @@ const BattleRenderer = {
                 // Riichi indicator if needed
             }
 
-            this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH);
+            // Draw Face or Back based on state
+            if (state.p1.isFaceDown) {
+                this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/back-bottom.png');
+            } else {
+                this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH);
+            }
         }
 
         // Draw Cursor (Top Layer)

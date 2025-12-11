@@ -14,6 +14,7 @@ const BattleEngine = {
     STATE_BATTLE_MENU: 9, // New: Battle Menu Overlay
     STATE_WAIT_FOR_DRAW: 10, // Wait for user input before drawing
     STATE_DAMAGE_ANIMATION: 11, // New: Damage Animation
+    STATE_DEALING: 12, // New: Dealing Sequence
 
     currentState: 0,
     timer: 0,
@@ -502,6 +503,28 @@ const BattleEngine = {
             this.currentState = this.STATE_NAGARI;
             this.calculateTenpaiDamage(true); // skipFX = true
             this.sequencing.active = false;
+        } else if (step.type === 'DEAL') {
+            // Deal To Players
+            // step.count, step.sound
+            const newP1 = this.drawTiles(step.count);
+            const newCpu = this.drawTiles(step.count);
+            this.p1.hand = this.p1.hand.concat(newP1);
+            this.cpu.hand = this.cpu.hand.concat(newCpu);
+
+            // Should playing sound here or via sequence? 
+            // Sequence 'SOUND' usually used, but let's allow inline for sync
+            if (step.sound) {
+                this.events.push({ type: 'SOUND', id: step.sound });
+            }
+            this.sequencing.currentStep++;
+        } else if (step.type === 'FLIP_HAND') {
+            // Reveal player hand (was face down during deal)
+            this.p1.isFaceDown = false;
+            this.sortHand(this.p1.hand); // Sort immediately on reveal
+            if (step.sound) {
+                this.events.push({ type: 'SOUND', id: step.sound });
+            }
+            this.sequencing.currentStep++;
         }
     },
 
@@ -640,13 +663,36 @@ const BattleEngine = {
         this.p1.hand = [];
         this.cpu.hand = [];
 
-        // Init Hands
-        this.p1.hand = this.drawTiles(11);
-        console.log(`Player Hand drawn. Size: ${this.p1.hand.length}`);
+        // P1 starts Face Down during dealing
+        this.p1.isFaceDown = true;
 
-        this.cpu.hand = this.drawTiles(11);
+        // Init Hands - Modified for Realistic Dealing (4-4-2-1)
+        // this.p1.hand = this.drawTiles(11);
+        // this.cpu.hand = this.drawTiles(11);
         this.cpu.isRevealed = false; // Reset reveal status
-        this.sortHand(this.p1.hand); // Re-enabled sorting as per user request (initial only)
+        // this.sortHand(this.p1.hand); // Sorting happens after deal reveal
+
+        // Start Dealing Sequence
+        this.currentState = this.STATE_DEALING;
+        this.sequencing = {
+            active: true,
+            currentStep: 0,
+            timer: 0,
+            steps: [
+                { type: 'WAIT', duration: 30 },
+                { type: 'DEAL', count: 4, sound: 'audio/deal' },
+                { type: 'WAIT', duration: 20 },
+                { type: 'DEAL', count: 4, sound: 'audio/deal' },
+                { type: 'WAIT', duration: 20 },
+                { type: 'DEAL', count: 2, sound: 'audio/deal' },
+                { type: 'WAIT', duration: 20 },
+                { type: 'DEAL', count: 1, sound: 'audio/deal' },
+                { type: 'WAIT', duration: 30 },
+                { type: 'FLIP_HAND', sound: 'audio/flip' }, // Reveal & Sort
+                { type: 'WAIT', duration: 10 },
+                { type: 'STATE', state: this.STATE_INIT } // Hand off to INIT to start turn logic
+            ]
+        };
 
         // Reset Open Sets (Fixes "Too many tiles" bug in Round 2)
         this.p1.openSets = [];
@@ -697,9 +743,9 @@ const BattleEngine = {
     generateDeck: function () {
         const deck = [];
 
-        // Manual: "13 Types... 9 pieces each" -> Modified to 10 for balance
+        // Generate Deck based on PaiData config
         PaiData.TYPES.forEach(type => {
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < PaiData.TILE_COUNT_PER_TYPE; i++) {
                 deck.push({
                     type: type.id,
                     color: type.color,
