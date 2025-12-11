@@ -7,6 +7,8 @@ const Input = {
     mouseY: 0,
     isMouseDown: false,
     prevMouseDown: false,
+    isRightMouseDown: false,
+    prevRightMouseDown: false,
 
     // Cached Rect
     rect: null,
@@ -46,13 +48,13 @@ const Input = {
                 this.scaleX = canvas.width / this.rect.width;
                 this.scaleY = canvas.height / this.rect.height;
             };
+            this.resize = updateRect; // Expose for manual triggering (e.g. layout changes)
 
             // Update initially and on resize/scroll/fullscreen change
             updateRect();
             window.addEventListener('resize', updateRect);
             window.addEventListener('scroll', updateRect);
             document.addEventListener('fullscreenchange', () => {
-                // Slight delay to ensure layout is done? usually RAF or setTimeout helps
                 setTimeout(updateRect, 100);
             });
 
@@ -65,17 +67,23 @@ const Input = {
             canvas.addEventListener('mousedown', (e) => {
                 if (e.button === 0) {
                     this.isMouseDown = true;
+                } else if (e.button === 2) {
+                    this.isRightMouseDown = true;
                 }
             });
 
-            window.addEventListener('mouseup', () => {
-                this.isMouseDown = false;
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 0) {
+                    this.isMouseDown = false;
+                } else if (e.button === 2) {
+                    this.isRightMouseDown = false;
+                }
             });
 
             // Touch Support
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // Prevent scrolling
-                if (!this.rect) updateRect(); // Fallback check
+                if (!this.rect) updateRect();
                 const touch = e.touches[0];
                 this.mouseX = (touch.clientX - this.rect.left) * this.scaleX;
                 this.mouseY = (touch.clientY - this.rect.top) * this.scaleY;
@@ -103,6 +111,7 @@ const Input = {
         // Copy current keys to prevKeys for edge detection
         this.prevKeys = { ...this.keys };
         this.prevMouseDown = this.isMouseDown;
+        this.prevRightMouseDown = this.isRightMouseDown;
     },
 
     isDown: function (key) {
@@ -115,5 +124,9 @@ const Input = {
 
     isMouseJustPressed: function () {
         return this.isMouseDown && !this.prevMouseDown;
+    },
+
+    isMouseRightClick: function () { // Just Pressed check for Right Click
+        return this.isRightMouseDown && !this.prevRightMouseDown;
     }
 };

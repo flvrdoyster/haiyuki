@@ -96,7 +96,7 @@ const BattleEngine = {
     selectedActionIndex: 0,
 
     // Config for Battle Menu
-    selectedMenuIndex: 0,
+    // selectedMenuIndex: 0, // Moved to BattleMenuSystem 
 
     init: function (data) {
         // Prevent Context Menu on Canvas (Right Click)
@@ -104,7 +104,7 @@ const BattleEngine = {
         if (canvas) {
             canvas.oncontextmenu = (e) => {
                 e.preventDefault();
-                this.toggleBattleMenu();
+                // BattleMenuSystem.toggle(); // Handled by Input in BattleScene
             };
         }
 
@@ -127,25 +127,10 @@ const BattleEngine = {
             if (this.cpu.aiProfile) console.log(`Loaded AI Profile for ${cpuData.name}:`, this.cpu.aiProfile.type);
         }
 
-        // Construct Dynamic Battle Menu based on Config
-        this.menuItems = [];
-        const layout = BattleConfig.BATTLE_MENU.layout;
+        // Menu construction moved to BattleMenuSystem
+        BattleMenuSystem.init(this);
+        // this.menuItems = []; // Removed
 
-        layout.forEach(item => {
-            if (item.id === 'SKILLS_PLACEHOLDER') {
-                if (p1Data && p1Data.skills) {
-                    p1Data.skills.forEach(skillId => {
-                        const skill = SkillData[skillId];
-                        if (skill) {
-                            const isDisabled = !BattleConfig.RULES.SKILLS_ENABLED;
-                            this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
-                        }
-                    });
-                }
-            } else {
-                this.menuItems.push(item);
-            }
-        });
 
         if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
             console.log("AUTO-LOSE MODE ACTIVE: Setting Player HP to 1000");
@@ -1696,82 +1681,6 @@ const BattleEngine = {
         }
 
         // Action blocks set the correct next state.
-    },
-
-    toggleBattleMenu: function () {
-        if (this.currentState === this.STATE_BATTLE_MENU) {
-            this.currentState = this.lastStateBeforeMenu || this.STATE_PLAYER_TURN;
-        } else {
-            this.lastStateBeforeMenu = this.currentState;
-            this.currentState = this.STATE_BATTLE_MENU;
-            this.selectedMenuIndex = 0;
-        }
-    },
-
-
-
-    handleMenuSelection: function (selectedItem) {
-        console.log("Selected Menu Item:", selectedItem);
-        const selectedId = selectedItem.id;
-
-        if (selectedId === 'HELP') {
-            const yakuContainer = document.getElementById('yaku-container');
-            if (yakuContainer) {
-                const isHidden = yakuContainer.classList.contains('hidden');
-                yakuContainer.classList.toggle('hidden');
-
-                // Sync toolbar button state
-                const yakuBtn = document.getElementById('yaku-btn');
-                if (yakuBtn) {
-                    yakuBtn.classList.remove('toggle-on', 'toggle-off');
-                    yakuBtn.classList.add(isHidden ? 'toggle-on' : 'toggle-off');
-                }
-
-                if (isHidden) {
-                    // Reload iframe src to force scroll to anchor
-                    const iframe = document.getElementById('yaku-frame');
-                    if (iframe) {
-                        iframe.src = iframe.src;
-                    }
-                }
-            } else {
-                window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
-            }
-        } else if (selectedId === 'AUTO') {
-            if (this.lastStateBeforeMenu !== this.STATE_PLAYER_TURN) {
-                console.log("Auto-select ignored: Not player turn");
-                // Optional: Play error sound
-            } else {
-                this.toggleBattleMenu(); // Close menu
-                this.performAutoTurn();
-                return; // Prevent double toggle
-            }
-        } else if (selectedId === 'RESTART') {
-            // Restart Round Strategy - Show in-game confirmation
-            UI.Confirm.show(
-                '정말로 이 라운드를 다시 시작할까요?',
-                () => {
-                    // On Confirm
-                    this.toggleBattleMenu(); // Close menu
-                    this.startRound();
-                },
-                () => {
-                    // On Cancel
-                    this.toggleBattleMenu(); // Close menu
-                }
-            );
-            return; // Don't auto-close menu, let dialog handle it
-        } else if (selectedItem.type === 'SKILL') {
-            if (selectedItem.disabled) {
-                console.log(`Skill Disabled: ${selectedItem.label}`);
-                // Play error sound?
-                return; // Do not close menu
-            }
-            console.log(`Skill Selected: ${selectedItem.label} (${selectedId})`);
-            // Skill Logic Placeholder
-        }
-
-        this.toggleBattleMenu();
     },
 
     // Draw methods delegated to BattleRenderer

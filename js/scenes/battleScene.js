@@ -206,8 +206,8 @@ const BattleScene = {
         const engine = BattleEngine;
 
         // Global Toggles
-        if (Input.isJustPressed(Input.ESC)) {
-            engine.toggleBattleMenu();
+        if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
+            BattleMenuSystem.toggle();
             return;
         }
 
@@ -238,29 +238,31 @@ const BattleScene = {
         }
     },
 
-    handleBattleMenuInput: function (engine) {
+    handleBattleMenuInput: function () {
+        // Keyboard
         if (Input.isJustPressed(Input.UP)) {
-            engine.selectedMenuIndex--;
-            if (engine.selectedMenuIndex < 0) engine.selectedMenuIndex = engine.menuItems.length - 1;
-        }
-        if (Input.isJustPressed(Input.DOWN)) {
-            engine.selectedMenuIndex++;
-            if (engine.selectedMenuIndex >= engine.menuItems.length) engine.selectedMenuIndex = 0;
+            BattleMenuSystem.selectedMenuIndex--;
+            if (BattleMenuSystem.selectedMenuIndex < 0) BattleMenuSystem.selectedMenuIndex = BattleMenuSystem.menuItems.length - 1;
+        } else if (Input.isJustPressed(Input.DOWN)) {
+            BattleMenuSystem.selectedMenuIndex++;
+            if (BattleMenuSystem.selectedMenuIndex >= BattleMenuSystem.menuItems.length) BattleMenuSystem.selectedMenuIndex = 0;
         }
 
         // Mouse Hover using Renderer Helper
         // Mouse Click
+        // Mouse Hover using Renderer Helper
+        // Mouse Click
         if (Input.isMouseJustPressed()) {
-            const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, engine.menuItems);
+            const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems);
             if (hovered !== -1) {
-                engine.selectedMenuIndex = hovered;
-                engine.handleMenuSelection(engine.menuItems[hovered]);
+                BattleMenuSystem.selectedMenuIndex = hovered;
+                BattleMenuSystem.handleSelection();
                 return;
             }
         }
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
-            engine.handleMenuSelection(engine.menuItems[engine.selectedMenuIndex]);
+            BattleMenuSystem.handleSelection();
         }
     },
 

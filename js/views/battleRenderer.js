@@ -808,7 +808,7 @@ const BattleRenderer = {
 
         let currentY = startY;
 
-        state.menuItems.forEach((item, i) => {
+        BattleMenuSystem.menuItems.forEach((item, i) => {
             const h = getItemHeight(item);
 
             if (item.type === 'SEPARATOR') {
@@ -830,7 +830,7 @@ const BattleRenderer = {
             const itemY = Math.floor(currentY + (h / 2) + conf.cursorYOffset);
 
             // 3. Selection Cursor
-            if (i === state.selectedMenuIndex) {
+            if (i === BattleMenuSystem.selectedMenuIndex) {
                 ctx.fillStyle = conf.cursor;
                 // Cursor bar width
                 const barW = w - (conf.padding * 2);
@@ -983,6 +983,48 @@ const BattleRenderer = {
             if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
                 return i;
             }
+        }
+        return -1;
+    },
+
+    // Helper to check Menu Hit
+    getMenuItemAt: function (mouseX, mouseY, menuItems) {
+        const conf = BattleConfig.BATTLE_MENU;
+        const x = conf.x;
+        const y = conf.y;
+        const w = conf.w;
+        const h = conf.h;
+        const startX = x + conf.padding;
+        const startY = y + conf.padding + 7;
+
+        // Window Bounds Check
+        if (mouseX < x || mouseX > x + w || mouseY < y || mouseY > y + h) return -1;
+
+        const lineHeight = conf.fixedLineHeight || 28;
+        const getItemHeight = (item) => {
+            if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
+            return lineHeight;
+        };
+
+        let currentY = startY;
+
+        for (let i = 0; i < menuItems.length; i++) {
+            const item = menuItems[i];
+            const itemH = getItemHeight(item);
+
+            if (item.type === 'SEPARATOR') {
+                currentY += itemH;
+                continue;
+            }
+
+            // Hit Check
+            if (mouseY >= currentY && mouseY < currentY + itemH) {
+                // Check X (roughly)
+                if (mouseX >= startX && mouseX <= startX + (w - conf.padding * 2)) {
+                    return i;
+                }
+            }
+            currentY += itemH;
         }
         return -1;
     }
