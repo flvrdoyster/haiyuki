@@ -111,6 +111,31 @@ const BattleRenderer = {
         // 7. Info (Turn/Round)
         this.drawInfo(ctx, state.turnCount, state.currentRound);
 
+        // 7.5 Riichi Sticks (New UI)
+        const riichiConf = BattleConfig.RIICHI_STICK;
+        if (riichiConf && Assets.get(riichiConf.path)) {
+            const rImg = Assets.get(riichiConf.path);
+            const rY = riichiConf.y;
+            const rOff = riichiConf.offset;
+            const rScale = riichiConf.scale || 1.0;
+            const rW = rImg.width * rScale;
+            const rH = rImg.height * rScale;
+            const cx = 320; // Center X
+
+            // P1 Riichi (Left of Dora)
+            if (state.p1.isRiichi) {
+                const rx = cx - rOff - (rW / 2); // Center on offset point? Or just place it? 
+                // "Dora based left" -> Center - Offset
+                ctx.drawImage(rImg, rx - rW / 2, rY, rW, rH);
+            }
+
+            // CPU Riichi (Right of Dora)
+            if (state.cpu.isRiichi) {
+                const rx = cx + rOff + (rW / 2);
+                ctx.drawImage(rImg, rx - rW / 2, rY, rW, rH);
+            }
+        }
+
         // 8. Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP"); // P1 MP
@@ -458,29 +483,39 @@ const BattleRenderer = {
 
     drawInfo: function (ctx, turn, round) {
         const tConf = BattleConfig.INFO;
-        const labelImg = Assets.get(tConf.labels.path);
+        const turnImg = Assets.get(tConf.labels.turnPath);
+        const roundImg = Assets.get(tConf.labels.roundPath);
 
-        if (labelImg) {
-            const turnW = 68;
-            const gap = 2;
-            const roundX = turnW + gap;
-            const roundW = labelImg.width - roundX;
-            const h = labelImg.height;
+        const cx = 320;
+        // Calculate X based on offsets
+        const tx = cx - tConf.turnLabel.offset;
+        const rx = cx + tConf.roundLabel.offset;
 
-            // ROUND Label
-            // Draw round label
-            ctx.drawImage(labelImg, roundX, 0, roundW, h, tConf.roundLabel.x - roundW / 2, tConf.roundLabel.y, roundW, h);
-            // TURN Label
-            ctx.drawImage(labelImg, 0, 0, turnW, h, tConf.turnLabel.x - turnW / 2, tConf.turnLabel.y, turnW, h);
+        if (turnImg && roundImg) {
+            // Draw Turn Label
+            let tX = tx;
+            if (tConf.turnLabel.align === 'center') tX -= turnImg.width / 2;
+            else if (tConf.turnLabel.align === 'right') tX -= turnImg.width;
+            ctx.drawImage(turnImg, tX, tConf.turnLabel.y);
+
+            // Draw Round Label
+            let rX = rx;
+            if (tConf.roundLabel.align === 'center') rX -= roundImg.width / 2;
+            else if (tConf.roundLabel.align === 'right') rX -= roundImg.width;
+            ctx.drawImage(roundImg, rX, tConf.roundLabel.y);
         }
 
         // Cap turn display at 20
         const displayTurn = Math.min(turn, 20);
-        this.drawNumber(ctx, displayTurn, tConf.turnNumber.x, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
+        // Turn Number X
+        const tnx = cx - tConf.turnNumber.offset;
+        this.drawNumber(ctx, displayTurn, tnx, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
 
         // Cap round display at 20
         const displayRound = Math.min(round, 20);
-        this.drawNumber(ctx, displayRound, tConf.roundNumber.x, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
+        // Round Number X
+        const rnx = cx + tConf.roundNumber.offset;
+        this.drawNumber(ctx, displayRound, rnx, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
     },
 
     drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {

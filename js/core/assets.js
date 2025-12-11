@@ -128,8 +128,10 @@ const Assets = {
 
         // UI
         'ui/number.png',
-        'ui/turn_round.png',
+        'ui/turn.png',
+        'ui/round.png',
         'ui/dora.png',
+        'ui/riichi.png', // New Riichi stick asset
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
         'ui/cursor_yellow.png',

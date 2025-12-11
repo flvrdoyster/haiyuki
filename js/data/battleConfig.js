@@ -58,13 +58,24 @@ const BattleConfig = {
         frame: { path: 'ui/dora.png', xOffset: 0, yOffset: 40, align: 'center' }
     },
     INFO: {
-        // Explicit coordinates for adjustable layout
-        turnLabel: { x: 230, y: 180 },
-        turnNumber: { x: 230, y: 200, align: 'center', pad: 2 },
-        roundLabel: { x: 420, y: 180 },
-        roundNumber: { x: 420, y: 200, align: 'center', pad: 2 },
+        // Center-Relative Offsets (Center = 320)
+        // Turn = Center - Offset
+        // Round = Center + Offset
+        turnLabel: { offset: 60, y: 180, align: 'right' },
+        turnNumber: { offset: 60, y: 200, align: 'right', pad: 2 }, // pad는 자릿수를 의미함
+        roundLabel: { offset: 60, y: 180, align: 'left' },
+        roundNumber: { offset: 60, y: 200, align: 'left', pad: 2 },
         numbers: { path: 'ui/number.png', w: 14, gap: 2 },
-        labels: { path: 'ui/turn_round.png' }
+        labels: {
+            turnPath: 'ui/turn.png',
+            roundPath: 'ui/round.png'
+        }
+    },
+    RIICHI_STICK: {
+        path: 'ui/riichi.png',
+        y: 246,
+        offset: 58,            // Distance from Center (Dora)
+        scale: 0.9
     },
     ACTION: {
         // Menu Layout
