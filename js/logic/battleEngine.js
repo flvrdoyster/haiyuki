@@ -296,6 +296,11 @@ const BattleEngine = {
         const bonusResult = this.calculateBonuses(winnerHand, type);
         const finalScore = score + bonusResult.score;
 
+        // FIX: Update pending damage with final score (including bonuses)
+        if (this.pendingDamage) {
+            this.pendingDamage.amount = finalScore;
+        }
+
         // Record Round History
         const resultData = {
             round: this.currentRound,
@@ -316,7 +321,7 @@ const BattleEngine = {
             bonusScore: bonusResult.score
         };
 
-        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: score });
+        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: finalScore });
 
         this.sequencing = {
             active: true,

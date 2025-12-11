@@ -97,15 +97,16 @@ const BattleRenderer = {
             const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y + BattleConfig.HAND.hoverYOffset;
 
-            const cursorImg = Assets.get('ui/cursor_yellow.png');
-            if (cursorImg) {
-                // Enhance: If cursor is intended to cover side, adjust height? 
-                // For now, sticking to tile dimensions but strictly on top.
-                ctx.drawImage(cursorImg, pos.x, y, tileW, tileH);
-            } else {
-                ctx.fillStyle = BattleConfig.HAND.hoverColor;
-                ctx.fillRect(pos.x - 2, y - 2, tileW + 4, tileH + 4);
-            }
+            // Programmatic Cursor (2px Box)
+            const sideImg = Assets.get('tiles/side-bottom.png');
+            const sideH = sideImg ? sideImg.height : 14;
+            const totalH = tileH + sideH;
+
+            ctx.strokeStyle = BattleConfig.HAND.hoverColor;
+            ctx.lineWidth = BattleConfig.HAND.hoverWidth;
+
+            // Draw Rectangle over Tile Face + Side
+            ctx.strokeRect(pos.x, y, tileW, totalH);
         }
 
         // Player Open Sets

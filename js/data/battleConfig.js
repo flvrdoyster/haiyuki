@@ -47,7 +47,7 @@ const BattleConfig = {
         tileHeight: 53,
         gap: 0,
         hoverYOffset: -10,
-        hoverColor: 'yellow',
+        hoverColor: '#ffaa00',
         hoverWidth: 2,
         groupGap: 10,
         // Open Set specific settings
