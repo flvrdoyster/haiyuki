@@ -121,9 +121,9 @@ const EndingScene = {
             }
 
         } else {
-            console.log("Normal Ending. Returning to Title.");
+            console.log("Normal Ending. Go to Credits.");
             Game.isAutoTest = false; // Stop Auto-Test
-            Game.changeScene(TitleScene);
+            Game.changeScene(CreditsScene, { endingType: 'NORMAL' });
         }
     }
 };

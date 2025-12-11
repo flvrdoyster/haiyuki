@@ -114,7 +114,14 @@ const ContinueScene = {
 
     giveUp: function () {
         console.log("Continue: NO");
-        Game.changeScene(TitleScene);
+
+        // Special Case: If giving up against Mayu (True Boss), show Normal Credits
+        const cpuData = CharacterData[this.data.cpuIndex];
+        if (cpuData && cpuData.id === 'mayu') {
+            Game.changeScene(CreditsScene, { endingType: 'NORMAL' });
+        } else {
+            Game.changeScene(TitleScene);
+        }
     },
 
     draw: function (ctx) {

@@ -191,7 +191,7 @@ const EncounterScene = {
                 } else if (this.mode === 'TRUE_ENDING_CLEAR') {
                     // True Ending Clear -> Credits
                     console.log('True Ending Dialogue finished. Go to Credits.');
-                    Game.changeScene(CreditsScene);
+                    Game.changeScene(CreditsScene, { endingType: 'TRUE' });
                 } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
                     // Ending Dialogue Finished -> Go to Ending Image
                     console.log('Ending Dialogue finished. Go to Ending Scene.');

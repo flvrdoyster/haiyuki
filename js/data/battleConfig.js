@@ -1,5 +1,12 @@
 // Battle Configuration (Rules & UI)
 const BattleConfig = {
+    GAME_ID: 'HAIYUKI_WEB',
+    SCREEN: {
+        width: 640,
+        height: 480,
+        centerX: 320,
+        centerY: 240
+    },
     RULES: {
         INITIAL_HP: 10000,
         NAGARI_DAMAGE: 1000,
@@ -221,6 +228,8 @@ const BattleConfig = {
             prefix: '+ '      // Prefix for each bonus line
         }
     },
+
+
 
     // Yaku Names for Configuration
     YAKU_NAMES: {

@@ -364,45 +364,83 @@ const Assets = {
         const img = this.get('ui/alphabet.png');
         if (!img) return;
 
-        let color = 'orange';
-        let spacing = 32; // Default spacing
-        let spaceWidth = 32;
+        let color = options.color || 'orange';
+        // Check if string option was passed
+        if (typeof options === 'string') color = options;
 
-        if (typeof options === 'string') {
-            color = options;
-        } else {
-            color = options.color || 'orange';
-            if (options.spacing !== undefined) spacing = options.spacing;
-            // Support spaceWidth if needed, or use spacing
-            if (options.spaceWidth !== undefined) spaceWidth = options.spaceWidth;
-        }
-
+        const scale = options.scale || 1.0;
         const frameWidth = 32;
         const frameHeight = 32;
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ?";
 
-        // Row 0 = Orange, Row 1 = Yellow
+        // Spacing: If configured, use it. Default to frameWidth.
+        // We applying scaling to spacing so the text stays proportional.
+        const baseSpacing = options.spacing !== undefined ? options.spacing : 32;
+        const spacing = baseSpacing * scale;
+
+        // Default space width should be half of char width (16) unless specified
+        const baseSpaceWidth = options.spaceWidth !== undefined ? options.spaceWidth : 16;
+        const spaceWidth = baseSpaceWidth * scale;
+        const align = options.align || 'left';
+
+        const destW = frameWidth * scale;
+        const destH = frameHeight * scale;
+
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!";
+
+        // Width Calculation for Alignment
+        let totalWidth = 0;
+        text = text.toUpperCase();
+
+        // Custom widths (Advance) - Source is still 32px grid
+        const charWidths = {
+            '.': 12,
+            ',': 12,
+            '!': 12,
+            '?': 32 // Explicit
+            // A-Z defaults to 'spacing'
+        };
+
+        // Helper to get advance width for a specific char
+        const getAdvance = (char) => {
+            if (char === ' ') return spaceWidth;
+            if (charWidths[char] !== undefined) return charWidths[char] * scale;
+            return spacing; // Default 32 * scale
+        };
+
+        for (let i = 0; i < text.length; i++) {
+            totalWidth += getAdvance(text[i]);
+        }
+
+        let currentX = x;
+        if (align === 'center') currentX -= totalWidth / 2;
+        else if (align === 'right') currentX -= totalWidth;
+
+        // Row map
         const row = (color === 'yellow') ? 1 : 0;
         const sy = row * frameHeight;
 
-        text = text.toUpperCase();
-        let currentX = x;
-
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
+            const advance = getAdvance(char);
 
             if (char === ' ') {
-                currentX += spaceWidth;
+                currentX += advance;
                 continue;
             }
 
             const index = chars.indexOf(char);
             if (index !== -1) {
+                // Determine centering offset for narrow chars if they are drawn from a wide cell?
+                // If the user draws the dot in the center of the 32px grid cell, and we just advance 12px,
+                // we might overlap or have large gaps.
+                // Assuming user draws "Left Aligned" in the 32px cell? Or "Centered"?
+                // Let's stick to drawing it standard.
+
                 const sx = index * frameWidth;
-                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, frameWidth, frameHeight);
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, destW, destH);
             }
 
-            currentX += spacing;
+            currentX += advance;
         }
     },
 

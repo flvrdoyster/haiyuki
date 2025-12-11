@@ -1,19 +1,33 @@
+const CreditsConfig = {
+    BG_COLOR: 'black',
+    SCREEN_CENTER_X: 320,
+    EXIT_DELAY: 180, // 3 seconds
+    DATA: {
+        TRUE: [
+            { text: "COMPLETE!", y: 200, color: 'yellow', spacing: 32, scale: 1.5 },
+            { text: "THANK YOU FOR PLAYING", y: 262, color: 'yellow', spacing: 32 }
+        ],
+        NORMAL: [
+            { text: "CLEAR!", y: 200, color: 'yellow', spacing: 32, scale: 1.5 },
+            { text: "THANK YOU FOR PLAYING", y: 262, color: 'yellow', spacing: 32 }
+        ]
+    }
+};
 
 const CreditsScene = {
     timer: 0,
+    endingType: 'NORMAL',
 
-    init: function () {
+    init: function (params) {
         this.timer = 0;
-        Assets.stopMusic();
-        // Play Ending Theme if available, or just silence/fanfare
-        console.log("Credits Scene Initialized");
+        this.endingType = (params && params.endingType) ? params.endingType : 'NORMAL';
+        console.log(`Credits Scene Initialized. Type: ${this.endingType}`);
     },
 
     update: function () {
         this.timer++;
 
-        // Allow exit after 5 seconds
-        if (this.timer > 300) {
+        if (this.timer > CreditsConfig.EXIT_DELAY) {
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
                 Game.changeScene(TitleScene);
             }
@@ -21,16 +35,20 @@ const CreditsScene = {
     },
 
     draw: function (ctx) {
-        ctx.fillStyle = 'black';
+        // Background
+        ctx.fillStyle = CreditsConfig.BG_COLOR;
         ctx.fillRect(0, 0, 640, 480);
 
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.font = '30px "KoddiUDOnGothic-Bold", sans-serif';
+        const config = CreditsConfig.DATA[this.endingType] || CreditsConfig.DATA.NORMAL;
+        const cx = CreditsConfig.SCREEN_CENTER_X;
 
-        ctx.fillText("ALL CLEAR!", 320, 240);
-
-        ctx.font = '20px "KoddiUDOnGothic-Regular", sans-serif';
-        ctx.fillText("Thank you for playing.", 320, 300);
+        config.forEach(line => {
+            Assets.drawAlphabet(ctx, line.text, cx, line.y, {
+                color: line.color,
+                spacing: line.spacing, // Base spacing (auto-scaled by Assets)
+                scale: line.scale,
+                align: 'center'
+            });
+        });
     }
 };

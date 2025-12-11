@@ -120,19 +120,21 @@ const BattleRenderer = {
             const rScale = riichiConf.scale || 1.0;
             const rW = rImg.width * rScale;
             const rH = rImg.height * rScale;
-            const cx = 320; // Center X
+            const cx = BattleConfig.SCREEN.centerX;
 
-            // P1 Riichi (Left of Dora)
+            // P1 Riichi (Left of Center)
+            // Draw relative to center. explicit offset is gap from center line.
             if (state.p1.isRiichi) {
-                const rx = cx - rOff - (rW / 2); // Center on offset point? Or just place it? 
-                // "Dora based left" -> Center - Offset
-                ctx.drawImage(rImg, rx - rW / 2, rY, rW, rH);
+                // X = Center - Offset - Image Width (to align right edge of image to offset point)
+                const rx = cx - rOff - rW;
+                ctx.drawImage(rImg, rx, rY, rW, rH);
             }
 
-            // CPU Riichi (Right of Dora)
+            // CPU Riichi (Right of Center)
             if (state.cpu.isRiichi) {
-                const rx = cx + rOff + (rW / 2);
-                ctx.drawImage(rImg, rx - rW / 2, rY, rW, rH);
+                // X = Center + Offset (Align left edge of image to offset point)
+                const rx = cx + rOff;
+                ctx.drawImage(rImg, rx, rY, rW, rH);
             }
         }
 

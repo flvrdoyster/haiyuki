@@ -1,294 +1,116 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Riichi Stick Tuner</title>
-    <link rel="stylesheet" href="haiyuki.css">
-    <link rel="preload" href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Bold.woff"
-        as="font" type="font/woff" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits Scene Debug</title>
     <style>
         body {
-            background-color: #222;
-            color: #eee;
-            font-family: monospace;
+            background-color: #333;
+            color: white;
             display: flex;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        #canvas-wrapper {
-            flex: 1;
-            display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            background: #000;
+            font-family: sans-serif;
         }
 
-        #controls {
-            width: 320px;
-            padding: 20px;
-            background: #333;
-            border-left: 2px solid #555;
+        canvas {
+            border: 2px solid #555;
+            background-color: black;
+            margin-top: 10px;
+        }
+
+        .controls {
+            margin-top: 10px;
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
 
-        h2 {
-            margin-top: 0;
-            color: #ff69b4;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        label {
-            font-weight: bold;
-        }
-
-        input[type="range"] {
-            width: 100%;
-        }
-
-        input[type="number"] {
-            background: #444;
-            border: 1px solid #666;
-            color: white;
-            padding: 5px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 150px;
-            background: #111;
-            color: #0f0;
-            border: 1px solid #555;
-            padding: 10px;
-            font-family: monospace;
-            resize: vertical;
-        }
-
-        #reload-btn {
-            padding: 10px;
-            background: #0077cc;
-            color: white;
-            border: none;
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
-            font-weight: bold;
-        }
-
-        #reload-btn:hover {
-            background: #005fa3;
         }
     </style>
 </head>
 
 <body>
 
-    <div id="canvas-wrapper">
-        <canvas id="game-canvas" width="640" height="480"></canvas>
+    <h1>Credits Scene Debug</h1>
+    <div class="controls">
+        <button onclick="playCredits('NORMAL')">Play Credits (NORMAL)</button>
+        <button onclick="playCredits('TRUE')">Play Credits (TRUE)</button>
     </div>
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
 
-    <div id="controls">
-        <h2>Riichi Tuner</h2>
-        <p>Adjust positions real-time.</p>
-
-        <div class="control-group">
-            <label>Y Position: <span id="val-y"></span></label>
-            <input type="range" id="input-y" min="0" max="480" step="1">
-            <input type="number" id="num-y">
-        </div>
-
-        <div class="control-group">
-            <label>Offset (From Center): <span id="val-offset"></span></label>
-            <input type="range" id="input-offset" min="0" max="300" step="1">
-            <input type="number" id="num-offset">
-        </div>
-
-        <div class="control-group">
-            <label>Scale: <span id="val-scale"></span></label>
-            <input type="range" id="input-scale" min="0.5" max="2.0" step="0.1">
-            <input type="number" id="num-scale" step="0.1">
-        </div>
-
-        <div class="control-group">
-            <label>Generated Config:</label>
-            <textarea id="config-output" readonly></textarea>
-        </div>
-    </div>
-
-    <!-- Minimal Scripts -->
+    <!-- Scripts -->
     <script src="js/core/assets.js"></script>
-    <script src="js/data/battleConfig.js"></script>
+    <script src="js/core/input.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/ui/uiCommon.js"></script>
     <script src="js/data/characterData.js"></script>
-    <script src="js/ui/uiCommon.js"></script> <!-- Required by Renderer -->
-    <script src="js/views/portraitCharacter.js"></script>
-    <script src="js/views/battleRenderer.js"></script>
+    <script src="js/data/battleConfig.js"></script>
+
+    <!-- Scenes -->
+    <script src="js/scenes/titleScene.js"></script>
+    <script src="js/scenes/creditsScene.js"></script>
 
     <script>
-        // --- MOCK STATE ---
-        const MockState = {
-            currentState: 1, // Player Turn
-            turnCount: 5,
-            currentRound: 1,
-            bgPath: 'bg/01.png',
+        // Override Assets toLoad to only load what we need for Credits
+        // This prevents getting stuck if other assets are missing
+        Assets.toLoad = [
+            'ui/alphabet.png'
+        ];
 
-            p1: {
-                hp: 10000, maxHp: 10000, mp: 50, maxMp: 100,
-                hand: [], openSets: [],
-                isRiichi: true, // FORCE RIICHI
-                isMenzen: true
-            },
-            cpu: {
-                hp: 10000, maxHp: 10000, mp: 50, maxMp: 100,
-                hand: [], openSets: [],
-                isRiichi: true, // FORCE RIICHI
-                isMenzen: true,
-                isRevealed: false
-            },
+        // Mock Game Start
+        window.onload = function () {
+            console.log("Window Loaded");
 
-            doras: [{ type: '1m', img: 'tiles/1m.png' }],
-            uraDoraRevealed: false,
-            discards: [],
-            activeFX: [],
-            possibleActions: [],
+            try {
+                // Initialize Game Context Manually if Game.init() is too heavy
+                const canvas = document.getElementById('gameCanvas');
+                Game.canvas = canvas;
+                Game.ctx = canvas.getContext('2d');
+                Game.width = canvas.width;
+                Game.height = canvas.height;
+                Game.scenes = {};
 
-            p1Character: null,
-            cpuCharacter: null
+                // Assets Load
+                Assets.load(() => {
+                    console.log("Assets Loaded");
+                    document.body.style.backgroundColor = '#222'; // Visual cue
+                    // Start directly with Credits Scene (Normal)
+                    playCredits('NORMAL');
+                });
+            } catch (e) {
+                console.error(e);
+                document.body.innerHTML += `<h3 style="color:red">${e.message}</h3>`;
+            }
         };
 
-        // --- INIT ---
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
+        function playCredits(type) {
+            console.log(`Starting Credits: ${type}`);
 
-        // Load Assets
-        Assets.load(() => {
-            console.log("Assets Loaded!");
-            initMockCharacters();
-            startLoop();
-            initUI();
-        });
+            // Mock Game.changeScene behavior simply
+            Game.currentScene = CreditsScene;
+            CreditsScene.init({ endingType: type });
 
-        function initMockCharacters() {
-            // Mock Character Objects for Renderer
-            // Just use index 0 (Ataho) and 1 (Rinxiang)
-            const p1Data = CharacterData[0];
-            const cpuData = CharacterData[1];
-
-            MockState.p1Character = new PortraitCharacter(p1Data, {
-                ...BattleConfig.PORTRAIT.P1,
-                baseW: BattleConfig.PORTRAIT.baseW,
-                baseH: BattleConfig.PORTRAIT.baseH,
-                isBattle: true
-            }, false);
-
-            MockState.cpuCharacter = new PortraitCharacter(cpuData, {
-                ...BattleConfig.PORTRAIT.CPU,
-                baseW: BattleConfig.PORTRAIT.baseW,
-                baseH: BattleConfig.PORTRAIT.baseH,
-                isBattle: true
-            }, true);
-
-            // Generate Dummy Hand
-            for (let i = 0; i < 13; i++) {
-                MockState.p1.hand.push({ type: '1m', img: 'tiles/1m.png' });
-                MockState.cpu.hand.push({ type: '1m', img: 'tiles/1m.png' });
+            // Start Loop
+            if (!Game.loopStarted) {
+                Game.loopStarted = true;
+                loop();
             }
         }
 
-        // --- RENDER LOOP ---
-        function startLoop() {
-            function loop() {
-                // Update Config from UI (Safety check if UI not ready)
-                // Actually UI updates Config directly on change.
-
-                // Draw
-                BattleRenderer.draw(ctx, MockState, []);
-
-                requestAnimationFrame(loop);
+        function loop() {
+            requestAnimationFrame(loop);
+            if (Game.currentScene) {
+                Game.currentScene.update();
+                Game.currentScene.draw(Game.ctx);
             }
-            loop();
+            Input.update(); // Update input state
         }
-
-        // --- UI LOGIC ---
-        function initUI() {
-            const conf = BattleConfig.RIICHI_STICK;
-
-            const els = {
-                y: { range: document.getElementById('input-y'), num: document.getElementById('num-y'), val: document.getElementById('val-y') },
-                offset: { range: document.getElementById('input-offset'), num: document.getElementById('num-offset'), val: document.getElementById('val-offset') },
-                scale: { range: document.getElementById('input-scale'), num: document.getElementById('num-scale'), val: document.getElementById('val-scale') },
-                output: document.getElementById('config-output')
-            };
-
-            // Init Values
-            updateUIValues(conf);
-
-            // Bind Events
-            function bind(key, isFloat = false) {
-                const group = els[key];
-
-                const onUpdate = (e) => {
-                    let val = parseFloat(e.target.value);
-                    if (isNaN(val)) return;
-
-                    // Update Config
-                    BattleConfig.RIICHI_STICK[key] = val;
-
-                    // Sync other input
-                    if (e.target === group.range) group.num.value = val;
-                    else group.range.value = val;
-
-                    group.val.textContent = val;
-
-                    updateOutput();
-                };
-
-                group.range.oninput = onUpdate;
-                group.num.oninput = onUpdate;
-            }
-
-            bind('y');
-            bind('offset');
-            bind('scale', true);
-
-            updateOutput();
-        }
-
-        function updateUIValues(conf) {
-            const els = {
-                y: { range: document.getElementById('input-y'), num: document.getElementById('num-y'), val: document.getElementById('val-y') },
-                offset: { range: document.getElementById('input-offset'), num: document.getElementById('num-offset'), val: document.getElementById('val-offset') },
-                scale: { range: document.getElementById('input-scale'), num: document.getElementById('num-scale'), val: document.getElementById('val-scale') }
-            };
-
-            const set = (key, val) => {
-                els[key].range.value = val;
-                els[key].num.value = val;
-                els[key].val.textContent = val;
-            };
-
-            set('y', conf.y);
-            set('offset', conf.offset);
-            set('scale', conf.scale);
-        }
-
-        function updateOutput() {
-            const c = BattleConfig.RIICHI_STICK;
-            const text = `    RIICHI_STICK: {
-        path: '${c.path}',
-        y: ${c.y},
-        offset: ${c.offset},
-        scale: ${c.scale}
-    }`;
-            document.getElementById('config-output').value = text;
-        }
-
     </script>
 </body>
 
