@@ -89,15 +89,22 @@ const BattleRenderer = {
             }
 
             this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH);
+        }
 
-            if (isHover) {
-                const cursorImg = Assets.get('ui/cursor_yellow.png');
-                if (cursorImg) {
-                    ctx.drawImage(cursorImg, pos.x, y, tileW, tileH);
-                } else {
-                    ctx.fillStyle = BattleConfig.HAND.hoverColor;
-                    ctx.fillRect(pos.x - 2, y - 2, tileW + 4, tileH + 4);
-                }
+        // Draw Cursor (Top Layer)
+        if (state.currentState === state.STATE_PLAYER_TURN && state.hoverIndex >= 0 && state.hoverIndex < pCount) {
+            const i = state.hoverIndex;
+            const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
+            let y = pos.y + BattleConfig.HAND.hoverYOffset;
+
+            const cursorImg = Assets.get('ui/cursor_yellow.png');
+            if (cursorImg) {
+                // Enhance: If cursor is intended to cover side, adjust height? 
+                // For now, sticking to tile dimensions but strictly on top.
+                ctx.drawImage(cursorImg, pos.x, y, tileW, tileH);
+            } else {
+                ctx.fillStyle = BattleConfig.HAND.hoverColor;
+                ctx.fillRect(pos.x - 2, y - 2, tileW + 4, tileH + 4);
             }
         }
 
@@ -859,8 +866,7 @@ const BattleRenderer = {
         // Draw Button using UI helper
         // Map config to match UI.drawButton expectations
         // Is selected/hovered?
-        const isHovered = (Input && Input.mouseX >= x && Input.mouseX <= x + w &&
-            Input.mouseY >= y && Input.mouseY <= y + h);
+        const isHovered = false; // Hover removed per request
 
         const options = {
             font: conf.font,

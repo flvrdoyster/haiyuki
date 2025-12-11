@@ -60,6 +60,29 @@ const Game = {
             };
         }
 
+        // Setup Full Screen Button
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const gameContainer = document.getElementById('game-container');
+        if (fullscreenBtn && gameContainer) {
+            fullscreenBtn.onclick = () => {
+                if (!document.fullscreenElement) {
+                    gameContainer.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+                fullscreenBtn.blur();
+            };
+
+            // Listen for fullscreen change events (e.g. user presses ESC)
+            document.addEventListener('fullscreenchange', () => {
+                const isFullscreen = !!document.fullscreenElement;
+                fullscreenBtn.classList.remove('toggle-on', 'toggle-off');
+                fullscreenBtn.classList.add(isFullscreen ? 'toggle-on' : 'toggle-off');
+            });
+        }
+
         // Load assets
         Assets.load(() => {
             console.log('Assets loaded. Starting game...');

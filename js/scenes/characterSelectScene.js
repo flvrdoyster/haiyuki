@@ -88,9 +88,16 @@ const CharacterSelectScene = {
 
     updateP1Portrait: function () {
         if (!this.characters[this.playerIndex]) return;
-        this.p1Portrait = new PortraitCharacter(this.characters[this.playerIndex], SelectConfig.PORTRAIT.P1, false);
-        // Optional: Setup animations if we want them in select screen?
-        this.setupPortraitAnim(this.p1Portrait, this.characters[this.playerIndex].id);
+
+        const charData = this.characters[this.playerIndex];
+
+        if (!this.p1Portrait) {
+            this.p1Portrait = new PortraitCharacter(charData, SelectConfig.PORTRAIT.P1, false);
+        } else {
+            this.p1Portrait.updateCharacter(charData);
+        }
+
+        this.setupPortraitAnim(this.p1Portrait, charData.id);
     },
 
     updateCpuPortrait: function () {
@@ -211,22 +218,20 @@ const CharacterSelectScene = {
                     this.startWatchMode();
                 }
             }
-
             // Mouse Input
             if (Input.isMouseJustPressed()) {
                 const clickedIndex = this.getClickedCharacterIndex();
                 if (clickedIndex !== -1) {
                     this.playerIndex = clickedIndex;
                     this.updateP1Portrait();
-                    if (this.playerIndex === clickedIndex) {
-                        this.currentState = this.STATE_CPU_SELECT;
-                        this.cpuTimer = 0;
-                        this.updateCpuPortrait();
+                    // Click sets state directly
+                    this.currentState = this.STATE_CPU_SELECT;
+                    this.cpuTimer = 0;
+                    this.updateCpuPortrait();
 
-                        // WATCH Mode Check: Skip CPU Select
-                        if (this.mode === 'WATCH') {
-                            this.startWatchMode();
-                        }
+                    // WATCH Mode Check: Skip CPU Select
+                    if (this.mode === 'WATCH') {
+                        this.startWatchMode();
                     }
                 }
             }

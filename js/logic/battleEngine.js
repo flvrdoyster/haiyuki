@@ -875,6 +875,13 @@ const BattleEngine = {
 
 
     checkRoundEnd: function () {
+        // Guard: Prevent double triggering if already ending/in sequence
+        if (this.currentState === this.STATE_FX_PLAYING ||
+            this.currentState === this.STATE_NAGARI ||
+            this.currentState === this.STATE_MATCH_OVER) {
+            return;
+        }
+
         // 1. Deck Exhaustion
         if (this.deck.length === 0) {
             console.log("Deck Empty -> NAGARI Sequence");

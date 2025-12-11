@@ -249,10 +249,11 @@ const BattleScene = {
         }
 
         // Mouse Hover using Renderer Helper
-        const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, engine.menuItems);
-        if (hovered !== -1) {
-            engine.selectedMenuIndex = hovered;
-            if (Input.isMouseJustPressed()) {
+        // Mouse Click
+        if (Input.isMouseJustPressed()) {
+            const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, engine.menuItems);
+            if (hovered !== -1) {
+                engine.selectedMenuIndex = hovered;
                 engine.handleMenuSelection(engine.menuItems[hovered]);
                 return;
             }
@@ -275,10 +276,11 @@ const BattleScene = {
         }
 
         // Mouse Hover using Renderer Helper
-        const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
-        if (hovered !== -1) {
-            engine.selectedActionIndex = hovered;
-            if (Input.isMouseJustPressed()) {
+        // Mouse Click
+        if (Input.isMouseJustPressed()) {
+            const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
+            if (hovered !== -1) {
+                engine.selectedActionIndex = hovered;
                 console.log("Action Clicked:", actions[hovered]);
                 engine.executeAction(actions[hovered]);
                 return;
@@ -297,11 +299,9 @@ const BattleScene = {
 
         // Mouse Interaction
         const groupSize = engine.lastDrawGroupSize || 0;
-        const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
-
-        if (hovered !== -1) {
-            engine.hoverIndex = hovered;
-        }
+        // Hover removed per request
+        // const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
+        // if (hovered !== -1) { engine.hoverIndex = hovered; }
 
         // Keyboard
         const handSize = engine.p1.hand.length;

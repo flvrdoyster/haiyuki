@@ -8,6 +8,11 @@ const Input = {
     isMouseDown: false,
     prevMouseDown: false,
 
+    // Cached Rect
+    rect: null,
+    scaleX: 1,
+    scaleY: 1,
+
     // Key mapping (using e.code)
     LEFT: 'ArrowLeft',
     RIGHT: 'ArrowRight',
@@ -16,7 +21,7 @@ const Input = {
     Z: 'KeyZ',
     X: 'KeyX',
     ENTER: 'Enter',
-    SPACE: 'Space', // User requested fix: ' ' -> 'Space'
+    SPACE: 'Space',
     ESC: 'Escape',
     D: 'KeyD',
 
@@ -35,12 +40,26 @@ const Input = {
 
         // Mouse events
         if (canvas) {
+            // Helper to update rect cache
+            const updateRect = () => {
+                this.rect = canvas.getBoundingClientRect();
+                this.scaleX = canvas.width / this.rect.width;
+                this.scaleY = canvas.height / this.rect.height;
+            };
+
+            // Update initially and on resize/scroll/fullscreen change
+            updateRect();
+            window.addEventListener('resize', updateRect);
+            window.addEventListener('scroll', updateRect);
+            document.addEventListener('fullscreenchange', () => {
+                // Slight delay to ensure layout is done? usually RAF or setTimeout helps
+                setTimeout(updateRect, 100);
+            });
+
             canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                this.mouseX = (e.clientX - rect.left) * scaleX;
-                this.mouseY = (e.clientY - rect.top) * scaleY;
+                if (!this.rect) return;
+                this.mouseX = (e.clientX - this.rect.left) * this.scaleX;
+                this.mouseY = (e.clientY - this.rect.top) * this.scaleY;
             });
 
             canvas.addEventListener('mousedown', (e) => {
@@ -56,24 +75,20 @@ const Input = {
             // Touch Support
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // Prevent scrolling
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
+                if (!this.rect) updateRect(); // Fallback check
                 const touch = e.touches[0];
-                this.mouseX = (touch.clientX - rect.left) * scaleX;
-                this.mouseY = (touch.clientY - rect.top) * scaleY;
+                this.mouseX = (touch.clientX - this.rect.left) * this.scaleX;
+                this.mouseY = (touch.clientY - this.rect.top) * this.scaleY;
                 this.isMouseDown = true;
             }, { passive: false });
 
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
                 if (e.touches.length > 0) {
                     const touch = e.touches[0];
-                    this.mouseX = (touch.clientX - rect.left) * scaleX;
-                    this.mouseY = (touch.clientY - rect.top) * scaleY;
+                    if (!this.rect) return;
+                    this.mouseX = (touch.clientX - this.rect.left) * this.scaleX;
+                    this.mouseY = (touch.clientY - this.rect.top) * this.scaleY;
                 }
             }, { passive: false });
 
