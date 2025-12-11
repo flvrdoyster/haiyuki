@@ -42,7 +42,7 @@ const EncounterScene = {
     init: function (data) {
         this.playerIndex = data.playerIndex;
         this.cpuIndex = data.cpuIndex;
-        this.cpuIndex = data.cpuIndex;
+
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.mode = data.mode || 'STORY';
         this.queue = data.queue || [];
@@ -50,7 +50,7 @@ const EncounterScene = {
         this.currentLineIndex = 0;
 
         // BGM - Ensure previous music is stopped before starting new track
-        // BGM - Ensure previous music is stopped before starting new track
+
         Assets.stopAll();
 
         if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {

@@ -346,20 +346,7 @@ const Assets = {
      * @param {number} y - Start y position
      * @param {string} color - 'orange' (default) or 'yellow'
      */
-    /**
-     * Draw text using 'ui/alphabet.png'.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {string|object} options - 'orange' (default) or { color: 'orange', spacing: 32, spaceWidth: 32 }
-     */
-    /**
-     * Draw alphabet text.
-     * Supported characters: A-Z, 0-9, space, !, ?, -.
-     * @param {CanvasRenderingContext2D} ctx 
-     * @param {string} text 
-     * @param {number} x 
-     * @param {number} y 
-     * @param {object} options { color: 'white'|'yellow', align: 'left'|'center'|'right', spacing: 0 }
-     */
+
     drawAlphabet: function (ctx, text, x, y, options = {}) {
         const img = this.get('ui/alphabet.png');
         if (!img) return;

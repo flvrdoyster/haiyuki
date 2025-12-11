@@ -45,7 +45,7 @@ const CreditsScene = {
         config.forEach(line => {
             Assets.drawAlphabet(ctx, line.text, cx, line.y, {
                 color: line.color,
-                spacing: line.spacing, // Base spacing (auto-scaled by Assets)
+                spacing: line.spacing,
                 scale: line.scale,
                 align: 'center'
             });

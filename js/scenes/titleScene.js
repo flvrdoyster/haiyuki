@@ -1,8 +1,8 @@
 // Scene Configuration
 const TitleConfig = {
-    TITLE: { path: 'ui/title.png', y: 80, centered: true },
-    PUSH_KEY: { path: 'ui/pushok.png', y: 360, centered: true },
-    COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 430, centered: true },
+    TITLE: { path: 'ui/title.png', y: 80 },
+    PUSH_KEY: { path: 'ui/pushok.png', y: 360 },
+    COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 430 },
     MENU: {
         ITEM1: { text: "BATTLE", y: 300 },
         ITEM2: { text: "STORY ONLY", y: 340 },
@@ -82,10 +82,6 @@ const TitleScene = {
             }
 
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
-                // If Mouse Click, double check we are hovering correct item to avoid misclicks?
-                // Or just trust menuIndex which updates on hover.
-                // Current behavior: Trust menuIndex.
-
                 if (this.menuIndex === 0) {
                     // Battle
                     Assets.stopMusic();
@@ -118,7 +114,6 @@ const TitleScene = {
 
     draw: function (ctx) {
         // 1. Background
-        // Simplification: User removed background config, use simple black style or default
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, 640, 480);
 
