@@ -70,6 +70,9 @@ const Assets = {
         'ui/frame/line-top.png', 'ui/frame/line-bottom.png',
         'ui/frame/line-left.png', 'ui/frame/line-right.png',
 
+        // Number Fonts
+        'ui/number_big.png',
+
         // Encounter/Dialogue Portraits (Detailed)
         // 0. Ataho
         'face/ATA_base.png',
@@ -344,25 +347,32 @@ const Assets = {
     /**
      * Draw text using 'ui/alphabet.png'.
      * @param {CanvasRenderingContext2D} ctx
-     * @param {string} text - Text to draw (A-Z, ?)
-     * @param {number} x - Start x position
-     * @param {number} y - Start y position
      * @param {string|object} options - 'orange' (default) or { color: 'orange', spacing: 32, spaceWidth: 32 }
      */
-    drawAlphabet: function (ctx, text, x, y, options = 'orange') {
+    /**
+     * Draw alphabet text.
+     * Supported characters: A-Z, 0-9, space, !, ?, -.
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {string} text 
+     * @param {number} x 
+     * @param {number} y 
+     * @param {object} options { color: 'white'|'yellow', align: 'left'|'center'|'right', spacing: 0 }
+     */
+    drawAlphabet: function (ctx, text, x, y, options = {}) {
         const img = this.get('ui/alphabet.png');
         if (!img) return;
 
         let color = 'orange';
-        let letterSpacing = 32;
+        let spacing = 32; // Default spacing
         let spaceWidth = 32;
 
         if (typeof options === 'string') {
             color = options;
         } else {
             color = options.color || 'orange';
-            letterSpacing = options.spacing !== undefined ? options.spacing : 32;
-            spaceWidth = options.spaceWidth !== undefined ? options.spaceWidth : 32;
+            if (options.spacing !== undefined) spacing = options.spacing;
+            // Support spaceWidth if needed, or use spacing
+            if (options.spaceWidth !== undefined) spaceWidth = options.spaceWidth;
         }
 
         const frameWidth = 32;
@@ -390,7 +400,60 @@ const Assets = {
                 ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, frameWidth, frameHeight);
             }
 
-            currentX += letterSpacing;
+            currentX += spacing;
+        }
+    },
+
+    /**
+     * Draw big number using 'ui/number_big.png'.
+     * Assumes horizontal strip of undefined width (auto-calculated) or fixed width.
+     * Usually 0-9.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number|string} number 
+     * @param {number} x Center X (if align center) or Left X
+     * @param {number} y Top Y
+     * @param {object} options { align: 'center'|'left', spacing: 0 }
+     */
+    drawNumberBig: function (ctx, number, x, y, options = {}) {
+        const img = this.get('ui/number_big.png');
+        if (!img) return;
+
+        // Determine frame width. 
+        // Assume 0-9 (10 digits).
+        const frameWidth = img.width / 10;
+        const frameHeight = img.height;
+        const spacing = options.spacing || 2;
+        const align = options.align || 'center';
+        const scale = options.scale || 1.0;
+
+        const str = number.toString();
+
+        const dw = frameWidth * scale;
+        const dh = frameHeight * scale;
+        const scaledSpacing = spacing * scale;
+
+        // Calculate total width
+        let totalW = (str.length * dw) + ((str.length - 1) * scaledSpacing);
+
+        let startX = x;
+        if (align === 'center') {
+            startX = x - totalW / 2;
+        } else if (align === 'right') {
+            startX = x - totalW;
+        }
+
+        let currentX = startX;
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            const val = parseInt(char);
+
+            if (!isNaN(val)) {
+                const sx = val * frameWidth;
+                ctx.drawImage(img, sx, 0, frameWidth, frameHeight, currentX, y, dw, dh);
+            }
+
+            currentX += dw + scaledSpacing;
         }
     },
 

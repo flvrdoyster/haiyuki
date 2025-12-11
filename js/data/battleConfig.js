@@ -157,6 +157,7 @@ const BattleConfig = {
         pressSpaceOffset: -40, // Distance below frame
         infoLineHeight: 30,
 
+
         // Configuration for Result Types
         TYPES: {
             WIN: {
@@ -180,12 +181,20 @@ const BattleConfig = {
             MATCH_WIN: {
                 title: "다음 상대로!",
                 color: "gold",
-                sound: "audio/victory" // Configurable Sound
+                sound: "audio/victory", // Configurable Sound
+                historyFont: '16px "KoddiUDOnGothic-Regular"',
+                historyLineHeight: 20,
+                historyMaxVisible: 7,
+                historyY: 200
             },
             MATCH_LOSE: {
                 title: "게임 오버",
                 color: "white",
-                sound: "audio/lose" // Configurable Sound
+                sound: "audio/lose", // Configurable Sound
+                historyFont: '16px "KoddiUDOnGothic-Regular"',
+                historyLineHeight: 20,
+                historyMaxVisible: 7,
+                historyY: 200
             }
         },
         TEXTS: {

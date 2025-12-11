@@ -231,6 +231,7 @@ const BattleEngine = {
 
         // Store tournament data
         this.defeatedOpponents = data.defeatedOpponents || [];
+        this.roundHistory = []; // Initialize Round History
 
         this.startRound();
     },
@@ -295,6 +296,14 @@ const BattleEngine = {
         const bonusResult = this.calculateBonuses(winnerHand, type);
         const finalScore = score + bonusResult.score;
 
+        // Record Round History
+        const resultData = {
+            round: this.currentRound,
+            result: (who === 'P1') ? '승' : '패',
+            yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
+        };
+        this.roundHistory.push(resultData);
+
         console.log(`Base Score: ${score}, Bonus: ${bonusResult.score}, Final: ${finalScore}`);
         console.log(`Bonuses: ${bonusResult.names.join(', ')}`);
 
@@ -322,15 +331,24 @@ const BattleEngine = {
         if (p1Tenpai === undefined) p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
         if (cpuTenpai === undefined) cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
 
-        const damage = BattleConfig.RULES.NAGARI_DAMAGE;
+        let damage = 0;
         let damageMsg = "데미지 없음";
 
         if (p1Tenpai && !cpuTenpai) {
+            // Player Wins (Tenpai vs Noten) -> In game terms, usually small damage or just score transfer.
+            // Let's deal standard Tenpai damage (e.g. 1000 or 1500 or 3000)
+            damage = 1000; // Flat 1000 for Tenpai win
             this.pendingDamage = { target: 'CPU', amount: damage };
             damageMsg = `데미지: ${damage}`;
         } else if (!p1Tenpai && cpuTenpai) {
+            // CPU Wins (Tenpai vs Noten)
+            damage = 1000;
             this.pendingDamage = { target: 'P1', amount: damage };
             damageMsg = `데미지: -${damage}`;
+        } else {
+            // Draw (Both Tenpai or Both Noten)
+            damage = 0;
+            damageMsg = "무승부";
         }
 
         return damageMsg;
@@ -361,6 +379,14 @@ const BattleEngine = {
 
         if (cpuTenpai) this.cpuCharacter.setState('smile');
         else this.cpuCharacter.setState('shocked');
+
+        // Create result object
+        const resultData = {
+            round: this.currentRound,
+            result: '무승부', // Draw
+            yaku: '-'
+        };
+        this.roundHistory.push(resultData);
 
         // Visual Sequence
         // 1. "Nagari" Text
@@ -487,6 +513,18 @@ const BattleEngine = {
         this.startRound();
     },
 
+    confirmResult: function () {
+        // User clicked to confirm result (Win/Lose/Nagari)
+        // Transition to Damage Animation or Next Round or Match Over
+
+        // 1. Calculate Damage if needed (Usually done in checkRoundEnd, stored in resultInfo)
+        // Actually, checkRoundEnd sets currentState. 
+        // We just need to move to DAMAGE_ANIMATION state to play visual fx.
+
+        this.currentState = this.STATE_DAMAGE_ANIMATION;
+        this.timer = 0;
+        this.stateTimer = 0; // Reset state timer
+    },
     matchOver: function (winner) {
         console.log(`Match Over! Winner: ${winner}`);
         this.currentState = this.STATE_MATCH_OVER;
@@ -498,11 +536,11 @@ const BattleEngine = {
         this.events.push({ type: 'STOP_MUSIC' });
 
         if (winner === 'P1') {
-            this.resultInfo = { type: 'MATCH_WIN' };
+            this.resultInfo = { type: 'MATCH_WIN', history: this.roundHistory };
             const sound = BattleConfig.RESULT.TYPES.MATCH_WIN.sound;
             if (sound) this.events.push({ type: 'SOUND', id: sound });
         } else {
-            this.resultInfo = { type: 'MATCH_LOSE' };
+            this.resultInfo = { type: 'MATCH_LOSE', history: this.roundHistory };
             const sound = BattleConfig.RESULT.TYPES.MATCH_LOSE.sound;
             if (sound) this.events.push({ type: 'SOUND', id: sound });
         }
@@ -549,7 +587,6 @@ const BattleEngine = {
             });
         } else {
             // Game Over -> Continue Screen
-            console.log(`Encounter Finished. Transitioning to Continue Screen.`);
             // Update Global Continue Count
             Game.continueCount++;
 
@@ -754,32 +791,8 @@ const BattleEngine = {
             case this.STATE_ACTION_SELECT:
                 if (this.actionTimer > 0) this.actionTimer--;
 
-                if (Game.isAutoTest && this.actionTimer <= 0) {
-                    // AUTO-LOSE SABOTAGE: actively avoid winning
-                    const isLoseMode = (Game.autoTestOptions && Game.autoTestOptions.loseMode);
-
-                    // Priority: TSUMO > RON > RIICHI > PASS
-                    const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
-                    if (tsumoAction && !isLoseMode) { // Skip if loseMode
-                        this.executeAction(tsumoAction);
-                        return;
-                    }
-
-                    const ronAction = this.possibleActions.find(a => a.type === 'RON');
-                    if (ronAction && !isLoseMode) {
-                        this.executeAction(ronAction);
-                        return;
-                    }
-
-                    const riichiAction = this.possibleActions.find(a => a.type === 'RIICHI');
-                    if (riichiAction && !isLoseMode) {
-                        this.executeAction(riichiAction);
-                        return;
-                    }
-
-                    const passAction = this.possibleActions.find(a => a.type === 'PASS');
-                    if (passAction) this.executeAction(passAction);
-                }
+                // Auto Test: Wait for user input for actions (Ron/Pon/Riichi)
+                // if (Game.isAutoTest && this.actionTimer <= 0) { ... } -> REMOVED
                 break;
 
             case this.STATE_FX_PLAYING:
@@ -794,20 +807,20 @@ const BattleEngine = {
 
             case this.STATE_WIN:
             case this.STATE_LOSE:
-                if (window.Input && Input.isMousePressed || (Game.isAutoTest && this.timer > 30)) {
+                if (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
                     this.confirmResult();
                 }
                 break;
 
             case this.STATE_NAGARI:
-                if (window.Input && Input.isMousePressed || (Game.isAutoTest && this.timer > 30)) {
-                    this.startNextRound();
+                if (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+                    this.confirmResult();
                 }
                 break;
 
             case this.STATE_MATCH_OVER:
                 // Wait for input to transition
-                if (this.stateTimer > 60 && (window.Input && (Input.isMousePressed || Input.isKeyPressed('Space')))) {
+                if (this.stateTimer > 60 && (Input.isMouseDown || Input.isDown(Input.SPACE) || Input.isDown(Input.ENTER) || Input.isMouseJustPressed())) {
                     this.proceedFromMatchOver();
                 }
                 break;
@@ -1057,8 +1070,10 @@ const BattleEngine = {
         }
         this.discards.push(discarded);
 
-        // Check Player Ron/Pon
-        if (this.checkPlayerActions(discarded)) {
+        let hasAction = false;
+        // Check if Player can Ron
+        // AUTO LOSE MODE: Player Cannot Ron
+        if (!Game.isAutoLose && this.checkPlayerActions(discarded)) {
             console.log("Player has actions on CPU discard");
             // Riichi Auto-Win (Ron)
             if (this.p1.isRiichi) {
@@ -1068,25 +1083,17 @@ const BattleEngine = {
                     this.executeAction(ronAction);
                     return;
                 }
-                // Auto-Pass if only Pass available
-                console.log("Riichi Auto-Pass");
-                // Manually proceed to next turn logic (Fixing executeAction state check issue)
-                this.turnCount++;
-                this.checkRoundEnd();
-
-                if (this.currentState === this.STATE_NAGARI || this.currentState === this.STATE_MATCH_OVER) return; // Round ended
-
-                console.log("Riichi Auto-Draw");
-                this.playerDraw();
-                return;
+            } else {
+                // Normal user interaction or other logic
+                this.currentState = this.STATE_ACTION_SELECT;
+                this.actionTimer = 0;
+                this.selectedActionIndex = 0;
+                hasAction = true;
             }
+        }
 
-            this.currentState = this.STATE_ACTION_SELECT;
-            this.actionTimer = 0;
-            this.selectedActionIndex = 0;
-        } else {
+        if (!hasAction) {
             this.turnCount++;
-
             this.checkRoundEnd();
             if (this.currentState === this.STATE_NAGARI || this.currentState === this.STATE_MATCH_OVER) return; // Transitioned to End State
 

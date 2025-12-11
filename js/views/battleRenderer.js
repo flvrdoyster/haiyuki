@@ -648,28 +648,57 @@ const BattleRenderer = {
         if (info.p1Status !== undefined) text = text.replace("{p1Status}", info.p1Status);
         if (info.cpuStatus !== undefined) text = text.replace("{cpuStatus}", info.cpuStatus);
         if (info.damageMsg !== undefined) text = text.replace("{damageMsg}", info.damageMsg);
-        // Remove extra newline if yaku is empty and starts with newline? 
-        // Or just let it be. If {yaku} is top line and empty, we get empty first line.
-        // Ideally trim or handle nicely. But straightforward replacement is fine for now.
+
+        // Append Round History (MATCH_WIN / MATCH_LOSE)
+        // We will render this separately after the main text to use different font
+        let historyText = "";
+        if (info.history && info.history.length > 0) {
+            info.history.forEach(h => {
+                if (h.result === '무승부') {
+                    historyText += `ROUND ${h.round}: 무승부\n`;
+                } else {
+                    historyText += `ROUND ${h.round}: ${h.result} - ${h.yaku}\n`;
+                }
+            });
+        }
+
         text = text.trim();
 
-        const lines = text.split('\n'); // Use actual newline char since Config might use \n or user typed it? 
-        // Previous code split by '\\n' (literal string \n). 
-        // If Config object has `\n` in string literal `"{yaku}\nScore..."`, JS parses it as newline char.
-        // So split('\n') is correct. 
-        // Check if previous code used '\\n' intentionally for literal "\n" string?
-        // Config file: `text: "{yaku}\nScore: {score}"`. This is a string literal containing a newline character.
-        // So `split('\n')` is correct. The previous code had `split('\\n')` which looks for literal backslash-n.
-        // I should fix that too if it was wrong, or check if Config uses double escape.
-        // Config: `text: "{yaku}\nScore: {score}"`. Standard JS string.
-        // Wait, if I write `\n` in a JS file string, it becomes a newline.
-        // Previous code: `const lines = text.split('\\n');` -> This splits by literal `\n` characters (backslash then n).
-        // Unless the string was `"{yaku}\\nScore..."`.
-        // Let's assume standard newline and fix the split to `\n`.
+        const lines = text.split('\n');
 
         lines.forEach((line, i) => {
             ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
         });
+
+        // Render History with Custom Font & Limits
+        if (historyText.length > 0) {
+            // Use config from specific type (MATCH_WIN/LOSE) or fallback
+            const hFont = typeConf.historyFont || '16px "KoddiUDOnGothic-Regular"';
+            const hLineHeight = typeConf.historyLineHeight || 25;
+            const hMax = typeConf.historyMaxVisible || 5;
+
+            ctx.font = hFont;
+
+            const historyLines = historyText.split('\n').filter(l => l.trim().length > 0);
+
+            // Slice to Max Visible (Keep N most recent)
+            const visibleLines = (historyLines.length > hMax) ? historyLines.slice(-hMax) : historyLines;
+
+            // Positioning
+            // Let's use logic: If historyY is defined, use it. But maybe set a safer default if 130 is weird.
+            // Let's assume user wants to control it manually via Config. I will use `conf.historyY` relative to Window Y or absolute?
+            // Renderer DrawResult uses absolute coords (conf.scoreX).
+            // Let's assume conf.historyY is absolute Y.
+
+            // Let's use a safe default if not provided, or fallback to flow.
+            const startY = (typeConf.historyY !== undefined) ? typeConf.historyY : (conf.scoreY + (lines.length * conf.infoLineHeight) + 10);
+
+            visibleLines.forEach((line, i) => {
+                const y = startY + (i * (typeConf.historyLineHeight || 25));
+                // console.log(`Drawing history line at ${conf.scoreX}, ${y}: ${line}`); // DEBUG REMOVED
+                ctx.fillText(line, conf.scoreX, y);
+            });
+        }
 
         // Display Bonuses (Config-based)
         if (info.bonuses && info.bonuses.length > 0) {
