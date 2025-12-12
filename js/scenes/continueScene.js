@@ -1,14 +1,21 @@
 const ContinueConfig = {
     BG_COLOR: 'black',
+    BG_IMAGE: 'bg/CHRBAK.png',
+    BG_OVERLAY: 'rgba(0, 0, 0, 0.3)',
     TITLE: {
+        text: "GAME OVER",
+        x: 320, y: 100,
+        color: 'yellow',
+        align: 'center',
+        scale: 1.5
+    },
+    SUBTITLE: {
         text: "CONTINUE?",
-        x: 320, y: 120,
-        // font removed
+        x: 320, y: 160,
         color: 'yellow',
         align: 'center'
     },
     OPTIONS: {
-        // font removed
         selectedColor: 'yellow',
         normalColor: 'gray',
         YES: { text: "YES", x: 320, y: 340 },
@@ -126,19 +133,34 @@ const ContinueScene = {
 
     draw: function (ctx) {
         // Background
-        ctx.fillStyle = ContinueConfig.BG_COLOR;
-        ctx.fillRect(0, 0, 640, 480);
+        const bgImg = Assets.get(ContinueConfig.BG_IMAGE);
+        if (bgImg) {
+            ctx.drawImage(bgImg, 0, 0, 640, 480);
+            // Dim overlay
+            ctx.fillStyle = ContinueConfig.BG_OVERLAY;
+            ctx.fillRect(0, 0, 640, 480);
+        } else {
+            ctx.fillStyle = ContinueConfig.BG_COLOR;
+            ctx.fillRect(0, 0, 640, 480);
+        }
 
         // Title
         const title = ContinueConfig.TITLE;
-        const titleText = "CONTINUE?";
+        const titleText = title.text;
 
         // Title: Yellow
-        const charW = 32;
+        const charW = 32 * (title.scale || 1);
         const textW = titleText.length * charW;
         const titleX = 320 - (textW / 2);
 
-        Assets.drawAlphabet(ctx, titleText, titleX, title.y - 20, 'yellow');
+        Assets.drawAlphabet(ctx, titleText, titleX, title.y - 20, { color: title.color, scale: title.scale || 1 });
+
+        // Subtitle
+        const sub = ContinueConfig.SUBTITLE;
+        const subText = sub.text;
+        const subW = subText.length * 32; // Assuming 32px width per char
+        const subX = 320 - (subW / 2);
+        Assets.drawAlphabet(ctx, subText, subX, sub.y - 20, sub.color);
 
         // Countdown
         const cd = ContinueConfig.COUNTDOWN;

@@ -1,73 +1,89 @@
 body {
-    margin: 0;
-    padding: 0;
-    background-color: #222;
+    /* Layout */
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
+
+    /* Box Model */
+    margin: 0;
+    padding: 20px;
+
+    /* Visual */
+    background-color: #222;
 }
 
 #main-wrapper {
+    /* Layout */
     display: flex;
     flex-direction: column;
-    /* align-items: stretch; (Default) - Allows toolbar to match play-area width */
-    /* Center everything */
     gap: 10px;
+
+    /* Box Model */
     padding: 20px;
 }
 
 #toolbar-row {
+    /* Layout */
     display: flex;
     flex-direction: row;
-    width: 100%;
     justify-content: flex-start;
-    /* Align all groups to left */
     gap: 20px;
+
+    /* Box Model */
+    width: 100%;
 }
 
 #play-area {
+    /* Layout */
     position: relative;
+
+    /* Box Model */
     width: 640px;
     height: 480px;
 }
 
 #game-column {
+    /* Layout */
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
 #toolbar {
+    /* Layout */
     display: flex;
     justify-content: flex-end;
-    /* Align to right of game */
-    /* Width matches container (stretch) */
 }
 
-/* Toolbar Group (bunch of options) */
+/* Toolbar Group */
 .toolbar-group {
+    /* Layout */
     display: inline-flex;
-    /* Changed from flex to inline-flex to sit side-by-side if parent is block, or parent needs flex row */
     align-items: center;
     gap: 10px;
+
+    /* Box Model */
     margin-right: 20px;
-    /* Spacing between groups */
 }
 
 .toolbar-label {
-    color: white;
+    /* Typography */
     font-family: 'KoddiUDOnGothic-Bold', sans-serif;
     font-size: 24px;
+    color: white;
 }
 
 .toolbar-btn {
+    /* Box Model */
     width: 80px;
     height: 56px;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-color: transparent;
     border: none;
+
+    /* Visual */
+    background-color: transparent;
+    background-position: center;
+    background-repeat: no-repeat;
     cursor: pointer;
 }
 
@@ -84,43 +100,39 @@ body {
 }
 
 #game-container {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    /* Layout */
     flex-shrink: 0;
+
+    /* Visual */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
 canvas {
+    /* Layout */
     display: block;
+
+    /* Visual */
     background-color: #000;
     image-rendering: pixelated;
 }
 
 #yaku-container {
-    position: absolute;
-    left: 640px;
-    top: 0;
-    width: 380px;
-    height: 480px;
-    background: #f0f0f0;
-    border: 1px solid #444;
+    /* Layout */
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    position: absolute;
     z-index: 10;
-}
+    top: 0;
+    left: 640px;
 
-#game-container:fullscreen {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #000;
-    width: 100vw;
-    height: 100vh;
-}
+    /* Box Model */
+    width: 380px;
+    height: 480px;
+    border: 1px solid #444;
 
-#game-container:fullscreen canvas {
-    width: min(100vw, 133.34vh);
-    height: min(100vh, 75vw);
-    display: block;
+    /* Visual */
+    background: #f0f0f0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 #yaku-container.hidden {
@@ -128,26 +140,60 @@ canvas {
 }
 
 #yaku-frame {
+    /* Layout */
     flex: 1;
-    border: none;
+
+    /* Box Model */
     width: 100%;
+    border: none;
+
+    /* Visual */
     background: white;
 }
 
+#game-container:fullscreen {
+    /* Layout */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* Box Model */
+    width: 100vw;
+    height: 100vh;
+
+    /* Visual */
+    background-color: #000;
+}
+
+#game-container:fullscreen canvas {
+    /* Layout */
+    display: block;
+
+    /* Box Model */
+    width: min(100vw, 133.34vh);
+    height: min(100vh, 75vw);
+}
+
 hr {
+    /* Box Model */
     width: 100%;
+    margin: 20px 0 10px 0;
     border: none;
     border-top: 1px solid #444;
-    margin: 20px 0 10px 0;
 }
 
 #footer {
-    font-size: small;
-    text-align: right;
+    /* Layout */
     display: block;
-    color: white;
-    font-family: 'KoddiUDOnGothic-Regular', sans-serif;
+
+    /* Box Model */
     width: 100%;
+
+    /* Typography */
+    font-family: 'KoddiUDOnGothic-Regular', sans-serif;
+    font-size: small;
+    text-align: left;
+    color: white;
 }
 
 #footer a {
@@ -192,14 +238,14 @@ hr {
     }
 
     .toolbar-group {
-        gap: 5px;
         margin-right: 10px;
+        gap: 5px;
     }
 
     /* Shrink/Hide Footer details if needed */
     #footer {
-        font-size: 10px;
         margin-top: 5px;
+        font-size: 10px;
     }
 
     hr {
