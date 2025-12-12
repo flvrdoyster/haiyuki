@@ -165,6 +165,9 @@ const BattleRenderer = {
         // FX handling is usually stateless drawing, but depends on activeFX array
         this.drawFX(ctx, activeFX);
 
+        // Dialogue (Below Result/UI)
+        this.drawBattleDialogue(ctx, state);
+
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {
             this.drawActionMenu(ctx, state);
@@ -182,8 +185,7 @@ const BattleRenderer = {
             this.drawDrawButton(ctx);
         }
 
-        // 14. Battle Dialogue (Topmost)
-        this.drawBattleDialogue(ctx, state);
+
     },
 
     drawCharacterNames: function (ctx, state) {
