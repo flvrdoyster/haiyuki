@@ -32,6 +32,9 @@ const BattleRenderer = {
         const uiBg = Assets.get(BattleConfig.UI_BG.path);
         if (uiBg) ctx.drawImage(uiBg, 0, 0);
 
+        // 3.1 Character Names
+        this.drawCharacterNames(ctx, state);
+
         // 4.5 Discards
         this.drawDiscards(ctx, state);
 
@@ -179,6 +182,35 @@ const BattleRenderer = {
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
             this.drawDrawButton(ctx);
         }
+    },
+
+    drawCharacterNames: function (ctx, state) {
+        const conf = BattleConfig.NAME_DISPLAY;
+        if (!conf) return;
+
+        ctx.save();
+        ctx.font = conf.font;
+        ctx.fillStyle = conf.color;
+        ctx.strokeStyle = conf.stroke;
+        ctx.lineWidth = conf.strokeWidth;
+        ctx.textBaseline = 'alphabetic'; // Explicitly reset baseline prevents jitter
+
+        // Draw P1 Name
+        if (state.p1Character && state.p1Character.data) {
+            const name = state.p1Character.data.name;
+            ctx.textAlign = conf.P1.align || 'left';
+            ctx.strokeText(name, conf.P1.x, conf.P1.y);
+            ctx.fillText(name, conf.P1.x, conf.P1.y);
+        }
+
+        // Draw CPU Name
+        if (state.cpuCharacter && state.cpuCharacter.data) {
+            const name = state.cpuCharacter.data.name;
+            ctx.textAlign = conf.CPU.align || 'right';
+            ctx.strokeText(name, conf.CPU.x, conf.CPU.y);
+            ctx.fillText(name, conf.CPU.x, conf.CPU.y);
+        }
+        ctx.restore();
     },
 
     // Cached Metrics Object to reduce GC
@@ -603,6 +635,7 @@ const BattleRenderer = {
     },
 
     drawActionMenu: function (ctx, state) {
+        ctx.save(); // Prevent state leak (textBaseline)
         const conf = BattleConfig.ACTION;
         const actions = state.possibleActions;
         const btnW = conf.btnWidth;
@@ -645,6 +678,7 @@ const BattleRenderer = {
             ctx.textBaseline = 'middle'; // Fix vertical alignment
             ctx.fillText(act.label, x + btnW / 2, m.startY + btnH / 2);
         });
+        ctx.restore();
     },
 
     drawResult: function (ctx, state) {

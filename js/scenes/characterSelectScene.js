@@ -410,12 +410,9 @@ const CharacterSelectScene = {
         ctx.textAlign = 'left';
         if (this.characters[this.playerIndex]) {
             const pNameText = this.characters[this.playerIndex].name;
-            // Use lastRenderRect for accurate position, OR fallback to config
-            const rectX = this.p1Portrait && this.p1Portrait.lastRenderRect ? this.p1Portrait.lastRenderRect.x : SelectConfig.PORTRAIT.P1.x;
-            const rectY = this.p1Portrait && this.p1Portrait.lastRenderRect ? this.p1Portrait.lastRenderRect.y : SelectConfig.PORTRAIT.P1.y;
-
-            const pNameX = rectX + SelectConfig.NAME.xPadding;
-            const pNameY = rectY + SelectConfig.NAME.yOffset;
+            // Use Fixed UI Positions (Ignore Sprite Offsets)
+            const pNameX = SelectConfig.PORTRAIT.P1.x + SelectConfig.NAME.xPadding;
+            const pNameY = SelectConfig.PORTRAIT.P1.y + SelectConfig.NAME.yOffset;
             ctx.strokeText(pNameText, pNameX, pNameY);
             ctx.fillText(pNameText, pNameX, pNameY);
         }
@@ -431,13 +428,9 @@ const CharacterSelectScene = {
             if (this.characters[this.cpuIndex]) {
                 const cpuNameText = this.characters[this.cpuIndex].name;
 
-                const rectX = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.x : SelectConfig.PORTRAIT.CPU.x;
-                const rectY = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.y : SelectConfig.PORTRAIT.CPU.y;
-                const rectW = this.cpuPortrait && this.cpuPortrait.lastRenderRect ? this.cpuPortrait.lastRenderRect.w : SelectConfig.PORTRAIT.w;
-
-                // Align relative to the rendered portrait frame
-                const cpuNameX = rectX + rectW - SelectConfig.NAME.xPadding;
-                const cpuNameY = rectY + SelectConfig.NAME.yOffset;
+                // Align relative to the fixed UI slot (Right Aligned)
+                const cpuNameX = SelectConfig.PORTRAIT.CPU.x - SelectConfig.NAME.xPadding;
+                const cpuNameY = SelectConfig.PORTRAIT.CPU.y + SelectConfig.NAME.yOffset;
 
                 ctx.strokeText(cpuNameText, cpuNameX, cpuNameY);
                 ctx.fillText(cpuNameText, cpuNameX, cpuNameY);

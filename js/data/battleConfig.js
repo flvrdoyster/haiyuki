@@ -29,6 +29,14 @@ const BattleConfig = {
         baseW: 264,
         baseH: 280
     },
+    NAME_DISPLAY: {
+        font: 'bold 28px "KoddiUDOnGothic-Bold"',
+        color: '#4848c7', // Text fill color
+        stroke: 'white', // Text border color
+        strokeWidth: 3,
+        P1: { x: 10, y: 324, align: 'left' },
+        CPU: { x: 630, y: 324, align: 'right' }
+    },
     BARS: {
         width: 140, height: 10,
         hpPath: 'ui/bar_blue.png',
