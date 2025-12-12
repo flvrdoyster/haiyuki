@@ -13,6 +13,7 @@ const UI = {
 
     // Standard Button Drawing (Matches Draw Button & Confirm Button styles)
     drawButton: function (ctx, x, y, w, h, label, isSelected, options = {}) {
+        ctx.save();
         // 1. Frame
         Assets.drawUIFrame(ctx, x, y, w, h);
 
@@ -41,6 +42,7 @@ const UI = {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x + w / 2, y + h / 2);
+        ctx.restore();
     },
 
 
@@ -88,13 +90,16 @@ const UI = {
             }
 
             // Button Layout Calculation (must match draw)
-            const boxX = 120;
-            const boxY = 140;
-            const boxH = 200;
-            const buttonY = boxY + boxH - 60;
+            // Button Layout Calculation (must match draw)
+            const boxW = 300;
+            const boxH = 160;
+            const boxX = (640 - boxW) / 2; // 170
+            const boxY = (480 - boxH) / 2; // 160
+
+            const buttonY = boxY + boxH - 50;
             const buttonW = 100;
             const buttonH = 40;
-            const buttonGap = 40;
+            const buttonGap = 20;
 
             const yesX = 320 - buttonW - buttonGap / 2;
             const noX = 320 + buttonGap / 2;
@@ -168,6 +173,7 @@ const UI = {
         draw: function (ctx) {
             if (!this.isActive) return;
 
+            ctx.save();
             // 1. Dimmer
             // UI.drawWindow does inner dimmer, but usually we want Full Screen dimmer for modal.
             // BattleConfig.RESULT dimmerColor
@@ -175,21 +181,23 @@ const UI = {
             ctx.fillRect(0, 0, 640, 480);
 
             // 2. Dialog Box
-            const boxX = 120;
-            const boxY = 140;
-            const boxW = 400;
-            const boxH = 200;
+            const boxW = 300;
+            const boxH = 160;
+            const boxX = (640 - boxW) / 2; // 170
+            const boxY = (480 - boxH) / 2; // 160
 
             UI.drawWindow(ctx, boxX, boxY, boxW, boxH);
 
             // 3. Message Text
             ctx.fillStyle = 'white';
-            ctx.font = `20px ${FONTS.regular}`;
+            ctx.font = `18px ${FONTS.regular}`;
             ctx.textAlign = 'center';
 
             const lines = this.message.split('\\n');
-            const lineHeight = 28;
-            const startY = boxY + 60;
+            const lineHeight = 24;
+            // Center text vertically in the upper portion
+            // Available height approx 110px.
+            const startY = boxY + 50;
 
             lines.forEach((line, i) => {
                 ctx.fillText(line, 320, startY + (i * lineHeight));
@@ -198,22 +206,13 @@ const UI = {
             // 4. Buttons
             const buttonY = boxY + boxH - 60;
             const buttonW = 100;
-            const buttonH = 40;
-            const buttonGap = 40;
+            const gap = 20;
+            const yesX = boxX + (boxW / 2) - buttonW - (gap / 2);
+            const noX = boxX + (boxW / 2) + (gap / 2);
 
-            const yesX = 320 - buttonW - buttonGap / 2;
-            const noX = 320 + buttonGap / 2;
-
-            // Draw YES Button
-            const yesOpts = {};
-            if (this.selectedOption === 0) {
-                // Fetch Config if needed, or hardcode pink default
-                // yesOpts.cursorColor = ...
-            }
-            UI.drawButton(ctx, yesX, buttonY, buttonW, buttonH, 'YES', this.selectedOption === 0, yesOpts);
-
-            // Draw NO Button
-            UI.drawButton(ctx, noX, buttonY, buttonW, buttonH, 'NO', this.selectedOption === 1, {});
+            UI.drawButton(ctx, yesX, buttonY, buttonW, 40, "예", this.selectedOption === 0);
+            UI.drawButton(ctx, noX, buttonY, buttonW, 40, "아니오", this.selectedOption === 1);
+            ctx.restore();
         }
     }
 };

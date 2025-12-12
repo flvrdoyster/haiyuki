@@ -14,6 +14,7 @@ const TitleScene = {
     // States
     STATE_PRESS_KEY: 0,
     STATE_MODE_SELECT: 1,
+    STATE_RESET_MSG: 2, // New state for success message
 
     currentState: 0,
     blinkTimer: 0,
@@ -21,6 +22,7 @@ const TitleScene = {
 
     menuIndex: 0, // 0: Start, 1: Watch
     pointerTimer: 0,
+    msgTimer: 0, // Timer for message state
 
     init: function () {
         this.currentState = this.STATE_PRESS_KEY;
@@ -35,8 +37,9 @@ const TitleScene = {
 
     update: function () {
         // Update ConfirmDialog first (blocks other input when active)
+        const wasConfirmActive = UI.Confirm.isActive;
         UI.Confirm.update();
-        if (UI.Confirm.isActive) return; // Block scene input when dialog is active
+        if (wasConfirmActive) return; // Block scene input if dialog WAS active at start of frame
 
         this.blinkTimer++;
         if (this.blinkTimer > 40) { // Slower blink
@@ -99,7 +102,11 @@ const TitleScene = {
                             Game.saveData = { unlocked: [], clearedOpponents: [] };
                             Game.continueCount = 0;
                             Game.save();
-                            // Show success message (could be another dialog or just return to menu)
+
+                            // Transition to Success Message State
+                            this.currentState = this.STATE_RESET_MSG;
+                            this.msgTimer = 60; // Wait 1 second before allowing exit
+                            console.log("Reset Success. Waiting in Message State.");
                         },
                         () => {
                             // On Cancel - do nothing
@@ -109,6 +116,16 @@ const TitleScene = {
             }
 
             this.pointerTimer++;
+        } else if (this.currentState === this.STATE_RESET_MSG) {
+            // Success Message State
+            if (this.msgTimer > 0) {
+                this.msgTimer--;
+            } else {
+                // Wait for input to return to menu
+                if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+                    this.currentState = this.STATE_MODE_SELECT;
+                }
+            }
         }
     },
 
@@ -170,6 +187,32 @@ const TitleScene = {
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
             // Draw to the left of the text
             Assets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
+        } else if (this.currentState === this.STATE_RESET_MSG) {
+            // Draw Success Message
+            // Reuse DrawWindow (isolated thanks to previous fix)
+
+            const w = 240;
+            const h = 100;
+            const x = (640 - w) / 2;
+            const y = (480 - h) / 2;
+
+            UI.drawWindow(ctx, x, y, w, h);
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            ctx.font = `18px ${FONTS.regular}`;
+            ctx.fillText("데이터가 초기화되었습니다.", 320, 240);
+
+            if (this.msgTimer === 0) {
+                // Blink "Press Key"
+                if (Math.floor(Date.now() / 500) % 2 === 0) {
+                    ctx.font = `14px ${FONTS.regular}`;
+                    ctx.fillText("계속 진행하기", 320, 240 + 28);
+                }
+            }
+            ctx.restore();
         }
 
         // 4. Copyright

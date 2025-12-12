@@ -90,7 +90,7 @@ const BattleMenuSystem = {
         } else if (selectedId === 'RESTART') {
             // Restart Round Strategy - Show in-game confirmation
             UI.Confirm.show(
-                '정말로 이 라운드를 다시 시작할까요?',
+                '라운드를 다시 시작할까요?',
                 () => {
                     // On Confirm
                     this.toggle(); // Close menu

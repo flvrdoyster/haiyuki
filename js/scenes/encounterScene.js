@@ -365,6 +365,7 @@ const EncounterScene = {
             ctx.save();
             ctx.font = EncounterLayout.DIALOGUE.text.font;
             ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic'; // Reset baseline to default
             ctx.fillStyle = '#FFFFFF';
 
             if (currentLine.text) {
