@@ -65,12 +65,42 @@ const Game = {
         const gameContainer = document.getElementById('game-container');
         if (fullscreenBtn && gameContainer) {
             fullscreenBtn.onclick = () => {
-                if (!document.fullscreenElement) {
-                    gameContainer.requestFullscreen().catch(err => {
-                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    });
+                const element = gameContainer;
+                const requestMethod = element.requestFullscreen ||
+                    element.webkitRequestFullscreen ||
+                    element.mozRequestFullScreen ||
+                    element.msRequestFullscreen;
+
+                const isFullscreen = document.fullscreenElement ||
+                    document.webkitFullscreenElement ||
+                    document.mozFullScreenElement ||
+                    document.msFullscreenElement;
+
+                if (!isFullscreen) {
+                    // Try native fullscreen
+                    if (requestMethod) {
+                        requestMethod.call(element).catch(err => {
+                            console.log(`Native fullscreen failed, using fallback: ${err.message}`);
+                            gameContainer.classList.toggle('pseudo-fullscreen');
+                            fullscreenBtn.classList.toggle('toggle-on');
+                            fullscreenBtn.classList.toggle('toggle-off');
+                        });
+                    } else {
+                        // Fallback for iOS/unsupported
+                        gameContainer.classList.toggle('pseudo-fullscreen');
+                        fullscreenBtn.classList.toggle('toggle-on');
+                        fullscreenBtn.classList.toggle('toggle-off');
+                    }
                 } else {
-                    document.exitFullscreen();
+                    // Exit native fullscreen
+                    const exitMethod = document.exitFullscreen ||
+                        document.webkitExitFullscreen ||
+                        document.mozCancelFullScreen ||
+                        document.msExitFullscreen;
+
+                    if (exitMethod) {
+                        exitMethod.call(document);
+                    }
                 }
                 fullscreenBtn.blur();
             };
