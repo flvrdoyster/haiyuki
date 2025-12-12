@@ -137,11 +137,20 @@ const BattleConfig = {
             'RON': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 60 -> 120
             'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/fanfare' }, // 60 -> 120
             'NAGARI': { life: 180, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' } // 120 -> 180
-        },
-
-        // Legacy Sound map
-        SOUNDS: {}
+        }
     },
+    DIALOGUE: {
+        bubblePath: 'ui/short_bubble.png',
+        font: `18px ${FONTS.regular}`,
+        color: 'white',
+        lineHeight: 20, // Added for multi-line support
+        life: 120, // Duration in frames
+        P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
+        CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 }
+    },
+
+    // Legacy Sound map
+    SOUNDS: {},
 
     // Global Audio Configuration
     AUDIO: {

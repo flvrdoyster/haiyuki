@@ -223,6 +223,19 @@ const BattleEngine = {
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.roundHistory = []; // Initialize Round History
 
+        // Init Dialogue States
+        this.p1Dialogue = { active: false, text: '', timer: 0 };
+        this.cpuDialogue = { active: false, text: '', timer: 0 };
+
+        // Start Dialogue (Fresh Match Only)
+        // 50:50 Chance for who speaks first
+        if (!data.isNextRound) {
+            setTimeout(() => {
+                const who = (Math.random() < 0.5) ? 'P1' : 'CPU';
+                this.triggerDialogue(who, 'MATCH_START');
+            }, 800);
+        }
+
         this.startRound();
     },
 
@@ -298,11 +311,20 @@ const BattleEngine = {
             yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
         };
         this.roundHistory.push(resultData);
-
         console.log(`Base Score: ${score}, Bonus: ${bonusResult.score}, Final: ${finalScore}`);
         console.log(`Bonuses: ${bonusResult.names.join(', ')}`);
 
         const winType = (who === 'P1') ? 'WIN' : 'LOSE';
+
+        // Trigger Win/Lose Dialogue
+        if (who === 'P1') {
+            this.triggerDialogue('P1', 'WIN_CALL');
+            setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
+        } else {
+            this.triggerDialogue('CPU', 'WIN_CALL');
+            setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
+        }
+
         this.resultInfo = {
             type: winType,
             score: finalScore,
@@ -777,6 +799,9 @@ const BattleEngine = {
         this.stateTimer++;
         this.timer++;
 
+        // Update Dialogue (Always run)
+        this.updateDialogue();
+
         // Music Update
         // Only update battle music during active battle states
         // Refactored to allow arbitrary state order
@@ -1089,10 +1114,10 @@ const BattleEngine = {
                 }
             }
 
-            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, difficulty, this.cpu.aiProfile)) {
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, Difficulty.id, this.cpu.aiProfile)) {
                 // console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
                 this.cpu.isRiichi = true;
-                this.cpu.declaringRiichi = true; // Mark next discard as Riichi declaration
+                this.cpu.declaringRiichi = true; // Mark next discard
 
                 // Directly set BGM state to ensure overwrite logic works
                 this.currentBgm = 'audio/bgm_tension';
@@ -1133,6 +1158,7 @@ const BattleEngine = {
                 doras: this.doras, // Pass Doras for AI
                 turnCount: this.turnCount
             };
+            const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
             const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty, this.cpu.aiProfile, context);
             this.discardTileCPU(discardIdx);
         }
@@ -1181,10 +1207,6 @@ const BattleEngine = {
                 console.log("Riichi Auto-Draw");
                 this.currentState = this.STATE_PLAYER_TURN; // Will trigger logic? No, PLAYER_TURN just waits.
                 // We need to CALL playerDraw explicitly or setup state such that it draws.
-                // currentState=PLAYER_TURN -> updateLogic -> ?
-                // updateLogic just checks timers.
-                // We should call playerDraw directly logic?
-                // Logic: playerDraw sets state to PLAYER_TURN.
                 this.playerDraw();
             } else {
                 // Transition to Wait for Draw
@@ -1299,41 +1321,39 @@ const BattleEngine = {
     executeCpuPon: function (tile) {
         console.log("CPU Calls PON!", tile.type);
         this.showPopup('PON');
-        // Sound handled by showPopup -> FX event
-        // this.events.push({ type: 'SOUND', id: 'audio/call' });
-        // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
         // Remove 2 matching tiles logic
-        let removed = 0;
-        for (let i = this.cpu.hand.length - 1; i >= 0; i--) {
-            const t = this.cpu.hand[i];
-            if (t.type === tile.type && t.color === tile.color) {
-                this.cpu.hand.splice(i, 1);
-                removed++;
-                if (removed >= 2) break;
-            }
-        }
+        let matches = [];
+        let keep = [];
 
-        // Add Open Set
-        this.cpu.openSets.push({
-            type: 'PON',
-            tiles: [tile, tile, tile] // 2 from hand + 1 discarded
+        // Find matches first
+        this.cpu.hand.forEach(t => {
+            if (t.type === tile.type && t.color === tile.color && matches.length < 2) {
+                matches.push(t);
+            } else {
+                keep.push(t);
+            }
         });
 
-        this.cpu.isMenzen = false;
+        if (matches.length >= 2) {
+            this.cpu.hand = keep;
 
-        // Take from discards
-        this.discards.pop();
+            // Add Open Set
+            this.cpu.openSets.push({
+                type: 'PON',
+                tiles: [matches[0], matches[1], tile]
+            });
 
-        // Setup Discard Phase
-        this.cpu.needsToDiscard = true;
-        this.currentState = this.STATE_CPU_TURN;
-        this.timer = 0; // Will trigger discard logic at timer=60
+            this.cpu.isMenzen = false;
+
+            // Take from discards
+            this.discards.pop();
+
+            // Setup Discard Phase
+            this.currentState = this.STATE_CPU_TURN;
+            this.timer = 30; // Short delay before discard
+        }
     },
-
-
-
-
 
     // View proxies removed (Use BattleRenderer directly)
 
@@ -1588,6 +1608,22 @@ const BattleEngine = {
             this.p1.declaringRiichi = true; // Mark next discard
             this.showPopup('RIICHI');
 
+            this.triggerDialogue('P1', 'SELF_RIICHI');
+            // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
+            // BUT Riichi is special. Let's rely on generic reply? 
+            // Actually, for Riichi, the opponent usually reacts to the declaration.
+            // So if P1 does SELF_RIICHI, CPU should do ENEMY_RIICHI.
+            // My generic logic maps KEY -> KEY_REPLY. 
+            // So SELF_RIICHI -> SELF_RIICHI_REPLY. 
+            // BUT our data uses 'ENEMY_RIICHI' key for the opponent's reaction.
+            // Let's adjust usage to match data:
+            // Data has 'SELF_RIICHI' (My line) and 'ENEMY_RIICHI' (My line when enemy Riichis).
+            // So when P1 triggers SELF_RIICHI, CPU should trigger ENEMY_RIICHI.
+            // We need to manually trigger this reaction because the keys don't match the _REPLY pattern.
+            setTimeout(() => {
+                this.triggerDialogue('CPU', 'ENEMY_RIICHI');
+            }, 1000);
+
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
             this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
@@ -1821,7 +1857,7 @@ const BattleEngine = {
             if (!this.uraDoras || this.uraDoras.length === 0) {
                 this.uraDoras = [];
                 // Generate 2 random Ura Doras safely (using deck logic might be better but simple random for now)
-                for (let i = 0; i < 2; i++) {
+                for (let i = this.cpu.hand.length - 1; i >= 0; i--) {
                     const t = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
                     this.uraDoras.push({ type: t.id, color: t.color, img: t.img });
                 }
@@ -1875,6 +1911,71 @@ const BattleEngine = {
             avgScore: waitCount > 0 ? (totalScore / waitCount) : 0,
             waitCount: waitCount
         };
+    },
+
+    updateDialogue: function () {
+        // P1
+        if (this.p1Dialogue && this.p1Dialogue.active) {
+            this.p1Dialogue.timer--;
+            if (this.p1Dialogue.timer <= 0) {
+                this.p1Dialogue.active = false;
+                if (this.p1Character) this.p1Character.setTalking(false);
+            }
+        }
+        // CPU
+        if (this.cpuDialogue && this.cpuDialogue.active) {
+            this.cpuDialogue.timer--;
+            if (this.cpuDialogue.timer <= 0) {
+                this.cpuDialogue.active = false;
+                if (this.cpuCharacter) this.cpuCharacter.setTalking(false);
+            }
+        }
+    },
+
+    triggerDialogue: function (who, key) {
+        // Resolve Character Data
+        const charId = (who === 'P1') ? this.p1.id : this.cpu.id;
+        const charData = CharacterData.find(c => c.id === charId);
+
+        if (!charData || !charData.dialogue || !charData.dialogue[key]) {
+            return;
+        }
+
+        const text = charData.dialogue[key];
+        const state = (who === 'P1') ? this.p1Dialogue : this.cpuDialogue;
+        const character = (who === 'P1') ? this.p1Character : this.cpuCharacter;
+
+        // Reset & Activate
+        state.active = true;
+        state.text = text;
+        state.timer = BattleConfig.DIALOGUE.life || 120;
+
+        if (character) {
+            character.setTalking(true);
+        }
+
+        console.log(`[Dialogue] ${who} (${charId}): ${text.replace(/\n/g, ' ')}`);
+
+        // --- Generic Reply Logic ---
+        // Exclude specific keys that have their own coupled logic
+        const EXCLUDED_KEYS = ['SELF_RIICHI', 'ENEMY_RIICHI', 'WIN_CALL', 'LOSE_CALL'];
+
+        if (!EXCLUDED_KEYS.includes(key) && !key.endsWith('_REPLY')) {
+            const opponentWho = (who === 'P1') ? 'CPU' : 'P1';
+            const replyKey = `${key}_REPLY`;
+
+            // Check if opponent has this reply key
+            const oppId = (who === 'P1') ? this.cpu.id : this.p1.id;
+            const oppData = CharacterData.find(c => c.id === oppId);
+
+            if (oppData && oppData.dialogue && oppData.dialogue[replyKey]) {
+                // Schedule Reply
+                setTimeout(() => {
+                    // Check if battle is still active/valid?
+                    this.triggerDialogue(opponentWho, replyKey);
+                }, 1500); // 1.5 sec delay
+            }
+        }
     }
 };
 

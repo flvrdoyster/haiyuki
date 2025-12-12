@@ -178,10 +178,12 @@ const BattleRenderer = {
             this.drawBattleMenu(ctx, state);
         }
 
-        // Wait for Draw Button
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
             this.drawDrawButton(ctx);
         }
+
+        // 14. Battle Dialogue (Topmost)
+        this.drawBattleDialogue(ctx, state);
     },
 
     drawCharacterNames: function (ctx, state) {
@@ -735,7 +737,6 @@ const BattleRenderer = {
                 // Scale based on font height (approx 20px)
                 // Number image usually has height ~32px? 
                 // Let's assume height 20px for target.
-                const targetH = 20;
                 // We need source dimensions. Assets.drawNumberBig calculates it.
                 // We can pass scale? or simply height.
                 // drawNumberBig uses scale.
@@ -1198,5 +1199,81 @@ const BattleRenderer = {
             currentY += itemH;
         }
         return -1;
+    },
+
+    drawBattleDialogue: function (ctx, state) {
+        const conf = BattleConfig.DIALOGUE;
+        if (!conf) return;
+
+        const bubble = Assets.get(conf.bubblePath);
+        if (!bubble) return;
+
+        // Layout Constants (Matched with dialogue_debug.html)
+        // Fixed Anchor Logic: Screen Center (320) + Offset
+        // This ensures consistent placement regardless of Portrait alignment quirks.
+        const doraY = 220; // 180 + 40 (Dora Y + Offset)
+
+        const p1BubbleY = doraY + conf.P1.offsetY;
+        const p1BubbleX = BattleConfig.SCREEN.centerX + conf.P1.offsetX;
+
+        const cpuBubbleY = doraY + conf.CPU.offsetY;
+        const cpuBubbleX = BattleConfig.SCREEN.centerX + conf.CPU.offsetX;
+
+        // P1 Dialogue
+        if (state.p1Dialogue && state.p1Dialogue.active) {
+            ctx.save();
+            // Position: Center
+            const bx = p1BubbleX - bubble.width / 2;
+            const by = p1BubbleY - bubble.height / 2;
+
+            ctx.drawImage(bubble, bx, by);
+
+            // Text
+            ctx.fillStyle = conf.color;
+            ctx.font = conf.font;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const tx = p1BubbleX + conf.P1.textOffsetX;
+            const ty = p1BubbleY + conf.P1.textOffsetY;
+
+            this._drawMultilineText(ctx, state.p1Dialogue.text, tx, ty, conf.lineHeight);
+            ctx.restore();
+        }
+
+        // CPU Dialogue (Rotated 180)
+        if (state.cpuDialogue && state.cpuDialogue.active) {
+            ctx.save();
+
+            ctx.translate(cpuBubbleX, cpuBubbleY);
+            ctx.rotate(Math.PI); // Rotate 180 degrees
+            ctx.drawImage(bubble, -bubble.width / 2, -bubble.height / 2);
+            ctx.restore();
+
+            ctx.save();
+            ctx.fillStyle = conf.color;
+            ctx.font = conf.font;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Text Position (Relative to Screen, not rotated context)
+            const tx = cpuBubbleX + conf.CPU.textOffsetX;
+            const ty = cpuBubbleY + conf.CPU.textOffsetY;
+
+            this._drawMultilineText(ctx, state.cpuDialogue.text, tx, ty, conf.lineHeight);
+            ctx.restore();
+        }
+    },
+
+    _drawMultilineText: function (ctx, text, x, y, lineHeight) {
+        if (!text) return;
+        const lines = text.split('\n');
+        const totalH = (lines.length - 1) * lineHeight;
+        let currentY = y - (totalH / 2);
+
+        lines.forEach(line => {
+            ctx.fillText(line, x, currentY);
+            currentY += lineHeight;
+        });
     }
 };

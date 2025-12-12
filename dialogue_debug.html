@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Battle Dialogue Debug</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #ccc;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        #container {
+            position: relative;
+            margin: 20px auto;
+            width: 640px;
+            height: 480px;
+            background-color: #000;
+            border: 2px solid #555;
+        }
+
+        canvas {
+            background-color: #225522;
+            /* Match Game BG */
+        }
+
+        .controls {
+            margin-top: 10px;
+            padding: 10px;
+            background: #444;
+        }
+
+        .row {
+            margin: 5px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            width: 200px;
+            padding: 5px;
+        }
+
+        label {
+            font-weight: bold;
+            color: white;
+        }
+
+        @font-face {
+            font-family: 'KoddiUDOnGothic-Regular';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Regular.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'KoddiUDOnGothic-Bold';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Bold.woff') format('woff');
+            font-weight: bold;
+            font-style: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Battle Dialogue Debug</h1>
+    <div id="container">
+        <canvas id="debug-canvas" width="640" height="480"></canvas>
+    </div>
+
+    <div class="controls">
+        <div class="row">
+            <label>P1 Text:</label>
+            <textarea id="p1-text" rows="2">오늘 운이
+좋은 것 같은데?</textarea>
+            <button onclick="triggerP1()">Trigger</button>
+        </div>
+        <div class="row">
+            <label>CPU Text:</label>
+            <textarea id="cpu-text" rows="2">절대 봐주지
+않겠다!</textarea>
+            <button onclick="triggerCPU()">Trigger</button>
+        </div>
+    </div>
+
+    <!-- minimal scripts -->
+    <script src="js/data/battleConfig.js"></script>
+    <script>
+        // --- Mock Assets ---
+        // We will load real images via data/path or just assume they load because we are in same dir structure
+        // But for debug page to work standalone, we need simple Asset loader
+        const Assets = {
+            images: {},
+            load: function (path, callback) {
+                const img = new Image();
+                img.onload = () => {
+                    this.images[path] = img;
+                    if (callback) callback(img);
+                };
+                img.src = path;
+            },
+            get: function (path) {
+                return this.images[path];
+            }
+        };
+
+        const canvas = document.getElementById('debug-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // State
+        let p1Dialogue = { active: true, text: "", timer: 0 };
+        let cpuDialogue = { active: true, text: "", timer: 0 };
+
+        // --- Init ---
+        function init() {
+            // Load essential assets
+            const assetsToLoad = [
+                'assets/ui/short_bubble.png', // User specified path format
+                'assets/ui/dora.png',         // From config
+                // In BattleConfig it's 'ui/dora.png', user path differs? 
+                // Wait. BattleConfig says 'ui/dora.png'. Root is index.html.
+                // Assuming assets are in 'assets/'. 
+                // The game loader prefixes 'assets/' usually?
+                // Let's try direct paths. 
+            ];
+
+            // Fix paths based on existing project structure
+            // Real path: haiyuki_web/assets/ui/short_bubble.png
+            // HTML is in haiyuki_web/
+            // So src="assets/ui/short_bubble.png"
+
+            Assets.load('assets/ui/short_bubble.png', () => draw());
+            Assets.load('assets/ui/dora.png', () => draw());
+            Assets.load('assets/bg/GAMEBG.png', () => draw()); // Load UI BG
+            // Load Character Portraits (Mock: Ataho vs Rinxiang)
+            Assets.load('assets/face/ATA_base.png', () => draw());
+            Assets.load('assets/face/RIN_base.png', () => draw());
+
+            // Set initial texts
+            p1Dialogue.text = document.getElementById('p1-text').value;
+            cpuDialogue.text = document.getElementById('cpu-text').value;
+
+            // Wait for fonts
+            document.fonts.ready.then(() => {
+                console.log('Fonts loaded');
+                draw();
+            });
+
+            // Loop
+            requestAnimationFrame(loop);
+        }
+
+        // --- Logic ---
+        function triggerP1() {
+            p1Dialogue.text = document.getElementById('p1-text').value;
+            p1Dialogue.active = true;
+            p1Dialogue.timer = 120; // 2 seconds
+        }
+
+        function triggerCPU() {
+            cpuDialogue.text = document.getElementById('cpu-text').value;
+            cpuDialogue.active = true;
+            cpuDialogue.timer = 120;
+        }
+
+        function loop() {
+            // Decrement timers (simulated)
+            // In debug page we might just keep them visible or animate
+            // For now, let's just redraw
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // --- Drawing ---
+        function draw() {
+            // Replaced by previous update, but confirming function signature closure if needed
+            // Actually draw() was replaced in previous block.
+            // Wait, previous replace_file_content replaced lines 120-126 AND added function draw() { ... } implementation? 
+            // Ah, I see. I might have replaced 'draw()' definition twice if I am not careful.
+            // The previous tool replaced the block leading INTO draw().
+            // This chunk targets the OLD draw() function to REMOVE/REPLACE it fully if needed.
+            // But previous tool ended with function draw() { ... content ... }
+            // So I should target the OLD draw implementation here to overwrite/clean it.
+
+            // Logic:
+            // Clear
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, 640, 480);
+
+            // 1. Draw Portraits (Background Layer)
+            drawMockPortraits(ctx);
+
+            // 2. UI Frame Overlay
+            const uiBg = Assets.get('assets/bg/GAMEBG.png');
+            if (uiBg) ctx.drawImage(uiBg, 0, 0);
+
+            // 3. Game UI (Discards, Hands) - On Top of Frame
+            drawMockUI(ctx);
+
+            // 4. Dora Marker (Reference)
+            drawDoraMock(ctx);
+
+            // 5. Dialogue (Topmost)
+            drawBattleDialogue(ctx);
+
+            // 6. DEBUG: Draw Font Info (Removed for Clean View)
+            /*
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.font = '16px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const conf = BattleConfig.DIALOGUE;
+            ctx.fillText(`Font Config: ${conf.font}`, 10, 10);
+            ctx.fillText(`Color: ${conf.color}`, 10, 30);
+            ctx.fillText(`System Font Test`, 10, 50);
+            ctx.restore();
+            */
+        }
+
+        function drawMockPortraits(ctx) {
+            const p1Img = Assets.get('assets/face/ATA_base.png');
+            if (p1Img) {
+                // BattleConfig P1: x:-34, y:60.
+                // Sheet Check
+                let isSheet = p1Img.width > 300; // Approx logic
+                let sx = 0;
+                let sw = isSheet ? p1Img.width / 2 : p1Img.width;
+
+                ctx.drawImage(p1Img, sx, 0, sw, p1Img.height, -34, 60, sw, p1Img.height);
+            }
+
+            const cpuImg = Assets.get('assets/face/RIN_base.png');
+            if (cpuImg) {
+                // BattleConfig CPU: x:674, y:60. Align Right.
+                // Sheet Check
+                let isSheet = cpuImg.width > 300;
+                let sw = isSheet ? cpuImg.width / 2 : cpuImg.width;
+                let sx = isSheet ? sw : 0; // CPU uses 2nd frame if sheet
+
+                // Align Right Logic: x - width
+                let dx = 674 - sw;
+
+                ctx.drawImage(cpuImg, sx, 0, sw, cpuImg.height, dx, 60, sw, cpuImg.height);
+            }
+        }
+
+
+        function drawMockUI(ctx) {
+            // Visualize Discards (River)
+            // P1 River: x: 214, y: 280
+            // CPU River: x: 214, y: 100
+            // Size: 20x27, 2px gap, 10 cols.
+            // Width = 10 * (20+2) = 220. Height = 3 rows * (27+2) approx.
+
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            // P1 River Box
+            ctx.fillRect(214, 280, 220, 90);
+            ctx.strokeStyle = '#555';
+            ctx.strokeRect(214, 280, 220, 90);
+            ctx.fillStyle = 'white';
+            ctx.fillText("P1 RIVER", 214 + 110, 280 + 45);
+
+            // CPU River Box
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(214, 100, 220, 90);
+            ctx.strokeRect(214, 100, 220, 90);
+            ctx.fillStyle = 'white';
+            ctx.fillText("CPU RIVER", 214 + 110, 100 + 45);
+
+            // Hands
+            // P1 Hand Y: 400.
+            // Tile 40x53. 13 tiles.
+            ctx.fillStyle = 'rgba(255,0,0,0.2)';
+            ctx.fillRect(40, 400, 640 - 80, 53);
+            ctx.fillText("P1 HAND", 320, 400 + 26);
+
+            // CPU Hand Y: 10
+            ctx.fillRect(40, 10, 640 - 80, 53);
+            ctx.fillText("CPU HAND", 320, 10 + 26);
+
+            // Portraits removed from here (moved to dedicated function)
+
+            // Bars
+
+            // Bars
+            // P1 Bars: x:41, y:347
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(41, 347, 140, 10); // HP
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(41, 347 + 18, 140, 10); // MP
+
+            // CPU Bars: x:459, y:347
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(459, 347, 140, 10);
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(459, 347 + 18, 140, 10);
+        }
+
+        function drawDoraMock(ctx) {
+            // Based on BattleConfig.DORA
+            // x: 320, y: 180 (Center of logic?)
+            // Frame yOffset: 40
+            const dx = 320;
+            const dy = 180;
+
+            ctx.strokeStyle = 'cyan';
+            ctx.strokeRect(dx - 5, dy - 5, 10, 10); // Marker Center
+
+            // Frame
+            // BattleRenderer logic: fx = cx + xOffset, fy = cy + yOffset (40)
+            const frameImg = Assets.get('assets/ui/dora.png');
+            if (frameImg) {
+                // align center
+                const fx = dx - frameImg.width / 2;
+                const fy = dy + 40 - frameImg.height / 2;
+                // Wait. BattleRenderer: fy = cy + yOffset - height/2.
+                // Config yOffset=40. cy=180.
+                ctx.drawImage(frameImg, fx, fy);
+
+                // Draw Box around frame for clarity
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.strokeRect(fx, fy, frameImg.width, frameImg.height);
+            } else {
+                // Placeholder
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(320 - 50, 220 - 20, 100, 40);
+            }
+        }
+
+        function drawMultilineText(ctx, text, x, y, lineHeight) {
+            const lines = text.split('\n');
+            // Correction: For 2 lines, we want the *block* centered.
+            // Y is center. 
+            // Line 1 Center: Top + LH/2 = y - H/2 + LH/2.
+
+            // Re-calc startY for the *center* of the first line
+            let currentY = y - ((lines.length - 1) * lineHeight) / 2;
+
+            lines.forEach(line => {
+                ctx.fillText(line, x, currentY);
+                currentY += lineHeight;
+            });
+        }
+
+        function drawBattleDialogue(ctx, state) {
+            // Use Config
+            const conf = BattleConfig.DIALOGUE;
+            // Note: In debug page we use raw path 'assets/' + conf.bubblePath
+            // because game loader usually handles prefix
+            const bubble = Assets.get('assets/' + conf.bubblePath);
+            if (!bubble) return;
+
+            // Layout Constants (To be moved to BattleConfig later)
+            const doraY = 180 + 40; // Approx visual center of Dora row
+
+            // Calc Positions
+            const p1BubbleY = doraY + conf.P1.offsetY;
+            const p1BubbleX = 320 + conf.P1.offsetX;
+
+            const cpuBubbleY = doraY + conf.CPU.offsetY;
+            const cpuBubbleX = 320 + conf.CPU.offsetX;
+
+            // P1 Bubble
+            if (p1Dialogue.active) {
+                ctx.save();
+                // Position: Center X, Above Dora
+                const bx = p1BubbleX - bubble.width / 2;
+                const by = p1BubbleY - bubble.height / 2;
+
+                ctx.drawImage(bubble, bx, by);
+
+                // Text
+                ctx.fillStyle = conf.color;
+                // Config has quotes inside: '"Name"'
+                ctx.font = conf.font + ", sans-serif";
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const tx = p1BubbleX + conf.P1.textOffsetX;
+                const ty = p1BubbleY + conf.P1.textOffsetY;
+
+                drawMultilineText(ctx, p1Dialogue.text, tx, ty, conf.lineHeight);
+                ctx.restore();
+
+                // DEBUG: Draw Center Crosshair for P1
+                ctx.save();
+                ctx.strokeStyle = 'cyan';
+                ctx.beginPath();
+                ctx.moveTo(p1BubbleX - 10, p1BubbleY);
+                ctx.lineTo(p1BubbleX + 10, p1BubbleY);
+                ctx.moveTo(p1BubbleX, p1BubbleY - 10);
+                ctx.lineTo(p1BubbleX, p1BubbleY + 10);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // CPU Bubble (Rotated 180)
+            if (cpuDialogue.active) {
+                ctx.save();
+
+                ctx.translate(cpuBubbleX, cpuBubbleY);
+                ctx.rotate(Math.PI);
+                ctx.drawImage(bubble, -bubble.width / 2, -bubble.height / 2);
+                ctx.restore();
+
+                ctx.save();
+                ctx.fillStyle = conf.color;
+                ctx.font = conf.font + ", sans-serif";
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Use cpuBubbleX, NOT centerX (Bug fix)
+                // Adjustment: CPU bubble is flipped, so Y offset logic might be inverted naturally or needs manual check
+                // For now, simple additive offset relative to calculated center
+                const tx = cpuBubbleX + conf.CPU.textOffsetX;
+                const ty = cpuBubbleY + conf.CPU.textOffsetY;
+
+                drawMultilineText(ctx, cpuDialogue.text, tx, ty, conf.lineHeight);
+                ctx.restore();
+
+                // DEBUG: Draw Center Crosshair for CPU
+                ctx.save();
+                ctx.strokeStyle = 'cyan'; // Cyan for contrast
+                ctx.beginPath();
+                ctx.moveTo(cpuBubbleX - 10, cpuBubbleY);
+                ctx.lineTo(cpuBubbleX + 10, cpuBubbleY);
+                ctx.moveTo(cpuBubbleX, cpuBubbleY - 10);
+                ctx.lineTo(cpuBubbleX, cpuBubbleY + 10);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
