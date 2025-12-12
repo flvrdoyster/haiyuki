@@ -28,6 +28,9 @@ const Input = {
     D: 'KeyD',
 
     init: function (canvas) {
+        if (this.initialized) return;
+        this.initialized = true;
+
         window.addEventListener('keydown', (e) => {
             // Prevent default scrolling for arrow keys and space
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {

@@ -20,6 +20,22 @@ const BattleEngine = {
     timer: 0,
     stateTimer: 0,
     lastState: -1,
+    timeouts: [],
+
+    setTimeout: function (callback, delay) {
+        const id = setTimeout(() => {
+            // Remove from list when executed
+            this.timeouts = this.timeouts.filter(t => t !== id);
+            callback();
+        }, delay);
+        this.timeouts.push(id);
+        return id;
+    },
+
+    clearTimeouts: function () {
+        this.timeouts.forEach(id => clearTimeout(id));
+        this.timeouts = [];
+    },
 
     // Constants
     DELAY_DRAW: 60,
@@ -106,6 +122,8 @@ const BattleEngine = {
                 // BattleMenuSystem.toggle(); // Handled by Input in BattleScene
             };
         }
+
+        this.clearTimeouts();
 
         // ... (rest of init)
         this.playerIndex = data.playerIndex || 0;
@@ -229,8 +247,9 @@ const BattleEngine = {
 
         // Start Dialogue (Fresh Match Only)
         // 50:50 Chance for who speaks first
+        // 50:50 Chance for who speaks first
         if (!data.isNextRound) {
-            setTimeout(() => {
+            this.setTimeout(() => {
                 const who = (Math.random() < 0.5) ? 'P1' : 'CPU';
                 this.triggerDialogue(who, 'MATCH_START');
             }, 800);
@@ -319,10 +338,10 @@ const BattleEngine = {
         // Trigger Win/Lose Dialogue
         if (who === 'P1') {
             this.triggerDialogue('P1', 'WIN_CALL');
-            setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
+            this.setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
         } else {
             this.triggerDialogue('CPU', 'WIN_CALL');
-            setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
+            this.setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
         }
 
         this.resultInfo = {
@@ -1970,7 +1989,7 @@ const BattleEngine = {
 
             if (oppData && oppData.dialogue && oppData.dialogue[replyKey]) {
                 // Schedule Reply
-                setTimeout(() => {
+                this.setTimeout(() => {
                     // Check if battle is still active/valid?
                     this.triggerDialogue(opponentWho, replyKey);
                 }, 1500); // 1.5 sec delay
