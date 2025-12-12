@@ -8,7 +8,7 @@ const EncounterLayout = {
     NAME: {
         y: 390,
         xPadding: 20,
-        font: 'bold 30px "KoddiUDOnGothic-Bold", sans-serif',
+        font: `bold 30px ${FONTS.bold}, sans-serif`,
         strokeWidth: 4
     },
     DIALOGUE: {
@@ -16,10 +16,10 @@ const EncounterLayout = {
         tailXOffset: 80,   // Distance of tail from left/right edge of bubble
         tailYOffset: 0,    // Vertical offset for tail (0 = flush)
         text: {
-            font: '22px "KoddiUDOnGothic-Regular", sans-serif',
+            font: `22px ${FONTS.regular}, sans-serif`,
             lineHeight: 28,
             xPadding: 40,
-            baselineCorrection: 10 // Fine tune vertical centering
+            baselineCorrection: 12 // Fine tune vertical centering
         }
     }
 };

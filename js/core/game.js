@@ -12,6 +12,12 @@ const Game = {
         this.continueCount = 0;
         this.isTrueEndingPath = true;
 
+        // Auto-Mute for Auto Test
+        if (this.isAutoTest) {
+            console.log("Auto Test Mode detected. Muting Audio.");
+            Assets.setMute(true);
+        }
+
         // Initialize modules with canvas for mouse input
         Input.init(this.canvas);
 

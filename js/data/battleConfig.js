@@ -1,4 +1,9 @@
 // Battle Configuration (Rules & UI)
+const FONTS = {
+    regular: '"KoddiUDOnGothic-Regular"',
+    bold: '"KoddiUDOnGothic-Bold"'
+};
+
 const BattleConfig = {
     GAME_ID: 'HAIYUKI_WEB',
     SCREEN: {
@@ -30,7 +35,7 @@ const BattleConfig = {
         baseH: 280
     },
     NAME_DISPLAY: {
-        font: 'bold 28px "KoddiUDOnGothic-Bold"',
+        font: `bold 28px ${FONTS.bold}`,
         color: '#4848c7', // Text fill color
         stroke: 'white', // Text border color
         strokeWidth: 3,
@@ -50,13 +55,13 @@ const BattleConfig = {
         playerHandY: 400, // Fixed Y for player hand
         openSetY: 400,    // Align with player hand Y
         openSetRightAnchor: 620, // Right padding/anchor for open sets
-        cpuY: 20,
+        cpuY: 10,
         tileWidth: 40,
         tileHeight: 53,
         gap: 0,
         hoverYOffset: -10,
         hoverColor: '#ffaa00',
-        hoverWidth: 2,
+        hoverWidth: 3,
         groupGap: 10,
         // Open Set specific settings
         openSetTileGap: 0, // Gap between tiles within a set (e.g. Pon)
@@ -102,8 +107,8 @@ const BattleConfig = {
         dimmer: 'rgba(0, 0, 0, 0.5)', // New: Dimmer color
 
         // Fonts
-        buttonFont: 'bold 16px "KoddiUDOnGothic-Bold"',
-        helpFont: '16px "KoddiUDOnGothic-Bold"',
+        buttonFont: `bold 16px ${FONTS.bold}`,
+        helpFont: `16px ${FONTS.bold}`,
 
         // Colors (Match Battle Menu)
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
@@ -120,17 +125,18 @@ const BattleConfig = {
         // Configuration for Action Callouts (Riichi, Pon, Ron, Tsumo, Nagari)
         // These use the FX system but are positioned according to these settings.
         x: 320,
-        y: 240,
+        y: 200,
         scale: 1.0,
+        life: 45, // Default Life
         align: 'center',
 
         // Sound mapping for Popups
         TYPES: {
-            'RIICHI': { slideFrom: 'LEFT', life: 60, scale: 1.0, sound: 'audio/riichi' },
-            'PON': { scale: 1.0, sound: 'audio/pon' },
-            'RON': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'NAGARI': { scale: 1.0, sound: 'audio/wrong' }
+            'RIICHI': { life: 90, slideFrom: 'RIGHT', scale: 1.0, sound: 'audio/riichi' }, // 45 -> 90
+            'PON': { life: 90, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/pon' }, // 45 -> 90
+            'RON': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 60 -> 120
+            'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/fanfare' }, // 60 -> 120
+            'NAGARI': { life: 180, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' } // 120 -> 180
         },
 
         // Legacy Sound map
@@ -159,32 +165,39 @@ const BattleConfig = {
     },
 
     RESULT: {
-        // Window Layout
+        // --- Window Configuration ---
         x: 120, y: 90, w: 400, h: 300,
-
-        // Colors
-        dimmerColor: 'rgba(0, 0, 0, 0.5)',
         windowColor: 'rgba(0, 0, 0, 0.85)',
         borderColor: 'white',
         borderWidth: 2,
-        dimmer: 'rgba(0, 0, 0, 0.5)', // New: Inner dimmer for frame
 
-        // Fonts & Text Colors
-        titleFont: 'bold 48px "KoddiUDOnGothic-Bold"',
-        scoreFont: 'bold 32px "KoddiUDOnGothic-Bold"',
-        infoFont: '24px "KoddiUDOnGothic-Regular"',
-        resultColor: 'white',
-        subColor: '#FFFF00',
-        infoColor: 'white',
-        // Layout
-        titleX: 320, titleY: 150,
-        scoreX: 320, scoreY: 220,
-        infoX: 320, infoY: 260,
-        pressSpaceOffset: -40, // Distance below frame
-        infoLineHeight: 30,
+        // --- Title Configuration ---
+        titleX: 320,         // Centered horizontally
+        titleY: 140,         // Title Y Position
+        titleFont: `bold 36px ${FONTS.bold}`,
 
+        // --- Layout Constants (Split View) ---
+        yakuListX: 140,      // Left Column Start X
+        scoreListX: 500,     // Right Column Align X (Right Aligned)
+        yakuY: 180,          // Start Y for Yaku List
+        lineHeight: 32,      // Vertical spacing between items
+        separatorGap: 15,    // Gap before separator line
+        damageGap: 15,       // Gap after separator line before "Damage" text
+        pressSpaceOffset: -40, // Offset Y for 'Press Space' from bottom of window
 
-        // Configuration for Result Types
+        // --- Fonts ---
+        yakuFont: `bold 20px ${FONTS.bold}`,
+        scoreFont: `bold 20px ${FONTS.bold}`,
+        infoFont: `24px ${FONTS.regular}`,
+
+        // --- Colors ---
+        yakuColor: 'white',
+        scoreColor: '#FFD700', // Gold
+        resultColor: 'white',  // Legacy/Fallback
+        subColor: '#FFFF00',   // Legacy/Fallback
+        infoColor: 'white',    // Legacy/Fallback
+
+        // --- Type Specific Configuration ---
         TYPES: {
             WIN: {
                 title: "승!",
@@ -208,7 +221,7 @@ const BattleConfig = {
                 title: "다음 상대로!",
                 color: "gold",
                 sound: "audio/victory", // Configurable Sound
-                historyFont: '16px "KoddiUDOnGothic-Regular"',
+                historyFont: `16px ${FONTS.regular}`,
                 historyLineHeight: 20,
                 historyMaxVisible: 7,
                 historyY: 200
@@ -217,7 +230,7 @@ const BattleConfig = {
                 title: "게임 오버",
                 color: "white",
                 sound: "audio/lose", // Configurable Sound
-                historyFont: '16px "KoddiUDOnGothic-Regular"',
+                historyFont: `16px ${FONTS.regular}`,
                 historyLineHeight: 20,
                 historyMaxVisible: 7,
                 historyY: 200
@@ -229,11 +242,9 @@ const BattleConfig = {
 
         // Bonus Display Configuration
         BONUS: {
-            font: '16px "Noto Sans KR", sans-serif',
-            color: '#FFD700', // Gold
-            startYOffset: 10, // Offset from last info line
-            lineHeight: 16,   // Spacing between bonus lines
-            prefix: '+ '      // Prefix for each bonus line
+            font: `bold 20px ${FONTS.bold}`,
+            color: 'white',
+            lineHeight: 32    // Match main list
         }
     },
 
@@ -319,7 +330,7 @@ const BattleConfig = {
 
     FALLBACK: {
         tileBg: '#EEE',
-        tileTextFont: '12px Arial',
+        tileTextFont: `bold 12px ${FONTS.bold}`,
         cardBackBg: '#B22222',
         cardBackStroke: '#FFFFFF',
         cardBackPattern: '#880000',
@@ -340,7 +351,7 @@ const BattleConfig = {
         w: 100,
         h: 40,
         text: "패 가져오기",
-        font: 'bold 16px "KoddiUDOnGothic-Bold"',
+        font: `bold 16px ${FONTS.bold}`,
         dimmer: 'rgba(0, 0, 0, 0.5)',
         cursor: 'rgba(255, 105, 180, 0.5)',
         textColor: 'white'
@@ -350,7 +361,7 @@ const BattleConfig = {
         h: 150,
         x: 500, // 640 - 140
         y: 330, // 480 - 150
-        font: 'bold 16px "KoddiUDOnGothic-Bold"',
+        font: `bold 16px ${FONTS.bold}`,
         textDefault: 'white',
         textSelected: '#FFFF00',
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5

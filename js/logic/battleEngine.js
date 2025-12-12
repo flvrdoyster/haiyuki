@@ -2,7 +2,6 @@
 
 const BattleEngine = {
     // States
-    // States - Reordered to Chronological Flow
     STATE_INIT: 0,
     STATE_DEALING: 1,      // Start of Round
     STATE_WAIT_FOR_DRAW: 2,
@@ -119,10 +118,14 @@ const BattleEngine = {
         const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
         console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
 
-        // Assign Character IDs for Logic (Yaku Names)
-        if (p1Data) this.p1.id = p1Data.id;
+        // Assign Character IDs and Names for Logic
+        if (p1Data) {
+            this.p1.id = p1Data.id;
+            this.p1.name = p1Data.name;
+        }
         if (cpuData) {
             this.cpu.id = cpuData.id;
+            this.cpu.name = cpuData.name;
             this.cpu.aiProfile = cpuData.aiProfile || null;
             if (this.cpu.aiProfile) console.log(`Loaded AI Profile for ${cpuData.name}:`, this.cpu.aiProfile.type);
         }
@@ -304,7 +307,8 @@ const BattleEngine = {
             type: winType,
             score: finalScore,
             yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
-            bonuses: bonusResult.names,
+            yakuScore: this.winningYaku ? this.winningYaku.score : 0, // Pass base score
+            bonuses: bonusResult.details, // Pass Details Array
             bonusScore: bonusResult.score
         };
 
@@ -343,7 +347,7 @@ const BattleEngine = {
             damageMsg = "무승부";
         }
 
-        return damageMsg;
+        return { msg: damageMsg, damage: damage };
     },
 
 
@@ -359,7 +363,10 @@ const BattleEngine = {
         console.log(`P1 Tenpai: ${p1Tenpai}, CPU Tenpai: ${cpuTenpai}`);
 
         // Determine Damage
-        const damageMsg = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
+        // Determine Damage
+        const damageResult = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
+        const damageMsg = damageResult.msg;
+        const damage = damageResult.damage;
         console.log(`Nagari! Damage Msg: ${damageMsg}`);
 
         const p1Tx = p1Tenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
@@ -402,31 +409,30 @@ const BattleEngine = {
         // Actually, let's just use the `damageMsg` in the Result window for now, 
         // as `STATE_NAGARI` transitions to `drawResult` which can show the message.
 
+        // Logic for Tenpai/Noten
+        const steps = [
+            {
+                type: 'CALLBACK', callback: () => {
+                    this.showPopup('NAGARI');
+                    const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
+                    if (sound) this.events.push({ type: 'SOUND', id: sound });
+                }
+            },
+            { type: 'WAIT', duration: 30 },
+            { type: 'REVEAL_HAND' },
+            { type: 'WAIT', duration: 30 },
+            {
+                type: 'STATE',
+                state: this.STATE_NAGARI,
+                score: damage
+            }
+        ];
+
         this.sequencing = {
             active: true,
-            currentStep: 0,
             timer: 0,
-            steps: [
-                {
-                    type: 'CALLBACK', callback: () => {
-                        this.showPopup('NAGARI');
-                        const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
-                        if (sound) this.events.push({ type: 'SOUND', id: sound });
-                    }
-                }, // Nagari Popup & Sound via Config
-                { type: 'WAIT', duration: 30 },
-                // Just using popups for Tenpai status if possible, or skip to result
-                // We'll rely on Result Window's text update logic (Refactoring `BattleRenderer` later?)
-                // Actually `BattleRenderer` logic for Nagari needs to show "Damage" text.
-
-                // Let's just do FX for standard reveal
-                { type: 'REVEAL_HAND' },
-                { type: 'WAIT', duration: 30 },
-
-                // We can spawn text particles?
-                // For now, simple wait and then show Result Overlay which has TEXT.
-                { type: 'STATE', state: this.STATE_NAGARI }
-            ]
+            currentStep: 0,
+            steps: steps
         };
 
         // Add Tenpai/Noten text to resultInfo for Renderer to optionally use?
@@ -434,6 +440,11 @@ const BattleEngine = {
         this.resultInfo = {
             type: 'NAGARI',
             damageMsg: damageMsg,
+            score: damage,
+            bonuses: [
+                { name: this.p1.name || '플레이어', score: p1Tx },
+                { name: this.cpu.name || '상대', score: cpuTx }
+            ],
             p1Status: p1Tx,
             cpuStatus: cpuTx
         };
@@ -1083,6 +1094,9 @@ const BattleEngine = {
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard as Riichi declaration
 
+                // Directly set BGM state to ensure overwrite logic works
+                this.currentBgm = 'audio/bgm_tension';
+
                 // Start Riichi Sequence (Delay Discard)
                 this.currentState = this.STATE_FX_PLAYING;
 
@@ -1569,11 +1583,15 @@ const BattleEngine = {
                 this.timer = 0;
                 this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
             }
-
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
             this.showPopup('RIICHI');
+
+            // Force BGM update immediately
+            this.currentBgm = 'audio/bgm_showdown';
+            this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
+            // this.updateBattleMusic(); // Redundant now as we forced it
 
             // Expression: Smile -> Idle
             this.p1Character.setState('smile');
@@ -1741,9 +1759,13 @@ const BattleEngine = {
         let targetBgm = 'audio/bgm_basic';
 
         if (this.p1.isRiichi && this.cpu.isRiichi) {
-            targetBgm = 'audio/bgm_showdown';
-        } else if (this.p1.isRiichi || this.cpu.isRiichi) {
+            // Keep existing Riichi music (Overwrite logic)
+            if (this.currentBgm === 'audio/bgm_tension') targetBgm = 'audio/bgm_tension';
+            else targetBgm = 'audio/bgm_showdown';
+        } else if (this.cpu.isRiichi) {
             targetBgm = 'audio/bgm_tension';
+        } else if (this.p1.isRiichi) {
+            targetBgm = 'audio/bgm_showdown';
         }
 
         // Only switch if different
@@ -1757,13 +1779,14 @@ const BattleEngine = {
     // --- Bonus Logic ---
     calculateBonuses: function (hand, winType) {
         let totalBonus = 0;
-        let bonusNames = [];
+        let details = []; // Array of { name, score }
 
         // 1. Tenho (Heavenly Hand)
         // 1st Turn & Tsumo
         if (this.turnCount <= 1 && winType === 'TSUMO') {
-            totalBonus += 800;
-            bonusNames.push('텐호 보너스');
+            const s = 800;
+            totalBonus += s;
+            details.push({ name: '텐호 보너스', score: s });
         }
 
         // 2 & 3. Haitei / Houtei (Last Turn)
@@ -1771,11 +1794,13 @@ const BattleEngine = {
         // Using strict 20 for now as requested. 
         if (this.turnCount >= 20) {
             if (winType === 'TSUMO') {
-                totalBonus += 800;
-                bonusNames.push('해저 보너스');
+                const s = 800;
+                totalBonus += s;
+                details.push({ name: '해저 보너스', score: s });
             } else if (winType === 'RON') {
-                totalBonus += 800;
-                bonusNames.push('하저 보너스');
+                const s = 800;
+                totalBonus += s;
+                details.push({ name: '하저 보너스', score: s });
             }
         }
 
@@ -1812,11 +1837,12 @@ const BattleEngine = {
         }
 
         if (doraCount > 0) {
-            totalBonus += (400 * doraCount);
-            bonusNames.push(`도라 보너스 x ${doraCount}개`);
+            const s = 400 * doraCount;
+            totalBonus += s;
+            details.push({ name: `도라 보너스 x${doraCount}`, score: s });
         }
 
-        return { score: totalBonus, names: bonusNames };
+        return { score: totalBonus, details: details, names: details.map(d => d.name) }; // Keep names key in case of legacy usage?
     },
 
     getRiichiScore: function (discardIdx) {

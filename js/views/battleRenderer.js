@@ -684,9 +684,9 @@ const BattleRenderer = {
     drawResult: function (ctx, state) {
         const conf = BattleConfig.RESULT;
 
-        // 1. Dimmer
-        ctx.fillStyle = conf.dimmerColor || 'rgba(0,0,0,0.5)';
-        ctx.fillRect(0, 0, 640, 480);
+        // 1. Dimmer (Removed per user request)
+        // ctx.fillStyle = conf.dimmerColor || 'rgba(0,0,0,0.5)';
+        // ctx.fillRect(0, 0, 640, 480);
 
         // 2. Window Body (Frame)
         // Use defaults if missing in config
@@ -707,106 +707,243 @@ const BattleRenderer = {
 
         const typeConf = conf.TYPES[info.type] || conf.TYPES.LOSE; // Fallback
 
-        ctx.textAlign = "center";
+        // Check if Standard WIN/LOSE/NAGARI for Split Layout
+        if (info.type === 'WIN' || info.type === 'LOSE' || info.type === 'NAGARI') {
+            // New Split Layout
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle'; // Align vertically center for list items
 
-        // 1. Title
-        ctx.fillStyle = typeConf.color;
-        ctx.font = conf.titleFont;
-        ctx.fillText(typeConf.title, conf.titleX, conf.titleY);
+            // Left Column: Yaku + Bonuses
+            ctx.font = conf.yakuFont;
+            ctx.fillStyle = conf.yakuColor;
 
-        // 2. Info Text (Score or Message)
-        ctx.fillStyle = conf.infoColor;
-        ctx.font = conf.infoFont;
+            let currentY = conf.yakuY;
 
-        // Template replacement
-        let text = typeConf.text || "";
-        if (info.score !== undefined) {
-            text = text.replace("{score}", info.score);
-        }
-        if (info.yakuName !== undefined) {
-            text = text.replace("{yaku}", info.yakuName);
+            // const lineHeight = 40; // Removed in favor of conf.lineHeight
+
+            // 1. Draw Main Yaku
+            if (info.yakuName) {
+                // Name (Left)
+                ctx.textAlign = 'left';
+                ctx.fillStyle = conf.yakuColor;
+                ctx.fillText(info.yakuName, conf.yakuListX, currentY);
+
+                // Score (Right)
+                // Use yakuScore if available, else calc base? 
+                const s = info.yakuScore || 0;
+                // Draw Number Image
+                // Scale based on font height (approx 20px)
+                // Number image usually has height ~32px? 
+                // Let's assume height 20px for target.
+                const targetH = 20;
+                // We need source dimensions. Assets.drawNumberBig calculates it.
+                // We can pass scale? or simply height.
+                // drawNumberBig uses scale.
+                // Let's guess scale = 1.0 if image is close. 
+                // Better: drawNumberBig supports scale.
+
+                // Align Right: We pass align:'right'.
+                // Center Vertically correction: drawNumberBig draws from Top Y.
+                // CurrentY is middle. Image H approx 35px at 1.0. At 0.6 scale ~21px.
+                // We should offset Y by -10px.
+                Assets.drawNumberBig(ctx, s, conf.scoreListX, currentY - 12, {
+                    align: 'right',
+                    scale: 0.6, // Adjust this visually. Original is likely bigger. 20px is small. 
+                    // image height usually ~40-64. 0.6 => ~24-38. 
+                    // Let's try 0.7 for now.
+                    spacing: 1,
+                    imgId: 'ui/number_yellow.png'
+                });
+
+                currentY += conf.lineHeight; // Use Config
+            }
+
+            // 2. Draw Bonuses
+            if (info.bonuses) {
+                // Prepare Bonus Config
+                const bonusConf = conf.BONUS || {};
+                const bonusFont = bonusConf.font || conf.yakuFont;
+                const bonusColor = bonusConf.color || conf.yakuColor;
+                const bonusPrefix = bonusConf.prefix || "";
+
+                info.bonuses.forEach(bonus => {
+                    // Name (Left)
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = bonusColor;
+                    ctx.font = bonusFont;
+                    ctx.fillText(bonusPrefix + bonus.name, conf.yakuListX, currentY);
+
+                    // Score (Right)
+                    // Check if score is number or string (for Nagari Tenpai/Noten status)
+                    if (typeof bonus.score === 'number') {
+                        Assets.drawNumberBig(ctx, bonus.score, conf.scoreListX, currentY - 12, {
+                            align: 'right',
+                            scale: 0.6,
+                            spacing: 1,
+                            imgId: 'ui/number_yellow.png'
+                        });
+                    } else {
+                        // String Score (Text Status)
+                        ctx.textAlign = 'right';
+                        ctx.fillStyle = conf.scoreColor; // Go back to Gold/White for text?
+                        ctx.font = conf.scoreFont; // Use Score Font (20px)
+                        ctx.fillText(bonus.score, conf.scoreListX, currentY);
+                    }
+
+                    currentY += conf.lineHeight; // Use Config
+                });
+            }
+
+            // 3. Draw Total Score Line?
+            // User requested separating them. The main score is sum.
+            // Maybe draw a line and then Total?
+            // "Result" header is displayed by logic? Origin game has simple list.
+            // Total is prominently displayed at top right usually, but here we list items.
+            // Let's draw TOTAL at bottom right for clarity.
+
+            // Separator Line
+            // Separator Line
+            const separatorY = currentY - (conf.lineHeight / 2) + (conf.separatorGap || 0);
+
+            ctx.beginPath();
+            ctx.moveTo(conf.yakuListX, separatorY);
+            ctx.lineTo(conf.scoreListX, separatorY);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Total Label
+            const damageY = separatorY + (conf.damageGap || 15) + (conf.lineHeight / 2);
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = conf.scoreColor;
+            ctx.fillText("데미지", conf.yakuListX, damageY);
+
+            // Total Score
+            Assets.drawNumberBig(ctx, info.score, conf.scoreListX, damageY - 12, {
+                align: 'right',
+                scale: 0.6, // Matched with others (0.6)
+                spacing: 1,
+                imgId: 'ui/number_yellow.png'
+            });
+
+            // Restore Title (WIN / LOSE)
+            // Draw relative to Window Top or Conf Title Pos?
+            // Conf Title Pos: titleX: 320, titleY: 150.
+            // But window might be moved. Config has static titleX/Y.
+            // Let's use config titleX/Y but adjust drawing properties.
+            ctx.textAlign = "center";
+            ctx.fillStyle = typeConf.color;
+            ctx.font = conf.titleFont;
+            // Draw slightly above the list? Yaku list starts at yakuY (140).
+            // TitleY (150) overlaps list. We need to check config.
+            // Original config had titleY: 150, but yakuY is 140.
+            // We should arguably draw title ABOVE window or at top of window.
+            // Let's just use configured titleX/Y and user can tune config if needed.
+            // Wait, previous code had `ctx.fillText(typeConf.title, conf.titleX, conf.titleY);` in legacy block.
+
+            // Override Config for now to ensure it's above.
+            const safeTitleY = (conf.y !== undefined ? conf.y : 80) + 40;
+            // Or just use conf.titleY if conf says so?
+            // Let's rely on conf.titleY assuming user tunes it, OR hardcode reasonable position.
+            // User asked to "Render Title".
+            // Title Position
+            // Use conf.titleY if set, otherwise default to slightly above yaku list
+            const titleY = conf.titleY !== undefined ? conf.titleY : 120;
+            ctx.fillText(typeConf.title, conf.titleX, titleY);
+
         } else {
-            text = text.replace("{yaku}", "");
-        }
+            // LEGACY / MATCH RESULT LAYOUT (Centered)
+            ctx.textAlign = "center";
+            ctx.textBaseline = 'middle'; // Unified baseline with main layout
 
-        if (info.p1Status !== undefined) text = text.replace("{p1Status}", info.p1Status);
-        if (info.cpuStatus !== undefined) text = text.replace("{cpuStatus}", info.cpuStatus);
-        if (info.damageMsg !== undefined) text = text.replace("{damageMsg}", info.damageMsg);
+            // 1. Title
+            ctx.fillStyle = typeConf.color;
+            ctx.font = conf.titleFont;
+            ctx.fillText(typeConf.title, conf.titleX, conf.titleY);
 
-        // Append Round History (MATCH_WIN / MATCH_LOSE)
-        // We will render this separately after the main text to use different font
-        let historyText = "";
-        if (info.history && info.history.length > 0) {
-            info.history.forEach(h => {
-                if (h.result === '무승부') {
-                    historyText += `ROUND ${h.round}: 무승부\n`;
-                } else {
-                    historyText += `ROUND ${h.round}: ${h.result} - ${h.yaku}\n`;
-                }
+            // 2. Info Text (Score or Message)
+            ctx.fillStyle = conf.infoColor;
+            ctx.font = conf.infoFont;
+
+            // Template replacement
+            let text = typeConf.text || "";
+            if (info.score !== undefined) {
+                text = text.replace("{score}", info.score);
+            }
+            if (info.yakuName !== undefined) {
+                text = text.replace("{yaku}", info.yakuName);
+            } else {
+                text = text.replace("{yaku}", "");
+            }
+
+            if (info.p1Status !== undefined) text = text.replace("{p1Status}", info.p1Status);
+            if (info.cpuStatus !== undefined) text = text.replace("{cpuStatus}", info.cpuStatus);
+            if (info.damageMsg !== undefined) text = text.replace("{damageMsg}", info.damageMsg);
+
+            // Append Round History (MATCH_WIN / MATCH_LOSE)
+            // We will render this separately after the main text to use different font
+            let historyText = "";
+            if (info.history && info.history.length > 0) {
+                info.history.forEach(h => {
+                    if (h.result === '무승부') {
+                        historyText += `ROUND ${h.round}: 무승부\n`;
+                    } else {
+                        historyText += `ROUND ${h.round}: ${h.result} - ${h.yaku}\n`;
+                    }
+                });
+            }
+
+            text = text.trim();
+
+            const lines = text.split('\n');
+
+            lines.forEach((line, i) => {
+                ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
             });
+
+            // Render History with Custom Font & Limits (Only for Match Results usually)
+            if (historyText.length > 0) {
+                // ... (History code is fine to leave here if it relies else block)
+                // We need to move history logic inside here or duplicate?
+                // History logic follows below, but uses logic that depends on `lines`.
+                // Let's copy/keep history logic inside valid scope.
+
+                const hFont = typeConf.historyFont || `16px ${FONTS.regular}`;
+                const hLineHeight = typeConf.historyLineHeight || 25;
+                const hMax = typeConf.historyMaxVisible || 5;
+
+                ctx.font = hFont;
+                const historyLines = historyText.split('\n').filter(l => l.trim().length > 0);
+                const visibleLines = (historyLines.length > hMax) ? historyLines.slice(-hMax) : historyLines;
+                const startY = (typeConf.historyY !== undefined) ? typeConf.historyY : (conf.scoreY + (lines.length * conf.infoLineHeight) + 10);
+
+                visibleLines.forEach((line, i) => {
+                    const y = startY + (i * hLineHeight);
+                    ctx.fillText(line, conf.scoreX, y);
+                });
+            }
         }
 
-        text = text.trim();
+        // History logic moved into else block
 
-        const lines = text.split('\n');
 
-        lines.forEach((line, i) => {
-            ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
-        });
-
-        // Render History with Custom Font & Limits
-        if (historyText.length > 0) {
-            // Use config from specific type (MATCH_WIN/LOSE) or fallback
-            const hFont = typeConf.historyFont || '16px "KoddiUDOnGothic-Regular"';
-            const hLineHeight = typeConf.historyLineHeight || 25;
-            const hMax = typeConf.historyMaxVisible || 5;
-
-            ctx.font = hFont;
-
-            const historyLines = historyText.split('\n').filter(l => l.trim().length > 0);
-
-            // Slice to Max Visible (Keep N most recent)
-            const visibleLines = (historyLines.length > hMax) ? historyLines.slice(-hMax) : historyLines;
-
-            // Positioning
-            // Let's use logic: If historyY is defined, use it. But maybe set a safer default if 130 is weird.
-            // Let's assume user wants to control it manually via Config. I will use `conf.historyY` relative to Window Y or absolute?
-            // Renderer DrawResult uses absolute coords (conf.scoreX).
-            // Let's assume conf.historyY is absolute Y.
-
-            // Let's use a safe default if not provided, or fallback to flow.
-            const startY = (typeConf.historyY !== undefined) ? typeConf.historyY : (conf.scoreY + (lines.length * conf.infoLineHeight) + 10);
-
-            visibleLines.forEach((line, i) => {
-                const y = startY + (i * (typeConf.historyLineHeight || 25));
-                // console.log(`Drawing history line at ${conf.scoreX}, ${y}: ${line}`); // DEBUG REMOVED
-                ctx.fillText(line, conf.scoreX, y);
-            });
-        }
-
-        // Display Bonuses (Config-based)
-        if (info.bonuses && info.bonuses.length > 0) {
-            const bonusConf = conf.BONUS;
-            ctx.fillStyle = bonusConf.color;
-            ctx.font = bonusConf.font;
-            const bonusStartY = conf.scoreY + (lines.length * conf.infoLineHeight) + bonusConf.startYOffset;
-
-            info.bonuses.forEach((bonus, i) => {
-                ctx.fillText(bonusConf.prefix + bonus, conf.scoreX, bonusStartY + (i * bonusConf.lineHeight));
-            });
-        }
-
-        // 3. Footer "Press Space"
-        // 3. Footer "Press Space"
-        // Show only after delay allowed input
+        // 3. Footer "Press Space" (Global for all result types)
         if (state.stateTimer > 120) {
             if (state.stateTimer % 60 < 30) {
-                ctx.fillStyle = '#FFFFFF'; // or conf.infoColor
-                ctx.font = "16px monospace";
-                // Position relative to frame bottom
+                ctx.fillStyle = '#FFFFFF';
+                // ctx.font = "16px monospace";
+                ctx.font = `bold 16px ${FONTS.bold}`;
                 const offset = (conf.pressSpaceOffset !== undefined) ? conf.pressSpaceOffset : 20;
+                // Frame Bottom Y = ry + rh
+                // Ensure ry/rh are defined. Logic at top set them.
+                // We need to access them here or recap.
+                const ry = conf.y !== undefined ? conf.y : 80;
+                const rh = conf.h || 320;
                 const pressY = ry + rh + offset;
-                ctx.fillText(conf.TEXTS.pressSpace, conf.infoX, pressY);
+
+                ctx.textAlign = 'center';
+                ctx.fillText(conf.TEXTS.pressSpace, 320, pressY);
             }
         }
     },

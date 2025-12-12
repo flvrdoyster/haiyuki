@@ -25,7 +25,7 @@ const ContinueConfig = {
     INFO: {
         text: "진 엔딩 조건을 달성할 수 없습니다.",
         x: 320, y: 440,
-        font: '16px "KoddiUDOnGothic-Regular"',
+        font: `16px ${FONTS.regular}`,
         color: '#555'
     },
     COUNTDOWN: {

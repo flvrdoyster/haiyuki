@@ -132,6 +132,7 @@ const Assets = {
 
         // UI
         'ui/number.png',
+        'ui/number_yellow.png', // New yellow number font
         'ui/turn.png',
         'ui/round.png',
         'ui/dora.png',
@@ -223,15 +224,41 @@ const Assets = {
         return this.audio[id];
     },
 
+    pools: {}, // Audio object pools
+
     playSound: function (id) {
         if (this.muted) return; // Mute Check
 
-        const audio = this.getAudio(id);
-        if (audio) {
-            // Clone node to allow overlapping playback of same sound
-            const sound = audio.cloneNode();
-            sound.volume = 0.5; // Default volume?
-            sound.play().catch(e => console.warn("Audio play blocked", e));
+        const template = this.getAudio(id);
+        if (template) {
+            // Initialize pool if needed
+            if (!this.pools[id]) {
+                this.pools[id] = [];
+            }
+
+            const pool = this.pools[id];
+
+            // 1. Try to find a free player (ended or paused)
+            let player = pool.find(p => p.paused || p.ended);
+
+            // 2. If no free player, create new one if below limit
+            if (!player && pool.length < 5) {
+                player = template.cloneNode();
+                player.volume = 0.5;
+                pool.push(player);
+            }
+
+            // 3. Play if valid player found
+            if (player) {
+                player.currentTime = 0; // Reset
+                player.volume = 0.5; // Ensure volume reset
+                player.play().catch(e => {
+                    // console.warn("Audio play blocked (pool)", e)
+                });
+            } else {
+                // Pool exhausted, skip sound for performance
+                // console.log(`Audio pool exhausted for ${id}`);
+            }
         } else {
             console.warn(`Audio not found: ${id}`);
         }
@@ -281,6 +308,14 @@ const Assets = {
 
     toggleMute: function () {
         this.muted = !this.muted;
+        if (this.currentMusic) {
+            this.currentMusic.muted = this.muted;
+        }
+        return this.muted;
+    },
+
+    setMute: function (muted) {
+        this.muted = muted;
         if (this.currentMusic) {
             this.currentMusic.muted = this.muted;
         }
@@ -446,7 +481,8 @@ const Assets = {
      * @param {object} options { align: 'center'|'left', spacing: 0 }
      */
     drawNumberBig: function (ctx, number, x, y, options = {}) {
-        const img = this.get('ui/number_big.png');
+        const imgId = options.imgId || 'ui/number_big.png';
+        const img = this.get(imgId);
         if (!img) return;
 
         // Determine frame width. 
@@ -457,6 +493,7 @@ const Assets = {
         const align = options.align || 'center';
         const scale = options.scale || 1.0;
 
+        if (number === undefined || number === null) number = 0;
         const str = number.toString();
 
         const dw = frameWidth * scale;

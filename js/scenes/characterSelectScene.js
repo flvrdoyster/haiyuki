@@ -11,7 +11,7 @@ const SelectConfig = {
     },
     NAME: {
         yOffset: 280, // from portrait Y top
-        font: 'bold 32px "KoddiUDOnGothic-Bold", sans-serif',
+        font: `bold 32px ${FONTS.bold}, sans-serif`,
         strokeWidth: 4,
         xPadding: 20
     },

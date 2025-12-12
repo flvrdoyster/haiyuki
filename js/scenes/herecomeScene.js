@@ -15,7 +15,7 @@ const HerecomeConfig = {
             TEXT: "???",
             x: 620, // Right aligned padding
             y: 345,  // 65 (Portrait Y) + 280 (Offset from SelectConfig)
-            font: 'bold 32px "KoddiUDOnGothic-Bold", sans-serif',
+            font: `bold 32px ${FONTS.bold}, sans-serif`,
             strokeWidth: 4
         },
         headerText1: "HERE COMES",

@@ -37,7 +37,7 @@ const UI = {
         // 3. Text
         ctx.fillStyle = isSelected ? '#FFFF00' : 'white';
         // Font size 16px bold is standard for these buttons
-        ctx.font = options.font || 'bold 16px "KoddiUDOnGothic-Bold"';
+        ctx.font = options.font || `bold 16px ${FONTS.bold}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x + w / 2, y + h / 2);
@@ -184,7 +184,7 @@ const UI = {
 
             // 3. Message Text
             ctx.fillStyle = 'white';
-            ctx.font = '20px "KoddiUDOnGothic-Regular"';
+            ctx.font = `20px ${FONTS.regular}`;
             ctx.textAlign = 'center';
 
             const lines = this.message.split('\\n');
