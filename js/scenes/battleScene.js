@@ -158,22 +158,80 @@ const BattleScene = {
                 fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                 fx.y = fx.startY + (fx.endY - fx.startY) * ease;
             } else if (fx.anim === 'ZOOM_IN') {
-                // Zoom In Pulse: 0 -> 1.2 -> 1.0
-                const pulseDur = BattleConfig.FX.zoomPulseDuration;
-                const settleDur = BattleConfig.FX.zoomSettleDuration;
-                const peakScale = BattleConfig.FX.zoomPeakScale;
-
+                // Natural Pop (BackOut Easing)
+                // 0 -> 1.0 with Overshoot
+                const popDur = 16;
                 const age = fx.maxLife - fx.life;
-                if (age < pulseDur) {
-                    // 0 -> 1.2
-                    const p = age / pulseDur;
-                    fx.scale = fx.baseScale * (p * peakScale);
-                } else if (age < pulseDur + settleDur) {
-                    // 1.2 -> 1.0
-                    const p = (age - pulseDur) / settleDur;
-                    fx.scale = fx.baseScale * (peakScale - (p * (peakScale - 1.0)));
+                const overshoot = 2.0; // Higher = More dramatic pop
+
+                if (age < popDur) {
+                    let p = age / popDur;
+                    p = p - 1;
+                    // Cubic Back Out: (p^2 * ((s+1)*p + s) + 1)
+                    const scaleP = p * p * ((overshoot + 1) * p + overshoot) + 1;
+                    fx.scale = fx.baseScale * scaleP;
                 } else {
                     fx.scale = fx.baseScale;
+                }
+            } else if (fx.anim === 'BOUNCE_UP') {
+                const age = fx.maxLife - fx.life;
+                // Params
+                const dropDur = 10;
+                const bounceDur = 8; // Faster bounce
+                const totalDur = dropDur + bounceDur;
+
+                // Trajectory: Asymmetric Bounce
+                // Start: Top-Left (-200, -200)
+                // Impact: Floor, Slightly Left (-30, +80)
+                // End: Center (0, 0)
+
+                const startOffX = -200;
+                const startOffY = -200;
+                const impactOffX = -30;
+                const floorOffY = 80;
+
+                if (age === 0) {
+                    fx.x = fx.endX + startOffX;
+                    fx.y = fx.endY + startOffY;
+                }
+
+                if (age < dropDur) {
+                    // Phase 1: Drop (Ease In Quad) -> To Impact Point
+                    const p = age / dropDur;
+                    const easeIn = p * p;
+                    const linear = p;
+
+                    fx.x = (fx.endX + startOffX) + (impactOffX - startOffX) * linear;
+                    fx.y = (fx.endY + startOffY) + (floorOffY - startOffY) * easeIn;
+
+                    fx.alpha = Math.min(1, age / 4);
+                } else if (age < totalDur) {
+                    // Phase 2: Bounce Up (Ease Out Quad) -> To Target
+                    const p = (age - dropDur) / bounceDur;
+                    const easeOut = p * (2 - p);
+
+                    fx.x = (fx.endX + impactOffX) + (impactOffX * -1) * easeOut;
+                    fx.y = (fx.endY + floorOffY) + (floorOffY * -1) * easeOut;
+
+                } else {
+                    fx.x = fx.endX;
+                    fx.y = fx.endY;
+                }
+            } else if (fx.anim === 'SLIDE' || fx.slideFrom) {
+                // Handle Explicit SLIDE or Legacy slideFrom
+                const slideDur = BattleConfig.FX.slideDuration + 4; // Slightly slower for weight
+                const age = fx.maxLife - fx.life;
+
+                if (age <= slideDur) {
+                    const p = age / slideDur;
+                    // EaseOutCubic (1 - (1-p)^3) for natural friction stop
+                    const ease = 1 - Math.pow(1 - p, 3);
+
+                    fx.x = fx.startX + (fx.endX - fx.startX) * ease;
+                    fx.y = fx.startY + (fx.endY - fx.startY) * ease;
+                } else {
+                    fx.x = fx.endX;
+                    fx.y = fx.endY;
                 }
             }
 

@@ -1104,7 +1104,7 @@ const BattleEngine = {
                     timer: 0,
                     currentStep: 0,
                     steps: [
-                        { type: 'FX', asset: 'fx/riichi', x: BattleConfig.POPUP.x, y: BattleConfig.POPUP.y, slideFrom: 'RIGHT', scale: 1.0 },
+                        { type: 'FX', asset: 'fx/riichi', x: BattleConfig.POPUP.x, y: BattleConfig.POPUP.y, anim: 'SLIDE', slideFrom: 'RIGHT', scale: 1.0 },
                         { type: 'MUSIC', id: 'audio/bgm_tension', loop: true }, // Music update handled here
                         { type: 'WAIT', duration: 60 },
                         {
@@ -1380,8 +1380,12 @@ const BattleEngine = {
         const fullHand = this.getFullHand(this.p1);
 
         // 1. Tsumo
-        if (YakuLogic.checkYaku(fullHand, this.p1.id)) {
+        const yakuResult = YakuLogic.checkYaku(fullHand, this.p1.id);
+        console.log(`[Turn ${this.turnCount}] checkSelfActions: HandSize=${fullHand.length}, Yaku=`, yakuResult);
+
+        if (yakuResult) {
             this.possibleActions.push({ type: 'TSUMO', label: '쯔모' });
+            console.log("-> Tsumo Action Added");
         }
 
         // 2. Riichi
@@ -1436,17 +1440,16 @@ const BattleEngine = {
                 this.debugTenpaiStrings = debugInfo;
                 this.recommendedDiscards = validDiscards;
             } else {
-                this.debugTenpaiStrings = [];
                 this.recommendedDiscards = [];
             }
+        }
 
-            if (this.possibleActions.length > 0) {
-                this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
-                // Allow actions to be cached
-                this._cachedSelfActionsKey = currentHandKey;
-                this._cachedSelfActions = [...this.possibleActions];
-                return true;
-            }
+        if (this.possibleActions.length > 0) {
+            this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
+            // Allow actions to be cached
+            this._cachedSelfActionsKey = currentHandKey;
+            this._cachedSelfActions = [...this.possibleActions];
+            return true;
         }
 
         // Cache empty result
@@ -1486,7 +1489,7 @@ const BattleEngine = {
             if (canRiichi) {
                 this.p1.isRiichi = true;
                 this.p1.declaringRiichi = true;
-                this.showPopup('RIICHI', { blocking: true });
+                this.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
                 this.events.push({ type: 'SOUND', id: 'audio/riichi' });
                 this.updateBattleMusic();
                 this.discardTile(riichiDiscardIndex);
@@ -1568,6 +1571,9 @@ const BattleEngine = {
                     // Remove from discards (physically taken)
                     this.discards.pop();
 
+                    // Update Menzen Status
+                    this.p1.isMenzen = false;
+
                     // Expressions
                     this.p1Character.setState('smile');
                     this.cpuCharacter.setState('shocked');
@@ -1584,7 +1590,7 @@ const BattleEngine = {
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
-            this.showPopup('RIICHI');
+            this.showPopup('RIICHI', { slideFrom: 'LEFT' });
             // this.triggerDialogue('P1', 'SELF_RIICHI');
             // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
             // BUT Riichi is special. Let's rely on generic reply? 

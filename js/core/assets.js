@@ -43,13 +43,13 @@ const Assets = {
         'bg/GAMEBG.png',
 
         // FX
-        { id: 'fx/pon', src: 'assets/fx/pon.png' },
-        { id: 'fx/ron', src: 'assets/fx/ron.png' },
-        { id: 'fx/riichi', src: 'assets/fx/riichi.png' },
-        { id: 'fx/tsumo', src: 'assets/fx/tumo.png' },
-        { id: 'fx/nagari', src: 'assets/fx/nagari.png' },
-        { id: 'fx/tenpai', src: 'assets/fx/tenpai.png' },
-        { id: 'fx/noten', src: 'assets/fx/noten.png' },
+        { id: 'fx/pon', src: 'assets/fx/pon.png', type: 'image' },
+        { id: 'fx/ron', src: 'assets/fx/ron.png', type: 'image' },
+        { id: 'fx/riichi', src: 'assets/fx/riichi.png', type: 'image' },
+        { id: 'fx/tsumo', src: 'assets/fx/tsumo.png', type: 'image' },
+        { id: 'fx/nagari', src: 'assets/fx/nagari.png', type: 'image' },
+        { id: 'fx/tenpai', src: 'assets/fx/tenpai.png', type: 'image' },
+        { id: 'fx/noten', src: 'assets/fx/noten.png', type: 'image' },
 
         // Random Backgrounds
         'bg/00.png', 'bg/01.png', 'bg/02.png', 'bg/03.png',
