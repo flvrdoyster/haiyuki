@@ -54,9 +54,27 @@ const Input = {
             this.resize = updateRect; // Expose for manual triggering (e.g. layout changes)
 
             // Update initially and on resize/scroll/fullscreen change
+            // Helper to debounce events
+            const debounce = (func, wait) => {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            };
+
+            const debouncedUpdate = debounce(updateRect, 200);
+
+            // Update initially
             updateRect();
-            window.addEventListener('resize', updateRect);
-            window.addEventListener('scroll', updateRect);
+
+            // Debounced listeners
+            window.addEventListener('resize', debouncedUpdate);
+            window.addEventListener('scroll', debouncedUpdate);
             document.addEventListener('fullscreenchange', () => {
                 setTimeout(updateRect, 100);
             });

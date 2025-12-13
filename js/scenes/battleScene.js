@@ -1,6 +1,7 @@
 const BattleScene = {
     init: function (data) {
         BattleEngine.init(data);
+        BattleRenderer.reset(); // Crucial for Layering Optimization
         this.activeFX = [];
     },
 

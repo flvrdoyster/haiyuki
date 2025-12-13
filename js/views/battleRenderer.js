@@ -1,39 +1,84 @@
 const BattleRenderer = {
-    draw: function (ctx, state, activeFX) {
-        // Disable interpolation for pixel art / precise layering
-        ctx.imageSmoothingEnabled = false;
+    // Offscreen Buffers
+    bgCanvas: null,
+    fgCanvas: null,
+    _dirtyStatic: true,
 
-        // 1. Random Background (Bottom Layer)
-        // Fill with black first
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, 640, 480);
+    reset: function () {
+        this._dirtyStatic = true;
+    },
 
-        // Draw centered background image
+    initBuffers: function () {
+        if (!this.bgCanvas) {
+            this.bgCanvas = document.createElement('canvas');
+            this.bgCanvas.width = 640;
+            this.bgCanvas.height = 480;
+        }
+        if (!this.fgCanvas) {
+            this.fgCanvas = document.createElement('canvas');
+            this.fgCanvas.width = 640;
+            this.fgCanvas.height = 480;
+        }
+    },
+
+    updateStaticLayers: function (state) {
+        this.initBuffers();
+
+        // 1. Update BG Canvas
+        const bgCtx = this.bgCanvas.getContext('2d');
+        bgCtx.imageSmoothingEnabled = false;
+
+        // Fill Black
+        bgCtx.fillStyle = 'black';
+        bgCtx.fillRect(0, 0, 640, 480);
+
+        // Random BG
         const randomBg = Assets.get(state.bgPath);
         if (randomBg) {
             const bgConf = BattleConfig.BG;
             let x = bgConf.x || 320;
             let y = bgConf.y || 240;
 
-            // Apply alignment
             if (bgConf.align === 'center') {
                 x -= randomBg.width / 2;
                 y -= randomBg.height / 2;
             }
-
-            ctx.drawImage(randomBg, x, y);
+            bgCtx.drawImage(randomBg, x, y);
         }
 
-        // 2. Portraits
+        // 2. Update FG Canvas (UI BG + Names)
+        const fgCtx = this.fgCanvas.getContext('2d');
+        fgCtx.imageSmoothingEnabled = false;
+        fgCtx.clearRect(0, 0, 640, 480); // Clear previous
+
+        // UI Background
+        const uiBg = Assets.get(BattleConfig.UI_BG.path);
+        if (uiBg) fgCtx.drawImage(uiBg, 0, 0);
+
+        // Character Names
+        this.drawCharacterNames(fgCtx, state);
+
+        this._dirtyStatic = false;
+    },
+
+    draw: function (ctx, state, activeFX) {
+        // Disable interpolation for pixel art / precise layering
+        ctx.imageSmoothingEnabled = false;
+
+        // 0. Check Static Layers
+        if (this._dirtyStatic || !this.bgCanvas) {
+            this.updateStaticLayers(state);
+        }
+
+        // 1. Draw Static BG
+        ctx.drawImage(this.bgCanvas, 0, 0);
+
+        // 2. Portraits (Dynamic - animate)
         if (state.p1Character) state.p1Character.draw(ctx);
         if (state.cpuCharacter) state.cpuCharacter.draw(ctx);
 
-        // 3. UI Background (Over Characters)
-        const uiBg = Assets.get(BattleConfig.UI_BG.path);
-        if (uiBg) ctx.drawImage(uiBg, 0, 0);
-
-        // 3.1 Character Names
-        this.drawCharacterNames(ctx, state);
+        // 3. Draw Static FG (UI BG + Names)
+        ctx.drawImage(this.fgCanvas, 0, 0);
 
         // 4.5 Discards
         this.drawDiscards(ctx, state);
@@ -82,9 +127,13 @@ const BattleRenderer = {
                 y += BattleConfig.HAND.hoverYOffset;
             }
 
-            const sideImg = Assets.get('tiles/side-bottom.png');
+            const sideImg = Assets.get('tiles/side-top.png');
             if (sideImg) {
-                ctx.drawImage(sideImg, pos.x, y + tileH, tileW, sideImg.height);
+                // Draw at Top (y - height)
+                // Canvas Scale(1, -1) could verify "flip" but `side-top` is likely pre-flipped.
+                // User asked to "flip the side image".
+                // If I use side-top, I assume it's the correct asset.
+                ctx.drawImage(sideImg, pos.x, y - sideImg.height, tileW, sideImg.height);
             }
 
             if (state.p1.isRiichi && i === state.riichiTargetIndex) {
@@ -106,9 +155,16 @@ const BattleRenderer = {
             let y = pos.y + BattleConfig.HAND.hoverYOffset;
 
             // Programmatic Cursor (2px Box)
-            const sideImg = Assets.get('tiles/side-bottom.png');
+            const sideImg = Assets.get('tiles/side-top.png');
             const sideH = sideImg ? sideImg.height : 14;
             const totalH = tileH + sideH;
+
+            // Adjust rect to include top side
+            // Original: y, totalH. (Downwards)
+            // New: y - sideH, totalH.
+            const cursorY = y - sideH;
+
+            // ... (Color Logic) ...
 
             // Multi-Color Blink Logic
             const hConf = BattleConfig.HAND;
@@ -123,7 +179,8 @@ const BattleRenderer = {
             ctx.lineWidth = BattleConfig.HAND.hoverWidth;
 
             // Draw Rectangle over Tile Face + Side
-            ctx.strokeRect(pos.x, y, tileW, totalH);
+            // ctx.strokeRect(pos.x, y, tileW, totalH); // Old
+            ctx.strokeRect(pos.x, cursorY, tileW, totalH);
         }
 
         // Player Open Sets
@@ -227,10 +284,37 @@ const BattleRenderer = {
     },
 
     // Cached Metrics Object to reduce GC
+    // Cached metric results
     _cpuMetrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
     _p1Metrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
 
+    // Cache Keys
+    _cpuCacheKey: '',
+    _p1CacheKey: '',
+
     getVisualMetrics: function (character, groupSize, target) {
+        // Generate Cache Key
+        // Key: HandLength + OpenSetsLength + GroupSize
+        // We could go deeper (specific tile types) but layout only depends on COUNT and GROUP.
+        // Wait, OpenSets vary in size (Pon vs Chi vs Kan). Kan is 4 tiles. 
+        // So we need sum of open tiles.
+        let openTileCount = 0;
+        if (character.openSets) {
+            character.openSets.forEach(s => openTileCount += s.tiles.length);
+        }
+
+        const key = `${character.hand.length}_${openTileCount}_${groupSize}`;
+        const lastKey = (target === 'cpu') ? this._cpuCacheKey : this._p1CacheKey;
+        const m = (target === 'cpu') ? this._cpuMetrics : this._p1Metrics;
+
+        if (key === lastKey) {
+            return m; // Return Cached
+        }
+
+        // Update Key
+        if (target === 'cpu') this._cpuCacheKey = key;
+        else this._p1CacheKey = key;
+
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.gap;
         const setGap = 15;
@@ -257,10 +341,11 @@ const BattleRenderer = {
         if (openW > 0) totalW += sectionGap + openW;
 
         // 4. Start X (Centered)
+        // Note: For CPU, we might calculate differently if we want top centered.
+        // Current logic centers it the same way.
         const startX = (640 - totalW) / 2;
 
         // Update Cached Object
-        const m = (target === 'cpu') ? this._cpuMetrics : this._p1Metrics;
         m.totalW = totalW;
         m.startX = startX;
         m.handStartX = startX;
@@ -439,7 +524,7 @@ const BattleRenderer = {
         // CPU: params passed `cpuStartX + width`.
 
         // Draw Side Asset if Player (isCpu false)
-        const sideImg = !isCpu ? Assets.get('tiles/side-bottom.png') : null;
+        const sideImg = !isCpu ? Assets.get('tiles/side-top.png') : null;
 
         if (isCpu) {
             let currentX = startX;
@@ -458,7 +543,7 @@ const BattleRenderer = {
             openSets.forEach(set => {
                 set.tiles.forEach(tile => {
                     if (sideImg) {
-                        ctx.drawImage(sideImg, currentX, y + tileH, tileW, sideImg.height);
+                        ctx.drawImage(sideImg, currentX, y - sideImg.height, tileW, sideImg.height);
                     }
                     this.drawTile(ctx, tile, currentX, y, tileW, tileH);
                     currentX += tileW + gap;

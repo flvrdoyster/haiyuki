@@ -25,6 +25,7 @@ class PortraitCharacter {
         // Cache
         this.renderRect = { x: 0, y: 0, w: 0, h: 0 };
         this._sheetCache = new Map(); // Cache sheet status by Image object
+        this._dirty = true; // Dirty flag for recalculating rects
     }
 
     // Optimization: Reuse instance to reduce GC
@@ -43,6 +44,7 @@ class PortraitCharacter {
 
         // Note: animConfig must be updated separately via setAnimationConfig
         this.animConfig = null;
+        this._dirty = true; // Mark dirty on data change
     }
 
     setAnimationConfig(config) {
@@ -103,6 +105,7 @@ class PortraitCharacter {
         }
 
         this.blinkTimer = Math.floor(Math.random() * this.animConfig.interval);
+        this._dirty = true; // Mark dirty on config change
     }
 
     setState(newState) {
@@ -185,6 +188,8 @@ class PortraitCharacter {
 
         if (isDouble) {
             // Re-use array if possible or just create new one. Spreading is okay here.
+            // OPTIMIZATION: Recycle array if needed, but for now simple spread is OK.
+            // Better: modify in place if this.blinkSequence is reused?
             this.blinkSequence = [...BLINK_BASE_SEQ, -1, -1, ...BLINK_BASE_SEQ];
         } else {
             this.blinkSequence = BLINK_BASE_SEQ;
@@ -267,6 +272,8 @@ class PortraitCharacter {
         this.renderRect.w = destW;
         this.renderRect.h = destH;
         this.renderRect.isSheet = isSheet; // Store sheet status for overlay use
+
+        this._dirty = false; // Clear dirty flag
     }
 
     draw(ctx) {
@@ -279,7 +286,9 @@ class PortraitCharacter {
                 const baseImg = Assets.get(baseKey);
 
                 if (baseImg) {
-                    this._updateRenderRect(baseImg);
+                    if (this._dirty || !this.renderRect.w) {
+                        this._updateRenderRect(baseImg);
+                    }
                     // Draw Base
                     this._drawImageAutoSlice(ctx, baseImg, this.renderRect);
                 }
@@ -343,7 +352,9 @@ class PortraitCharacter {
             return;
         }
 
-        this._updateRenderRect(img);
+        if (this._dirty || !this.renderRect.w) {
+            this._updateRenderRect(img);
+        }
         this._drawImageAutoSlice(ctx, img, this.renderRect);
     }
 

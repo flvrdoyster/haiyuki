@@ -373,7 +373,7 @@ const CharacterSelectScene = {
         // 1. Background
         const bg = Assets.get(SelectConfig.BACKGROUND.path);
         if (bg) {
-            const pattern = ctx.createPattern(bg, 'repeat');
+            const pattern = Assets.getPattern(ctx, bg, 'repeat');
             ctx.fillStyle = pattern;
             ctx.fillRect(0, 0, 640, 480);
         }

@@ -35,6 +35,7 @@ const BattleEngine = {
     clearTimeouts: function () {
         this.timeouts.forEach(id => clearTimeout(id));
         this.timeouts = [];
+        console.log("All BattleEngine timers cleared.");
     },
 
     // Constants

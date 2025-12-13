@@ -180,6 +180,19 @@ const Assets = {
                         this.audio[id] = audio;
                         this.loadedCount++;
                         console.log(`Loaded Audio: ${id}`);
+
+                        // OPTIMIZATION: Pre-Warm Pools for Sound Effects
+                        // Avoid cloning on first play
+                        if (!id.includes('bgm')) {
+                            const poolSize = 2; // Pre-create 2 instances
+                            this.pools[id] = [];
+                            for (let i = 0; i < poolSize; i++) {
+                                const clone = audio.cloneNode();
+                                clone.volume = 0.5;
+                                this.pools[id].push(clone);
+                            }
+                        }
+
                         if (this.loadedCount === this.toLoad.length) onComplete();
                     }
                 }, { once: true });
@@ -578,14 +591,31 @@ const Assets = {
     },
 
     /**
+     * Get or create a cached pattern for an image.
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {HTMLImageElement} img 
+     * @param {string} repetition 
+     */
+    getPattern: function (ctx, img, repetition = 'repeat') {
+        if (!img._patterns) img._patterns = {};
+        if (!img._patterns[repetition]) {
+            img._patterns[repetition] = ctx.createPattern(img, repetition);
+        }
+        return img._patterns[repetition];
+    },
+
+    /**
      * Helper to draw a tiled image efficiently.
      */
     drawTiled: function (ctx, img, x, y, fillW, fillH, direction) {
-        // Option 1: Using pattern (More efficient for large areas)
-        // However, pattern origin is global. We need to translate.
+        // Use cached pattern
         ctx.save();
         ctx.translate(x, y);
-        const ptrn = ctx.createPattern(img, 'repeat');
+        // Use default 'repeat' as the specific direction repeat (repeat-x/y) is rarely needed if we fillRect correctly?
+        // Actually, createPattern supports 'repeat', 'repeat-x', 'repeat-y', 'no-repeat'.
+        // For 'horizontal' tiling, 'repeat-x' is safer? 
+        // Existing code used 'repeat'. Stick to 'repeat' as fillRect limits the area anyway.
+        const ptrn = this.getPattern(ctx, img, 'repeat');
         ctx.fillStyle = ptrn;
         ctx.fillRect(0, 0, fillW, fillH);
         ctx.restore();
