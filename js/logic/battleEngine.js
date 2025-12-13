@@ -233,19 +233,7 @@ const BattleEngine = {
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.roundHistory = []; // Initialize Round History
 
-        // Init Dialogue States
-        this.p1Dialogue = { active: false, text: '', timer: 0 };
-        this.cpuDialogue = { active: false, text: '', timer: 0 };
 
-        // Start Dialogue (Fresh Match Only)
-        // 50:50 Chance for who speaks first
-        // 50:50 Chance for who speaks first
-        if (!data.isNextRound) {
-            this.setTimeout(() => {
-                const who = (Math.random() < 0.5) ? 'P1' : 'CPU';
-                this.triggerDialogue(who, 'MATCH_START');
-            }, 800);
-        }
 
         this.startRound();
     },
@@ -285,7 +273,7 @@ const BattleEngine = {
         // Build Sequence
         const steps = [
             // FX Removed
-            { type: 'WAIT', duration: 120 }, // Increased wait to ensure FX finish (30 -> 120)
+            { type: 'WAIT', duration: 80 }, // Reduced wait (120 -> 80)
             { type: 'REVEAL_HAND' } // Reveal CPU hand
         ];
 
@@ -329,13 +317,13 @@ const BattleEngine = {
         const winType = (who === 'P1') ? 'WIN' : 'LOSE';
 
         // Trigger Win/Lose Dialogue
-        if (who === 'P1') {
-            this.triggerDialogue('P1', 'WIN_CALL');
-            this.setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
-        } else {
-            this.triggerDialogue('CPU', 'WIN_CALL');
-            this.setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
-        }
+        // if (who === 'P1') {
+        //     this.triggerDialogue('P1', 'WIN_CALL');
+        //     this.setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
+        // } else {
+        //     this.triggerDialogue('CPU', 'WIN_CALL');
+        //     this.setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
+        // }
 
         this.resultInfo = {
             type: winType,
@@ -799,7 +787,7 @@ const BattleEngine = {
         this.timer++;
 
         // Update Dialogue (Always run)
-        this.updateDialogue();
+        // this.updateDialogue(); // Removed
 
         // Music Update
         // Only update battle music during active battle states
@@ -1534,21 +1522,16 @@ const BattleEngine = {
     },
 
     executeAction: function (action) {
-
-
         if (action.type === 'PASS' || action.type === 'PASS_SELF') {
             // Pass logic
-            if (this.currentState === this.STATE_ACTION_SELECT && action.type === 'PASS_SELF') {
+            if (action.type === 'PASS_SELF') {
                 // Return to player turn for discard
                 this.currentState = this.STATE_PLAYER_TURN;
             } else if (action.type === 'PASS') {
-                // Turn count increment only if we are ending CPU turn?
-                // CPU discarded -> We checked actions -> Pass.
-                // CPU turn IS ending.
+                console.log("Player Passed.");
                 this.turnCount++;
-
                 this.checkRoundEnd();
-                if (this.currentState !== this.STATE_ACTION_SELECT) return; // Transitioned to End State (from Action Select context)
+                if (this.currentState !== this.STATE_ACTION_SELECT) return;
 
                 // Check Riichi Auto Draw
                 if (this.p1.isRiichi) {
@@ -1557,9 +1540,8 @@ const BattleEngine = {
                     this.currentState = this.STATE_WAIT_FOR_DRAW; // Manual Draw
                     this.timer = 0;
                 }
-                // Clear actions
-                this.possibleActions = [];
             }
+            this.possibleActions = []; // Clear actions
         } else if (action.type === 'PON') {
             // Move tiles from hand to openSets
             const matchType = action.targetTile.type;
@@ -1594,6 +1576,7 @@ const BattleEngine = {
 
                     // Force Discard State (Turn continues but starts at discard phase)
                     this.currentState = this.STATE_PLAYER_TURN;
+                    this.possibleActions = []; // Clear actions (e.g. Pon button)
                     this.timer = 0;
                     this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
                 }, 450);
@@ -1601,9 +1584,8 @@ const BattleEngine = {
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
-            this.showPopup('RIICHI', { blocking: true });
-
-            this.triggerDialogue('P1', 'SELF_RIICHI');
+            this.showPopup('RIICHI');
+            // this.triggerDialogue('P1', 'SELF_RIICHI');
             // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
             // BUT Riichi is special. Let's rely on generic reply? 
             // Actually, for Riichi, the opponent usually reacts to the declaration.
@@ -1615,9 +1597,9 @@ const BattleEngine = {
             // Data has 'SELF_RIICHI' (My line) and 'ENEMY_RIICHI' (My line when enemy Riichis).
             // So when P1 triggers SELF_RIICHI, CPU should trigger ENEMY_RIICHI.
             // We need to manually trigger this reaction because the keys don't match the _REPLY pattern.
-            setTimeout(() => {
-                this.triggerDialogue('CPU', 'ENEMY_RIICHI');
-            }, 1000);
+            // setTimeout(() => {
+            //     this.triggerDialogue('CPU', 'ENEMY_RIICHI');
+            // }, 1000);
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
@@ -1901,69 +1883,6 @@ const BattleEngine = {
         };
     },
 
-    updateDialogue: function () {
-        // P1
-        if (this.p1Dialogue && this.p1Dialogue.active) {
-            this.p1Dialogue.timer--;
-            if (this.p1Dialogue.timer <= 0) {
-                this.p1Dialogue.active = false;
-                if (this.p1Character) this.p1Character.setTalking(false);
-            }
-        }
-        // CPU
-        if (this.cpuDialogue && this.cpuDialogue.active) {
-            this.cpuDialogue.timer--;
-            if (this.cpuDialogue.timer <= 0) {
-                this.cpuDialogue.active = false;
-                if (this.cpuCharacter) this.cpuCharacter.setTalking(false);
-            }
-        }
-    },
 
-    triggerDialogue: function (who, key) {
-        // Resolve Character Data
-        const charId = (who === 'P1') ? this.p1.id : this.cpu.id;
-        const charData = CharacterData.find(c => c.id === charId);
-
-        if (!charData || !charData.dialogue || !charData.dialogue[key]) {
-            return;
-        }
-
-        const text = charData.dialogue[key];
-        const state = (who === 'P1') ? this.p1Dialogue : this.cpuDialogue;
-        const character = (who === 'P1') ? this.p1Character : this.cpuCharacter;
-
-        // Reset & Activate
-        state.active = true;
-        state.text = text;
-        state.timer = BattleConfig.DIALOGUE.life || 120;
-
-        if (character) {
-            character.setTalking(true);
-        }
-
-        // console.log(`[Dialogue] ${who} (${charId}): ${text.replace(/\n/g, ' ')}`);
-
-        // --- Generic Reply Logic ---
-        // Exclude specific keys that have their own coupled logic
-        const EXCLUDED_KEYS = ['SELF_RIICHI', 'ENEMY_RIICHI', 'WIN_CALL', 'LOSE_CALL'];
-
-        if (!EXCLUDED_KEYS.includes(key) && !key.endsWith('_REPLY')) {
-            const opponentWho = (who === 'P1') ? 'CPU' : 'P1';
-            const replyKey = `${key}_REPLY`;
-
-            // Check if opponent has this reply key
-            const oppId = (who === 'P1') ? this.cpu.id : this.p1.id;
-            const oppData = CharacterData.find(c => c.id === oppId);
-
-            if (oppData && oppData.dialogue && oppData.dialogue[replyKey]) {
-                // Schedule Reply
-                this.setTimeout(() => {
-                    // Check if battle is still active/valid?
-                    this.triggerDialogue(opponentWho, replyKey);
-                }, 1500); // 1.5 sec delay
-            }
-        }
-    }
 };
 

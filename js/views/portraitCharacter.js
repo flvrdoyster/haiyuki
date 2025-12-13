@@ -54,9 +54,9 @@ class PortraitCharacter {
         // --- OPTIMIZATION: Defaults & Auto-Generation ---
 
         // 1. Scalar Defaults
-        if (!this.animConfig.interval) this.animConfig.interval = 200;
-        if (!this.animConfig.speed) this.animConfig.speed = 4;
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 6;
+        if (!this.animConfig.interval) this.animConfig.interval = 80;
+        if (!this.animConfig.speed) this.animConfig.speed = 3;
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 4;
 
         // 2. Asset Auto-Generation
         if (this.animConfig.base) {

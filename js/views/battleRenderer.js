@@ -232,7 +232,7 @@ const BattleRenderer = {
         this.drawFX(ctx, activeFX);
 
         // Dialogue (Below Result/UI)
-        this.drawBattleDialogue(ctx, state);
+
 
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {
@@ -283,37 +283,8 @@ const BattleRenderer = {
         ctx.restore();
     },
 
-    // Cached Metrics Object to reduce GC
-    // Cached metric results
-    _cpuMetrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
-    _p1Metrics: { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 },
-
-    // Cache Keys
-    _cpuCacheKey: '',
-    _p1CacheKey: '',
-
     getVisualMetrics: function (character, groupSize, target) {
-        // Generate Cache Key
-        // Key: HandLength + OpenSetsLength + GroupSize
-        // We could go deeper (specific tile types) but layout only depends on COUNT and GROUP.
-        // Wait, OpenSets vary in size (Pon vs Chi vs Kan). Kan is 4 tiles. 
-        // So we need sum of open tiles.
-        let openTileCount = 0;
-        if (character.openSets) {
-            character.openSets.forEach(s => openTileCount += s.tiles.length);
-        }
-
-        const key = `${character.hand.length}_${openTileCount}_${groupSize}`;
-        const lastKey = (target === 'cpu') ? this._cpuCacheKey : this._p1CacheKey;
-        const m = (target === 'cpu') ? this._cpuMetrics : this._p1Metrics;
-
-        if (key === lastKey) {
-            return m; // Return Cached
-        }
-
-        // Update Key
-        if (target === 'cpu') this._cpuCacheKey = key;
-        else this._p1CacheKey = key;
+        const m = { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 };
 
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.gap;
@@ -1233,25 +1204,22 @@ const BattleRenderer = {
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
 
-        // TIGHTER HITBOX LOGIC - REMOVED FOR MOBILE USABILITY
-        // Removed artificial padding. Full tile is now clickable.
-        // const xPad = tileW * 0.15; 
-        // const yPad = tileH * 0.1;
+        // TIGHTER HITBOX LOGIC
+        // Reduce clickable area to prevent edge mis-clicks
+        const xPad = tileW * 0.15; // 15% padding on each side (30% total reduction)
+        const yPad = tileH * 0.1;  // 10% padding on each side
 
-        // Add Vertical Tolerance for Mobile (20% extra above/below)
-        const vTolerance = tileH * 0.2;
-
+        // Optimization: Check Y bounds first (with padding)
         const handY = BattleConfig.HAND.playerHandY;
-        // Check Y bounds first (with tolerance)
-        if (y < handY - vTolerance || y > handY + tileH + vTolerance) return -1;
+        if (y < handY + yPad || y > handY + tileH - yPad) return -1;
 
         // Iterate or Calculate?
         // `getPlayerHandPosition` includes group gap logic.
         // Iterating is safer vs complex math inversion.
         for (let i = 0; i < handSize; i++) {
             const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
-            // Check X (Full Width, No Padding)
-            if (x >= pos.x && x < pos.x + tileW) {
+            // Check X with padding
+            if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
                 return i;
             }
         }
@@ -1300,79 +1268,5 @@ const BattleRenderer = {
         return -1;
     },
 
-    drawBattleDialogue: function (ctx, state) {
-        const conf = BattleConfig.DIALOGUE;
-        if (!conf) return;
 
-        const bubble = Assets.get(conf.bubblePath);
-        if (!bubble) return;
-
-        // Layout Constants (Matched with dialogue_debug.html)
-        // Fixed Anchor Logic: Screen Center (320) + Offset
-        // This ensures consistent placement regardless of Portrait alignment quirks.
-        const doraY = 220; // 180 + 40 (Dora Y + Offset)
-
-        const p1BubbleY = doraY + conf.P1.offsetY;
-        const p1BubbleX = BattleConfig.SCREEN.centerX + conf.P1.offsetX;
-
-        const cpuBubbleY = doraY + conf.CPU.offsetY;
-        const cpuBubbleX = BattleConfig.SCREEN.centerX + conf.CPU.offsetX;
-
-        // P1 Dialogue
-        if (state.p1Dialogue && state.p1Dialogue.active) {
-            ctx.save();
-            // Position: Center
-            const bx = p1BubbleX - bubble.width / 2;
-            const by = p1BubbleY - bubble.height / 2;
-
-            ctx.drawImage(bubble, bx, by);
-
-            // Text
-            ctx.fillStyle = conf.color;
-            ctx.font = conf.font;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const tx = p1BubbleX + conf.P1.textOffsetX;
-            const ty = p1BubbleY + conf.P1.textOffsetY;
-
-            this._drawMultilineText(ctx, state.p1Dialogue.text, tx, ty, conf.lineHeight);
-            ctx.restore();
-        }
-
-        // CPU Dialogue (Rotated 180)
-        if (state.cpuDialogue && state.cpuDialogue.active) {
-            ctx.save();
-
-            ctx.translate(cpuBubbleX, cpuBubbleY);
-            ctx.rotate(Math.PI); // Rotate 180 degrees
-            ctx.drawImage(bubble, -bubble.width / 2, -bubble.height / 2);
-            ctx.restore();
-
-            ctx.save();
-            ctx.fillStyle = conf.color;
-            ctx.font = conf.font;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Text Position (Relative to Screen, not rotated context)
-            const tx = cpuBubbleX + conf.CPU.textOffsetX;
-            const ty = cpuBubbleY + conf.CPU.textOffsetY;
-
-            this._drawMultilineText(ctx, state.cpuDialogue.text, tx, ty, conf.lineHeight);
-            ctx.restore();
-        }
-    },
-
-    _drawMultilineText: function (ctx, text, x, y, lineHeight) {
-        if (!text) return;
-        const lines = text.split('\n');
-        const totalH = (lines.length - 1) * lineHeight;
-        let currentY = y - (totalH / 2);
-
-        lines.forEach(line => {
-            ctx.fillText(line, x, currentY);
-            currentY += lineHeight;
-        });
-    }
 };
