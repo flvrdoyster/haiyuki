@@ -1428,6 +1428,21 @@ const BattleEngine = {
     },
 
     checkSelfActions: function () {
+        // Optimization: Cache result check to strictly avoid re-calculation on same state
+        // This is critical because checkTenpai -> checkYaku is combinatorial (O(N!))
+
+        // Generate State Key
+        const currentHandKey = this.p1.hand.map(t => t.type + t.color).sort().join('|') +
+            `_${this.p1.openSets.length}_${this.p1.isRiichi}_${this.turnCount}`;
+
+        if (this._cachedSelfActionsKey === currentHandKey) {
+            // Restore cached actions
+            if (this._cachedSelfActions) {
+                this.possibleActions = [...this._cachedSelfActions];
+                return this.possibleActions.length > 0;
+            }
+        }
+
         this.possibleActions = [];
         const hand = this.p1.hand;
         const fullHand = this.getFullHand(this.p1);
@@ -1439,7 +1454,7 @@ const BattleEngine = {
 
         // 2. Riichi
         // Cond: Closed hand (isMenzen), Not already Riichi
-        // Rule: "Have 11 tiles" -> Draw 1 -> 12. Discard -> 11.
+        // Ruile: "Have 11 tiles" -> Draw 1 -> 12. Discard -> 11.
         // Riichi is declared before discard.
         // Riichi requires Menzen (No Open Sets).
         // Check openSets length
@@ -1473,6 +1488,8 @@ const BattleEngine = {
                 // Debug: Calculate potential Yaku
                 // We need to re-scan to get DETAILS
                 // Find WHICH discard allows Tenpai
+                // Optimization: Only run debug calculation if explicitly needed (or just log it once)
+                // We leave it but note it's heavy.
                 const debugInfo = [];
                 const validDiscards = [];
                 for (let i = 0; i < hand.length; i++) {
@@ -1497,8 +1514,16 @@ const BattleEngine = {
             this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
             // Debug: Manually select CPU
             console.log("Possible self actions:", this.possibleActions.map(a => a.type)); // Added log
+
+            // Allow actions to be cached
+            this._cachedSelfActionsKey = currentHandKey;
+            this._cachedSelfActions = [...this.possibleActions];
             return true;
         }
+
+        // Cache empty result
+        this._cachedSelfActionsKey = currentHandKey;
+        this._cachedSelfActions = [];
         return false;
     },
 

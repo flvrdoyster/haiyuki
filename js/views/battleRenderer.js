@@ -1148,22 +1148,25 @@ const BattleRenderer = {
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
 
-        // TIGHTER HITBOX LOGIC
-        // Reduce clickable area to prevent edge mis-clicks
-        const xPad = tileW * 0.15; // 15% padding on each side (30% total reduction)
-        const yPad = tileH * 0.1;  // 10% padding on each side
+        // TIGHTER HITBOX LOGIC - REMOVED FOR MOBILE USABILITY
+        // Removed artificial padding. Full tile is now clickable.
+        // const xPad = tileW * 0.15; 
+        // const yPad = tileH * 0.1;
 
-        // Optimization: Check Y bounds first (with padding)
+        // Add Vertical Tolerance for Mobile (20% extra above/below)
+        const vTolerance = tileH * 0.2;
+
         const handY = BattleConfig.HAND.playerHandY;
-        if (y < handY + yPad || y > handY + tileH - yPad) return -1;
+        // Check Y bounds first (with tolerance)
+        if (y < handY - vTolerance || y > handY + tileH + vTolerance) return -1;
 
         // Iterate or Calculate?
         // `getPlayerHandPosition` includes group gap logic.
         // Iterating is safer vs complex math inversion.
         for (let i = 0; i < handSize; i++) {
             const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
-            // Check X with padding
-            if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
+            // Check X (Full Width, No Padding)
+            if (x >= pos.x && x < pos.x + tileW) {
                 return i;
             }
         }

@@ -86,7 +86,8 @@ const Input = {
             // Touch Support
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // Prevent scrolling
-                if (!this.rect) updateRect();
+                updateRect(); // FORCE update rect to ensure coordinates are fresh (key for mobile)
+                this.isTouch = true; // Flag touch interaction
                 const touch = e.touches[0];
                 this.mouseX = (touch.clientX - this.rect.left) * this.scaleX;
                 this.mouseY = (touch.clientY - this.rect.top) * this.scaleY;
@@ -95,9 +96,10 @@ const Input = {
 
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
+                this.isTouch = true;
                 if (e.touches.length > 0) {
                     const touch = e.touches[0];
-                    if (!this.rect) return;
+                    if (!this.rect) updateRect(); // Ensure rect exists
                     this.mouseX = (touch.clientX - this.rect.left) * this.scaleX;
                     this.mouseY = (touch.clientY - this.rect.top) * this.scaleY;
                 }
@@ -105,6 +107,7 @@ const Input = {
 
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                this.isTouch = true;
                 this.isMouseDown = false;
             }, { passive: false });
         }
