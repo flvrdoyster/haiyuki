@@ -126,7 +126,7 @@ const Assets = {
         'tiles/pai_red.png', 'tiles/pai_blue.png', 'tiles/pai_yellow.png', 'tiles/pai_purple.png',
 
         // Tile Parts
-        'tiles/back-top.png', 'tiles/back-bottom.png',
+        'tiles/back-top.png', 'tiles/back-bottom.png', 'tiles/pai_back.png',
         'tiles/side-top.png', 'tiles/side-bottom.png',
         'tiles/pai_uradora.png', // Hidden Dora
 

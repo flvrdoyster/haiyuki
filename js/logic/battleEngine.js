@@ -298,6 +298,11 @@ const BattleEngine = {
             { type: 'REVEAL_HAND' } // Reveal CPU hand
         ];
 
+        // Conditional Steps
+        if (who === 'P1' && this.p1.isRiichi) {
+            steps.push({ type: 'REVEAL_URA' });
+        }
+
         if (who === 'P1') {
             // WIN: Play Configured Sound
             const sound = BattleConfig.RESULT.TYPES.WIN.sound;
@@ -454,7 +459,7 @@ const BattleEngine = {
         const steps = [
             {
                 type: 'CALLBACK', callback: () => {
-                    this.showPopup('NAGARI');
+                    this.showPopup('NAGARI', { blocking: true });
                     const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
                     if (sound) this.events.push({ type: 'SOUND', id: sound });
                 }
@@ -517,6 +522,9 @@ const BattleEngine = {
             this.sequencing.currentStep++;
         } else if (step.type === 'REVEAL_HAND') {
             this.cpu.isRevealed = true;
+            this.sequencing.currentStep++;
+        } else if (step.type === 'REVEAL_URA') {
+            this.uraDoraRevealed = true;
             this.sequencing.currentStep++;
         } else if (step.type === 'STATE') {
             this.currentState = step.state;
@@ -605,10 +613,15 @@ const BattleEngine = {
             this.resultInfo = { type: 'MATCH_WIN', history: this.roundHistory };
             const sound = BattleConfig.RESULT.TYPES.MATCH_WIN.sound;
             if (sound) this.events.push({ type: 'SOUND', id: sound });
+            // Remain in STATE_MATCH_OVER for P1 Win (Victory Screen)
         } else {
-            this.resultInfo = { type: 'MATCH_LOSE', history: this.roundHistory };
-            const sound = BattleConfig.RESULT.TYPES.MATCH_LOSE.sound;
+            // LOSE: Skip Result Screen, Go directly to Continue
+            // Play sound if configured
+            const sound = BattleConfig.RESULT.TYPES.MATCH_LOSE ? BattleConfig.RESULT.TYPES.MATCH_LOSE.sound : 'audio/lose';
             if (sound) this.events.push({ type: 'SOUND', id: sound });
+
+            this.proceedFromMatchOver();
+            return; // Exit
         }
     },
 
@@ -1109,7 +1122,7 @@ const BattleEngine = {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
             if (this.winningYaku) {
                 // console.log("CPU TSUMO!");
-                this.showPopup('TSUMO');
+                this.showPopup('TSUMO', { blocking: true });
                 const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
                 this.pendingDamage = { target: 'P1', amount: score };
                 this.startWinSequence('TSUMO', 'CPU', score);
@@ -1133,7 +1146,7 @@ const BattleEngine = {
                 }
             }
 
-            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, Difficulty.id, this.cpu.aiProfile)) {
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, BattleConfig.RULES.AI_DIFFICULTY, this.cpu.aiProfile)) {
                 // console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard
@@ -1310,7 +1323,7 @@ const BattleEngine = {
         const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
         if (win && this.cpu.isRiichi) { // Added Riichi requirement
             console.log("CPU RON!");
-            this.showPopup('RON');
+            this.showPopup('RON', { blocking: true });
             this.winningYaku = win;
             const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
             this.pendingDamage = { target: 'P1', amount: score };
@@ -1338,40 +1351,43 @@ const BattleEngine = {
     },
 
     executeCpuPon: function (tile) {
-        console.log("CPU Calls PON!", tile.type);
-        this.showPopup('PON');
+        this.currentState = this.STATE_FX_PLAYING;
+        this.setTimeout(() => {
+            console.log("CPU Calls PON!", tile.type);
+            this.showPopup('PON', { blocking: true });
 
-        // Remove 2 matching tiles logic
-        let matches = [];
-        let keep = [];
+            // Remove 2 matching tiles logic
+            let matches = [];
+            let keep = [];
 
-        // Find matches first
-        this.cpu.hand.forEach(t => {
-            if (t.type === tile.type && t.color === tile.color && matches.length < 2) {
-                matches.push(t);
-            } else {
-                keep.push(t);
-            }
-        });
-
-        if (matches.length >= 2) {
-            this.cpu.hand = keep;
-
-            // Add Open Set
-            this.cpu.openSets.push({
-                type: 'PON',
-                tiles: [matches[0], matches[1], tile]
+            // Find matches first
+            this.cpu.hand.forEach(t => {
+                if (t.type === tile.type && t.color === tile.color && matches.length < 2) {
+                    matches.push(t);
+                } else {
+                    keep.push(t);
+                }
             });
 
-            this.cpu.isMenzen = false;
+            if (matches.length >= 2) {
+                this.cpu.hand = keep;
 
-            // Take from discards
-            this.discards.pop();
+                // Add Open Set
+                this.cpu.openSets.push({
+                    type: 'PON',
+                    tiles: [matches[0], matches[1], tile]
+                });
 
-            // Setup Discard Phase
-            this.currentState = this.STATE_CPU_TURN;
-            this.timer = 30; // Short delay before discard
-        }
+                this.cpu.isMenzen = false;
+
+                // Take from discards
+                this.discards.pop();
+
+                // Setup Discard Phase
+                this.currentState = this.STATE_CPU_TURN;
+                this.timer = 30; // Short delay before discard
+            }
+        }, 450);
     },
 
     // View proxies removed (Use BattleRenderer directly)
@@ -1520,7 +1536,7 @@ const BattleEngine = {
                 console.log("[Auto-Select] Auto-Riichi!");
                 this.p1.isRiichi = true;
                 this.p1.declaringRiichi = true;
-                this.showPopup('RIICHI');
+                this.showPopup('RIICHI', { blocking: true });
                 this.events.push({ type: 'SOUND', id: 'audio/riichi' });
                 this.updateBattleMusic();
                 this.discardTile(riichiDiscardIndex);
@@ -1600,32 +1616,35 @@ const BattleEngine = {
             });
 
             if (matches.length === 2) {
-                this.p1.hand = keep;
-                this.p1.openSets.push({
-                    type: 'PON',
-                    tiles: [matches[0], matches[1], action.targetTile]
-                });
+                this.currentState = this.STATE_FX_PLAYING;
+                this.setTimeout(() => {
+                    this.p1.hand = keep;
+                    this.p1.openSets.push({
+                        type: 'PON',
+                        tiles: [matches[0], matches[1], action.targetTile]
+                    });
 
-                // Remove from discards (physically taken)
-                this.discards.pop();
+                    // Remove from discards (physically taken)
+                    this.discards.pop();
 
-                console.log("Executed PON. Hand size:", this.p1.hand.length);
+                    console.log("Executed PON. Hand size:", this.p1.hand.length);
 
-                // Expressions
-                this.p1Character.setState('smile');
-                this.cpuCharacter.setState('shocked');
-                this.showPopup('PON');
-                // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
+                    // Expressions
+                    this.p1Character.setState('smile');
+                    this.cpuCharacter.setState('shocked');
+                    this.showPopup('PON', { blocking: true });
+                    // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
-                // Force Discard State (Turn continues but starts at discard phase)
-                this.currentState = this.STATE_PLAYER_TURN;
-                this.timer = 0;
-                this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
+                    // Force Discard State (Turn continues but starts at discard phase)
+                    this.currentState = this.STATE_PLAYER_TURN;
+                    this.timer = 0;
+                    this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
+                }, 450);
             }
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
-            this.showPopup('RIICHI');
+            this.showPopup('RIICHI', { blocking: true });
 
             this.triggerDialogue('P1', 'SELF_RIICHI');
             // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
@@ -1708,7 +1727,7 @@ const BattleEngine = {
         } else if (action.type === 'TSUMO') {
             const fullHand = this.getFullHand(this.p1);
             console.log("Excuting TSUMO. Hand:", fullHand.map(t => t.type), "ID:", this.p1.id);
-            this.showPopup('TSUMO');
+            this.showPopup('TSUMO', { blocking: true });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
 
@@ -1730,7 +1749,7 @@ const BattleEngine = {
 
         } else if (action.type === 'RON') {
             console.log("Excuting RON.");
-            this.showPopup('RON');
+            this.showPopup('RON', { blocking: true });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
 

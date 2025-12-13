@@ -93,7 +93,7 @@ const BattleRenderer = {
 
             // Draw Face or Back based on state
             if (state.p1.isFaceDown) {
-                this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/back-bottom.png');
+                this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/pai_back.png');
             } else {
                 this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH);
             }
@@ -110,7 +110,16 @@ const BattleRenderer = {
             const sideH = sideImg ? sideImg.height : 14;
             const totalH = tileH + sideH;
 
-            ctx.strokeStyle = BattleConfig.HAND.hoverColor;
+            // Multi-Color Blink Logic
+            const hConf = BattleConfig.HAND;
+            if (hConf.hoverColors && hConf.hoverColors.length > 0) {
+                const speed = hConf.hoverBlinkSpeed || 10;
+                // Use timer (frame count) to cycle colors
+                const cIndex = Math.floor(state.timer / speed) % hConf.hoverColors.length;
+                ctx.strokeStyle = hConf.hoverColors[cIndex];
+            } else {
+                ctx.strokeStyle = hConf.hoverColor;
+            }
             ctx.lineWidth = BattleConfig.HAND.hoverWidth;
 
             // Draw Rectangle over Tile Face + Side

@@ -61,6 +61,8 @@ const BattleConfig = {
         gap: 0,
         hoverYOffset: -10,
         hoverColor: '#ffaa00',
+        hoverColors: ['#ffaa00', '#9cc041', '#b4dcff'],
+        hoverBlinkSpeed: 8,
         hoverWidth: 3,
         groupGap: 10,
         // Open Set specific settings
@@ -135,7 +137,7 @@ const BattleConfig = {
             'RIICHI': { life: 90, slideFrom: 'RIGHT', scale: 1.0, sound: 'audio/riichi' }, // 45 -> 90
             'PON': { life: 90, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/pon' }, // 45 -> 90
             'RON': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 60 -> 120
-            'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/fanfare' }, // 60 -> 120
+            'TSUMO': { life: 120, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 60 -> 120
             'NAGARI': { life: 180, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' } // 120 -> 180
         }
     },
@@ -230,15 +232,6 @@ const BattleConfig = {
                 title: "다음 상대로!",
                 color: "gold",
                 sound: "audio/victory", // Configurable Sound
-                historyFont: `16px ${FONTS.regular}`,
-                historyLineHeight: 20,
-                historyMaxVisible: 7,
-                historyY: 200
-            },
-            MATCH_LOSE: {
-                title: "게임 오버",
-                color: "white",
-                sound: "audio/lose", // Configurable Sound
                 historyFont: `16px ${FONTS.regular}`,
                 historyLineHeight: 20,
                 historyMaxVisible: 7,

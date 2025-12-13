@@ -65,7 +65,7 @@ const DialogueData = {
         { speaker: "ataho", text: "뭐였더라.", speakerState: 'shocked', listenerState: '' },
         { speaker: "ataho", text: "어라라.", speakerState: 'shocked', listenerState: '' },
         { speaker: "ataho", text: "음~ 전혀 기억나지 않네!!", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "뭐야, 넌!", listenerState: 'shocked', speakerState: '' }
+        { speaker: "yuri", text: "뭐야, 넌!", listenerState: 'shocked', speakerState: 'shocked' }
     ],
 
     // Rinxiang vs Fari
@@ -166,15 +166,15 @@ const DialogueData = {
         { speaker: "petum", text: "... 그렇네요.", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "오랜만에 만나지만, 전혀 변함이 없는 것 같네", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "... 그렇네요.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "키리랑 알리바바는 건강하게 지내려나?", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "키리랑 알리바바는 건강하게 지내려나?", speakerState: 'smile', listenerState: '' },
         { speaker: "petum", text: "... 그렇네요.", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "왠지 아까부터\n\"그렇네요\" 라고만 하잖아.", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "... 그렇네요.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "페톰, 너 장난하냐!!", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "... 응... 아...\n이런이런 스마슈씨.\n좋은 아침입니다.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "너무 졸려서, 저도 모르게 선 채로 잠들어버렸네요.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "그런데 소리를 다 지르시고...\n무슨 일 있었나요?", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "뭐라고~옷!!\n그렇다는 건, 지금까지 네놈의 대답은 전부 잠꼬대였던거냐!!", speakerState: '', listenerState: '' }
+        { speaker: "smash", text: "페톰, 너 장난하냐!!", speakerState: 'shocked', listenerState: '' },
+        { speaker: "petum", text: "... 응... 아...\n이런이런 스마슈씨.\n좋은 아침입니다.", speakerState: 'smile', listenerState: 'shocked' },
+        { speaker: "petum", text: "너무 졸려서, 저도 모르게 선 채로 잠들어버렸네요.", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "petum", text: "그런데 소리를 다 지르시고...\n무슨 일 있었나요?", speakerState: '', listenerState: 'shocked' },
+        { speaker: "smash", text: "뭐라고~옷!!\n그렇다는 건, 지금까지 네놈의 대답은 전부 잠꼬대였던거냐!!", speakerState: 'shocked', listenerState: '' }
     ],
 
     // Petum vs Yuriwakamaru
