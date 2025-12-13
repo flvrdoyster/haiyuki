@@ -19,7 +19,6 @@ const BattleScene = {
 
                 if (isAudio) {
                     if (evt.type === 'MUSIC') {
-                        // console.log(`[Scene] Play Music: ${evt.id}`);
                         Assets.playMusic(evt.id, evt.loop);
                     } else if (evt.type === 'SOUND') {
                         Assets.playSound(evt.id);
@@ -77,7 +76,6 @@ const BattleScene = {
                         if (evt.options && evt.options.popupType) {
                             const conf = BattleConfig.POPUP.TYPES[evt.options.popupType];
                             if (conf && conf.sound) {
-                                // console.log(`[Scene] Playing Popup Sound for ${evt.options.popupType}: ${conf.sound}`);
                                 Assets.playSound(conf.sound);
                             }
                         }
@@ -147,37 +145,42 @@ const BattleScene = {
 
             // Animation Logic
             // Fade In (0-10)
-            const fadeInDur = 10;
+            const fadeInDur = BattleConfig.FX.fadeInDuration;
             if (fx.maxLife - fx.life <= fadeInDur) {
                 fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
             }
 
             // Slide Logic
             if (fx.slideFrom) {
-                const slideDur = 20;
+                const slideDur = BattleConfig.FX.slideDuration;
                 const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
                 const ease = p * (2 - p); // Quad ease out
                 fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                 fx.y = fx.startY + (fx.endY - fx.startY) * ease;
             } else if (fx.anim === 'ZOOM_IN') {
                 // Zoom In Pulse: 0 -> 1.2 -> 1.0
+                const pulseDur = BattleConfig.FX.zoomPulseDuration;
+                const settleDur = BattleConfig.FX.zoomSettleDuration;
+                const peakScale = BattleConfig.FX.zoomPeakScale;
+
                 const age = fx.maxLife - fx.life;
-                if (age < 20) {
+                if (age < pulseDur) {
                     // 0 -> 1.2
-                    const p = age / 20;
-                    fx.scale = fx.baseScale * (p * 1.2);
-                } else if (age < 30) {
+                    const p = age / pulseDur;
+                    fx.scale = fx.baseScale * (p * peakScale);
+                } else if (age < pulseDur + settleDur) {
                     // 1.2 -> 1.0
-                    const p = (age - 20) / 10;
-                    fx.scale = fx.baseScale * (1.2 - (p * 0.2));
+                    const p = (age - pulseDur) / settleDur;
+                    fx.scale = fx.baseScale * (peakScale - (p * (peakScale - 1.0)));
                 } else {
                     fx.scale = fx.baseScale;
                 }
             }
 
             // Fade Out (Last 20 frames)
-            if (fx.life < 20) {
-                fx.alpha = fx.life / 20;
+            const fadeOutDur = BattleConfig.FX.fadeOutDuration;
+            if (fx.life < fadeOutDur) {
+                fx.alpha = fx.life / fadeOutDur;
             } else {
                 if (fx.maxLife - fx.life > fadeInDur) fx.alpha = 1.0;
             }
@@ -284,14 +287,12 @@ const BattleScene = {
             const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
             if (hovered !== -1) {
                 engine.selectedActionIndex = hovered;
-                console.log("Action Clicked:", actions[hovered]);
                 engine.executeAction(actions[hovered]);
                 return;
             }
         }
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
-            console.log("Action Selected Key:", actions[engine.selectedActionIndex]);
             engine.executeAction(actions[engine.selectedActionIndex]);
         }
     },

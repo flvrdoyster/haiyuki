@@ -51,8 +51,6 @@ const BattleMenuSystem = {
     handleSelection: function () {
         const selectedItem = this.menuItems[this.selectedMenuIndex];
         if (!selectedItem) return;
-
-        console.log("Selected Menu Item:", selectedItem);
         const selectedId = selectedItem.id;
 
         if (selectedId === 'HELP') {
@@ -80,7 +78,6 @@ const BattleMenuSystem = {
             }
         } else if (selectedId === 'AUTO') {
             if (this.lastStateBeforeMenu !== this.engine.STATE_PLAYER_TURN) {
-                console.log("Auto-select ignored: Not player turn");
                 // Optional: Play error sound
             } else {
                 this.toggle(); // Close menu
@@ -104,11 +101,9 @@ const BattleMenuSystem = {
             return; // Don't auto-close menu, let dialog handle it
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
-                console.log(`Skill Disabled: ${selectedItem.label}`);
                 // Play error sound?
                 return; // Do not close menu
             }
-            console.log(`Skill Selected: ${selectedItem.label} (${selectedId})`);
 
             // Delegate Skill Execution to Engine
             // this.engine.useSkill(selectedId);

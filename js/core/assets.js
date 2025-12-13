@@ -178,8 +178,8 @@ const Assets = {
                 audio.addEventListener('canplaythrough', () => {
                     if (!this.audio[id]) { // Prevent double count
                         this.audio[id] = audio;
+                        this.audio[id] = audio;
                         this.loadedCount++;
-                        console.log(`Loaded Audio: ${id}`);
 
                         // OPTIMIZATION: Pre-Warm Pools for Sound Effects
                         // Avoid cloning on first play
@@ -212,8 +212,8 @@ const Assets = {
                 img.src = src;
                 img.onload = () => {
                     this.images[id] = img;
+                    this.images[id] = img;
                     this.loadedCount++;
-                    console.log(`Loaded Image: ${id}`);
                     if (this.loadedCount === this.toLoad.length) {
                         onComplete();
                     }
@@ -270,16 +270,29 @@ const Assets = {
                 });
             } else {
                 // Pool exhausted, skip sound for performance
-                // console.log(`Audio pool exhausted for ${id}`);
             }
         } else {
             console.warn(`Audio not found: ${id}`);
         }
     },
 
+    isWaitingForInteraction: false, // Flag to prevent duplicate listeners
+
+    // State tracking for Resume on Unmute
+    currentBgmId: null,
+    currentBgmLoop: false,
+
     playMusic: function (id, loop = true) {
         // CRITICAL: Stop current music if playing to prevent overlap
         this.stopMusic();
+
+        // Save Intent
+        this.currentBgmId = id;
+        this.currentBgmLoop = loop;
+
+        if (this.muted) {
+            return;
+        }
 
         const audio = this.getAudio(id);
         if (audio) {
@@ -288,17 +301,25 @@ const Assets = {
             audio.currentTime = 0;
             audio.loop = loop;
             audio.volume = 0.5;
-            audio.muted = this.muted; // Apply mute state
+            // audio.muted = this.muted; // Apply mute state - handled by setMute/toggleMute logic
 
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(e => {
                     console.warn(`Music play blocked for ${id}. Waiting for interaction...`);
+
+                    if (this.isWaitingForInteraction) {
+                        return;
+                    }
+
                     // Add one-time listener to resume/retry
                     const resumeAudio = () => {
-                        audio.play().then(() => {
-                            console.log("Audio resumed after interaction");
-                        }).catch(e => console.error("Retry failed", e));
+                        this.isWaitingForInteraction = false; // Reset flag
+
+                        // Try playing whatever is current intent
+                        if (this.currentBgmId && !this.muted) {
+                            this.playMusic(this.currentBgmId, this.currentBgmLoop);
+                        }
 
                         // Remove listeners
                         window.removeEventListener('keydown', resumeAudio);
@@ -306,38 +327,49 @@ const Assets = {
                         window.removeEventListener('touchstart', resumeAudio);
                     };
 
+                    this.isWaitingForInteraction = true;
                     window.addEventListener('keydown', resumeAudio, { once: true });
                     window.addEventListener('click', resumeAudio, { once: true });
                     window.addEventListener('touchstart', resumeAudio, { once: true });
                 });
             }
             audio._id = id; // Store ID for state checking
+            audio._id = id; // Store ID for state checking
             this.currentMusic = audio;
-            console.log(`[BGM] Now playing: ${id}`);
         } else {
             console.warn(`Music audio not found: ${id}`);
         }
     },
 
     toggleMute: function () {
-        this.muted = !this.muted;
-        if (this.currentMusic) {
-            this.currentMusic.muted = this.muted;
-        }
-        return this.muted;
+        return this.setMute(!this.muted);
     },
 
     setMute: function (muted) {
         this.muted = muted;
-        if (this.currentMusic) {
-            this.currentMusic.muted = this.muted;
+
+        if (this.muted) {
+            // Mute: Stop playback but KEEP intent
+            if (this.currentMusic) {
+                this.currentMusic.pause();
+                this.currentMusic.currentTime = 0;
+                this.currentMusic = null;
+            }
+        } else {
+            // Unmute: Restore playback from intent
+            if (this.currentBgmId) {
+                this.playMusic(this.currentBgmId, this.currentBgmLoop);
+            }
         }
         return this.muted;
     },
 
     stopMusic: function () {
+        // Clear Intent
+        this.currentBgmId = null;
+        this.currentBgmLoop = false;
+
         if (this.currentMusic) {
-            console.log(`[BGM] Stopping: ${this.currentMusic._id || 'unknown'}`);
             this.currentMusic.pause();
             this.currentMusic.currentTime = 0;
             // Clear the reference immediately to prevent any race conditions
@@ -353,7 +385,6 @@ const Assets = {
         // Brute force stop all audio instances (except clones which we can't track)
         Object.values(this.audio).forEach(audio => {
             if (!audio.paused) {
-                console.log(`[Assets] Force stopping: ${audio._id || 'unknown'}`);
                 audio.pause();
                 audio.currentTime = 0;
             }

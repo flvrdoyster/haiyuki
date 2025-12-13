@@ -79,7 +79,6 @@ const AILogic = {
         candidates.sort((a, b) => b.score - a.score);
 
         if (candidates.length > 0) {
-            // console.log(`[AI Discard] Top: ${candidates[0].tile.type} (${candidates[0].score})`);
         }
 
         // Difficulty Logic - Selection

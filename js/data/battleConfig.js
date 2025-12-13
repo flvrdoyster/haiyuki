@@ -141,6 +141,15 @@ const BattleConfig = {
             'NAGARI': { life: 180, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' } // 120 -> 180
         }
     },
+    FX: {
+        // Generic FX Animation Settings
+        fadeInDuration: 5,  // Frames to fade in
+        fadeOutDuration: 5, // Frames to fade out
+        slideDuration: 10,   // Frames for slide animation
+        zoomPulseDuration: 5, // Frames for initial zoom pulse (0 -> 1.2)
+        zoomSettleDuration: 5, // Frames for settling (1.2 -> 1.0)
+        zoomPeakScale: 1.2   // Peak scale factor
+    },
     DIALOGUE: {
         bubblePath: 'ui/short_bubble.png',
         font: `18px ${FONTS.regular}`,

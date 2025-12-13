@@ -35,7 +35,7 @@ const BattleEngine = {
     clearTimeouts: function () {
         this.timeouts.forEach(id => clearTimeout(id));
         this.timeouts = [];
-        console.log("All BattleEngine timers cleared.");
+
     },
 
     // Constants
@@ -129,13 +129,9 @@ const BattleEngine = {
         // ... (rest of init)
         this.playerIndex = data.playerIndex || 0;
         this.cpuIndex = data.cpuIndex || 0;
-        console.log(`BattleScene Init. P1 Index: ${this.playerIndex}, CPU Index: ${this.cpuIndex}`);
-        console.log(`CharacterData Length: ${CharacterData.length}`);
-        CharacterData.forEach((c, i) => console.log(`[${i}] ${c.name} (${c.id})`));
 
         const p1Data = CharacterData.find(c => c.index === this.playerIndex) || CharacterData[this.playerIndex];
         const cpuData = CharacterData.find(c => c.index === this.cpuIndex) || CharacterData[this.cpuIndex];
-        console.log(`BattleScene Resolved. P1: ${p1Data ? p1Data.name : 'null'}, CPU: ${cpuData ? cpuData.name : 'null'}`);
 
         // Assign Character IDs and Names for Logic
         if (p1Data) {
@@ -146,7 +142,6 @@ const BattleEngine = {
             this.cpu.id = cpuData.id;
             this.cpu.name = cpuData.name;
             this.cpu.aiProfile = cpuData.aiProfile || null;
-            if (this.cpu.aiProfile) console.log(`Loaded AI Profile for ${cpuData.name}:`, this.cpu.aiProfile.type);
         }
 
         // Menu construction moved to BattleMenuSystem
@@ -155,7 +150,6 @@ const BattleEngine = {
 
 
         if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
-            console.log("AUTO-LOSE MODE ACTIVE: Setting Player HP to 1000");
             this.p1.hp = 1000;
             this.p1.maxHp = 1000;
             this.cpu.hp = 99999;
@@ -187,7 +181,6 @@ const BattleEngine = {
             const prefix = idMap[charData.id] || charData.id.toUpperCase();
             const base = `face/${prefix}_base.png`;
             if (Assets.get(base)) {
-                console.log(`[BattleScene] Auto-configuring animation for ${charData.id} (${side})`);
                 return { base: base };
             }
 
@@ -227,8 +220,6 @@ const BattleEngine = {
         const bgIndex = Math.floor(Math.random() * (BattleConfig.BG.max - BattleConfig.BG.min + 1)) + BattleConfig.BG.min;
         const bgName = bgIndex.toString().padStart(2, '0');
         this.bgPath = `${BattleConfig.BG.prefix}${bgName}.png`;
-        console.log(`Selected BG: ${this.bgPath}`);
-
         // Reset Stats (Only if new match)
         // Reset Stats (Only if new match)
         if (!data.isNextRound) {
@@ -271,7 +262,6 @@ const BattleEngine = {
     },
 
     startWinSequence: function (type, who, score) {
-        console.log(`Starting Win Sequence: ${type} by ${who}`);
         this.events.push({ type: 'STOP_MUSIC' }); // NEW: Stop BGM on Ron/Tsumo
 
         // Sort CPU Hand if revealed
@@ -336,9 +326,6 @@ const BattleEngine = {
             yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
         };
         this.roundHistory.push(resultData);
-        console.log(`Base Score: ${score}, Bonus: ${bonusResult.score}, Final: ${finalScore}`);
-        console.log(`Bonuses: ${bonusResult.names.join(', ')}`);
-
         const winType = (who === 'P1') ? 'WIN' : 'LOSE';
 
         // Trigger Win/Lose Dialogue
@@ -407,14 +394,11 @@ const BattleEngine = {
         const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
         const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
 
-        console.log(`P1 Tenpai: ${p1Tenpai}, CPU Tenpai: ${cpuTenpai}`);
-
         // Determine Damage
         // Determine Damage
         const damageResult = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
         const damageMsg = damageResult.msg;
         const damage = damageResult.damage;
-        console.log(`Nagari! Damage Msg: ${damageMsg}`);
 
         const p1Tx = p1Tenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
         const cpuTx = cpuTenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
@@ -448,10 +432,6 @@ const BattleEngine = {
         const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten'; // We don't have these images yet. 
         // Or use text bubbles.
         // Let's use text bubble FX or specific assets if they existed.
-        // For now, use existing generic FX or popups.
-
-        // Let's assume we use valid assets or text popups. 
-        // We can create a "TextFX" type?
         // For this task, we can assume standard assets or re-use existing system.
         // Actually, let's just use the `damageMsg` in the Result window for now, 
         // as `STATE_NAGARI` transitions to `drawResult` which can show the message.
@@ -495,7 +475,6 @@ const BattleEngine = {
             p1Status: p1Tx,
             cpuStatus: cpuTx
         };
-        console.log('Set resultInfo:', this.resultInfo);
     },
 
     updateSequence: function () {
@@ -583,7 +562,6 @@ const BattleEngine = {
 
 
     nextRound: function () {
-        console.log("Starting Next Round...");
         this.currentRound++;
         this.startRound();
     },
@@ -601,7 +579,6 @@ const BattleEngine = {
         this.stateTimer = 0; // Reset state timer
     },
     matchOver: function (winner) {
-        console.log(`Match Over! Winner: ${winner}`);
         this.currentState = this.STATE_MATCH_OVER;
         this.timer = 0;
         this.stateTimer = 0;
@@ -638,13 +615,10 @@ const BattleEngine = {
             const mayuInfo = CharacterData.find(c => c.id === 'mayu');
             const isTrueEnding = mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6); // 6 is Mayu index
             if (isTrueEnding) {
-                console.log("TRUE ENDING COMPLETED!");
-
                 // Unlock Mayu
                 if (!Game.saveData.unlocked.includes('mayu')) {
                     Game.saveData.unlocked.push('mayu');
                     Game.save();
-                    console.log("Mayu unlocked!");
                 }
 
                 Game.isAutoTest = false; // Stop Auto Test
@@ -680,16 +654,11 @@ const BattleEngine = {
     },
 
     startNextRound: function () {
-        console.log("Starting Next Round...");
         this.currentRound++;
         this.startRound();
     },
 
     startRound: function () {
-        console.log("startRound called");
-
-        // Debug: Check loaded assets
-        console.log("Available Assets:", Object.keys(Assets.images));
 
         this.turnCount = 1;
         this.winningYaku = null;
@@ -709,7 +678,6 @@ const BattleEngine = {
 
         // Init Deck
         this.deck = this.generateDeck();
-        console.log(`Deck generated. Size: ${this.deck.length}`);
 
         // CRITICAL: Clear hands before drawing new tiles
         this.p1.hand = [];
@@ -780,14 +748,12 @@ const BattleEngine = {
 
         // Auto-Lose Mode Check (Re-apply effectively)
         if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
-            console.log("AUTO-LOSE MODE (startRound): Setting P1 HP=1, CPU HP=99999");
             this.p1.hp = 1;      // Instant Death next hit
             this.p1.maxHp = 1;
             this.cpu.hp = 99999;
             this.cpu.maxHp = 99999;
         }
 
-        console.log(`Round ${this.currentRound} Start! Visible Dora: ${this.doras[0].type}`);
     },
 
 
@@ -859,7 +825,6 @@ const BattleEngine = {
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         if (!Game.isAutoTest && this.p1.isRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
-            // console.log("Riichi Auto-Discard (Normal)");
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -960,7 +925,6 @@ const BattleEngine = {
                     if (this.pendingDamage) {
                         // Emit Damage Event (Sound + Renderer Shake)
                         this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
-                        console.log(`[Anim] Applying Damage: ${this.pendingDamage.amount} to ${this.pendingDamage.target}`);
 
                         // Apply actual HP change (Render will handle bar sliding if optimized, or jump)
                         // If we want sliding, we need to interpolate in Renderer.
@@ -990,7 +954,6 @@ const BattleEngine = {
     },
 
     confirmResult: function () {
-        console.log("Result Confirmed. Transitioning to Damage Animation.");
         this.currentState = this.STATE_DAMAGE_ANIMATION;
         this.timer = 0;
         // Stop Victory BGM?
@@ -1011,7 +974,6 @@ const BattleEngine = {
 
         // 1. Deck Exhaustion
         if (this.deck.length === 0) {
-            console.log("Deck Empty -> NAGARI Sequence");
             this.startNagariSequence();
             return;
         }
@@ -1019,7 +981,6 @@ const BattleEngine = {
         // 2. Turn Limit
         // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
-            console.log(`Turn Limit Exceeded (${this.turnCount}) -> NAGARI Sequence`);
             this.startNagariSequence();
             return;
         }
@@ -1028,7 +989,6 @@ const BattleEngine = {
 
 
     handleRoundEnd: function () {
-        console.log("handleRoundEnd Called. HP:", this.p1.hp, this.cpu.hp);
         // Check HP for Match Over
         if (this.p1.hp <= 0) {
             this.currentState = this.STATE_MATCH_OVER;
@@ -1039,7 +999,6 @@ const BattleEngine = {
         } else {
             // Neither dead -> Next Round
             // Automatically proceed to next round
-            console.log("Proceeding to Next Round via handleRoundEnd");
             this.nextRound();
         }
     },
@@ -1058,7 +1017,6 @@ const BattleEngine = {
         const t = this.drawTiles(1);
         if (t.length > 0) {
             const drawnTile = t[0];
-            console.log("Player Draws:", drawnTile.type); // Log
             this.events.push({ type: 'DRAW', player: 'P1' });
             this.p1.hand.push(drawnTile);
 
@@ -1075,7 +1033,6 @@ const BattleEngine = {
             if (this.p1.isRiichi) {
                 const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
                 if (tsumoAction) {
-                    console.log("Riichi Auto-Tsumo!");
                     this.executeAction(tsumoAction);
                     return;
                 }
@@ -1104,12 +1061,10 @@ const BattleEngine = {
     cpuDraw: function () {
         // Fix: If CPU just Pon-ed, they don't draw, they just discard.
         if (this.cpu.needsToDiscard) {
-            console.log("CPU needs to discard (After Pon), skipping draw.");
             this.cpu.needsToDiscard = false;
         } else {
             const t = this.drawTiles(1);
             if (t.length > 0) {
-                // console.log("CPU Draws:", t[0].type); // Log
                 this.events.push({ type: 'DRAW', player: 'CPU' });
                 this.cpu.hand.push(t[0]);
             }
@@ -1122,7 +1077,6 @@ const BattleEngine = {
         if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
             if (this.winningYaku) {
-                // console.log("CPU TSUMO!");
                 this.showPopup('TSUMO', { blocking: true });
                 const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
                 this.pendingDamage = { target: 'P1', amount: score };
@@ -1148,7 +1102,6 @@ const BattleEngine = {
             }
 
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, BattleConfig.RULES.AI_DIFFICULTY, this.cpu.aiProfile)) {
-                // console.log(`CPU Riichi! Will discard index: ${riichiDiscardIndex}`);
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard
 
@@ -1198,7 +1151,6 @@ const BattleEngine = {
     },
 
     discardTileCPU: function (index) {
-        console.log(`CPU discards index ${index} `);
         this.events.push({ type: 'DISCARD', player: 'CPU' });
         const discarded = this.cpu.hand.splice(index, 1)[0];
         discarded.owner = 'cpu';
@@ -1212,12 +1164,10 @@ const BattleEngine = {
         // Check if Player can Ron
         // AUTO LOSE MODE: Player Cannot Ron
         if (!Game.isAutoLose && this.checkPlayerActions(discarded)) {
-            console.log("Player has actions on CPU discard");
             // Riichi Auto-Win (Ron)
             if (this.p1.isRiichi) {
                 const ronAction = this.possibleActions.find(a => a.type === 'RON');
                 if (ronAction) {
-                    console.log("Riichi Auto-Ron!");
                     this.executeAction(ronAction);
                     return;
                 }
@@ -1237,7 +1187,6 @@ const BattleEngine = {
 
             // Check Riichi Auto Draw
             if (this.p1.isRiichi) {
-                console.log("Riichi Auto-Draw");
                 this.currentState = this.STATE_PLAYER_TURN; // Will trigger logic? No, PLAYER_TURN just waits.
                 // We need to CALL playerDraw explicitly or setup state such that it draws.
                 this.playerDraw();
@@ -1282,11 +1231,9 @@ const BattleEngine = {
 
     discardTile: function (index) {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
-            console.log("Ignored discard attempt in non-player state:", this.currentState);
             return;
         }
 
-        console.log(`Player discards index ${index}: ${this.p1.hand[index].type}`); // Log
         this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
@@ -1296,8 +1243,6 @@ const BattleEngine = {
             this.riichiTargetIndex = -1; // Reset Logic
         }
         this.discards.push(discarded);
-
-        console.log("DISCARDS:", this.discards.map(d => d.type).join(", ")); // Log discards
 
         this.sortHand(this.p1.hand); // Sort remaining hand after discard to keep it organized for next turn
 
@@ -1323,7 +1268,6 @@ const BattleEngine = {
         const checkHand = [...this.getFullHand(this.cpu), discardedTile];
         const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
         if (win && this.cpu.isRiichi) { // Added Riichi requirement
-            console.log("CPU RON!");
             this.showPopup('RON', { blocking: true });
             this.winningYaku = win;
             const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
@@ -1354,7 +1298,6 @@ const BattleEngine = {
     executeCpuPon: function (tile) {
         this.currentState = this.STATE_FX_PLAYING;
         this.setTimeout(() => {
-            console.log("CPU Calls PON!", tile.type);
             this.showPopup('PON', { blocking: true });
 
             // Remove 2 matching tiles logic
@@ -1504,22 +1447,18 @@ const BattleEngine = {
                 }
                 this.debugTenpaiStrings = debugInfo;
                 this.recommendedDiscards = validDiscards;
-                console.log("Debug Tenpai Strings:", this.debugTenpaiStrings);
             } else {
                 this.debugTenpaiStrings = [];
                 this.recommendedDiscards = [];
             }
-        }
 
-        if (this.possibleActions.length > 0) {
-            this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
-            // Debug: Manually select CPU
-            console.log("Possible self actions:", this.possibleActions.map(a => a.type)); // Added log
-
-            // Allow actions to be cached
-            this._cachedSelfActionsKey = currentHandKey;
-            this._cachedSelfActions = [...this.possibleActions];
-            return true;
+            if (this.possibleActions.length > 0) {
+                this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
+                // Allow actions to be cached
+                this._cachedSelfActionsKey = currentHandKey;
+                this._cachedSelfActions = [...this.possibleActions];
+                return true;
+            }
         }
 
         // Cache empty result
@@ -1532,13 +1471,11 @@ const BattleEngine = {
 
     performAutoTurn: function () {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
-            console.log("Not player turn, cannot auto-select.");
             return;
         }
 
         // Riichi Enforcement: Must discard drawn tile (last one)
         if (this.p1.isRiichi) {
-            console.log("[Auto-Select] Player is Riichi. Auto-Discard drawn tile.");
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -1559,7 +1496,6 @@ const BattleEngine = {
             }
 
             if (canRiichi) {
-                console.log("[Auto-Select] Auto-Riichi!");
                 this.p1.isRiichi = true;
                 this.p1.declaringRiichi = true;
                 this.showPopup('RIICHI', { blocking: true });
@@ -1586,7 +1522,6 @@ const BattleEngine = {
                 return;
             }
 
-            console.log(`[Auto-Select] AI chose to discard index ${discardIdx}`);
             this.discardTile(discardIdx);
         } catch (e) {
             console.error("Error during Auto-Select:", e);
@@ -1599,7 +1534,7 @@ const BattleEngine = {
     },
 
     executeAction: function (action) {
-        console.log(`Executing Action: ${action.type} `);
+
 
         if (action.type === 'PASS' || action.type === 'PASS_SELF') {
             // Pass logic
@@ -1607,7 +1542,6 @@ const BattleEngine = {
                 // Return to player turn for discard
                 this.currentState = this.STATE_PLAYER_TURN;
             } else if (action.type === 'PASS') {
-                console.log("Player Passed.");
                 // Turn count increment only if we are ending CPU turn?
                 // CPU discarded -> We checked actions -> Pass.
                 // CPU turn IS ending.
@@ -1618,7 +1552,6 @@ const BattleEngine = {
 
                 // Check Riichi Auto Draw
                 if (this.p1.isRiichi) {
-                    console.log("Riichi Auto-Draw");
                     this.playerDraw();
                 } else {
                     this.currentState = this.STATE_WAIT_FOR_DRAW; // Manual Draw
@@ -1652,8 +1585,6 @@ const BattleEngine = {
 
                     // Remove from discards (physically taken)
                     this.discards.pop();
-
-                    console.log("Executed PON. Hand size:", this.p1.hand.length);
 
                     // Expressions
                     this.p1Character.setState('smile');
@@ -1704,7 +1635,7 @@ const BattleEngine = {
             const hand = this.p1.hand;
             let candidates = [];
 
-            console.time('RiichiCalc'); // Performance Check
+            // console.time('RiichiCalc'); // Performance Check
 
             for (let i = 0; i < hand.length; i++) {
                 const temp = [...hand];
@@ -1716,7 +1647,7 @@ const BattleEngine = {
                 }
             }
 
-            console.timeEnd('RiichiCalc'); // End Performance Check
+            // console.timeEnd('RiichiCalc'); // End Performance Check
 
             if (candidates.length > 0) {
                 // Sort: Max Score DESC -> Wait Count DESC
@@ -1726,8 +1657,6 @@ const BattleEngine = {
                 });
 
                 const best = candidates[0];
-                console.log("Riichi Smart Select Candidates:", candidates);
-                console.log(`Selected Best: ${best.tile.type} (Score: ${best.maxScore}, Waits: ${best.waitCount})`);
 
                 // Force Selection Logic (Original Style)
                 const targetIdx = best.index;
@@ -1748,11 +1677,9 @@ const BattleEngine = {
 
             // Go to discard
             this.currentState = this.STATE_PLAYER_TURN;
-            console.log("Riichi Declared! Target Index:", this.riichiTargetIndex);
 
         } else if (action.type === 'TSUMO') {
             const fullHand = this.getFullHand(this.p1);
-            console.log("Excuting TSUMO. Hand:", fullHand.map(t => t.type), "ID:", this.p1.id);
             this.showPopup('TSUMO', { blocking: true });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
@@ -1761,7 +1688,6 @@ const BattleEngine = {
             this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id);
 
             if (this.winningYaku) {
-                console.log("Winning Yaku Found:", this.winningYaku);
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('TSUMO', 'P1', score);
@@ -1774,7 +1700,6 @@ const BattleEngine = {
             }
 
         } else if (action.type === 'RON') {
-            console.log("Excuting RON.");
             this.showPopup('RON', { blocking: true });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');
@@ -1785,7 +1710,6 @@ const BattleEngine = {
 
             this.winningYaku = YakuLogic.checkYaku(finalHand, this.p1.id);
             if (this.winningYaku) {
-                console.log("Winning Yaku Found:", this.winningYaku);
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen);
                 this.pendingDamage = { target: 'CPU', amount: score };
                 this.startWinSequence('RON', 'P1', score);
@@ -1870,7 +1794,7 @@ const BattleEngine = {
 
         // Only switch if different
         if (this.currentBgm !== targetBgm) {
-            console.log(`Switching Battle BGM to: ${targetBgm}`);
+            // console.log(`Switching Battle BGM to: ${targetBgm}`);
             this.currentBgm = targetBgm;
             this.events.push({ type: 'MUSIC', id: targetBgm, loop: true });
         }
@@ -2018,7 +1942,7 @@ const BattleEngine = {
             character.setTalking(true);
         }
 
-        console.log(`[Dialogue] ${who} (${charId}): ${text.replace(/\n/g, ' ')}`);
+        // console.log(`[Dialogue] ${who} (${charId}): ${text.replace(/\n/g, ' ')}`);
 
         // --- Generic Reply Logic ---
         // Exclude specific keys that have their own coupled logic
