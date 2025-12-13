@@ -200,6 +200,9 @@ const BattleConfig = {
         yakuListX: 140,      // Left Column Start X
         scoreListX: 500,     // Right Column Align X (Right Aligned)
         yakuY: 180,          // Start Y for Yaku List
+        scoreX: 320,         // Legacy/MatchWin Center X
+        scoreY: 180,         // Legacy/MatchWin Start Y
+        infoLineHeight: 30,  // Legacy Line Height
         lineHeight: 32,      // Vertical spacing between items
         separatorGap: 15,    // Gap before separator line
         damageGap: 15,       // Gap after separator line before "Damage" text

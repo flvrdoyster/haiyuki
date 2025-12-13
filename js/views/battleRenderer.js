@@ -140,11 +140,21 @@ const BattleRenderer = {
                 // Riichi indicator if needed
             }
 
+            // Determine Tint (Validity)
+            const options = {};
+            if (state.p1.isRiichi) {
+                // Check validity
+                const validIndices = state.validRiichiDiscardIndices;
+                if (validIndices && !validIndices.includes(i)) {
+                    options.tint = 'rgba(0, 0, 0, 0.6)'; // Darken invalid tiles
+                }
+            }
+
             // Draw Face or Back based on state
             if (state.p1.isFaceDown) {
                 this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/pai_back.png');
             } else {
-                this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH);
+                this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH, options);
             }
         }
 
@@ -345,10 +355,18 @@ const BattleRenderer = {
         return this._tempPos;
     },
 
-    drawTile: function (ctx, tile, x, y, w, h) {
+    drawTile: function (ctx, tile, x, y, w, h, options = {}) {
         const img = Assets.get(tile.img);
         if (img) {
             ctx.drawImage(img, x, y, w, h);
+
+            // Tint Overlay
+            if (options.tint) {
+                ctx.save();
+                ctx.fillStyle = options.tint;
+                ctx.fillRect(x, y, w, h);
+                ctx.restore();
+            }
         } else {
             ctx.fillStyle = BattleConfig.FALLBACK.tileBg;
             ctx.fillRect(x, y, w, h);

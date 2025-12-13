@@ -104,6 +104,11 @@ const BattleScene = {
             const anim = options.anim; // New: Animation Type
             const blocking = options.blocking || false;
 
+            // Prevent Overlap: If this is a blocking FX (Major Popup), clear existing FX
+            if (blocking) {
+                this.activeFX = [];
+            }
+
             let startX = x;
             let endX = x;
             let startY = y;
@@ -364,7 +369,7 @@ const BattleScene = {
     },
 
     handlePlayerTurnInput: function (engine) {
-        // Riichi Locked Input
+        // Riichi Locked Input: Allow manual discard ONLY when declaring Riichi
         if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
 
         // Mouse Interaction
@@ -398,6 +403,16 @@ const BattleScene = {
                     // Check Strict Target (Riichi Auto-Move)
                     if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== clickIndex) {
                         return;
+                    }
+
+                    // Riichi Manual Discard Validation
+                    if (engine.p1.isRiichi && !engine.p1.declaringRiichi) { // Validating post-riichi discards
+                        const validIndices = engine.validRiichiDiscardIndices;
+                        if (validIndices && !validIndices.includes(clickIndex)) {
+                            // Invalid Discard (Breaks Tenpai) - Block
+                            Assets.playSound('audio/hit-1'); // Error sound
+                            return;
+                        }
                     }
 
                     engine.hoverIndex = clickIndex; // Select the clicked tile

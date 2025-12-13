@@ -56,6 +56,13 @@ const BattleEngine = {
     sequencing: { active: false, steps: [], currentStep: 0, timer: 0 },
 
     showPopup: function (type, options = {}) {
+        // Debounce: Prevent same popup within 10 frames (Fixes double trigger issues)
+        if (this._lastPopupType === type && (this.timer - this._lastPopupTime) < 10) {
+            return;
+        }
+        this._lastPopupType = type;
+        this._lastPopupTime = this.timer;
+
         const conf = BattleConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
         const typeConf = conf.TYPES[type] || {};
@@ -812,7 +819,8 @@ const BattleEngine = {
         }
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
-        if (!Game.isAutoTest && this.p1.isRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
+        // Only if NOT declaring Riichi (User Manual Discard)
+        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -1031,18 +1039,10 @@ const BattleEngine = {
             this.selectedActionIndex = 0;
         } else {
             // No actions
-            if (this.p1.isRiichi) {
-                // Auto Discard (Riichi Rule) - Delayed
-                // Go to STATE_PLAYER_TURN to allow rendering the drawn tile
-                this.currentState = this.STATE_PLAYER_TURN;
-                this.timer = 0; // Reset timer for delay
-
-            } else {
-                // Normal turn
-                this.currentState = this.STATE_PLAYER_TURN;
-                this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
-                this.timer = 0;
-            }
+            // Normal turn (Riichi Auto-Discard handled by Update Loop)
+            this.currentState = this.STATE_PLAYER_TURN;
+            this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
+            this.timer = 0;
         }
     },
 
@@ -1185,7 +1185,6 @@ const BattleEngine = {
             }
         }
     },
-
     // Sort: Category -> Color -> ID
     sortHand: function (hand) {
         const catOrder = { 'character': 1, 'weapon': 2, 'mayu': 3 };
@@ -1282,6 +1281,54 @@ const BattleEngine = {
 
         return false;
     },
+    /**
+     * Helper for Riichi Manual Discard
+     * Returns array of indices in current p1.hand that are valid to discard (keep Tenpai).
+     */
+    getValidRiichiDiscards: function () {
+        const hand = this.p1.hand;
+        const validIndices = [];
+
+        for (let i = 0; i < hand.length; i++) {
+            // Create temp hand without this tile
+            const tempHand = [...hand];
+            tempHand.splice(i, 1);
+
+            // Must have 11 tiles (since hand is 12).
+            // checkTenpai expects 11 tiles (waiting for 12th).
+            if (this.checkTenpai(tempHand)) {
+                validIndices.push(i);
+            }
+        }
+        return validIndices;
+    },
+
+    /**
+     * Simplified Can Win Check (Is Tenpai?)
+     */
+    getTenpaiInfo: function (player) {
+        // This function is intended to return information about tenpai, not to execute a pon.
+        // The provided snippet seems to be a copy-paste error from executeCpuPon.
+        // Assuming the user intended to add a new helper function for Tenpai info.
+        // For now, I'll add a placeholder based on the comment.
+        // If this was meant to be a modification of executeCpuPon, please clarify.
+
+        // Placeholder for Tenpai Info logic:
+        const hand = player.hand;
+        const tenpaiInfo = {
+            isTenpai: false,
+            waitingTiles: [],
+            potentialYakus: []
+        };
+
+        // Simplified check for demonstration
+        if (this.checkTenpai(hand)) {
+            tenpaiInfo.isTenpai = true;
+            // In a real implementation, you'd calculate waiting tiles and potential yakus here.
+            // For now, just a basic flag.
+        }
+        return tenpaiInfo;
+    },
 
     executeCpuPon: function (tile) {
         this.currentState = this.STATE_FX_PLAYING;
@@ -1318,6 +1365,7 @@ const BattleEngine = {
                 // Setup Discard Phase
                 this.currentState = this.STATE_CPU_TURN;
                 this.timer = 30; // Short delay before discard
+                this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
             }
         }, 450);
     },
@@ -1590,6 +1638,10 @@ const BattleEngine = {
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
+            // Manual Discard for Riichi Declaration:
+            // Calculate valid discards (must maintain tenpai)
+            this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
+
             this.showPopup('RIICHI', { slideFrom: 'LEFT' });
             // this.triggerDialogue('P1', 'SELF_RIICHI');
             // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
