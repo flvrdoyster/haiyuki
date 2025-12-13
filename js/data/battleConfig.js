@@ -134,11 +134,11 @@ const BattleConfig = {
 
         // Sound mapping for Popups
         TYPES: {
-            'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' }, // 90 -> 70
-            'PON': { life: 40, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' }, // 90 -> 60
-            'RON': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 120 -> 100
-            'TSUMO': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' }, // 120 -> 100
-            'NAGARI': { life: 80, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' } // 180 -> 140
+            'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' },
+            'PON': { life: 40, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
+            'RON': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'TSUMO': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'NAGARI': { life: 80, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' }
         }
     },
     FX: {

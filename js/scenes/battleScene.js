@@ -208,9 +208,12 @@ const BattleScene = {
                 } else if (age < totalDur) {
                     // Phase 2: Bounce Up (Ease Out Quad) -> To Target
                     const p = (age - dropDur) / bounceDur;
-                    const easeOut = p * (2 - p);
+                    const linear = p;
+                    const easeOut = p * (2 - p); // Deceleration against gravity
 
-                    fx.x = (fx.endX + impactOffX) + (impactOffX * -1) * easeOut;
+                    // X moves Linearly (Constant horizontal velocity) to create Arc
+                    fx.x = (fx.endX + impactOffX) + (impactOffX * -1) * linear;
+                    // Y Decelerates (Gravity)
                     fx.y = (fx.endY + floorOffY) + (floorOffY * -1) * easeOut;
 
                 } else {
