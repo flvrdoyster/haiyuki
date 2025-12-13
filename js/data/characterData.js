@@ -155,6 +155,7 @@ const CharacterData = [
     {
         id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/CHRSELPET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20,
         // Petum: Tricky / Attack Skills. Opposite of Fari. Unpredictable.
+        // Note: No blink animation (eyes covered).
         aiProfile: { type: 'TRICKY_ATTACK', aggression: 0.75, speed: 0.6, defense: 0.2, colorBias: 0.7 },
         dialogue: {
             'MATCH_START': '',

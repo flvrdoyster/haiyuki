@@ -18,8 +18,8 @@ const Assets = {
         { id: 'audio/bgm_basic', src: 'assets/audio/bgm_basic.mp3', type: 'audio' },
         { id: 'audio/bgm_tension', src: 'assets/audio/bgm_tension.mp3', type: 'audio' },
         { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
-        { id: 'audio/bgm_win', src: 'assets/audio/bgm_win.mp3', type: 'audio' },
-        { id: 'audio/bgm_lose', src: 'assets/audio/bgm_lose.mp3', type: 'audio' },
+        { id: 'audio/bgm_win', src: 'assets/audio/victory.mp3', type: 'audio' },
+        { id: 'audio/bgm_lose', src: 'assets/audio/lose.mp3', type: 'audio' },
         { id: 'audio/lose', src: 'assets/audio/lose.mp3', type: 'audio' },
         { id: 'audio/bgm_ending', src: 'assets/audio/bgm_ending.mp3', type: 'audio' },
         { id: 'audio/pon', src: 'assets/audio/pon.mp3', type: 'audio' },
@@ -27,7 +27,7 @@ const Assets = {
         { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
         { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' }, // Gong Sound
         { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' }, // New Victory Sound
-        { id: 'audio/hit', src: 'assets/audio/hit.mp3', type: 'audio' },
+        { id: 'audio/hit', src: 'assets/audio/hit-1.mp3', type: 'audio' },
         { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
         { id: 'audio/hit-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
         { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
@@ -97,13 +97,13 @@ const Assets = {
 
         // 3. Smashu
         'face/SMSH.png', 'face/SMSH_base.png', 'face/SMSH_idle.png',
-        'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png', 'face/SMSH_blink-3.png',
+        'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png',
         'face/SMSH_shocked.png', 'face/SMSH_smile.png',
-        'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png', 'face/SMSH_talk-3.png',
+        'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png',
 
         // 4. Petum
         'face/PET_base.png',
-        'face/PET_blink-1.png', 'face/PET_blink-2.png',
+        // 'face/PET_blink-1.png', 'face/PET_blink-2.png', // Petum has no blink frames in directory
         'face/PET_shocked.png', 'face/PET_smile.png',
         'face/PET_talk-1.png', 'face/PET_talk-2.png',
 
@@ -139,7 +139,7 @@ const Assets = {
         'ui/riichi.png', // New Riichi stick asset
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
-        'ui/cursor_yellow.png',
+        // 'ui/cursor_yellow.png', // File missing
         'ui/alphabet.png',
         'ui/pointer.png',
 
@@ -178,7 +178,6 @@ const Assets = {
                 audio.addEventListener('canplaythrough', () => {
                     if (!this.audio[id]) { // Prevent double count
                         this.audio[id] = audio;
-                        this.audio[id] = audio;
                         this.loadedCount++;
 
                         // OPTIMIZATION: Pre-Warm Pools for Sound Effects
@@ -211,7 +210,6 @@ const Assets = {
                 const img = new Image();
                 img.src = src;
                 img.onload = () => {
-                    this.images[id] = img;
                     this.images[id] = img;
                     this.loadedCount++;
                     if (this.loadedCount === this.toLoad.length) {
@@ -333,7 +331,6 @@ const Assets = {
                     window.addEventListener('touchstart', resumeAudio, { once: true });
                 });
             }
-            audio._id = id; // Store ID for state checking
             audio._id = id; // Store ID for state checking
             this.currentMusic = audio;
         } else {

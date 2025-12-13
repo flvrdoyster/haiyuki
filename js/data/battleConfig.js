@@ -143,11 +143,11 @@ const BattleConfig = {
     },
     FX: {
         // Generic FX Animation Settings
-        fadeInDuration: 5,  // Frames to fade in
-        fadeOutDuration: 5, // Frames to fade out
-        slideDuration: 10,   // Frames for slide animation
-        zoomPulseDuration: 5, // Frames for initial zoom pulse (0 -> 1.2)
-        zoomSettleDuration: 5, // Frames for settling (1.2 -> 1.0)
+        fadeInDuration: 3,  // Frames to fade in
+        fadeOutDuration: 3, // Frames to fade out
+        slideDuration: 6,   // Frames for slide animation
+        zoomPulseDuration: 3, // Frames for initial zoom pulse 
+        zoomSettleDuration: 3, // Frames for settling 
         zoomPeakScale: 1.2   // Peak scale factor
     },
     DIALOGUE: {
