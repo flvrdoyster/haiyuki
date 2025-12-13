@@ -262,7 +262,12 @@ const BattleScene = {
 
         // Check Blocking Status
         const isBlocking = this.activeFX.some(fx => fx.blocking);
-        if (isBlocking) return; // Pause Logic and Input
+        if (isBlocking) {
+            // Even if blocking logic, visual animations (Characters) should continue
+            if (BattleEngine.p1Character) BattleEngine.p1Character.update();
+            if (BattleEngine.cpuCharacter) BattleEngine.cpuCharacter.update();
+            return; // Pause Logic and Input
+        }
 
         // Logic Update
         BattleEngine.updateLogic();
