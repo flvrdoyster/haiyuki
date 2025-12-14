@@ -108,11 +108,15 @@ const YakuLogic = {
         pushIfMatch(this.isAllStars(a), 'ALL_STARS', this.SCORES.ALL_STARS);
         pushIfMatch(this.isSamYeonGyeok(a), 'SAM_YEON_GYEOK', this.SCORES.SAM_YEON_GYEOK);
 
-        if (matches.length === 0) return null;
+        if (matches.length === 0) {
+            // Check Basic Shape (Structure Only) for Riichi
+            if (this.isBasicShape(a)) {
+                return { score: 0, yaku: ['RIICHI_ONLY'] };
+            }
+            return null;
+        }
         matches.sort((a, b) => b.score - a.score);
 
-        // Return object compatible with BattleRenderer
-        // Renderer expects { score: number, yaku: string[] }
         return {
             score: matches[0].score,
             yaku: [matches[0].name]
@@ -514,5 +518,17 @@ const YakuLogic = {
         };
 
         return checkColor('red') && checkColor('blue') && checkColor('yellow');
+    },
+
+    isBasicShape(a) {
+        // Standard: 4 Sets of 3
+        const sets = Object.values(a.counts).filter(c => c.count >= 3).length;
+        if (sets >= 4) return true;
+
+        // Pairs: 6 Pairs
+        const pairs = Object.values(a.counts).filter(c => c.count >= 2).length;
+        if (pairs >= 6) return true;
+
+        return false;
     }
 };

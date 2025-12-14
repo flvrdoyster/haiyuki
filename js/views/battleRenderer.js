@@ -242,7 +242,9 @@ const BattleRenderer = {
         this.drawFX(ctx, activeFX);
 
         // Dialogue (Below Result/UI)
-
+        if (state.currentState !== state.STATE_WIN && state.currentState !== state.STATE_LOSE) {
+            BattleDialogue.draw(ctx, state);
+        }
 
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {

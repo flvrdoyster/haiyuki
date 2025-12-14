@@ -370,6 +370,7 @@ const BattleScene = {
 
     handlePlayerTurnInput: function (engine) {
         // Riichi Locked Input: Allow manual discard ONLY when declaring Riichi
+        // If Riichi is active AND NOT declaring, input is blocked (Auto Mode)
         if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
 
         // Mouse Interaction
@@ -405,12 +406,13 @@ const BattleScene = {
                         return;
                     }
 
-                    // Riichi Manual Discard Validation
-                    if (engine.p1.isRiichi && !engine.p1.declaringRiichi) { // Validating post-riichi discards
+                    // Riichi Manual Discard Validation (Specifically during Declaration)
+                    if (engine.p1.declaringRiichi) {
                         const validIndices = engine.validRiichiDiscardIndices;
-                        if (validIndices && !validIndices.includes(clickIndex)) {
+                        if (!validIndices || !validIndices.includes(clickIndex)) {
                             // Invalid Discard (Breaks Tenpai) - Block
                             Assets.playSound('audio/hit-1'); // Error sound
+                            console.log(`Invalid Riichi Discard: ${clickIndex}. Valid: ${validIndices}`);
                             return;
                         }
                     }

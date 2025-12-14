@@ -115,11 +115,9 @@ const BattleEngine = {
     // Config for Battle Menu
     // Action Logic
     possibleActions: [], // { type: 'PON', tile: ... }
-    actionTimer: 0,
-    selectedActionIndex: 0,
-
-    // Config for Battle Menu
     // selectedMenuIndex: 0, // Moved to BattleMenuSystem 
+
+    dialogueTriggeredThisTurn: false,
 
     init: function (data) {
         // Prevent Context Menu on Canvas (Right Click)
@@ -274,6 +272,12 @@ const BattleEngine = {
             this.p1Character.setState('shocked');
             this.cpuCharacter.setState('smile');
         }
+
+        // Dialogue
+        const winner = who === 'P1' ? 'p1' : 'cpu';
+        const loser = who === 'P1' ? 'cpu' : 'p1';
+        this.triggerDialogue('WIN', winner);
+        this.triggerDialogue('LOSE', loser);
 
         this.currentState = this.STATE_FX_PLAYING;
 
@@ -853,7 +857,9 @@ const BattleEngine = {
                 this.checkRoundEnd();
             }
         }
+        BattleDialogue.update();
 
+        // State Machine
         switch (this.currentState) {
             case this.STATE_INIT:
                 if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
@@ -977,6 +983,7 @@ const BattleEngine = {
         // 2. Turn Limit
         // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
+            console.log("Turn Limit Reached (20). Starting Nagari.");
             this.startNagariSequence();
             return;
         }
@@ -1111,6 +1118,8 @@ const BattleEngine = {
                             type: 'CALLBACK', callback: () => {
                                 // Finish Sequence
                                 this.sequencing.active = false;
+                                // Reset State to allow discard logic to proceed (otherwise it blocks as FX_PLAYING)
+                                this.currentState = this.STATE_CPU_TURN;
                                 // Proceed to Discard
                                 this.discardTileCPU(riichiDiscardIndex);
                             }
@@ -1171,7 +1180,10 @@ const BattleEngine = {
         if (!hasAction) {
             this.turnCount++;
             this.checkRoundEnd();
-            if (this.currentState === this.STATE_NAGARI || this.currentState === this.STATE_MATCH_OVER) return; // Transitioned to End State
+            if (this.currentState === this.STATE_NAGARI ||
+                this.currentState === this.STATE_MATCH_OVER ||
+                this.currentState === this.STATE_FX_PLAYING ||
+                this.turnCount > 20) return; // Transitioned to End State or Limit Reached
 
             // Check Riichi Auto Draw
             if (this.p1.isRiichi) {
@@ -1228,6 +1240,7 @@ const BattleEngine = {
             discarded.isRiichi = true;
             this.p1.declaringRiichi = false;
             this.riichiTargetIndex = -1; // Reset Logic
+            this.validRiichiDiscardIndices = null; // Reset Visuals
         }
         this.discards.push(discarded);
 
@@ -1245,6 +1258,12 @@ const BattleEngine = {
 
         this.currentState = this.STATE_CPU_TURN;
         this.timer = 0;
+
+        // Random Dialogue (Turn End)
+        // Check if no dialogue happened this turn
+        if (!this.dialogueTriggeredThisTurn && !this.p1.isRiichi && Math.random() < 0.15) {
+            this.triggerDialogue('RANDOM', 'p1');
+        }
     },
 
     checkCpuActions: function (discardedTile) {
@@ -1626,6 +1645,13 @@ const BattleEngine = {
                     this.p1Character.setState('smile');
                     this.cpuCharacter.setState('shocked');
                     this.showPopup('PON', { blocking: true });
+
+                    // Dialogue
+                    this.triggerDialogue('PON', 'p1');
+                    setTimeout(() => {
+                        this.triggerDialogue('PON_REPLY', 'cpu');
+                    }, 1000);
+
                     // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
                     // Force Discard State (Turn continues but starts at discard phase)
@@ -1643,21 +1669,12 @@ const BattleEngine = {
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
 
             this.showPopup('RIICHI', { slideFrom: 'LEFT' });
-            // this.triggerDialogue('P1', 'SELF_RIICHI');
-            // 'ENEMY_RIICHI' for CPU is implicit via _REPLY check if we added strictly,
-            // BUT Riichi is special. Let's rely on generic reply? 
-            // Actually, for Riichi, the opponent usually reacts to the declaration.
-            // So if P1 does SELF_RIICHI, CPU should do ENEMY_RIICHI.
-            // My generic logic maps KEY -> KEY_REPLY. 
-            // So SELF_RIICHI -> SELF_RIICHI_REPLY. 
-            // BUT our data uses 'ENEMY_RIICHI' key for the opponent's reaction.
-            // Let's adjust usage to match data:
-            // Data has 'SELF_RIICHI' (My line) and 'ENEMY_RIICHI' (My line when enemy Riichis).
-            // So when P1 triggers SELF_RIICHI, CPU should trigger ENEMY_RIICHI.
-            // We need to manually trigger this reaction because the keys don't match the _REPLY pattern.
-            // setTimeout(() => {
-            //     this.triggerDialogue('CPU', 'ENEMY_RIICHI');
-            // }, 1000);
+
+            // Dialogue
+            this.triggerDialogue('RIICHI', 'p1');
+            setTimeout(() => {
+                this.triggerDialogue('RIICHI_REPLY', 'cpu');
+            }, 1500);
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
@@ -1690,25 +1707,18 @@ const BattleEngine = {
             // console.timeEnd('RiichiCalc'); // End Performance Check
 
             if (candidates.length > 0) {
-                // Sort: Max Score DESC -> Wait Count DESC
-                candidates.sort((a, b) => {
-                    if (b.maxScore !== a.maxScore) return b.maxScore - a.maxScore;
-                    return b.waitCount - a.waitCount;
-                });
+                // Just log (Debug)
+                // We do NOT force selection. User must choose manually.
+                // candidates.sort ...
 
-                const best = candidates[0];
-
-                // Force Selection Logic (Original Style)
-                const targetIdx = best.index;
-                const tile = hand.splice(targetIdx, 1)[0];
-                hand.push(tile);
-
-                this.lastDrawGroupSize = 1; // Force visual gap
-                this.riichiTargetIndex = hand.length - 1; // Strict target
+                // this.riichiTargetIndex = -1; // Ensure unlocked
             } else {
                 console.error("Riichi declared but no valid discards found? Should not happen.");
-                this.riichiTargetIndex = -1;
+                // this.riichiTargetIndex = -1;
             }
+
+            // Ensure unlocked
+            this.riichiTargetIndex = -1;
 
             this.p1.riichiValidDiscards = null; // Clear manual list just in case
 
@@ -1942,5 +1952,24 @@ const BattleEngine = {
     },
 
 
-};
 
+
+    triggerDialogue: function (key, owner) {
+        if (!DialogueData || !DialogueData.BATTLE) return;
+
+        const charId = (owner === 'p1' || owner === 'P1') ? this.p1Character.id : this.cpuCharacter.id;
+        const charData = DialogueData.BATTLE[charId] || DialogueData.BATTLE.default;
+
+        let lines = charData[key];
+        if (!lines || lines.length === 0) {
+            lines = DialogueData.BATTLE.default[key];
+        }
+
+        if (lines && lines.length > 0) {
+            const text = lines[Math.floor(Math.random() * lines.length)];
+            const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
+            BattleDialogue.show(text, who);
+            this.dialogueTriggeredThisTurn = true;
+        }
+    }
+};
