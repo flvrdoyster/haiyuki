@@ -411,7 +411,7 @@ const BattleScene = {
                         const validIndices = engine.validRiichiDiscardIndices;
                         if (!validIndices || !validIndices.includes(clickIndex)) {
                             // Invalid Discard (Breaks Tenpai) - Block
-                            Assets.playSound('audio/hit-1'); // Error sound
+                            Assets.playSound('audio/wrong'); // Error sound
                             console.log(`Invalid Riichi Discard: ${clickIndex}. Valid: ${validIndices}`);
                             return;
                         }
