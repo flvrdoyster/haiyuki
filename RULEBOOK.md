@@ -20,7 +20,7 @@ This document serves as the single source of truth for the game's rules and logi
 
 ## 2. Hand Structure
 - **Max Hand Size**: 11 tiles held, 12th tile is the drawn/winning tile.
-- **CPU Hand Size Bug Note**: CPU must skip Draw phase immediately after calling Pon. (Hand stays at 11 -> Discard -> 11).
+- **Pon Mechanics**: A player (or CPU) must skip the Draw phase immediately after calling Pon. (Hand stays at 11 -> Discard -> 11).
 
 ## 3. Riichi Mechanics (Custom)
 - **Condition**: 
@@ -50,7 +50,7 @@ This document serves as the single source of truth for the game's rules and logi
   - *Implication*: You cannot Ron with a Damaten (Silent Tenpai) hand.
   - *Implication*: You cannot Ron if you have called Pon (since Open Hands cannot Riichi).
 - **Exception**: This is a strict deviation from standard Mahjong rules, implemented for gameplay balance/design reasons.
-- **No Furiten**: The "Furiten" rule (cannot Ron if you previously discarded the winning tile) does **NOT** apply. You can Ron on any valid tile if you are in Riichi, regardless of your discard history.
+- **No Furiten**: The "Furiten" rule (cannot Ron if you previously discarded the winning tile) **does not exist**. You can Ron on any valid tile if you are in Riichi, regardless of your discard history.
 
 ## 5. Called Actions (Naki)
 ### Pon
@@ -61,6 +61,10 @@ This document serves as the single source of truth for the game's rules and logi
   - **Riichi Disabled**: Since hand is open, Riichi is impossible.
   - **Ron Disabled**: Since Ron requires Riichi (per Custom Rule), calling Pon effectively removes the ability to win by Ron. You can only win by Tsumo.
 - **Turn Flow**: After Pon, the player skips the Draw phase and must discard immediately.
+
+### Unavailable Actions
+- **Chi (치)**: Does not exist in this game ruleset.
+- **Kan (깡)**: Does not exist in this game ruleset.
 
 ## 6. Draw Game (Nagari)
 - Occurs if Turn Count reaches 20 without a winner.
@@ -74,6 +78,7 @@ This document serves as the single source of truth for the game's rules and logi
 ## 8. Scoring & Damage
 - **Direct Damage**: The final score of a hand is applied directly as damage to the opponent's HP.
 - **Open Hand Penalty**: If the winning hand is **Open** (not Menzen), the total score is reduced to **75%**.
+- **Symmetry**: ALL rules (Scoring, Riichi conditions, Open Hand penalties, etc.) apply identically to both the **Player** and the **CPU**.
 
 ## 9. Bonuses
 - **Dora**: +1 Bonus count per matching visible Dora tile.

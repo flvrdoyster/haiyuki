@@ -289,7 +289,7 @@ const BattleEngine = {
         ];
 
         // Conditional Steps
-        if (who === 'P1' && this.p1.isRiichi) {
+        if ((who === 'P1' && this.p1.isRiichi) || (who === 'CPU' && this.cpu.isRiichi)) {
             steps.push({ type: 'REVEAL_URA' });
         }
 
@@ -310,7 +310,8 @@ const BattleEngine = {
 
         // Calculate Bonuses
         const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
-        const bonusResult = this.calculateBonuses(winnerHand, type);
+        const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
+        const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
         const finalScore = score + bonusResult.score;
 
         // FIX: Update pending damage with final score (including bonuses)
@@ -1853,7 +1854,7 @@ const BattleEngine = {
     },
 
     // --- Bonus Logic ---
-    calculateBonuses: function (hand, winType) {
+    calculateBonuses: function (hand, winType, isRiichi) {
         let totalBonus = 0;
         let details = []; // Array of { name, score }
 
@@ -1892,7 +1893,7 @@ const BattleEngine = {
         });
 
         // Check Ura Dora (Hidden) - Only if Riichi?
-        if (this.p1.isRiichi) {
+        if (isRiichi) { // Use passed argument
             // Ura Doras are pre-generated in startRound. Just use them.
             this.uraDoras.forEach(dora => {
                 hand.forEach(tile => {
