@@ -28,20 +28,14 @@ const ContinueConfig = {
         font: `16px ${FONTS.regular}`,
         color: '#555'
     },
-    COUNTDOWN: {
-        x: 320, y: 200,
-        // font removed
-        color: 'red',
-        start: 9
-    }
+
 };
 
 const ContinueScene = {
     // State
     selectedOption: 0, // 0: YES, 1: NO
     timer: 0,
-    countdownTimer: 0,
-    currentCount: 9,
+
     pointerTimer: 0,
 
     // Data passed from BattleScene
@@ -51,9 +45,8 @@ const ContinueScene = {
         this.data = data || {};
         this.selectedOption = 0;
         this.timer = 0;
-        this.countdownTimer = 0;
         this.pointerTimer = 0;
-        this.currentCount = ContinueConfig.COUNTDOWN.start;
+
         console.log("Continue Scene Init", this.data);
     },
 
@@ -63,17 +56,7 @@ const ContinueScene = {
         // Pointer anim
         this.pointerTimer++;
 
-        // Countdown Logic (approx 60 frames = 1 sec)
-        this.countdownTimer++;
-        if (this.countdownTimer >= 60) {
-            this.currentCount--;
-            this.countdownTimer = 0;
-            if (this.currentCount < 0) {
-                // Time Over -> Same as NO
-                this.giveUp();
-                return;
-            }
-        }
+
 
         // Input Handling
         if (Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
@@ -162,10 +145,7 @@ const ContinueScene = {
         const subX = 320 - (subW / 2);
         Assets.drawAlphabet(ctx, subText, subX, sub.y - 20, sub.color);
 
-        // Countdown
-        const cd = ContinueConfig.COUNTDOWN;
-        // Scale
-        Assets.drawNumberBig(ctx, Math.ceil(this.currentCount), cd.x, cd.y - 20, { align: 'center', spacing: -10, scale: 2 });
+
 
         // Options
         const opts = ContinueConfig.OPTIONS;

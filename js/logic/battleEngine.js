@@ -732,11 +732,8 @@ const BattleEngine = {
         this.doras.push({ type: d1.id, color: d1.color, img: d1.img });
 
         // 2. Ura Dora (Hidden, Persistent)
-        // Rule: Must be different from visible Dora
-        let d2;
-        do {
-            d2 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
-        } while (d2.id === d1.id && d2.color === d1.color);
+        // Rule: Can be same as visible Dora (User Request)
+        const d2 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
 
         this.uraDoras.push({ type: d2.id, color: d2.color, img: d2.img });
 

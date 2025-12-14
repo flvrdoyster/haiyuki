@@ -181,9 +181,9 @@ const DialogueData = {
     "petum_yuri": [
         { speaker: "petum", text: "여, 안녕하십니까.", speakerState: '', listenerState: '' },
         { speaker: "yuri", text: "아... 아, 안녕.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "처음 뵙겠습니다. 페톰입니다.\n잘 부탁드립니다.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "아... 나는 유리와카마루.\n이쪽이야말로 잘 부탁해.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "그럼 시간이 아까우니,\n슬슬 시작해볼까요?", speakerState: '', listenerState: '' },
+        { speaker: "petum", text: "처음 뵙겠습니다. 페톰입니다.\n잘 부탁드립니다.", speakerState: 'smile', listenerState: '' },
+        { speaker: "yuri", text: "아... 나는 유리와카마루.\n이쪽이야말로 잘 부탁해.", speakerState: 'smile', listenerState: 'smile' },
+        { speaker: "petum", text: "그럼 시간이 아까우니,\n슬슬 시작해볼까요?", speakerState: '', listenerState: 'smile' },
         { speaker: "yuri", text: "그렇네, 그렇게 할까.", speakerState: '', listenerState: '' }
     ],
 
@@ -405,10 +405,10 @@ const DialogueData = {
             PON: [],
             PON_REPLY: [],
             RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
+            RIICHI_REPLY: ["으음, 제법이구만."],
+            WIN: ["자네에겐 아직 질 수 없지."],
             LOSE: [],
-            RANDOM: [],
+            RANDOM: ["이거 안 들어 오는 패 아닌가.", "이 녀석을 기다렸다고.", "이거 위험하려나?", "흠."],
             DAMAGED: []
         },
         // Rinxiang
@@ -425,21 +425,21 @@ const DialogueData = {
         // Smash
         smash: {
             PON: [],
-            PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
+            PON_REPLY: ["뭐라굿!?"],
+            RIICHI: ["좋아! 승부닷!!", "후우, 간신히 모았네..."],
+            RIICHI_REPLY: ["제법이잖아."],
+            WIN: ["절호조!(철 지난 유행어)"],
             LOSE: [],
-            RANDOM: [],
+            RANDOM: ["에~엣취!!"],
             DAMAGED: []
         },
         // Petum
         petum: {
-            PON: [],
+            PON: ["그거, 받아갑니다."],
             PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
+            RIICHI: ["후훗, 선수필승입니다.", "저도 질 수는 없죠."],
+            RIICHI_REPLY: ["어라, 제법이지 않습니까."],
+            WIN: ["전략의 차이네요."],
             LOSE: [],
             RANDOM: [],
             DAMAGED: []
@@ -459,11 +459,11 @@ const DialogueData = {
         yuri: {
             PON: [],
             PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
+            RIICHI: ["그럼 먼저~"],
+            RIICHI_REPLY: ["빠르기도 하군..."],
+            WIN: ["미안하구만!!"],
             LOSE: [],
-            RANDOM: [],
+            RANDOM: ["뭐야.", "훗...", "이건 어떠냐!!", "이런이런..."],
             DAMAGED: []
         },
         // Mayu
