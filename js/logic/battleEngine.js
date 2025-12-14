@@ -1663,7 +1663,7 @@ const BattleEngine = {
                     this.triggerDialogue('PON', 'p1');
                     setTimeout(() => {
                         this.triggerDialogue('PON_REPLY', 'cpu');
-                    }, 1000);
+                    }, BattleConfig.DIALOGUE.replyDelay);
 
                     // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
@@ -1687,7 +1687,7 @@ const BattleEngine = {
             this.triggerDialogue('RIICHI', 'p1');
             setTimeout(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, 1500);
+            }, BattleConfig.DIALOGUE.replyDelay);
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';

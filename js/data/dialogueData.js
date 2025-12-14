@@ -415,11 +415,11 @@ const DialogueData = {
         rinxiang: {
             PON: [],
             PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
+            RIICHI: ["좋아, 승부에요!!", "당신만 웃게 놔둘 수 없지!"],
+            RIICHI_REPLY: ["제법이잖아."],
+            WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
             LOSE: [],
-            RANDOM: [],
+            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "이거... 혹시..."],
             DAMAGED: []
         },
         // Smash

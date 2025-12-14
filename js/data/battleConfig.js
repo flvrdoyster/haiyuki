@@ -156,6 +156,7 @@ const BattleConfig = {
         color: 'white',
         lineHeight: 20, // Added for multi-line support
         life: 120, // Duration in frames
+        replyDelay: 600, // Response delay in ms
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 }
     },
