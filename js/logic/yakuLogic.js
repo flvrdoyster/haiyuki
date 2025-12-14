@@ -533,9 +533,9 @@ const YakuLogic = {
         const sets = Object.values(a.counts).filter(c => c.count >= 3).length;
         if (sets >= 4) return true;
 
-        // Pairs: 6 Pairs
-        const pairs = Object.values(a.counts).filter(c => c.count >= 2).length;
-        if (pairs >= 6) return true;
+        // Pairs: Generic 6 pairs is NOT a valid shape in this game ruleset.
+        // Only specific 6-pair Yakus (All Stars, SamYeonGyeok) are valid, 
+        // and they are checked separately before this fallback.
 
         return false;
     }

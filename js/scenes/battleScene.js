@@ -437,6 +437,7 @@ const BattleScene = {
 
     draw: function (ctx) {
         // Optimized Draw: Pass BattleEngine directly + ActiveFX argument
+        // New: Pass Ura Doras
         BattleRenderer.draw(ctx, BattleEngine, this.activeFX);
 
         // Draw Confirmation Dialog on top

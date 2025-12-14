@@ -670,6 +670,10 @@ const BattleEngine = {
         this.sequencing.active = false; // Ensure sequence is off
         this.events = []; // Clear event queue
 
+        // Reset Popup Debounce state to prevent carry-over bugs
+        this._lastPopupType = null;
+        this._lastPopupTime = -100;
+
         // Reset BGM to Battle Theme
         // Reset BGM to Battle Theme
         this.currentBgm = 'audio/bgm_basic';
@@ -717,21 +721,23 @@ const BattleEngine = {
         this.p1.openSets = [];
         this.cpu.openSets = [];
 
-        // 2 Doras (Visible + Hidden)
+        // Initialize Doras
         this.doras = [];
+        this.uraDoras = [];
         this.uraDoraRevealed = false; // Reset Ura Dora state
 
-        // Dora 1
-        const d1Type = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
-        this.doras.push({ type: d1Type.id, color: d1Type.color, img: d1Type.img });
+        // 1. Visible Dora
+        const d1 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        this.doras.push({ type: d1.id, color: d1.color, img: d1.img });
 
-        // Dora 2 (Must be different from Dora 1)
-        let d2Type;
+        // 2. Ura Dora (Hidden, Persistent)
+        // Rule: Must be different from visible Dora
+        let d2;
         do {
-            d2Type = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
-        } while (d2Type.id === d1Type.id && d2Type.color === d1Type.color);
+            d2 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        } while (d2.id === d1.id && d2.color === d1.color);
 
-        this.doras.push({ type: d2Type.id, color: d2Type.color, img: d2Type.img });
+        this.uraDoras.push({ type: d2.id, color: d2.color, img: d2.img });
 
         // Reset Riichi & Menzen
         this.p1.isRiichi = false;
@@ -824,7 +830,7 @@ const BattleEngine = {
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         // Only if NOT declaring Riichi (User Manual Discard)
-        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 45) {
+        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 20) {
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -1887,17 +1893,7 @@ const BattleEngine = {
 
         // Check Ura Dora (Hidden) - Only if Riichi?
         if (this.p1.isRiichi) {
-            // Ensure Ura Doras exist
-            if (!this.uraDoras || this.uraDoras.length === 0) {
-                this.uraDoras = [];
-                // Generate 2 random Ura Doras safely (using deck logic might be better but simple random for now)
-                // Generate Ura Doras matching the number of visible Doras
-                for (let i = 0; i < this.doras.length; i++) {
-                    const t = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
-                    this.uraDoras.push({ type: t.id, color: t.color, img: t.img });
-                }
-            }
-
+            // Ura Doras are pre-generated in startRound. Just use them.
             this.uraDoras.forEach(dora => {
                 hand.forEach(tile => {
                     if (tile.type === dora.type && tile.color === dora.color) {

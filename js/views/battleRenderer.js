@@ -198,7 +198,8 @@ const BattleRenderer = {
         this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleConfig.HAND.openSetY, tileW, tileH, false);
 
         // 6. Dora
-        this.drawDora(ctx, state.doras, state.uraDoraRevealed);
+        // 6. Dora
+        this.drawDora(ctx, state.doras, state.uraDoras, state.uraDoraRevealed);
 
         // 7. Info (Turn/Round)
         this.drawInfo(ctx, state.turnCount, state.currentRound);
@@ -546,7 +547,7 @@ const BattleRenderer = {
         }
     },
 
-    drawDora: function (ctx, doras, isRevealed) {
+    drawDora: function (ctx, doras, uraDoras, isRevealed) {
         // Dora Indicator Frame
         const frameConf = BattleConfig.DORA.frame;
         const frameImg = Assets.get(frameConf.path);
@@ -573,8 +574,6 @@ const BattleRenderer = {
         const gap = BattleConfig.DORA.gap;
 
         // Visual Correction: Align Tiles to Frame
-        // Recalculate Frame X in case it wasn't drawn (fallback) logic needs check, but FrameImg exists mostly.
-        // Copy the fx logic:
         let alignedFrameX = cx + frameConf.xOffset;
         let alignedFrameY = cy + frameConf.yOffset; // Baseline Y
 
@@ -590,33 +589,28 @@ const BattleRenderer = {
         let startX = alignedFrameX + tOffX;
 
         // Adjust StartY
-        // If Frame is Centered Y, then fy (alignedFrameY) is Top.
-        // We calculate clear startY for tiles based on frame.
         let startY = cy;
         if (frameImg && frameConf.align === 'center') {
-            // Center vertically in frame by default, then apply offset
             startY = alignedFrameY + (frameImg.height - tileH) / 2 + tOffY;
         } else {
-            // Fallback/Legacy: just use cy + offset
             startY = cy + tOffY;
         }
-        // Frame Y is cy + yOffset (-8). Frame starts higher.
-        // Tiles are usually centered vertically relative to frame or similar.
-        // Existing code used 'cy'. Let's stick to 'cy' or adjust if needed.
-        // If Frame Y = cy - 8. Tile Y = cy. Tile is 8px "lower" than frame top. seems ok.
 
-        doras.forEach((d, i) => {
-            // Ensure we only draw valid doras (up to 2) 
-            if (i < 2) {
-                const x = startX + i * (tileW + gap);
-                if (i === 1 && !isRevealed) {
-                    // Hidden Ura Dora
-                    this.drawCardBack(ctx, x, startY, tileW, tileH, 'tiles/pai_uradora.png');
-                } else {
-                    this.drawTile(ctx, d, x, startY, tileW, tileH);
-                }
+        // 1. Visible Dora (Slot 0)
+        if (doras.length > 0) {
+            this.drawTile(ctx, doras[0], startX, startY, tileW, tileH);
+        }
+
+        // 2. Ura Dora (Slot 1) - If it exists and Game Rule supports it
+        // Check local game rule or passed params. Assuming slot 1 is Ura Dora.
+        if (uraDoras && uraDoras.length > 0) {
+            const x = startX + (tileW + gap);
+            if (isRevealed) {
+                this.drawTile(ctx, uraDoras[0], x, startY, tileW, tileH);
+            } else {
+                this.drawCardBack(ctx, x, startY, tileW, tileH, 'tiles/pai_uradora.png');
             }
-        });
+        }
     },
 
     drawInfo: function (ctx, turn, round) {

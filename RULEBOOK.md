@@ -79,6 +79,7 @@ This document serves as the single source of truth for the game's rules and logi
 - **Dora**: +1 Bonus count per matching visible Dora tile.
 - **Ura Dora**: +1 Bonus count per matching hidden Dora tile.
   - **Condition**: Only applies if the winner is in **Riichi** state.
+  - **Constraint**: The Ura Dora tile **MUST** be different from the visible Dora tile type (Color + Type). If the same tile is rolled, it is re-rolled.
 - **Special Bonuses (800 pts)**:
   - **Tenho**: Winning by Tsumo on the very first turn.
   - **Haitei**: Winning by Tsumo on the last turn (Turn 20).
