@@ -1,25 +1,25 @@
 const ContinueConfig = {
     BG_COLOR: 'black',
-    BG_IMAGE: 'bg/CHRBAK.png',
+    BG_IMAGE: 'bg/OVERBAK.png',
     BG_OVERLAY: 'rgba(0, 0, 0, 0.3)',
     TITLE: {
         text: "GAME OVER",
-        x: 320, y: 100,
+        x: 320, y: 120,
         color: 'yellow',
         align: 'center',
-        scale: 1.5
+        scale: 2
     },
     SUBTITLE: {
         text: "CONTINUE?",
-        x: 320, y: 160,
+        x: 320, y: 260,
         color: 'yellow',
         align: 'center'
     },
     OPTIONS: {
         selectedColor: 'yellow',
         normalColor: 'gray',
-        YES: { text: "YES", x: 320, y: 340 },
-        NO: { text: "NO", x: 320, y: 380 },
+        YES: { text: "YES", x: 320, y: 320 },
+        NO: { text: "NO", x: 320, y: 360 },
         cursorOffset: 100 // Dist from text center to cursor
     },
     INFO: {

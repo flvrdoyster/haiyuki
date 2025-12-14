@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEBUG: Continue Scene</title>
+    <link rel="stylesheet" href="haiyuki.css">
+</head>
+
+<body>
+    <div id="main-wrapper">
+        <div id="play-area">
+            <div id="game-container">
+                <canvas id="game-canvas" width="640" height="480"></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="js/core/input.js"></script>
+    <script src="js/core/assets.js"></script>
+    <script src="js/ui/uiCommon.js"></script>
+    <script src="js/data/characterData.js"></script>
+    <script src="js/data/dialogueData.js"></script>
+    <script src="js/data/battleConfig.js"></script>
+    <script src="js/data/paiData.js"></script>
+    <script src="js/logic/yakuLogic.js"></script>
+    <script src="js/logic/battleMenuSystem.js"></script>
+    <script src="js/logic/aiLogic.js"></script>
+    <script src="js/scenes/titleScene.js"></script>
+    <script src="js/scenes/characterSelectScene.js"></script>
+    <script src="js/scenes/encounterScene.js"></script>
+    <script src="js/views/portraitCharacter.js"></script>
+    <script src="js/views/battleDialogue.js"></script>
+    <script src="js/views/battleRenderer.js"></script>
+    <script src="js/logic/battleEngine.js"></script>
+    <script src="js/scenes/battleScene.js"></script>
+    <script src="js/scenes/endingScene.js"></script>
+    <script src="js/scenes/continueScene.js"></script>
+    <script src="js/scenes/creditsScene.js"></script>
+    <script src="js/scenes/herecomeScene.js"></script>
+    <script src="js/core/game.js"></script>
+
+    <script>
+        // Start Directly
+        Game.init = function () {
+            this.load();
+            this.canvas = document.getElementById('game-canvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.continueCount = 0;
+            
+            Input.init(this.canvas);
+            
+            Assets.load(() => {
+                console.log('Assets loaded. Debug Mode: Continue Scene');
+                
+                // DUMMY DATA FOR CONTINUE SCENE
+                const dummyData = {
+                    playerIndex: 0, // Ataho
+                    cpuIndex: 1,    // Rinxiang
+                    defeatedOpponents: [],
+                    isNextRound: false
+                };
+
+                this.changeScene(ContinueScene, dummyData);
+                this.loop();
+            });
+        };
+    </script>
+</body>
+</html>

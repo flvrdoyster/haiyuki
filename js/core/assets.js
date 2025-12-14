@@ -40,6 +40,7 @@ const Assets = {
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
+        'bg/OVERBAK.png',
         'bg/GAMEBG.png',
 
         // FX
