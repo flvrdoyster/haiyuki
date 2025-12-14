@@ -230,6 +230,11 @@ const BattleRenderer = {
             }
         }
 
+        // 7.7 Dialogue (Behind Bars/UI)
+        if (state.currentState !== state.STATE_WIN && state.currentState !== state.STATE_LOSE) {
+            BattleDialogue.draw(ctx, state);
+        }
+
         // 8. Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP"); // P1 MP
@@ -241,10 +246,7 @@ const BattleRenderer = {
         // FX handling is usually stateless drawing, but depends on activeFX array
         this.drawFX(ctx, activeFX);
 
-        // Dialogue (Below Result/UI)
-        if (state.currentState !== state.STATE_WIN && state.currentState !== state.STATE_LOSE) {
-            BattleDialogue.draw(ctx, state);
-        }
+
 
         // 10. Overlays / UI
         if (state.currentState === state.STATE_ACTION_SELECT) {

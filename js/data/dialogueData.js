@@ -385,66 +385,97 @@ const DialogueData = {
     // ----------------------------------------------------------------
     // 4. Battle Dialogues (In-Game)
     // ----------------------------------------------------------------
+    // Format: "KEY": ["Dialog Option 1", "Option 2", ...],
+    // The game picks one random line from the array.
+    // Keys: PON, PON_REPLY, RIICHI, RIICHI_REPLY, WIN, LOSE, RANDOM, DAMAGED
     BATTLE: {
         // Default / Safe Fallback
         default: {
-            PON: ["펑!", "가져갑니다!", "받을게요!"],
-            PON_REPLY: ["으음...", "칫...", "가져가다니."],
-            RIICHI: ["리치!", "승부입니다!", "여기서 끝내겠어요!"],
-            RIICHI_REPLY: ["호오...", "위험한 기운이...", " 승부인가요?"],
-            WIN: ["끝났군요.", "나의 승리입니다.", "감사합니다."],
-            LOSE: ["강하시군요...", "분하다...", "다음엔 이길 거에요."],
-            RANDOM: ["흐음...", "어려운걸요...", "어떻게 할까..."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         },
         // Ataho
         ataho: {
-            PON: ["펑이라네!", "받아가겠네!", "이건 내 걸세."],
-            PON_REPLY: ["음? 가져가는가.", "내 패를...", "제법이군."],
-            RIICHI: ["리치!", "승부라네!", "피할 수 없을 걸세!"],
-            RIICHI_REPLY: ["오오... 오는가!", "위험하구먼.", "자네, 진심이군."],
-            WIN: ["끝났군.", "나의 승리네.", "좋은 승부였어."],
-            LOSE: ["이런...", "내가 지다니...", "강하구먼."],
-            RANDOM: ["흐음...", "어떤가...", "술이 당기는구먼."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         },
         // Rinxiang
         rinxiang: {
-            PON: ["펑이에요!", "내 거에요!", "받아가요!"],
-            PON_REPLY: ["앗...", "가져가지 마요!", "치사해..."],
-            RIICHI: ["리치!", "이걸로 끝이에요!", "각오하세요!"],
-            RIICHI_REPLY: ["오...", "자신 있으신가요?", "지지 않아요!"],
-            WIN: ["제가 이겼네요!", "당연한 결과에요.", "수행의 성과에요!"],
-            LOSE: ["말도 안돼...", "아타호에게 지다니...", "다시 해요!"],
-            RANDOM: ["어떻게 할까...", "이 패는...", "집중... 집중..."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         },
         // Smash
         smash: {
-            PON: ["펑이다!", "내놔!", "럭키~!"],
-            PON_REPLY: ["쳇...", "건방진 녀석!", "내  패를!"],
-            RIICHI: ["리치다!!", "필살!", "이 몸의 승리다!"],
-            RIICHI_REPLY: ["엉?", "뭐하는 거냐!", "허세 부리지 마!"],
-            WIN: ["봤느냐!", "이 몸의 실력이다!", "하하하!"],
-            LOSE: ["이 몸이 지다니...", "두고보자!", "운이 나빴어..."],
-            RANDOM: ["지루하구만...", "얼른 덤벼라!", "어디..."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         },
         // Petum
         petum: {
-            PON: ["펑입니다.", "가져가죠.", "실례."],
-            PON_REPLY: ["오야오야...", "가져가시는군요.", "곤란하네요."],
-            RIICHI: ["리치입니다.", "슬슬 끝내볼까요.", "후후후..."],
-            RIICHI_REPLY: ["무섭군요.", "진심이십니까?", "살살 부탁드려요."],
-            WIN: ["죄송합니다.", "제가 이겼군요.", "운이 좋았습니다."],
-            LOSE: ["졌군요.", "대단하십니다.", "한 수 배웠습니다."],
-            RANDOM: ["졸리네요...", "하암...", "빨리 끝낼까요..."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         },
         // Fari
         fari: {
-            PON: ["펑이에요.", "받겠습니다.", "필요해요."],
-            PON_REPLY: ["어머...", "가져가시는 건가요?", "곤란해라."],
-            RIICHI: ["리치에요.", "승부하겠습니다.", "봐주지 않아요?"],
-            RIICHI_REPLY: ["자신 있으신가요?", "저도 지지 않아요.", "어머나..."],
-            WIN: ["이겼어요.", "다행이다...", "좋은 승부였어요."],
-            LOSE: ["졌네요...", "강하시네요...", "분해요."],
-            RANDOM: ["어머...", "고민되네...", "어떻게 하지..."]
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
+        },
+        // Yuriwakamaru
+        yuri: {
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
+        },
+        // Mayu
+        mayu: {
+            PON: [],
+            PON_REPLY: [],
+            RIICHI: [],
+            RIICHI_REPLY: [],
+            WIN: [],
+            LOSE: [],
+            RANDOM: [],
+            DAMAGED: []
         }
     }
 };
