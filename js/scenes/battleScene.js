@@ -264,6 +264,7 @@ const BattleScene = {
 
         this.processEvents(BattleEngine);
         this.updateFX();
+        BattleDialogue.update(); // Update Dialogue Timers
 
         // Check Blocking Status
         const isBlocking = this.activeFX.some(fx => fx.blocking);

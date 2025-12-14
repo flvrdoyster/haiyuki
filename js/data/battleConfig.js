@@ -361,7 +361,7 @@ const BattleConfig = {
     },
     DRAW_BUTTON: {
         x: 270,
-        y: 280,
+        y: 190,
         w: 100,
         h: 40,
         text: "패 가져오기",

@@ -28,6 +28,10 @@ class PortraitCharacter {
         this._dirty = true; // Dirty flag for recalculating rects
     }
 
+    get id() {
+        return this.data ? this.data.id : null;
+    }
+
     // Optimization: Reuse instance to reduce GC
     updateCharacter(characterData) {
         if (this.data === characterData) return;

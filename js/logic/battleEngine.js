@@ -1021,6 +1021,9 @@ const BattleEngine = {
             return;
         }
 
+        // Reset Dialogue Flag for this turn
+        this.dialogueTriggeredThisTurn = false;
+
         const t = this.drawTiles(1);
         if (t.length > 0) {
             const drawnTile = t[0];
@@ -1068,6 +1071,9 @@ const BattleEngine = {
                 this.cpu.hand.push(t[0]);
             }
         }
+
+        // Reset Dialogue Flag for CPU turn
+        this.dialogueTriggeredThisTurn = false;
 
         // CPU AI Logic
         const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
@@ -1265,8 +1271,11 @@ const BattleEngine = {
 
         // Random Dialogue (Turn End)
         // Check if no dialogue happened this turn
-        if (!this.dialogueTriggeredThisTurn && !this.p1.isRiichi && Math.random() < 0.15) {
-            this.triggerDialogue('RANDOM', 'p1');
+        if (!this.dialogueTriggeredThisTurn && !this.p1.isRiichi) {
+            if (Math.random() < 0.6) {
+                console.log("[BattleEngine] Random Dialogue Triggered!");
+                this.triggerDialogue('RANDOM', 'cpu');
+            }
         }
     },
 
@@ -1949,18 +1958,26 @@ const BattleEngine = {
         if (!DialogueData || !DialogueData.BATTLE) return;
 
         const charId = (owner === 'p1' || owner === 'P1') ? this.p1Character.id : this.cpuCharacter.id;
-        const charData = DialogueData.BATTLE[charId] || DialogueData.BATTLE.default;
+        const charData = DialogueData.BATTLE[charId];
+        const usedData = charData || DialogueData.BATTLE.default;
+        const usedId = charData ? charId : 'default';
 
-        let lines = charData[key];
+        console.log(`[BattleEngine] Dialogue Lookup: Key=${key}, Owner=${owner}, CharID=${charId}, ResolvedTo=${usedId}`);
+
+        let lines = usedData[key];
         if (!lines || lines.length === 0) {
             lines = DialogueData.BATTLE.default[key];
+            if (lines && lines.length > 0) console.log(`[BattleEngine] Falling back to default for Key=${key}`);
         }
 
         if (lines && lines.length > 0) {
             const text = lines[Math.floor(Math.random() * lines.length)];
             const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
+            console.log(`[BattleEngine] Triggering Dialogue: Key=${key}, Owner=${owner}, Text="${text}"`);
             BattleDialogue.show(text, who);
             this.dialogueTriggeredThisTurn = true;
+        } else {
+            console.log(`[BattleEngine] Trigger Dialogue Failed: No lines found for Key=${key}, Owner=${owner}, CharID=${charId}`);
         }
     }
 };

@@ -16,6 +16,7 @@ const BattleDialogue = {
 
     show: function (text, owner) {
         if (!text) return;
+        console.log(`[BattleDialogue] Show: "${text}" (Owner: ${owner})`);
         this.init();
 
         this.owner = owner;
