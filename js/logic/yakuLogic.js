@@ -494,15 +494,23 @@ const YakuLogic = {
     // --- 2 Piece ---
     isAllStars(a) {
         // 6 chars x 2
-        // Strict types: ataho, rin, smash, yuri, pet, fari
-        const targets = ['ataho', 'rin', 'smash', 'yuri', 'pet', 'fari'];
-        return targets.every(tId => {
-            // Check typeCounts for relaxed color requirement?
-            // "YukBeop" manual image showed RED Ataho / RED Pet.
-            // "AllStars" manual image shows Mixed Colors.
-            // So use typeCounts.
-            return a.typeCounts[tId] && a.typeCounts[tId].count >= 2;
+        // All 6 specific characters must be present as pairs
+        // Characters are single-color, but we use strict count check for clarity.
+        // Targets: Red Ataho, Red Rin, Blue Smash, Blue Yuri, Yellow Pet, Yellow Fari
+
+        // Check if we have 6 distinct character pairs
+        let pairCount = 0;
+        const charIds = ['ataho', 'rin', 'smash', 'yuri', 'pet', 'fari'];
+
+        // Scan counts to find these specific chars
+        const pairs = Object.values(a.counts).filter(c => c.count >= 2);
+
+        charIds.forEach(id => {
+            const hasPair = pairs.some(c => c.tile.type === id);
+            if (hasPair) pairCount++;
         });
+
+        return pairCount === 6;
     },
     isSamYeonGyeok(a) {
         // Char/Wep Pair x 3 Colors

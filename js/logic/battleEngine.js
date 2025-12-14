@@ -1743,10 +1743,8 @@ const BattleEngine = {
                 this.startWinSequence('TSUMO', 'P1', score);
             } else {
                 console.error("CRITICAL: TSUMO allowed but checkYaku failed during execution!");
-                // Fallback to prevent soft-lock
-                const score = 1000;
-                this.winningYaku = { yaku: ['Unknown Yaku'], score: score };
-                this.startWinSequence('TSUMO', 'P1', score);
+                // Fail safely (do not win)
+                return;
             }
 
         } else if (action.type === 'RON') {
@@ -1765,10 +1763,8 @@ const BattleEngine = {
                 this.startWinSequence('RON', 'P1', score);
             } else {
                 console.error("CRITICAL: RON allowed but checkYaku failed during execution!");
-                // Fallback
-                const score = 1000;
-                this.winningYaku = { yaku: ['Unknown Yaku'], score: score };
-                this.startWinSequence('RON', 'P1', score);
+                // Fail safely (do not win)
+                return;
             }
         }
 
@@ -1895,7 +1891,8 @@ const BattleEngine = {
             if (!this.uraDoras || this.uraDoras.length === 0) {
                 this.uraDoras = [];
                 // Generate 2 random Ura Doras safely (using deck logic might be better but simple random for now)
-                for (let i = this.cpu.hand.length - 1; i >= 0; i--) {
+                // Generate Ura Doras matching the number of visible Doras
+                for (let i = 0; i < this.doras.length; i++) {
                     const t = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
                     this.uraDoras.push({ type: t.id, color: t.color, img: t.img });
                 }
