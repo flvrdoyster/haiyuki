@@ -117,6 +117,11 @@ class PortraitCharacter {
     }
 
     setTalking(talking) {
+        // [NEW] Silence State Logic
+        if (this.state === 'silence') {
+            talking = false;
+        }
+
         if (this.isTalking === talking) return;
         this.isTalking = talking;
 

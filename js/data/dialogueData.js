@@ -59,7 +59,7 @@ const DialogueData = {
         { speaker: "ataho", text: "있잖아, 그 때의...", speakerState: 'smile', listenerState: '' },
         { speaker: "ataho", text: "그 때...", speakerState: 'smile', listenerState: '' },
         { speaker: "ataho", text: "그", speakerState: '', listenerState: '' },
-        { speaker: "ataho", text: "………………………………", speakerState: '', listenerState: '' },
+        { speaker: "ataho", text: "………………………………", speakerState: 'silence', listenerState: '' },
         { speaker: "ataho", text: "그~게.", speakerState: 'shocked', listenerState: '' },
         { speaker: "ataho", text: "그래그래.", speakerState: '', listenerState: '' },
         { speaker: "ataho", text: "뭐였더라.", speakerState: 'shocked', listenerState: '' },
@@ -122,11 +122,17 @@ const DialogueData = {
     "fari_petum": [
         { speaker: "fari", text: "어머, 페톰씨\n안녕하세요?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "아, 안녕하세요.", speakerState: '', listenerState: '' },
+        { speaker: "fari", text: "………………….", speakerState: 'silence', listenerState: '' },
+        { speaker: "petum", text: "………………….", speakerState: 'silence', listenerState: '' },
         { speaker: "fari", text: "이걸로 마지막 시합인거죠?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "아무래도 그런 거 같네요.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "이기면 우승이네요.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "아아 챔피언\n이라고 하는 그거네요.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "슬슬 시작할까요?", speakerState: '', listenerState: '' },
+        { speaker: "fari", text: "………………….", speakerState: 'silence', listenerState: '' },
+        { speaker: "petum", text: "………………….", speakerState: 'silence', listenerState: '' },
+        { speaker: "fari", text: "이기면 우승이네요.", speakerState: 'smile', listenerState: '' },
+        { speaker: "petum", text: "아아 챔피언\n이라고 하는 그거네요.", speakerState: 'smile', listenerState: 'smile' },
+        { speaker: "fari", text: "………………….", speakerState: 'smile', listenerState: 'smile' },
+        { speaker: "petum", text: "………………….", speakerState: 'smile', listenerState: 'smile' },
+        { speaker: "fari", text: "슬슬 시작할까요?", speakerState: '', listenerState: 'smile' },
         { speaker: "petum", text: "그렇네요, 시간이 아까우니까.", speakerState: '', listenerState: '' }
     ],
 
@@ -202,37 +208,37 @@ const DialogueData = {
 
     // Ataho vs Mayu
     "ataho_mayu": [
-        { speaker: "ataho", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "ataho", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
     // Rinxiang vs Mayu
     "rinxiang_mayu": [
-        { speaker: "rinxiang", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "rinxiang", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
     // Fari vs Mayu
     "fari_mayu": [
-        { speaker: "fari", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "fari", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
     // Petum vs Mayu
     "petum_mayu": [
-        { speaker: "petum", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "petum", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
     // Smash vs Mayu
     "smash_mayu": [
-        { speaker: "smash", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
     // Yuri vs Mayu
     "yuri_mayu": [
-        { speaker: "yuri", text: "...", speakerState: '', listenerState: '' },
+        { speaker: "yuri", text: "...", speakerState: 'silence', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
     ],
 
@@ -277,10 +283,12 @@ const DialogueData = {
     "fari_petum_ending": [
         { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "글쎄, 모르겠네요.\n대체 왜인 걸까요?", speakerState: '', listenerState: '' },
+        { speaker: "fari", text: "………………….", speakerState: 'silence', listenerState: '' },
+        { speaker: "petum", text: "………………….", speakerState: 'silence', listenerState: '' },
         { speaker: "fari", text: "맞아맞아, 페톰씨.\n얼마 전에 맛있는 차를 구했어요.\n같이 드셔보시겠어요?", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "그렇군요.\n사양하지 않고 같이 어울려볼까요.", speakerState: '', listenerState: '' },
-        { speaker: "petum", text: "그러면 저는\n맛있는 화과자라도 들고 오죠.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요.", speakerState: '', listenerState: '' }
+        { speaker: "petum", text: "그렇군요.\n사양하지 않고 같이 어울려볼까요.", speakerState: 'smile', listenerState: '' },
+        { speaker: "petum", text: "그러면 저는\n맛있는 화과자라도 들고 오죠.", speakerState: 'smile', listenerState: '' },
+        { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요.", speakerState: 'smile', listenerState: 'smile' }
     ],
 
     // Petum vs Fari (Ending)
@@ -301,7 +309,7 @@ const DialogueData = {
         { speaker: "smash", text: "뭐라~곳!!", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "아...아니\n이 몸의 우승을 축하줄 여자애들이\n분명 어딘가에 숨어있을 거다!", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "어디야? 어디 있는 거야!\n귀여운 GIRL들아!!", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "………………", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "………………", speakerState: 'silence', listenerState: '' },
         { speaker: "yuri", text: "이제, 적당히 포기하는 게 어때?", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "우승해서 여자애들에게 인기폭발이 되려던 계획이...\n기둥서방이 되려던 계획이...", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "어... 어째서...", speakerState: '', listenerState: '' },
@@ -311,7 +319,7 @@ const DialogueData = {
     // Yuri vs Smash (Ending)
     "yuri_smash_ending": [
         { speaker: "smash", text: "젠장... 나의 패배다...", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "………………", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "………………", speakerState: 'silence', listenerState: '' },
         { speaker: "smash", text: "나도 남자다!\n각오했다고!!", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "자, 유리와카마루.\n승부에 진 이 몸,\n삶든지 굽든지 맘대로 해!!", speakerState: '', listenerState: '' },
         { speaker: "yuri", text: "뭐야... 네 놈치곤\n유난히 체념이 빠르지 않나...", speakerState: '', listenerState: '' },
