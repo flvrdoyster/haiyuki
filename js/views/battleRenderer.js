@@ -950,8 +950,8 @@ const BattleRenderer = {
             // Title with Template Support
             let title = typeConf.title;
             let winnerName = "";
-            if (state.matchWinner === 'P1' && state.p1Character) winnerName = state.p1Character.name;
-            else if (state.matchWinner === 'CPU' && state.cpuCharacter) winnerName = state.cpuCharacter.name;
+            if (state.matchWinner === 'P1' && state.p1Character && state.p1Character.data) winnerName = state.p1Character.data.name;
+            else if (state.matchWinner === 'CPU' && state.cpuCharacter && state.cpuCharacter.data) winnerName = state.cpuCharacter.data.name;
 
             if (winnerName) title = title.replace("{winner}", winnerName);
 
