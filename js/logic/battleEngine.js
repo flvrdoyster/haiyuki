@@ -1171,7 +1171,7 @@ const BattleEngine = {
         }
 
         // Dialogue Trigger (Random or Worry)
-        if (!this.dialogueTriggeredThisTurn) {
+        if (!this.dialogueTriggeredThisTurn && this.turnCount < 20) {
             if (this.p1.isRiichi) {
                 if (Math.random() < BattleConfig.DIALOGUE.CHANCE.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
             } else {
