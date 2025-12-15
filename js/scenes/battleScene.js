@@ -105,10 +105,10 @@ const BattleScene = {
             const anim = options.anim; // New: Animation Type
             const blocking = options.blocking || false;
 
-            // Prevent Overlap: If this is a blocking FX (Major Popup), clear existing FX
-            if (blocking) {
-                this.activeFX = [];
-            }
+            // Prevent Overlap: REMOVED per user request
+            // if (blocking) {
+            //    this.activeFX = [];
+            // }
 
             let startX = x;
             let endX = x;
