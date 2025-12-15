@@ -409,7 +409,7 @@ const DialogueData = {
         },
         // Ataho
         ataho: {
-            PON: ["그걸 가져가도 되겠나?"],
+            PON: ["그 패를 가져가도 되겠나?"],
             PON_REPLY: [],
             RIICHI: ["그럼 가볼까."],
             RIICHI_REPLY: ["흠, 제법 하는구만."],

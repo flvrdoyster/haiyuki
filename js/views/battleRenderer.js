@@ -127,13 +127,15 @@ const BattleRenderer = {
                 y += BattleConfig.HAND.hoverYOffset;
             }
 
-            const sideImg = Assets.get('tiles/side-top.png');
+            // Determine side image based on face-down state
+            // If face-down (deal), use specific back-side asset. Otherwise normal side.
+            const sideAsset = state.p1.isFaceDown ? 'tiles/side-top-back.png' : 'tiles/side-top.png';
+            const sideImg = Assets.get(sideAsset);
+
             if (sideImg) {
                 // Draw at Top (y - height)
-                // Canvas Scale(1, -1) could verify "flip" but `side-top` is likely pre-flipped.
-                // User asked to "flip the side image".
-                // If I use side-top, I assume it's the correct asset.
-                ctx.drawImage(sideImg, pos.x, y - sideImg.height, tileW, sideImg.height);
+                const sy = y - sideImg.height;
+                ctx.drawImage(sideImg, pos.x, sy, tileW, sideImg.height);
             }
 
             if (state.p1.isRiichi && i === state.riichiTargetIndex) {
