@@ -1172,7 +1172,8 @@ const BattleEngine = {
         }
 
         // Dialogue Trigger (Random or Worry)
-        if (!this.dialogueTriggeredThisTurn && this.turnCount < 20) {
+        // Suppress random dialogue if CPU is Riichi (Silent Focus)
+        if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !this.cpu.isRiichi) {
             if (this.p1.isRiichi) {
                 if (Math.random() < BattleConfig.DIALOGUE.CHANCE.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
             } else {
