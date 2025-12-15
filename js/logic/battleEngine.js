@@ -1116,6 +1116,10 @@ const BattleEngine = {
                 // Start Riichi Sequence (Delay Discard)
                 this.currentState = this.STATE_FX_PLAYING;
 
+                // DIALOGUE TRIGGER (CPU RIICHI)
+                const riichiKey = this.p1.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
+                this.triggerDialogue(riichiKey, 'cpu');
+
                 this.sequencing = {
                     active: true,
                     timer: 0,
@@ -1165,6 +1169,16 @@ const BattleEngine = {
             discarded.isRiichi = true;
             this.cpu.declaringRiichi = false;
         }
+
+        // Dialogue Trigger (Random or Worry)
+        if (!this.dialogueTriggeredThisTurn) {
+            if (this.p1.isRiichi) {
+                if (Math.random() < 0.7) this.triggerDialogue('WORRY_RON', 'cpu');
+            } else {
+                if (Math.random() < 0.6) this.triggerDialogue('RANDOM', 'cpu');
+            }
+        }
+
         this.discards.push(discarded);
 
         let hasAction = false;
@@ -1269,13 +1283,8 @@ const BattleEngine = {
         this.currentState = this.STATE_CPU_TURN;
         this.timer = 0;
 
-        // Random Dialogue (Turn End)
-        // Check if no dialogue happened this turn
         if (!this.dialogueTriggeredThisTurn && !this.p1.isRiichi) {
-            if (Math.random() < 0.6) {
-                console.log("[BattleEngine] Random Dialogue Triggered!");
-                this.triggerDialogue('RANDOM', 'cpu');
-            }
+            // Normal Random (Moved to CPU Discard)
         }
     },
 
@@ -1684,7 +1693,9 @@ const BattleEngine = {
             this.showPopup('RIICHI', { slideFrom: 'LEFT' });
 
             // Dialogue
-            this.triggerDialogue('RIICHI', 'p1');
+            // Dialogue
+            const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
+            this.triggerDialogue(riichiKey, 'p1');
             setTimeout(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
             }, BattleConfig.DIALOGUE.replyDelay);

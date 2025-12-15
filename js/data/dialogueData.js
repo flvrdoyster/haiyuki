@@ -404,9 +404,9 @@ const DialogueData = {
             RIICHI: [],
             RIICHI_REPLY: [],
             WIN: [],
-            LOSE: [],
             RANDOM: [],
-            DAMAGED: []
+            COUNTER_RIICHI: [],
+            WORRY_RON: []
         },
         // Ataho
         ataho: {
@@ -415,53 +415,53 @@ const DialogueData = {
             RIICHI: [],
             RIICHI_REPLY: ["으음, 제법이구만."],
             WIN: ["자네에겐 아직 질 수 없지."],
-            LOSE: [],
-            RANDOM: ["이거 안 들어 오는 패 아닌가.", "이 녀석을 기다렸다고.", "이거 위험하려나?", "흠."],
-            DAMAGED: []
+            RANDOM: ["이거 안 들어 오는 패 아닌가.", "이 녀석을 기다렸다고.", "흠."],
+            COUNTER_RIICHI: [],
+            WORRY_RON: ["이거 위험하려나?"]
         },
         // Rinxiang
         rinxiang: {
             PON: [],
             PON_REPLY: [],
-            RIICHI: ["좋아, 승부에요!!", "당신만 웃게 놔둘 수 없지!"],
+            RIICHI: ["좋아, 승부에요!!"],
             RIICHI_REPLY: ["제법이잖아."],
             WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
-            LOSE: [],
-            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "이거... 혹시..."],
-            DAMAGED: []
+            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네."],
+            COUNTER_RIICHI: ["당신만 웃게 놔둘 수 없지!"],
+            WORRY_RON: ["이거... 혹시..."]
         },
         // Smash
         smash: {
             PON: [],
             PON_REPLY: ["뭐라굿!?"],
-            RIICHI: ["좋아! 승부닷!!", "후우, 간신히 모았네..."],
+            RIICHI: ["좋아! 승부닷!!"],
             RIICHI_REPLY: ["제법이잖아."],
             WIN: ["절호조!(철 지난 유행어)"],
-            LOSE: [],
-            RANDOM: ["에~엣취!!"],
-            DAMAGED: []
+            RANDOM: ["에~엣취!!", "옷! 럭키!", "이 녀석은 필요 없어..."],
+            COUNTER_RIICHI: ["후우, 간신히 모았네..."],
+            WORRY_RON: ["이거 위험하려나..."]
         },
         // Petum
         petum: {
             PON: ["그거, 받아갑니다."],
             PON_REPLY: [],
-            RIICHI: ["후훗, 선수필승입니다.", "저도 질 수는 없죠."],
+            RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["어라, 제법이지 않습니까."],
             WIN: ["전략의 차이네요."],
-            LOSE: [],
             RANDOM: [],
-            DAMAGED: []
+            COUNTER_RIICHI: ["저도 질 수는 없죠."],
+            WORRY_RON: []
         },
         // Fari
         fari: {
             PON: [],
             PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
-            LOSE: [],
-            RANDOM: [],
-            DAMAGED: []
+            RIICHI: ["먼저 실례할게요."],
+            RIICHI_REPLY: ["어머, 꽤 강하시네요."],
+            WIN: ["어머나, 운이 좋네요."],
+            RANDOM: ["유감스럽지만, 이건 필요 없겠네요.", "좋은 패가 들어왔네요."],
+            COUNTER_RIICHI: ["후후, 질 수는 없잖아요?"],
+            WORRY_RON: ["이건... 위험할까요?"]
         },
         // Yuriwakamaru
         yuri: {
@@ -470,9 +470,9 @@ const DialogueData = {
             RIICHI: ["그럼 먼저~"],
             RIICHI_REPLY: ["빠르기도 하군..."],
             WIN: ["미안하구만!!"],
-            LOSE: [],
-            RANDOM: ["뭐야.", "훗...", "이건 어떠냐!!", "이런이런..."],
-            DAMAGED: []
+            RANDOM: ["뭐야.", "훗...", "이런이런..."],
+            COUNTER_RIICHI: [],
+            WORRY_RON: ["이건 어떠냐!!"]
         },
         // Mayu
         mayu: {
@@ -481,9 +481,9 @@ const DialogueData = {
             RIICHI: [],
             RIICHI_REPLY: [],
             WIN: [],
-            LOSE: [],
             RANDOM: [],
-            DAMAGED: []
+            COUNTER_RIICHI: [],
+            WORRY_RON: []
         }
     }
 };
