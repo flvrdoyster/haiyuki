@@ -1315,7 +1315,8 @@ const BattleEngine = {
         // Require at least 3 tiles in hand to Pon (need 1 tile left to discard)
         if (pairCount >= 2 && !this.cpu.isRiichi && this.cpu.hand.length >= 3) {
             const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
-            if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty, this.cpu.aiProfile)) {
+            const context = { isMenzen: this.cpu.isMenzen, turnCount: this.turnCount };
+            if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty, this.cpu.aiProfile, context)) {
                 this.executeCpuPon(discardedTile);
                 return true;
             }

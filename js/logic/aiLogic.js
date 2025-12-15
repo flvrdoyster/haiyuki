@@ -190,22 +190,31 @@ const AILogic = {
         return true;
     },
 
-    shouldPon: function (hand, tile, difficulty, profile) {
+    shouldPon: function (hand, tile, difficulty, profile, context) {
         if (!profile) profile = { speed: 0.5 };
 
-        // Speed check
-        // High speed = Likes to Pon (Open Hand)
-        // Low speed = Dislikes Pon (Menzen)
+        // Context check
+        const isMenzen = context ? context.isMenzen : true;
+        const turnCount = context ? context.turnCount : 0;
 
-        // Base chance: Speed value (0.2 ~ 0.9)
-        // If has pair, Logic usually asks.
+        // STRATEGY: FAVOR RIICHI
+        // If hand is locked (Menzen), avoid opening it unless desperate.
 
-        // If Speed is high (0.8), 80% chance to Pon.
-        // If Speed is low (0.2), 20% chance to Pon.
+        if (isMenzen) {
+            // Early game: Strict Menzen (Riichi aim)
+            // Late game (Turn > 14): Desperation (Pon to finish)
+            if (turnCount < 14) {
+                // Very low chance to break Menzen early
+                // Only aggressive/hasty profiles might do it
+                // Reduced from raw speed to speed * 0.1
+                return Math.random() < (profile.speed * 0.1);
+            } else {
+                // Late game desperation
+                return Math.random() < profile.speed;
+            }
+        }
 
-        // Difficulty Effect: Easy AI might miss the chance to Pon
-        if (difficulty === this.DIFFICULTY.EASY && Math.random() < 0.5) return false;
-
+        // If already open, go for speed
         return Math.random() < profile.speed;
     }
 };

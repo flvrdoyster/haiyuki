@@ -30,8 +30,8 @@ const BattleConfig = {
         AI_DIFFICULTY: 2
     },
     SPEED: {
-        RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
-        CPU_THINK_TIME: 20       // Frames to wait for CPU action
+        RIICHI_AUTO_DISCARD: 40, // Frames to wait before auto-discarding in Riichi
+        CPU_THINK_TIME: 80       // Frames to wait for CPU action
     },
 
     // ----------------------------------------------------------------
@@ -54,7 +54,7 @@ const BattleConfig = {
         // Generic FX Animation Settings
         fadeInDuration: 4,  // Frames to fade in
         fadeOutDuration: 12, // Frames to fade out
-        slideDuration: 10,   // Frames for slide animation
+        slideDuration: 20,   // Frames for slide animation
 
         // ZOOM_IN (Pop) Settings
         zoomPopDuration: 16,
