@@ -58,9 +58,9 @@ class PortraitCharacter {
         // --- OPTIMIZATION: Defaults & Auto-Generation ---
 
         // 1. Scalar Defaults
-        if (!this.animConfig.interval) this.animConfig.interval = 80;
-        if (!this.animConfig.speed) this.animConfig.speed = 3;
-        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = 4;
+        if (!this.animConfig.interval) this.animConfig.interval = BattleConfig.ANIMATION.BLINK_INTERVAL;
+        if (!this.animConfig.speed) this.animConfig.speed = BattleConfig.ANIMATION.BLINK_SPEED;
+        if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = BattleConfig.ANIMATION.TALK_SPEED;
 
         // 2. Asset Auto-Generation
         if (this.animConfig.base) {
@@ -149,7 +149,7 @@ class PortraitCharacter {
 
         this.talkFrameIndex = 0;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || 5;
+        this.talkTimer = this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED;
         return true;
     }
 
@@ -181,7 +181,7 @@ class PortraitCharacter {
         if (!this.talkSequence?.length) return;
         this.talkFrameIndex = (this.talkFrameIndex + 1) % this.talkSequence.length;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || 5;
+        this.talkTimer = this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED;
     }
 
     updateTalkFrame() {
@@ -206,7 +206,7 @@ class PortraitCharacter {
 
         this.blinkFrameIndex = 0;
         this.updateBlinkFrame();
-        this.blinkTimer = this.animConfig.speed || 4;
+        this.blinkTimer = this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED;
     }
 
     advanceBlink() {
@@ -214,10 +214,10 @@ class PortraitCharacter {
         if (this.blinkFrameIndex >= this.blinkSequence.length) {
             this.blinkFrameIndex = -1;
             this.currentBlinkFrame = null;
-            this.blinkTimer = this.animConfig.interval || 80;
+            this.blinkTimer = this.animConfig.interval || BattleConfig.ANIMATION.BLINK_INTERVAL;
         } else {
             this.updateBlinkFrame();
-            this.blinkTimer = this.animConfig.speed || 4;
+            this.blinkTimer = this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED;
         }
     }
 
