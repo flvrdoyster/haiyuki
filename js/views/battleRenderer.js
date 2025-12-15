@@ -86,7 +86,7 @@ const BattleRenderer = {
         // 5. Hands
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
-        const gap = BattleConfig.HAND.gap;
+        const gap = BattleConfig.HAND.tileGap;
 
         // CPU Hand (Top)
         // CPU Hand (Top)
@@ -195,7 +195,7 @@ const BattleRenderer = {
 
         // Player Open Sets
         // Use calculated openStartX instead of fixed anchor
-        this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleConfig.HAND.openSetY, tileW, tileH, false);
+        this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleConfig.HAND.playerY, tileW, tileH, false);
 
         // 6. Dora
         // 6. Dora
@@ -302,24 +302,28 @@ const BattleRenderer = {
         const m = { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 };
 
         const tileW = BattleConfig.HAND.tileWidth;
-        const gap = BattleConfig.HAND.gap;
-        const setGap = 15;
-        const groupGap = BattleConfig.HAND.groupGap;
-        const sectionGap = 20; // Gap between hand and open sets
+        const gap = BattleConfig.HAND.tileGap;
+        const setGap = BattleConfig.HAND.sectionGap; // Used for open sets spacing? No, this is internal set gap
+        // User said: "2. Gap between open sets should be excluded (same as tile gap?)"
+        // Yes, "Exclude open set gap" -> implies they should look like one continuous block or just standard tile gap.
+        // We will use tileGap for the gap between sets.
+        const internalSetGap = BattleConfig.HAND.tileGap; // Gap between sets (removed extra gap)
+        const drawGap = BattleConfig.HAND.drawGap;
+        const sectionGap = BattleConfig.HAND.sectionGap; // Gap between hand and open sets
 
         // 1. Calculate Hand Width
         const handSize = character.hand.length;
         let handW = handSize * (tileW + gap);
         if (handSize > 0) handW -= gap; // Remove last gap
-        if (groupSize > 0) handW += groupGap;
+        if (groupSize > 0) handW += drawGap;
 
         // 2. Calculate Open Sets Width
         let openW = 0;
         if (character.openSets && character.openSets.length > 0) {
             character.openSets.forEach(set => {
-                openW += (set.tiles.length * tileW) + ((set.tiles.length - 1) * gap) + setGap;
+                openW += (set.tiles.length * tileW) + ((set.tiles.length - 1) * gap) + internalSetGap;
             });
-            openW -= setGap; // Remove last gap
+            openW -= internalSetGap; // Remove last gap
         }
 
         // 3. Total Width
@@ -346,17 +350,17 @@ const BattleRenderer = {
 
     getPlayerHandPosition: function (index, count, groupSize, startX) {
         const tileW = BattleConfig.HAND.tileWidth;
-        const gap = BattleConfig.HAND.gap;
-        const groupGap = BattleConfig.HAND.groupGap;
+        const gap = BattleConfig.HAND.tileGap;
+        const drawGap = BattleConfig.HAND.drawGap;
 
         let x = startX + index * (tileW + gap);
         if (groupSize > 0 && index >= count - groupSize) {
-            x += groupGap;
+            x += drawGap;
         }
 
         // Reuse Object
         this._tempPos.x = x;
-        this._tempPos.y = BattleConfig.HAND.playerHandY;
+        this._tempPos.y = BattleConfig.HAND.playerY;
         return this._tempPos;
     },
 
@@ -510,8 +514,8 @@ const BattleRenderer = {
     drawOpenSets: function (ctx, openSets, startX, y, tileW, tileH, isCpu) {
         if (!openSets || openSets.length === 0) return;
 
-        const gap = BattleConfig.HAND.openSetTileGap !== undefined ? BattleConfig.HAND.openSetTileGap : 0;
-        const setGap = BattleConfig.HAND.openSetGap || 10;
+        const gap = BattleConfig.HAND.tileGap;
+        const setGap = BattleConfig.HAND.tileGap; // Use tileGap for gap between sets (removed extra gap)
 
         // P1: Draw from Right to Left? Or Left to Right from Anchor?
         // Original: "openSetRightAnchor: 620"

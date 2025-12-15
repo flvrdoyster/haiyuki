@@ -48,35 +48,42 @@ const BattleConfig = {
     },
     FX: {
         // Generic FX Animation Settings
-        fadeInDuration: 3,  // Frames to fade in
-        fadeOutDuration: 3, // Frames to fade out
-        slideDuration: 6,   // Frames for slide animation
-        zoomPulseDuration: 3, // Frames for initial zoom pulse 
-        zoomSettleDuration: 3, // Frames for settling 
-        zoomPeakScale: 1.2   // Peak scale factor
+        fadeInDuration: 4,  // Frames to fade in
+        fadeOutDuration: 12, // Frames to fade out
+        slideDuration: 10,   // Frames for slide animation
+
+        // ZOOM_IN (Pop) Settings
+        zoomPopDuration: 16,
+        zoomOvershoot: 2.0,
+
+        // BOUNCE_UP Settings
+        bounceDropDuration: 10,
+        bounceUpDuration: 10,
+        bounceStartOffsetX: -200,
+        bounceStartOffsetY: -200,
+        bounceImpactOffsetX: -30,
+        bounceFloorOffsetY: 80
     },
 
     // ----------------------------------------------------------------
     // 3. Table Elements
     // ----------------------------------------------------------------
     HAND: {
-        y: 400,
-        playerHandY: 400, // Fixed Y for player hand
-        openSetY: 400,    // Align with player hand Y
+        playerY: 410,     // Unified Player Hand Y Position
         openSetRightAnchor: 620, // Right padding/anchor for open sets
         cpuY: 10,
         tileWidth: 40,
         tileHeight: 53,
-        gap: 0,
+        // Spacing
+        tileGap: 0,       // Standard gap between tiles
+        drawGap: 10,      // Gap for newly drawn tile
+        sectionGap: 10,   // Gap between Hand and Open Sets
+
         hoverYOffset: -10,
         hoverColor: '#ffaa00',
         hoverColors: ['#ffaa00', '#9cc041', '#b4dcff'],
         hoverBlinkSpeed: 8,
-        hoverWidth: 3,
-        groupGap: 10,
-        // Open Set specific settings
-        openSetTileGap: 0, // Gap between tiles within a set (e.g. Pon)
-        openSetGap: 10     // Gap between open sets or between hand and open sets
+        hoverWidth: 3
     },
     DISCARDS: {
         P1: { x: 214, y: 280 },
@@ -142,9 +149,13 @@ const BattleConfig = {
         color: 'white',
         lineHeight: 20, // Added for multi-line support
         life: 180, // Duration in frames
-        replyDelay: 600, // Response delay in ms
+        replyDelay: 360, // Response delay in ms
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
-        CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 }
+        CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
+        CHANCE: {
+            RANDOM: 0.3,      // Chance for random dialogue (0.0 - 1.0)
+            WORRY_RON: 0.6    // Chance for worry dialogue when player is Riichi
+        }
     },
     POPUP: {
         // Configuration for Action Callouts (Riichi, Pon, Ron, Tsumo, Nagari)
@@ -193,10 +204,10 @@ const BattleConfig = {
         }
     },
     DRAW_BUTTON: {
-        x: 270,
-        y: 190,
+        x: 500,
+        y: 400,
         w: 100,
-        h: 40,
+        h: 36,
         text: "패 가져오기",
         font: `bold 16px ${FONTS.bold}`,
         dimmer: 'rgba(0, 0, 0, 0.5)',

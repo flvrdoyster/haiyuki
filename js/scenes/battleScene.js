@@ -165,9 +165,9 @@ const BattleScene = {
             } else if (fx.anim === 'ZOOM_IN') {
                 // Natural Pop (BackOut Easing)
                 // 0 -> 1.0 with Overshoot
-                const popDur = 16;
+                const popDur = BattleConfig.FX.zoomPopDuration;
                 const age = fx.maxLife - fx.life;
-                const overshoot = 2.0; // Higher = More dramatic pop
+                const overshoot = BattleConfig.FX.zoomOvershoot; // Higher = More dramatic pop
 
                 if (age < popDur) {
                     let p = age / popDur;
@@ -181,8 +181,8 @@ const BattleScene = {
             } else if (fx.anim === 'BOUNCE_UP') {
                 const age = fx.maxLife - fx.life;
                 // Params
-                const dropDur = 10;
-                const bounceDur = 8; // Faster bounce
+                const dropDur = BattleConfig.FX.bounceDropDuration;
+                const bounceDur = BattleConfig.FX.bounceUpDuration; // Faster bounce
                 const totalDur = dropDur + bounceDur;
 
                 // Trajectory: Asymmetric Bounce
@@ -190,10 +190,10 @@ const BattleScene = {
                 // Impact: Floor, Slightly Left (-30, +80)
                 // End: Center (0, 0)
 
-                const startOffX = -200;
-                const startOffY = -200;
-                const impactOffX = -30;
-                const floorOffY = 80;
+                const startOffX = BattleConfig.FX.bounceStartOffsetX;
+                const startOffY = BattleConfig.FX.bounceStartOffsetY;
+                const impactOffX = BattleConfig.FX.bounceImpactOffsetX;
+                const floorOffY = BattleConfig.FX.bounceFloorOffsetY;
 
                 if (age === 0) {
                     fx.x = fx.endX + startOffX;
@@ -431,6 +431,18 @@ const BattleScene = {
                 if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== engine.hoverIndex) {
                     return;
                 }
+
+                // Riichi Manual Discard Validation (Specifically during Declaration)
+                if (engine.p1.declaringRiichi) {
+                    const validIndices = engine.validRiichiDiscardIndices;
+                    if (!validIndices || !validIndices.includes(engine.hoverIndex)) {
+                        // Invalid Discard (Breaks Tenpai) - Block
+                        Assets.playSound('audio/wrong'); // Error sound
+                        console.log(`Invalid Riichi Discard: ${engine.hoverIndex}. Valid: ${validIndices}`);
+                        return;
+                    }
+                }
+
                 engine.discardTile(engine.hoverIndex);
             }
         }

@@ -393,15 +393,14 @@ const DialogueData = {
     // ----------------------------------------------------------------
     // 4. Battle Dialogues (In-Game)
     // ----------------------------------------------------------------
-    // Format: "KEY": ["Dialog Option 1", "Option 2", ...],
-    // The game picks one random line from the array.
-    // Keys: PON, PON_REPLY, RIICHI, RIICHI_REPLY, WIN, LOSE, RANDOM, DAMAGED
+    // Format: "KEY": ["Dialog Option 1", "Option 2", ...]
+
     BATTLE: {
         // Default / Safe Fallback
         default: {
-            PON: [],
+            PON: ["펑!"],
             PON_REPLY: [],
-            RIICHI: [],
+            RIICHI: ["리치!"],
             RIICHI_REPLY: [],
             WIN: [],
             RANDOM: [],
