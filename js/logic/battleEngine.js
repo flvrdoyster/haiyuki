@@ -119,7 +119,8 @@ const BattleEngine = {
 
     dialogueTriggeredThisTurn: false,
 
-    init: function (data) {
+    init: function (data, scene) {
+        this.scene = scene;
         // Prevent Context Menu on Canvas (Right Click)
         const canvas = document.querySelector('canvas');
         if (canvas) {
@@ -828,7 +829,7 @@ const BattleEngine = {
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         // Only if NOT declaring Riichi (User Manual Discard)
-        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > 20) {
+        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DISCARD) {
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
@@ -1407,6 +1408,12 @@ const BattleEngine = {
                 this.currentState = this.STATE_CPU_TURN;
                 this.timer = 30; // Short delay before discard
                 this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
+
+                // Trigger Dialogue (PON)
+                this.triggerDialogue('PON', 'cpu');
+                // Set flag to inhibit Random/Worry dialogue on discard
+                this.dialogueTriggeredThisTurn = true;
+
             }
         }, 450);
     },
@@ -1670,6 +1677,7 @@ const BattleEngine = {
 
                     // Dialogue
                     this.triggerDialogue('PON', 'p1');
+                    this.dialogueTriggeredThisTurn = true;
                     setTimeout(() => {
                         this.triggerDialogue('PON_REPLY', 'cpu');
                     }, BattleConfig.DIALOGUE.replyDelay);

@@ -29,6 +29,10 @@ const BattleConfig = {
         //             Action: Standard profile chance (Optimal)
         AI_DIFFICULTY: 2
     },
+    SPEED: {
+        RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
+        CPU_THINK_TIME: 20       // Frames to wait for CPU action
+    },
 
     // ----------------------------------------------------------------
     // 2. Visuals & Animation
@@ -325,7 +329,7 @@ const BattleConfig = {
                 sound: "audio/wrong" // Configurable Sound
             },
             MATCH_WIN: {
-                title: "다음 상대로!",
+                title: "{winner} 승리!",
                 color: "gold",
                 sound: "audio/victory", // Configurable Sound
                 historyFont: `16px ${FONTS.regular}`,

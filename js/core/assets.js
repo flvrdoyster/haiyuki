@@ -648,5 +648,61 @@ const Assets = {
         ctx.fillStyle = ptrn;
         ctx.fillRect(0, 0, fillW, fillH);
         ctx.restore();
+    },
+    /**
+     * Draw a standard UI Window (Frame + Dimmer).
+     * CONTEXT SAFE: Saves and Restores context state.
+     */
+    drawWindow: function (ctx, x, y, w, h) {
+        ctx.save();
+        // 1. Frame
+        this.drawUIFrame(ctx, x, y, w, h);
+
+        // 2. Inner Dimmer (Standard 4px border)
+        const border = 4;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
+        ctx.restore();
+    },
+
+    /**
+     * Draw a standard UI Button.
+     * CONTEXT SAFE: Saves and Restores context state.
+     */
+    drawButton: function (ctx, x, y, w, h, label, isSelected, options = {}) {
+        ctx.save();
+
+        // 1. Frame (Optional)
+        if (!options.noBorder) {
+            this.drawUIFrame(ctx, x, y, w, h);
+
+            // Fallback: If UI Frame assets missing, draw a border
+            if (!this.get('ui/frame/corner-lefttop.png')) {
+                ctx.strokeStyle = 'white';
+                ctx.strokeRect(x, y, w, h);
+            }
+        }
+
+        // 2. Inner Dimmer / Highlight
+        if (isSelected) {
+            // Selected: Pink highlight
+            ctx.fillStyle = options.cursorColor || 'rgba(255, 105, 180, 0.5)';
+            ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        } else {
+            // Unselected: Dark dimmer
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        }
+
+        // 3. Text
+        ctx.fillStyle = isSelected ? '#FFFF00' : 'white';
+        // Use Global FONTS if available, otherwise fallback
+        const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
+        ctx.font = options.font || `bold 16px ${fontName}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x + w / 2, y + h / 2);
+
+        ctx.restore();
     }
 };

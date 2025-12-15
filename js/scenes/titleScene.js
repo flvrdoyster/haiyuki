@@ -29,14 +29,23 @@ const TitleScene = {
         this.menuIndex = 0;
         this.pointerTimer = 0;
 
+        // Local Confirm State
+        this.confirmActive = false;
+        this.confirmSelected = 0; // 0:YES, 1:NO
+        this.confirmTimer = 0;
+        this.confirmTimer = 0;
+
+        // Start BGM
         // Start BGM
         Assets.playMusic('audio/bgm_title');
     },
 
     update: function () {
-        // Update ConfirmDialog first (blocks other input when active)
-        UI.Confirm.update();
-        if (UI.Confirm.isActive) return; // Block scene input when dialog is active
+        // Update Local Confirm Dialog
+        if (this.confirmActive) {
+            this.updateConfirm();
+            return;
+        }
 
         this.blinkTimer++;
         if (this.blinkTimer > 40) { // Slower blink
@@ -92,23 +101,81 @@ const TitleScene = {
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (this.menuIndex === 2) {
                     // Reset Save Data 
-                    UI.Confirm.show(
-                        '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.',
-                        () => {
-                            // On Confirm
-                            Game.saveData = { unlocked: [], clearedOpponents: [] };
-                            Game.continueCount = 0;
-                            Game.save();
-                            // Show success message (could be another dialog or just return to menu)
-                        },
-                        () => {
-                            // On Cancel - do nothing
-                        }
-                    );
+                    this.confirmActive = true;
+                    this.confirmSelected = 1; // Default to NO for safety
+                    this.confirmTimer = 10; // Cooldown
                 }
             }
 
-            this.pointerTimer++;
+        }
+    },
+
+    updateConfirm: function () {
+        if (this.confirmTimer > 0) {
+            this.confirmTimer--;
+            return;
+        }
+
+        // --- Mouse Interaction ---
+        const mx = Input.mouseX;
+        const my = Input.mouseY;
+
+        // Coordinates (Match drawConfirm)
+        const boxY = 140;
+        const boxH = 200;
+        const buttonY = boxY + boxH - 60; // 280
+        const buttonW = 100;
+        const buttonH = 40;
+        const buttonGap = 40;
+
+        const yesX = 320 - buttonW - buttonGap / 2; // 200
+        const noX = 320 + buttonGap / 2;            // 340
+
+        const isOverYes = (mx >= yesX && mx <= yesX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+        const isOverNo = (mx >= noX && mx <= noX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+
+        if (isOverYes) {
+            this.confirmSelected = 0;
+            if (Input.isMouseJustPressed()) {
+                // YES - Reset Data
+                Game.saveData = { unlocked: [], clearedOpponents: [] };
+                Game.continueCount = 0;
+                Game.save();
+                Assets.playSound('audio/riichi'); // Feedback sound
+                console.log("Save Data Reset");
+                this.confirmActive = false;
+                return;
+            }
+        } else if (isOverNo) {
+            this.confirmSelected = 1;
+            if (Input.isMouseJustPressed()) {
+                this.confirmActive = false;
+                return;
+            }
+        }
+
+        // Left/Right or Up/Down to toggle
+        if (Input.isJustPressed(Input.LEFT) || Input.isJustPressed(Input.RIGHT) ||
+            Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
+            this.confirmSelected = (this.confirmSelected === 0) ? 1 : 0;
+        }
+
+        // Confirm
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+            if (this.confirmSelected === 0) {
+                // YES - Reset Data
+                Game.saveData = { unlocked: [], clearedOpponents: [] };
+                Game.continueCount = 0;
+                Game.save();
+                Assets.playSound('audio/riichi'); // Feedback sound
+                console.log("Save Data Reset");
+            }
+            this.confirmActive = false; // Close dialog
+        }
+
+        // Cancel
+        if (Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)) {
+            this.confirmActive = false;
         }
     },
 
@@ -178,7 +245,57 @@ const TitleScene = {
             ctx.drawImage(copy, (640 - copy.width) / 2, TitleConfig.COPYRIGHT.y);
         }
 
-        // 5. Confirmation Dialog (drawn on top)
-        UI.Confirm.draw(ctx);
+        // 5. Local Confirmation Dialog (drawn on top)
+        if (this.confirmActive) {
+            this.drawConfirm(ctx);
+        }
+
+    },
+
+    drawConfirm: function (ctx) {
+        ctx.save();
+
+        // 1. Dimmer (Full Screen)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, 640, 480);
+
+        // 2. Dialog Box
+        const boxX = 120;
+        const boxY = 140;
+        const boxW = 400;
+        const boxH = 200;
+
+        Assets.drawWindow(ctx, boxX, boxY, boxW, boxH);
+
+        // 3. Message Text
+        ctx.fillStyle = 'white';
+        ctx.font = `20px ${FONTS.regular}`;
+        ctx.textAlign = 'center';
+
+        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
+        const lines = message.split('\\n');
+        const lineHeight = 28;
+        const startY = boxY + 60;
+
+        lines.forEach((line, i) => {
+            ctx.fillText(line, 320, startY + (i * lineHeight));
+        });
+
+        // 4. Buttons
+        const buttonY = boxY + boxH - 60;
+        const buttonW = 100;
+        const buttonH = 40;
+        const buttonGap = 40;
+
+        const yesX = 320 - buttonW - buttonGap / 2;
+        const noX = 320 + buttonGap / 2;
+
+        // Draw YES Button
+        Assets.drawButton(ctx, yesX, buttonY, buttonW, buttonH, 'YES', this.confirmSelected === 0, { noBorder: true });
+
+        // Draw NO Button
+        Assets.drawButton(ctx, noX, buttonY, buttonW, buttonH, 'NO', this.confirmSelected === 1, { noBorder: true });
+
+        ctx.restore();
     }
 };

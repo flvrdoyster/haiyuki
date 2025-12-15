@@ -86,18 +86,23 @@ const BattleMenuSystem = {
             }
         } else if (selectedId === 'RESTART') {
             // Restart Round Strategy - Show in-game confirmation
-            UI.Confirm.show(
-                '정말로 이 라운드를 다시 시작할까요?',
-                () => {
-                    // On Confirm
-                    this.toggle(); // Close menu
-                    this.engine.startRound();
-                },
-                () => {
-                    // On Cancel
-                    this.toggle(); // Close menu
-                }
-            );
+            // Restart Round Strategy - Show Local Confirmation
+            if (this.engine.scene && this.engine.scene.showConfirm) {
+                this.engine.scene.showConfirm(
+                    '정말로 이 라운드를 다시 시작할까요?',
+                    () => {
+                        this.toggle(); // Close menu
+                        this.engine.startRound();
+                    },
+                    () => {
+                        this.toggle(); // Close menu
+                    }
+                );
+            } else {
+                // Fallback if scene not linked
+                this.toggle();
+                this.engine.startRound();
+            }
             return; // Don't auto-close menu, let dialog handle it
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {

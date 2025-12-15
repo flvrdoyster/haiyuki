@@ -24,6 +24,30 @@ const EncounterLayout = {
     }
 };
 
+const ChallengerConfig = {
+    UNKNOWN: {
+        BG: 'bg/CHRBAK.png',
+        VS_LOGO: { path: 'ui/vs.png', y: 200 },
+        PORTRAIT: {
+            P1: { x: 0, y: 65, w: 280, h: 304 },
+            CPU: {
+                x: 720, y: -15, w: 280, h: 304,
+                align: 'right',
+                scale: 1.5         // Scale up Unknown Mayu
+            }
+        },
+        NAME: {
+            TEXT: "???",
+            x: 620, // Right aligned padding
+            y: 345,  // 65 (Portrait Y) + 280 (Offset from SelectConfig)
+            font: `bold 32px ${FONTS.bold}, sans-serif`,
+            strokeWidth: 4
+        },
+        headerText1: "HERE COMES",
+        headerText2: "A NEW CHALLENGER"
+    }
+};
+
 const EncounterScene = {
     playerIndex: 0,
     cpuIndex: 0,
@@ -42,11 +66,24 @@ const EncounterScene = {
     init: function (data) {
         this.playerIndex = data.playerIndex;
         this.cpuIndex = data.cpuIndex;
+        this.textTimer = 0;
 
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.mode = data.mode || 'STORY';
         this.queue = data.queue || [];
+        this.queue = data.queue || [];
         this.state = 0;
+
+        // CHALLENGER MODE STARTUP
+        if (this.mode === 'CHALLENGER') {
+            this.state = -1; // Special State for Here Comes Intro
+            Assets.stopMusic(); // Challenger effect usually has own sound or silence? Assuming silence/effect.
+            // Or play alarm?
+            // Existing logic had stopMusic in init.
+        } else {
+            this.state = 0;
+        }
+
         this.currentLineIndex = 0;
 
         // BGM - Ensure previous music is stopped before starting new track
@@ -103,35 +140,31 @@ const EncounterScene = {
         }
 
         // Initialize Portraits
-        this.p1Portrait = new PortraitCharacter(p1, EncounterLayout.PORTRAIT.P1, false);
-        this.cpuPortrait = new PortraitCharacter(cpu, EncounterLayout.PORTRAIT.CPU, true);
+        // Challenger Mode override for CPU Portrait
+        if (this.mode === 'CHALLENGER') {
+            // P1 Normal
+            this.p1Portrait = new PortraitCharacter(p1, EncounterLayout.PORTRAIT.P1, false);
 
-        // Auto-configure Animation based on ID
-        // Map internal ID to file prefix if needed (ataho -> ATA, yuri -> YURI)
-        // Others might default to ID.toUpperCase() if they follow the pattern.
-        const idMap = {
-            'ataho': 'ATA',
-            'rinxiang': 'RIN',
-            'smash': 'SMSH',
-            'petum': 'PET',
-            'fari': 'FARI',
-            'yuri': 'YURI',
-            'mayu': 'MAYU'
-        };
+            // CPU Unknown
+            const cpuDataUnknown = {
+                id: 'unknown',
+                face: 'face/MAYU_unknown.png',
+                battleFaceR: 'face/MAYU_unknown.png',
+                singleSprite: true,
+                battleOffsetX: 0,
+                battleOffsetY: 0
+            };
+            this.cpuPortrait = new PortraitCharacter(cpuDataUnknown, ChallengerConfig.UNKNOWN.PORTRAIT.CPU, true);
 
-        const setupAnim = (portrait, id) => {
-            const prefix = idMap[id] || id.toUpperCase();
-            const base = `face/${prefix}_base.png`;
-            if (Assets.get(base)) {
-                console.log(`Auto-configuring animation for ${id} with base ${base}`);
-                portrait.setAnimationConfig({ base: base });
-            } else {
-                console.warn(`[EncounterScene] No base image found for ${id} at ${base}`);
-            }
-        };
+        } else {
+            this.p1Portrait = new PortraitCharacter(p1, EncounterLayout.PORTRAIT.P1, false);
+            this.cpuPortrait = new PortraitCharacter(cpu, EncounterLayout.PORTRAIT.CPU, true);
+        }
 
-        setupAnim(this.p1Portrait, p1.id);
-        setupAnim(this.cpuPortrait, cpu.id);
+        this.setupCharacterAnimation(this.p1Portrait, p1.id);
+        if (this.mode !== 'CHALLENGER') {
+            this.setupCharacterAnimation(this.cpuPortrait, cpu.id);
+        }
 
         // MANUAL OVERRIDE (Safety fallback for Yuri if auto-detect fails due to timing/naming)
         if (p1.id === 'yuri' || cpu.id === 'yuri') {
@@ -152,12 +185,29 @@ const EncounterScene = {
     },
 
     update: function () {
+        this.textTimer++;
+
         // Update Portraits
         if (this.p1Portrait) this.p1Portrait.update();
         if (this.cpuPortrait) this.cpuPortrait.update();
 
+        // -- STATE CHALLENGER INTRO --
+        if (this.state === -1) {
+            // Hold ~3s or Input to skip
+            if (this.textTimer > 180 || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+                // Transition to Battle directly (Skip Dialogue)
+                console.log('Challenger Intro Finished. Go to battle.');
+                Game.changeScene(BattleScene, {
+                    playerIndex: this.playerIndex,
+                    cpuIndex: this.cpuIndex,
+                    defeatedOpponents: this.defeatedOpponents
+                });
+            }
+            return;
+        }
+
         // Simple input to advance text OR Auto Test
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || (Game.isAutoTest && ++this.textTimer > 2)) {
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
 
             if (Game.isAutoTest) this.textTimer = 0;
 
@@ -197,6 +247,7 @@ const EncounterScene = {
                     console.log('Ending Dialogue finished. Go to Ending Scene.');
                     Game.changeScene(EndingScene, {
                         playerIndex: this.playerIndex,
+                        cpuIndex: this.cpuIndex, // Pass CPU Index for checks
                         skipTrueEnd: (this.mode === 'ENDING_WATCH')
                     });
                 } else {
@@ -213,6 +264,12 @@ const EncounterScene = {
     },
 
     draw: function (ctx) {
+
+        if (this.state === -1) {
+            this.drawChallenger(ctx);
+            return;
+        }
+
         // 1. Tiled Background
         const bg = Assets.get('bg/CHRBAK.png');
         if (bg) {
@@ -365,6 +422,7 @@ const EncounterScene = {
             ctx.save();
             ctx.font = EncounterLayout.DIALOGUE.text.font;
             ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic'; // Reset baseline to ensure consistency
             ctx.fillStyle = '#FFFFFF';
 
             if (currentLine.text) {
@@ -388,5 +446,85 @@ const EncounterScene = {
             }
             ctx.restore();
         }
+    },
+
+    setupCharacterAnimation: function (portrait, id) {
+        const idMap = {
+            'ataho': 'ATA',
+            'rinxiang': 'RIN',
+            'smash': 'SMSH',
+            'petum': 'PET',
+            'fari': 'FARI',
+            'yuri': 'YURI',
+            'mayu': 'MAYU'
+        };
+        const prefix = idMap[id] || id.toUpperCase();
+        const base = `face/${prefix}_base.png`;
+        if (Assets.get(base)) {
+            // console.log(`Auto-configuring animation for ${id} with base ${base}`);
+            portrait.setAnimationConfig({ base: base });
+        }
+    },
+
+    drawChallenger: function (ctx) {
+        const w = 640;
+        const h = 480;
+
+        // 1. Background
+        const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
+        if (bg) {
+            const pattern = ctx.createPattern(bg, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, w, h);
+        } else {
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        // Portraits
+        if (this.p1Portrait) this.p1Portrait.draw(ctx);
+        if (this.cpuPortrait) this.cpuPortrait.draw(ctx);
+
+        // VS Logo
+        const vs = Assets.get(ChallengerConfig.UNKNOWN.VS_LOGO.path);
+        if (vs) {
+            ctx.drawImage(vs, (w - vs.width) / 2, ChallengerConfig.UNKNOWN.VS_LOGO.y);
+        }
+
+        // Name "???"
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = ChallengerConfig.UNKNOWN.NAME.strokeWidth;
+        ctx.font = ChallengerConfig.UNKNOWN.NAME.font;
+        ctx.textAlign = 'right';
+
+        const nameText = ChallengerConfig.UNKNOWN.NAME.TEXT;
+        const nameX = ChallengerConfig.UNKNOWN.NAME.x;
+        const nameY = ChallengerConfig.UNKNOWN.NAME.y;
+
+        ctx.strokeText(nameText, nameX, nameY);
+        ctx.fillText(nameText, nameX, nameY);
+        ctx.restore();
+
+        // Text
+        const line1 = ChallengerConfig.UNKNOWN.headerText1;
+        const line2 = ChallengerConfig.UNKNOWN.headerText2;
+
+        const calcWidth = (str) => {
+            let w = 0;
+            for (let char of str) {
+                w += (char === ' ') ? 16 : 32;
+            }
+            return w;
+        };
+
+        const x1 = (w - calcWidth(line1)) / 2;
+        const x2 = (w - calcWidth(line2)) / 2;
+
+        const textOption = { color: 'yellow', spaceWidth: 16 };
+
+        Assets.drawAlphabet(ctx, line1, x1, 20, textOption);
+        Assets.drawAlphabet(ctx, line2, x2, 52, textOption);
     }
 };

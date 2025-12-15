@@ -109,9 +109,10 @@ const EndingScene = {
                 const mayuIndex = CharacterData.indexOf(mayu);
 
                 // Transition to Intrusion Scene (Warning)
-                Game.changeScene(HerecomeScene, {
+                Game.changeScene(EncounterScene, {
                     playerIndex: this.playerIndex,
                     cpuIndex: mayuIndex,
+                    mode: 'CHALLENGER',
                     defeatedOpponents: []
                 });
             } else {

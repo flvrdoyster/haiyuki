@@ -1,8 +1,9 @@
 const BattleScene = {
     init: function (data) {
-        BattleEngine.init(data);
+        BattleEngine.init(data, this);
         BattleRenderer.reset(); // Crucial for Layering Optimization
         this.activeFX = [];
+        this.confirmData = null; // Local Confirm State { msg, onYes, onNo, selected, timer }
     },
 
     processEvents: function (engine) {
@@ -155,86 +156,87 @@ const BattleScene = {
                 fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
             }
 
-            // Slide Logic
+            // Slide Logic (Improved Easing)
             if (fx.slideFrom) {
                 const slideDur = BattleConfig.FX.slideDuration;
                 const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
-                const ease = p * (2 - p); // Quad ease out
+                // EaseOutCubic: 1 - (1-x)^3. Much smoother than Quad for UI slides.
+                const ease = 1 - Math.pow(1 - p, 3);
                 fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                 fx.y = fx.startY + (fx.endY - fx.startY) * ease;
             } else if (fx.anim === 'ZOOM_IN') {
                 // Natural Pop (BackOut Easing)
-                // 0 -> 1.0 with Overshoot
                 const popDur = BattleConfig.FX.zoomPopDuration;
                 const age = fx.maxLife - fx.life;
-                const overshoot = BattleConfig.FX.zoomOvershoot; // Higher = More dramatic pop
+                const overshoot = BattleConfig.FX.zoomOvershoot;
 
                 if (age < popDur) {
                     let p = age / popDur;
                     p = p - 1;
-                    // Cubic Back Out: (p^2 * ((s+1)*p + s) + 1)
+                    // Cubic Back Out
                     const scaleP = p * p * ((overshoot + 1) * p + overshoot) + 1;
                     fx.scale = fx.baseScale * scaleP;
                 } else {
                     fx.scale = fx.baseScale;
                 }
             } else if (fx.anim === 'BOUNCE_UP') {
+                // "Drop and Bounce" Logic
+                // Phase 1: Drop from Sky (StartOffset) to Floor (ImpactOffset)
+                // Phase 2: Bounce from Floor to Target (0,0 relative)
+
                 const age = fx.maxLife - fx.life;
-                // Params
                 const dropDur = BattleConfig.FX.bounceDropDuration;
-                const bounceDur = BattleConfig.FX.bounceUpDuration; // Faster bounce
-                const totalDur = dropDur + bounceDur;
-
-                // Trajectory: Asymmetric Bounce
-                // Start: Top-Left (-200, -200)
-                // Impact: Floor, Slightly Left (-30, +80)
-                // End: Center (0, 0)
-
+                const bounceDur = BattleConfig.FX.bounceUpDuration;
                 const startOffX = BattleConfig.FX.bounceStartOffsetX;
                 const startOffY = BattleConfig.FX.bounceStartOffsetY;
+                const floorOffY = BattleConfig.FX.bounceFloorOffsetY; // The "floor" below target
                 const impactOffX = BattleConfig.FX.bounceImpactOffsetX;
-                const floorOffY = BattleConfig.FX.bounceFloorOffsetY;
-
-                if (age === 0) {
-                    fx.x = fx.endX + startOffX;
-                    fx.y = fx.endY + startOffY;
-                }
 
                 if (age < dropDur) {
-                    // Phase 1: Drop (Ease In Quad) -> To Impact Point
+                    // Phase 1: Falling Down (Ease In Quad - Gravity)
                     const p = age / dropDur;
-                    const easeIn = p * p;
-                    const linear = p;
+                    const easeIn = p * p; // Gravity accelerating
 
-                    fx.x = (fx.endX + startOffX) + (impactOffX - startOffX) * linear;
+                    // Lerp from Start to Impact
+                    fx.x = (fx.endX + startOffX) + (impactOffX - startOffX) * p; // X usually linear
                     fx.y = (fx.endY + startOffY) + (floorOffY - startOffY) * easeIn;
 
                     fx.alpha = Math.min(1, age / 4);
-                } else if (age < totalDur) {
-                    // Phase 2: Bounce Up (Ease Out Quad) -> To Target
-                    const p = (age - dropDur) / bounceDur;
-                    const linear = p;
-                    const easeOut = p * (2 - p); // Deceleration against gravity
 
-                    // X moves Linearly (Constant horizontal velocity) to create Arc
-                    fx.x = (fx.endX + impactOffX) + (impactOffX * -1) * linear;
-                    // Y Decelerates (Gravity)
-                    fx.y = (fx.endY + floorOffY) + (floorOffY * -1) * easeOut;
+                    // Add squash scale at impact? (Optional polish)
+                    if (p > 0.9) fx.scaleY = fx.baseScale * 0.8;
+                    else fx.scaleY = fx.baseScale;
 
                 } else {
+                    // Phase 2: Bouncing Up to Target (Ease Out Quad/Back)
+                    const bounceAge = age - dropDur;
+                    let p = Math.min(1, bounceAge / bounceDur);
+
+                    // Ease Out Back for "Snap" to position
+                    // or Ease Out Quad for simple gravity
+                    const easeOut = p * (2 - p);
+
+                    // Interpolate from Impact(Floor) to Target(0 offset)
+                    fx.x = (fx.endX + impactOffX) + (0 - impactOffX) * easeOut;
+                    fx.y = (fx.endY + floorOffY) + (0 - floorOffY) * easeOut;
+
+                    // Restore scale
+                    fx.scaleY = fx.baseScale;
+                    fx.alpha = 1.0;
+                }
+                // Ensure final position
+                if (age >= dropDur + bounceDur) {
                     fx.x = fx.endX;
                     fx.y = fx.endY;
                 }
-            } else if (fx.anim === 'SLIDE' || fx.slideFrom) {
-                // Handle Explicit SLIDE or Legacy slideFrom
-                const slideDur = BattleConfig.FX.slideDuration + 4; // Slightly slower for weight
+            } else if (fx.anim === 'SLIDE') {
+                // Explicit Slide (Same as above)
+                const slideDur = BattleConfig.FX.slideDuration + 4;
                 const age = fx.maxLife - fx.life;
 
                 if (age <= slideDur) {
                     const p = age / slideDur;
-                    // EaseOutCubic (1 - (1-p)^3) for natural friction stop
-                    const ease = 1 - Math.pow(1 - p, 3);
-
+                    const ease = 1 - Math.pow(1 - p, 4); // Quartic Out (Snappier)
                     fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                     fx.y = fx.startY + (fx.endY - fx.startY) * ease;
                 } else {
@@ -258,9 +260,12 @@ const BattleScene = {
     },
 
     update: function () {
-        // Update ConfirmDialog first (blocks other input)
-        UI.Confirm.update();
-        if (UI.Confirm.isActive) return;
+
+        // Local Confirmation Update (Blocks Logic)
+        if (this.confirmData) {
+            this.updateConfirm();
+            return;
+        }
 
         this.processEvents(BattleEngine);
         this.updateFX();
@@ -295,10 +300,14 @@ const BattleScene = {
             this.handlePlayerTurnInput(engine);
         } else if (engine.currentState === engine.STATE_WAIT_FOR_DRAW) {
             // Manual Draw Input
+
+            // Check Hover
+            engine.drawButtonHover = BattleRenderer.checkDrawButton(Input.mouseX, Input.mouseY);
+
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER)) {
                 engine.confirmDraw();
             } else if (Input.isMouseJustPressed()) {
-                if (BattleRenderer.checkDrawButton(Input.mouseX, Input.mouseY)) {
+                if (engine.drawButtonHover) {
                     engine.confirmDraw();
                 }
             }
@@ -326,10 +335,13 @@ const BattleScene = {
 
         // Mouse Hover using Renderer Helper
         // Mouse Click
-        // Mouse Hover using Renderer Helper
-        // Mouse Click
+        const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems);
+        if (hovered !== -1) {
+            BattleMenuSystem.selectedMenuIndex = hovered;
+        }
+
         if (Input.isMouseJustPressed()) {
-            const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems);
+            // const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems); // Redundant calc but OK
             if (hovered !== -1) {
                 BattleMenuSystem.selectedMenuIndex = hovered;
                 BattleMenuSystem.handleSelection();
@@ -355,8 +367,12 @@ const BattleScene = {
 
         // Mouse Hover using Renderer Helper
         // Mouse Click
+        const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
+        if (hovered !== -1) {
+            engine.selectedActionIndex = hovered;
+        }
+
         if (Input.isMouseJustPressed()) {
-            const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
             if (hovered !== -1) {
                 engine.selectedActionIndex = hovered;
                 engine.executeAction(actions[hovered]);
@@ -377,8 +393,8 @@ const BattleScene = {
         // Mouse Interaction
         const groupSize = engine.lastDrawGroupSize || 0;
         // Hover removed per request
-        // const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
-        // if (hovered !== -1) { engine.hoverIndex = hovered; }
+        const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
+        if (hovered !== -1) { engine.hoverIndex = hovered; }
 
         // Keyboard
         const handSize = engine.p1.hand.length;
@@ -453,7 +469,130 @@ const BattleScene = {
         // New: Pass Ura Doras
         BattleRenderer.draw(ctx, BattleEngine, this.activeFX);
 
-        // Draw Confirmation Dialog on top
-        UI.Confirm.draw(ctx);
+        // Draw Local Confirmation Dialog on top
+        if (this.confirmData) {
+            this.drawConfirm(ctx);
+        }
+    },
+
+    showConfirm: function (msg, onYes, onNo) {
+        this.confirmData = {
+            msg: msg,
+            onYes: onYes,
+            onNo: onNo,
+            selected: 1, // Default to NO
+            timer: 10 // Cooldown
+        };
+    },
+
+    updateConfirm: function () {
+        const d = this.confirmData;
+        if (d.timer > 0) {
+            d.timer--;
+            return;
+        }
+
+        // --- Mouse Interaction ---
+        const mx = Input.mouseX;
+        const my = Input.mouseY;
+
+        // Reconstruct Button Coordinates (Must match drawConfirm)
+        const boxY = 140;
+        const boxH = 200;
+        const buttonY = boxY + boxH - 60; // 280
+        const buttonW = 100;
+        const buttonH = 40;
+        const buttonGap = 40;
+
+        const yesX = 320 - buttonW - buttonGap / 2; // 200
+        const noX = 320 + buttonGap / 2;            // 340
+
+        const isOverYes = (mx >= yesX && mx <= yesX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+        const isOverNo = (mx >= noX && mx <= noX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+
+        if (isOverYes) {
+            d.selected = 0;
+            if (Input.isMouseJustPressed()) {
+                if (d.onYes) d.onYes();
+                this.confirmData = null;
+                return;
+            }
+        } else if (isOverNo) {
+            d.selected = 1;
+            if (Input.isMouseJustPressed()) {
+                if (d.onNo) d.onNo();
+                this.confirmData = null;
+                return;
+            }
+        }
+
+        // --- Keyboard Interaction ---
+        if (Input.isJustPressed(Input.LEFT) || Input.isJustPressed(Input.RIGHT) ||
+            Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
+            d.selected = (d.selected === 0) ? 1 : 0;
+            // Optional: Play tick sound
+        }
+
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+            if (d.selected === 0) {
+                if (d.onYes) d.onYes();
+            } else {
+                if (d.onNo) d.onNo();
+            }
+            this.confirmData = null;
+        }
+
+        if (Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)) {
+            if (d.onNo) d.onNo();
+            this.confirmData = null;
+        }
+    },
+
+    drawConfirm: function (ctx) {
+        const d = this.confirmData;
+        if (!d) return;
+
+        ctx.save();
+
+        // 1. Dimmer
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, 640, 480);
+
+        // 2. Dialog Box
+        const boxX = 120;
+        const boxY = 140;
+        const boxW = 400;
+        const boxH = 200;
+
+        Assets.drawWindow(ctx, boxX, boxY, boxW, boxH);
+
+        // 3. Message Text
+        ctx.fillStyle = 'white';
+        // Check global FONTS
+        const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
+        ctx.font = `20px ${fontName}`;
+        ctx.textAlign = 'center';
+
+        const lines = d.msg.split('\\n');
+        const lineHeight = 28;
+        const startY = boxY + 60;
+
+        lines.forEach((line, i) => {
+            ctx.fillText(line, 320, startY + (i * lineHeight));
+        });
+
+        // 4. Buttons
+        const buttonY = boxY + boxH - 60;
+        const buttonW = 100;
+        const buttonH = 40;
+        const buttonGap = 40;
+
+        const yesX = 320 - buttonW - buttonGap / 2;
+        const noX = 320 + buttonGap / 2;
+
+        Assets.drawButton(ctx, yesX, buttonY, buttonW, buttonH, 'YES', d.selected === 0, { noBorder: true });
+        Assets.drawButton(ctx, noX, buttonY, buttonW, buttonH, 'NO', d.selected === 1, { noBorder: true });
+
+        ctx.restore();
     }
 };

@@ -263,7 +263,7 @@ const BattleRenderer = {
         }
 
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
-            this.drawDrawButton(ctx);
+            this.drawDrawButton(ctx, state);
         }
 
 
@@ -784,8 +784,8 @@ const BattleRenderer = {
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        // Draw Window using UI helper
-        UI.drawWindow(ctx, rx, ry, rw, rh);
+        // Draw Window using Assets helper
+        Assets.drawWindow(ctx, rx, ry, rw, rh);
 
         // 3. Border (Removed/Redundant with Frame, but kept if special overlay needed? No, Frame has border)
         // if (conf.borderWidth > 0) { ... } -> Removed
@@ -947,8 +947,16 @@ const BattleRenderer = {
 
             // 1. Title
             ctx.fillStyle = typeConf.color;
+            // Title with Template Support
+            let title = typeConf.title;
+            let winnerName = "";
+            if (state.matchWinner === 'P1' && state.p1Character) winnerName = state.p1Character.name;
+            else if (state.matchWinner === 'CPU' && state.cpuCharacter) winnerName = state.cpuCharacter.name;
+
+            if (winnerName) title = title.replace("{winner}", winnerName);
+
             ctx.font = conf.titleFont;
-            ctx.fillText(typeConf.title, conf.titleX, conf.titleY);
+            ctx.fillText(title, conf.titleX, conf.titleY);
 
             // 2. Info Text (Score or Message)
             ctx.fillStyle = conf.infoColor;
@@ -1045,8 +1053,8 @@ const BattleRenderer = {
         const w = conf.w;
         const h = conf.h;
 
-        // 1. Draw Window using UI helper
-        UI.drawWindow(ctx, x, y, w, h);
+        // 1. Draw Window using Assets helper
+        Assets.drawWindow(ctx, x, y, w, h);
 
         const startX = x + conf.padding;
         const startY = y + conf.padding + 7;
@@ -1121,7 +1129,7 @@ const BattleRenderer = {
      * Centralizes coordinate logic so Scene doesn't need to know layout details.
      */
 
-    drawDrawButton: function (ctx) {
+    drawDrawButton: function (ctx, state) {
         const conf = BattleConfig.DRAW_BUTTON;
         const x = conf.x;
         const y = conf.y;
@@ -1129,16 +1137,15 @@ const BattleRenderer = {
         const h = conf.h;
 
         // Draw Button using UI helper
-        // Map config to match UI.drawButton expectations
-        // Is selected/hovered?
-        const isHovered = false; // Hover removed per request
+        // Use state.drawButtonHover from BattleScene input
+        const isHovered = state ? state.drawButtonHover : false;
 
         const options = {
             font: conf.font,
             cursorColor: conf.cursor
         };
 
-        UI.drawButton(ctx, x, y, w, h, conf.text, isHovered, options);
+        Assets.drawButton(ctx, x, y, w, h, conf.text, isHovered, options);
     },
 
     checkDrawButton: function (x, y) {
@@ -1230,7 +1237,7 @@ const BattleRenderer = {
         const yPad = tileH * 0.1;  // 10% padding on each side
 
         // Optimization: Check Y bounds first (with padding)
-        const handY = BattleConfig.HAND.playerHandY;
+        const handY = BattleConfig.HAND.playerY;
         if (y < handY + yPad || y > handY + tileH - yPad) return -1;
 
         // Iterate or Calculate?
