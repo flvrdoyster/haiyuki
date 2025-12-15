@@ -398,9 +398,9 @@ const DialogueData = {
     BATTLE: {
         // Default / Safe Fallback
         default: {
-            PON: ["펑!"],
+            PON: [],
             PON_REPLY: [],
-            RIICHI: ["리치!"],
+            RIICHI: [],
             RIICHI_REPLY: [],
             WIN: [],
             RANDOM: [],
@@ -409,14 +409,14 @@ const DialogueData = {
         },
         // Ataho
         ataho: {
-            PON: [],
+            PON: ["그걸 가져가도 되겠나?"],
             PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: ["으음, 제법이구만."],
-            WIN: ["자네에겐 아직 질 수 없지."],
-            RANDOM: ["이거 안 들어 오는 패 아닌가.", "이 녀석을 기다렸다고.", "흠."],
-            COUNTER_RIICHI: [],
-            WORRY_RON: ["이거 위험하려나?"]
+            RIICHI: ["그럼 가볼까."],
+            RIICHI_REPLY: ["흠, 제법 하는구만."],
+            WIN: ["자네한테는 아직 질 수 없지."],
+            RANDOM: ["이건 쓸모없는 패로구만", "이 패를 기다리고 있었지.", "흠."],
+            COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
+            WORRY_RON: ["이건 좀 위험한가?"]
         },
         // Rinxiang
         rinxiang: {
@@ -425,7 +425,7 @@ const DialogueData = {
             RIICHI: ["좋아, 승부에요!!"],
             RIICHI_REPLY: ["제법이잖아."],
             WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
-            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네."],
+            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "에이."],
             COUNTER_RIICHI: ["당신만 웃게 놔둘 수 없지!"],
             WORRY_RON: ["이거... 혹시..."]
         },
@@ -447,9 +447,9 @@ const DialogueData = {
             RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["어라, 제법이지 않습니까."],
             WIN: ["전략의 차이네요."],
-            RANDOM: [],
+            RANDOM: ["하아.", "흠."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: []
+            WORRY_RON: ["가끔은 운을 하늘에 맡겨보죠."]
         },
         // Fari
         fari: {
@@ -458,7 +458,7 @@ const DialogueData = {
             RIICHI: ["먼저 실례할게요."],
             RIICHI_REPLY: ["어머, 꽤 강하시네요."],
             WIN: ["어머나, 운이 좋네요."],
-            RANDOM: ["유감스럽지만, 이건 필요 없겠네요.", "좋은 패가 들어왔네요."],
+            RANDOM: ["유감스럽지만,\n이건 필요 없겠네요.", "좋은 패가 들어왔네요."],
             COUNTER_RIICHI: ["후후, 질 수는 없잖아요?"],
             WORRY_RON: ["이건... 위험할까요?"]
         },
