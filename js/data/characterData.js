@@ -5,14 +5,15 @@ const SkillData = {
     'TIGER_STRIKE': {
         name: '맹호일발권',
         desc: '리치를 걸 수 있을 때 사용하면 다음 쯔모로 반드시 난다. 20턴 째엔 사용할 수 없다.',
-        type: '',
+        type: 'ACTIVE',
         cost: 100,
+        sfx: null, // User to fill
         effect: {}
     },
     'HELL_PILE': {
         name: '지옥쌓기',
         desc: '3턴 간 상대가 받는 패를 쓸모 없는 패로 바꿔 쯔모로 나는 것을 막는다.',
-        type: '',
+        type: 'ACTIVE',
         cost: 18,
         effect: {}
     },
@@ -21,15 +22,17 @@ const SkillData = {
     'WATER_MIRROR': {
         name: '수경',
         desc: '상대가 났을 때 자신이 받는 데미지를 25% 감소시킨다.',
-        type: '',
+        type: 'ACTIVE', // Buff triggered manually? Description says "When opponent wins", suggesting passive/reactive. But in Ataho, defensive skills are usually buffs. Let's assume Buff for now.
+        // Actually "Uses MP" usually means Active. So it's a Buff you cast.
         cost: 22,
         effect: {}
     },
     'DORA_BOMB': {
         name: '도라폭진',
         desc: '리치로 났을 때 숨김 도라를 자신이 가진 패로 바꾼다.',
-        type: '',
+        type: 'REACTIVE', // Triggered on Win
         cost: 32,
+        sfx: null,
         effect: {}
     },
 
@@ -37,14 +40,14 @@ const SkillData = {
     'RECOVERY': {
         name: '회복',
         desc: 'HP를 조금 회복한다. 한 라운드에 몇 번이고 사용할 수 있다.',
-        type: '',
+        type: 'ACTIVE',
         cost: 24,
         effect: {}
     },
     'DISCARD_GUARD': {
         name: '버린 패 방어',
         desc: '5턴 간 상대가 내가 버린 패로 펑과 론을 할 수 없다. 한 라운드에 몇 번이고 사용할 수 있다.',
-        type: '',
+        type: 'ACTIVE',
         cost: 18,
         effect: {}
     },
@@ -53,15 +56,17 @@ const SkillData = {
     'EXCHANGE_TILE': {
         name: '패 교환',
         desc: '라운드 시작 시 필요 없는 패를 교환한다.',
-        type: '',
+        type: 'SETUP', // Phase restricted
         cost: 6, // Per tile
+        sfx: null,
         effect: {}
     },
     'EXCHANGE_RON': {
         name: '론 패 교환',
         desc: '상대 론 시, 내가 버린 패를 다른 패로 바꿔 론을 무효화한다. 내가 리치를 걸고 있을 때는 사용할 수 없다.',
-        type: '',
+        type: 'REACTIVE',
         cost: 10,
+        sfx: null,
         effect: {}
     },
 
@@ -69,14 +74,14 @@ const SkillData = {
     'CRITICAL': {
         name: '크리티컬',
         desc: '내가 났을 때 상대에게 주는 데미지를 25% 증가시킨다.',
-        type: '',
+        type: 'ACTIVE', // Buff
         cost: 24,
         effect: {}
     },
     'LAST_CHANCE': {
         name: '라스트 찬스',
         desc: '텐파이 상태로 나가리가 되었을 때 남은 패 룰렛에 도전할 수 있다. 룰렛에 성공하면 난다.',
-        type: '',
+        type: 'REACTIVE', // Triggered on Nagari
         cost: 18,
         effect: {}
     },
@@ -85,14 +90,14 @@ const SkillData = {
     'SUPER_IAI': {
         name: '초 거합베기',
         desc: '상대 론 시, 내가 버린 패를 거합베기로 잘라 무효화한다. 내가 리치를 걸고 있을 때는 사용할 수 없다.',
-        type: '',
+        type: 'REACTIVE',
         cost: 22,
         effect: {}
     },
     'SPIRIT_RIICHI': {
         name: '기합 리치',
         desc: '리치 가능 시 사용하면 5턴 후 쯔모로 반드시 난다. 16턴 이후에는 사용할 수 없다.',
-        type: '',
+        type: 'ACTIVE', // Sets a timer state
         cost: 24,
         effect: {}
     },
@@ -101,8 +106,8 @@ const SkillData = {
     'PAINT_TILE': {
         name: '패 덧칠',
         desc: '라운드 시작 시 필요 없는 패를 교환한다.', // EXCHANGE_TILE의 상위 호환 (MP가 더 적게 소비)
-        type: '',
-        cost: 4,
+        type: 'SETUP',
+        cost: 4, // Per tile
         effect: {}
     }
 };

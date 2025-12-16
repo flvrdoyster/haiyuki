@@ -416,7 +416,10 @@ const DialogueData = {
             WIN: ["자네한테는 아직 질 수 없지."],
             RANDOM: ["이건 쓸모없는 패로구만", "이 패를 기다리고 있었지.", "흠."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
-            WORRY_RON: ["이건 좀 위험한가?"]
+            WORRY_RON: ["이건 좀 위험한가?"],
+            // Skills
+            TIGER_STRIKE: ["猛虎一発拳!!\nこれでわしの勝ちじゃの。"],
+            HELL_PILE: ["そんなに勝ちいそいではいかんの。\nおヌシには地獄積みじゃい。"]
         },
         // Rinxiang
         rinxiang: {
@@ -427,7 +430,10 @@ const DialogueData = {
             WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
             RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "에이."],
             COUNTER_RIICHI: ["당신만 웃게 놔둘 수 없지!"],
-            WORRY_RON: ["이거... 혹시..."]
+            WORRY_RON: ["이거... 혹시..."],
+            // Skills
+            WATER_MIRROR: [""],
+            DORA_BOMB: [""]
         },
         // Smash
         smash: {
@@ -438,7 +444,10 @@ const DialogueData = {
             WIN: ["절호조!(철 지난 유행어)"],
             RANDOM: ["에~엣취!!", "옷! 럭키!", "이 녀석은 필요 없어..."],
             COUNTER_RIICHI: ["후우, 간신히 모았네..."],
-            WORRY_RON: ["이거 위험하려나..."]
+            WORRY_RON: ["이거 위험하려나..."],
+            // Skills
+            EXCHANGE_TILE: [""],
+            EXCHANGE_RON: ["本当に、この捨て牌で上がれるのかな?"]
         },
         // Petum
         petum: {
@@ -449,7 +458,10 @@ const DialogueData = {
             WIN: ["전략의 차이네요."],
             RANDOM: ["하아.", "흠."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: ["가끔은 운을 하늘에 맡겨보죠."]
+            WORRY_RON: ["가끔은 운을 하늘에 맡겨보죠."],
+            // Skills
+            CRITICAL: ["ふふっ、クリティカルの攻撃ですよ。\n痛いと思いますがガマンしてくださいね。"],
+            LAST_CHANCE: ["さて、ラストチャンスが私に訪れるでしょうか？"]
         },
         // Fari
         fari: {
@@ -460,7 +472,10 @@ const DialogueData = {
             WIN: ["어머나, 운이 좋네요."],
             RANDOM: ["유감스럽지만,\n이건 필요 없겠네요.", "좋은 패가 들어왔네요."],
             COUNTER_RIICHI: ["후후, 질 수는 없잖아요?"],
-            WORRY_RON: ["이건... 위험할까요?"]
+            WORRY_RON: ["이건... 위험할까요?"],
+            // Skills
+            RECOVERY: [""],
+            DISCARD_GUARD: ["捨て牌防御ですわ。\n待っていってはダメですよ。"]
         },
         // Yuriwakamaru
         yuri: {
@@ -471,7 +486,10 @@ const DialogueData = {
             WIN: ["미안하구만!!"],
             RANDOM: ["뭐야.", "훗...", "이런이런..."],
             COUNTER_RIICHI: [],
-            WORRY_RON: ["이건 어떠냐!!"]
+            WORRY_RON: ["이건 어떠냐!!"],
+            // Skills
+            SUPER_IAI: [""],
+            SPIRIT_RIICHI: ["すぐにあがって、楽にしてやるさ。"]
         },
         // Mayu
         mayu: {
@@ -482,7 +500,9 @@ const DialogueData = {
             WIN: [],
             RANDOM: [],
             COUNTER_RIICHI: [],
-            WORRY_RON: []
+            WORRY_RON: [],
+            // Skills
+            PAINT_TILE: [""]
         }
     }
 };

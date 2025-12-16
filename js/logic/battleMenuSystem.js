@@ -27,7 +27,13 @@ const BattleMenuSystem = {
                     p1Data.skills.forEach(skillId => {
                         const skill = SkillData[skillId];
                         if (skill) {
-                            const isDisabled = !BattleConfig.RULES.SKILLS_ENABLED;
+                            // Check Global Rule
+                            const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
+                            // Check Engine Validation
+                            const canUse = this.engine.canUseSkill(skillId, 'P1');
+
+                            const isDisabled = !rulesEnabled || !canUse;
+
                             this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
                         }
                     });

@@ -44,6 +44,8 @@ const BattleEngine = {
 
     calculateScore: function (baseScore, isMenzen) {
         let score = baseScore;
+
+
         // Open Hand Penalty: 75% Score (3/4)
         // Not cumulative, applies once if hand is not Menzen.
         if (!isMenzen) {
@@ -256,98 +258,106 @@ const BattleEngine = {
     },
 
     startWinSequence: function (type, who, score) {
-        this.events.push({ type: 'STOP_MUSIC' }); // NEW: Stop BGM on Ron/Tsumo
+        this.events.push({ type: 'STOP_MUSIC' });
 
-        // Sort CPU Hand if revealed
-        if (who === 'CPU' || type === 'RON') { // If CPU wins or we win (Ron from CPU?), usually we only show CPU hand if WE win (Ron/Tsumo) or CPU wins.
-            this.sortHand(this.cpu.hand);
-        } else {
-            this.sortHand(this.cpu.hand); // Always sort just in case
+        // 1. Calculate Skill Modified Score
+        let finalScore = score;
+        const attacker = who === 'P1' ? this.p1 : this.cpu;
+        const defender = who === 'P1' ? this.cpu : this.p1;
+
+        // Attack Up (CRITICAL)
+        if (attacker.buffs && attacker.buffs.attackUp) {
+            finalScore = Math.floor(finalScore * 1.5);
+            attacker.buffs.attackUp = false; // Consume Buff
+            console.log(`[Skill] Critical Hit! Score x1.5 -> ${finalScore}`);
         }
 
-        // Set Expressions
-        if (who === 'P1') {
-            this.p1Character.setState('smile');
-            this.cpuCharacter.setState('shocked');
-        } else {
-            this.p1Character.setState('shocked');
-            this.cpuCharacter.setState('smile');
+        // Defense Up (WATER MIRROR) on Defender
+        if (defender.buffs && defender.buffs.defenseUp) {
+            finalScore = Math.floor(finalScore * 0.5);
+            defender.buffs.defenseUp = false; // Consume Buff
+            console.log(`[Skill] Water Mirror! Damage Halved -> ${finalScore}`);
         }
 
-        // Dialogue
+        // 2. Prepare Data
+        this.pendingDamage = { target: who === 'P1' ? 'CPU' : 'P1', amount: finalScore };
+
         const winner = who === 'P1' ? 'p1' : 'cpu';
         const loser = who === 'P1' ? 'cpu' : 'p1';
+
+        // 3. Visuals & Dialogue (Immediate)
+        if (who === 'P1') {
+            this.p1Character.setState('win');
+            this.cpuCharacter.setState('lose');
+        } else {
+            this.p1Character.setState('lose');
+            this.cpuCharacter.setState('win');
+        }
         this.triggerDialogue('WIN', winner);
         this.triggerDialogue('LOSE', loser);
 
+        // 4. Build Sequence (FX -> Result Screen)
         this.currentState = this.STATE_FX_PLAYING;
 
-        // Build Sequence
         const steps = [
-            // FX Removed
-            { type: 'WAIT', duration: 80 }, // Reduced wait (120 -> 80)
-            { type: 'REVEAL_HAND' } // Reveal CPU hand
+            { type: 'WAIT', duration: 80 },
+            { type: 'REVEAL_HAND' }
         ];
 
-        // Conditional Steps
+        // Reveal Ura Dora if Riichi
         if ((who === 'P1' && this.p1.isRiichi) || (who === 'CPU' && this.cpu.isRiichi)) {
             steps.push({ type: 'REVEAL_URA' });
         }
 
+        // Add Win/Lose Sound to Sequence
         if (who === 'P1') {
-            // WIN: Play Configured Sound
             const sound = BattleConfig.RESULT.TYPES.WIN.sound;
             if (sound) steps.push({ type: 'SOUND', id: sound });
         } else {
-            // LOSE: Play Configured Sound
             const sound = BattleConfig.RESULT.TYPES.LOSE.sound;
             if (sound) steps.push({ type: 'SOUND', id: sound });
         }
 
-        // UPDATE STATE with Final Score for Renderer
+        // 5. Calculate Bonuses & Final Result Logic
         if (this.winningYaku) {
-            this.winningYaku.score = score;
+            this.winningYaku.score = score; // Use Base Score for Yaku display
         }
 
-        // Calculate Bonuses
         const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
         const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
         const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
-        const finalScore = score + bonusResult.score;
+        // Note: Bonuses added to Final Score? Usually yes.
+        // If finalScore was modified by skills, do we add bonuses on top?
+        // Let's assume Skill Multiplier applies to Base, and Bonuses are additive flat.
+        // OR Skill Multiplier applies to Total?
+        // Let's keep it simple: Multiplier applied to Base Score (Hand Score). Bonuses added separately.
+        const totalScore = finalScore + bonusResult.score;
 
-        // FIX: Update pending damage with final score (including bonuses)
+        // Update Pending Damage with Total
         if (this.pendingDamage) {
-            this.pendingDamage.amount = finalScore;
+            this.pendingDamage.amount = totalScore;
         }
 
-        // Record Round History
+        // Record History
         const resultData = {
             round: this.currentRound,
             result: (who === 'P1') ? '승' : '패',
             yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
         };
         this.roundHistory.push(resultData);
-        const winType = (who === 'P1') ? 'WIN' : 'LOSE';
 
-        // Trigger Win/Lose Dialogue
-        // if (who === 'P1') {
-        //     this.triggerDialogue('P1', 'WIN_CALL');
-        //     this.setTimeout(() => this.triggerDialogue('CPU', 'LOSE_CALL'), 1200);
-        // } else {
-        //     this.triggerDialogue('CPU', 'WIN_CALL');
-        //     this.setTimeout(() => this.triggerDialogue('P1', 'LOSE_CALL'), 1200);
-        // }
-
+        // Prepare Result Info for Renderer
         this.resultInfo = {
-            type: winType,
-            score: finalScore,
+            type: (who === 'P1') ? 'WIN' : 'LOSE',
+            score: totalScore,
             yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
-            yakuScore: this.winningYaku ? this.winningYaku.score : 0, // Pass base score
-            bonuses: bonusResult.details, // Pass Details Array
+            yakuScore: this.winningYaku ? this.winningYaku.score : 0,
+            bonuses: bonusResult.details,
             bonusScore: bonusResult.score
         };
 
-        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: finalScore });
+        // Final Step: Transition to STATE_WIN/LOSE
+        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: totalScore });
 
         this.sequencing = {
             active: true,
@@ -677,9 +687,13 @@ const BattleEngine = {
         this._lastPopupTime = -100;
 
         // Reset BGM to Battle Theme
-        // Reset BGM to Battle Theme
         this.currentBgm = 'audio/bgm_basic';
         this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
+
+        // Skill System Initialization
+        this.skillsUsedThisTurn = false;
+        this.p1.buffs = {};
+        this.cpu.buffs = {};
 
         // Init Deck
         this.deck = this.generateDeck();
@@ -762,6 +776,289 @@ const BattleEngine = {
 
 
 
+
+    // ----------------------------------------------------------------
+    // Skill System
+    // ----------------------------------------------------------------
+    skillsUsedThisTurn: false, // Track usage
+
+    checkSkillCost: function (skill, who = 'P1') {
+        if (!skill) return false;
+        const char = who === 'P1' ? this.p1 : this.cpu;
+
+        // Cost check
+        if (char.mp < skill.cost) return false;
+
+        return true;
+    },
+
+    canUseSkill: function (skillId, who = 'P1') {
+        const skill = SkillData[skillId];
+        if (!skill) return false;
+
+        // 1. Cost
+        if (!this.checkSkillCost(skill, who)) return false;
+
+        // 2. Already Used (Limit 1) exception Recovery
+        if (this.skillsUsedThisTurn && skillId !== 'RECOVERY') return false;
+
+        // 3. Specific Conditions
+        const char = who === 'P1' ? this.p1 : this.cpu;
+
+        switch (skillId) {
+            case 'TIGER_STRIKE':
+                // Check 1: Turn < 20
+                if (this.turnCount >= 20) return false;
+                // Check 2: Must be Tenpai (Ready to Riichi/Win)
+                // We use checkTenpai on the current hand.
+                // Logic: Riichi is declared after draw (12 tiles) -> discard (11) -> wait.
+                // Tiger Strike is used during Main Phase (after Draw, hand has 12 tiles).
+                // So if we discard one, are we Tenpai?
+                // Effectively, "Can declare Riichi" means:
+                // Is Menzen + Has 12 tiles + Discarding one specific tile leads to Tenpai.
+
+                // Existing checkTenpai: 
+                // checkTenpai(hand) returns true if hand (11 tiles) needs 1 to win.
+                // Player hand has 12 tiles now.
+                {
+                    let canReachTenpai = false;
+                    for (let i = 0; i < char.hand.length; i++) {
+                        const tempHand = [...char.hand];
+                        tempHand.splice(i, 1);
+                        if (this.checkTenpai(tempHand, char.id)) {
+                            canReachTenpai = true;
+                            break;
+                        }
+                    }
+                    if (!canReachTenpai) return false;
+                }
+                break;
+
+            case 'PAINT_TILE':
+            case 'EXCHANGE_TILE':
+                // Turn 1 Only
+                if (this.turnCount !== 1) return false;
+                break;
+
+            case 'HELL_PILE':
+            case 'CRITICAL':
+            case 'WATER_MIRROR':
+            case 'SPIRIT_RIICHI':
+            case 'DISCARD_GUARD':
+            case 'RECOVERY':
+                // No extra conditions beyond MP/Turn Limit?
+                // Valid at any time in main phase.
+                break;
+        }
+
+        return true;
+    },
+
+    useSkill: function (skillId, who = 'P1') {
+        const skill = SkillData[skillId];
+        if (!skill) return false;
+
+        // Use core validation
+        if (!this.canUseSkill(skillId, who)) {
+            console.log(`Cannot use skill ${skill.name} (Conditions not met)`);
+            return false;
+        }
+
+        // ONE USE PER TURN RULE & UNIMPLEMENTED SKILLS
+        // These are effectively double-checked by canUseSkill, but we keep the UNIMPLEMENTED check 
+        // explicit here if we want to show a popup? 
+        // Actually, canUseSkill should probably handle unimplemented skills returning false too?
+        // But useSkill logic for unimplemented skills was showing a specific popup "Not Implemented".
+        // Let's rely on canUseSkill generally, but keep the popup logic for unimplemented skills?
+        // No, let's move unimplemented logic to canUseSkill or just let them fail silently in menu (disabled).
+        // If user hacks usage, canUseSkill returns false.
+
+        // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
+        if (['EXCHANGE_TILE', 'PAINT_TILE', 'LAST_CHANCE'].includes(skillId)) {
+            console.log("Skill logic not yet implemented (Batch 2)");
+            this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
+            return false;
+        }
+
+        // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
+        if (['EXCHANGE_TILE', 'PAINT_TILE', 'LAST_CHANCE'].includes(skillId)) {
+            console.log("Skill logic not yet implemented (Batch 2)");
+            // Show "Not Implemented" popup?
+            this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
+            return false;
+        }
+
+        // Deduct MP
+        this.consumeMp(who, skill.cost);
+
+        // Process Effect
+        this.processSkillEffect(skill, who);
+
+        // Mark as used
+        if (skillId !== 'RECOVERY') {
+            // Track per user? Currently engine has one flag 'skillsUsedThisTurn'
+            // Keep it simple: Shared flag or separate?
+            // Better to respect turn. If it's P1 turn, P1 uses. If CPU turn, CPU uses.
+            // But Reactive skills can trigger out of turn.
+            this.skillsUsedThisTurn = true;
+        }
+
+        // Visuals
+        // Only show Popup for P1? Or both? Both is fine.
+        this.showPopup('SKILL', { text: skill.name, blocking: false });
+
+        // Play SFX
+        if (skill.sfx) {
+            this.events.push({ type: 'SOUND', id: skill.sfx });
+        } else {
+            // Default Skill Sound
+            this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+        }
+
+        // Trigger Dialogue
+        // Use Skill ID as key to find specific text in DialogueData
+        const dialOwner = who === 'P1' ? 'p1' : 'cpu';
+        this.triggerDialogue(skillId, dialOwner);
+
+        // Log
+        console.log(`${who} used skill: ${skill.name}`);
+
+        return true;
+    },
+
+    processSkillEffect: function (skill, user) {
+        const target = user === 'P1' ? 'CPU' : 'P1';
+        const userObj = user === 'P1' ? this.p1 : this.cpu;
+        const targetObj = user === 'P1' ? this.cpu : this.p1;
+
+        // 1. Buffs / Debuffs
+        if (skill.type === 'ACTIVE' || skill.type === 'SETUP') {
+            // Handle specific skills
+            switch (skillId) {
+                // FARI
+                case 'RECOVERY':
+                    this.heal(user, 3000); // 3000 HP
+                    this.playFX('fx/heal', BattleConfig.PORTRAIT[user].x + 100, 300, { scale: 1.5 });
+                    break;
+
+                case 'DISCARD_GUARD':
+                    userObj.buffs.discardGuard = 5; // 5 Turns
+                    break;
+
+                // ATAHO
+                case 'TIGER_STRIKE':
+                    userObj.buffs.guaranteedWin = true; // Next Draw = Win
+                    break;
+
+                case 'HELL_PILE':
+                    targetObj.buffs.curseDraw = 3; // 3 Turns
+                    break;
+
+                // PETUM
+                case 'CRITICAL':
+                    userObj.buffs.attackUp = true; // Duration? Round? Assuming Round based on desc "When I win"
+                    break;
+
+                // RINXIANG
+                case 'WATER_MIRROR':
+                    userObj.buffs.defenseUp = true;
+                    break;
+
+                // YURI
+                case 'SPIRIT_RIICHI':
+                    userObj.buffs.spiritTimer = 5; // 5 Turns countdown
+                    break;
+
+                // SMASH / MAYU
+                case 'EXCHANGE_TILE':
+                case 'PAINT_TILE':
+                    // Trigger Exchange UI
+                    // Logic should be handled by Scene changing state
+                    // checking validation first
+                    // For now, auto-complete or placeholder
+                    break;
+            }
+        }
+    },
+
+    manageBuffs: function (who) {
+        if (!who.buffs) return;
+
+        // 1. Spirit Riichi Timer
+        if (who.buffs.spiritTimer > 0) {
+            who.buffs.spiritTimer--;
+            if (who.buffs.spiritTimer === 0) {
+                who.buffs.guaranteedWin = true; // Activate Tiger Strike effect
+                console.log("[Skill] Spirit Riichi Activated! Next draw is a win.");
+                this.triggerDialogue('SKILL_WIN', who === this.p1 ? 'p1' : 'cpu'); // Generic win skill line
+            }
+        }
+
+        // 2. Discard Guard Timer
+        if (who.buffs.discardGuard > 0) {
+            who.buffs.discardGuard--;
+            if (who.buffs.discardGuard === 0) {
+                console.log("[Skill] Discard Guard Ended.");
+            }
+        }
+
+        // Note: curseDraw is handled in drawTiles (decrements on effect)
+    },
+
+    heal: function (who, amount) {
+        const char = who === 'P1' ? this.p1 : this.cpu;
+        char.hp = Math.min(char.hp + amount, char.maxHp);
+        // Visual update handled by renderer update
+    },
+
+    consumeMp: function (who, amount) {
+        const char = who === 'P1' ? this.p1 : this.cpu;
+        char.mp = Math.max(char.mp - amount, 0);
+    },
+
+    triggerReaction: function (skillId, onYes, onNo) {
+        const skill = SkillData[skillId];
+        // Ensure Scene has showConfirm
+        if (this.scene && this.scene.showConfirm) {
+            this.scene.showConfirm(
+                `${skill.name}을(를) 사용하여 방어하시겠습니까? (MP: ${skill.cost})`,
+                onYes,
+                onNo
+            );
+        } else {
+            // Fallback: If no UI, just skip skill (No)
+            onNo();
+        }
+    },
+
+    finishRon: function (win) {
+        this.showPopup('RON', { blocking: true });
+        this.winningYaku = win;
+        const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
+        this.pendingDamage = { target: 'P1', amount: score };
+        this.startWinSequence('RON', 'CPU', score);
+    },
+
+    cancelRonAndSwap: function (skillId, who = 'P1') {
+        const discarder = who === 'P1' ? 'cpu' : 'p1'; // If P1 uses skill, CPU was discarder
+
+        // Swap discarded tile with a 'safe' one
+        // 1. Remove dangerous discard
+        const badTile = this.discards.pop();
+
+        // 2. Generate Safe Tile (e.g. West Wind 'z3')
+        // Ensure the new tile belongs to the original discarder
+        const safeTile = { type: 'z3', color: 'purple', img: 'pai/z3.png', owner: discarder };
+        this.discards.push(safeTile);
+
+        console.log(`[Skill] Ron Cancelled by ${who}! Swapped ${badTile.type} with Safe Tile.`);
+
+        // Use generalized trigger
+        const dialKey = 'SKILL_DEFENSE'; // Or specific skill key?
+        const dialOwner = who === 'P1' ? 'p1' : 'cpu';
+        this.triggerDialogue(dialKey, dialOwner);
+    },
+
     generateDeck: function () {
         const deck = [];
 
@@ -785,7 +1082,60 @@ const BattleEngine = {
         return deck;
     },
 
-    drawTiles: function (count) {
+    drawTiles: function (count, who) {
+        // Skill Logic: Deck Manipulation (Only for single draws)
+        if (who && count === 1 && this.deck.length > 0) {
+            // 1. Guaranteed Win (Tiger Strike / Spirit Riichi)
+            if (who.buffs && who.buffs.guaranteedWin) {
+                // Search for a winning tile
+                const winningTileIdx = this.deck.findIndex(tile => {
+                    // Check if this tile completes the hand
+                    const testHand = [...who.hand, tile];
+                    // Note: We need to respect Menzen status for score calc, but for Win Check it matters less unless Yaku requires it.
+                    // But checkYaku needs correct menzen flag? Usually pass it if needed, or checkYaku infers.
+                    // Our YakuLogic.checkYaku checks patterns.
+                    return YakuLogic.checkYaku(testHand, who.id);
+                });
+
+                if (winningTileIdx !== -1) {
+                    // Found it! Move to end (pop position)
+                    const tile = this.deck.splice(winningTileIdx, 1)[0];
+                    this.deck.push(tile);
+                    who.buffs.guaranteedWin = false; // Consume buff
+                    console.log("[Skill] Manipulated Deck for Guaranteed Win!");
+                } else {
+                    console.log("[Skill] No winning tile found in deck...");
+                }
+            }
+
+            // 2. Curse Draw (Hell Pile)
+            if (who.buffs && who.buffs.curseDraw > 0) {
+                // Simplistic: Ensure we don't give a winning tile if possible
+                // Or give a wind/dragon tile that they don't have pairs for.
+                // Let's just shuffle the top tile if it looks "good" to a "bad" one.
+                // Simple implementation: Move top tile to bottom if it matches any tile in hand (set building).
+                // Try up to 3 times to find a 'bad' tile.
+
+                let attempts = 0;
+                while (attempts < 5) {
+                    const topTile = this.deck[this.deck.length - 1]; // Candidate
+                    const isUseful = who.hand.some(t => t.type === topTile.type || (t.color === topTile.color && Math.abs(t.type - topTile.type) <= 1));
+
+                    if (isUseful) {
+                        // It's useful, bury it
+                        const buried = this.deck.pop();
+                        this.deck.unshift(buried); // Move to bottom
+                        attempts++;
+                    } else {
+                        // Found a garbage tile (or ran out of attempts)
+                        break;
+                    }
+                }
+                who.buffs.curseDraw--; // Decrement duration (turns)
+                console.log("[Skill] Cursed Draw applied.");
+            }
+        }
+
         const drawn = [];
         for (let i = 0; i < count; i++) {
             if (this.deck.length > 0) drawn.push(this.deck.pop());
@@ -960,13 +1310,7 @@ const BattleEngine = {
         }
     },
 
-    confirmResult: function () {
-        this.currentState = this.STATE_DAMAGE_ANIMATION;
-        this.timer = 0;
-        // Stop Victory BGM?
-        // this.events.push({ type: 'STOP_MUSIC' }); // Optional: Stop fanfare?
-        // Usually fanfare plays once.
-    },
+
 
 
 
@@ -1025,7 +1369,18 @@ const BattleEngine = {
         // Reset Dialogue Flag for this turn
         this.dialogueTriggeredThisTurn = false;
 
-        const t = this.drawTiles(1);
+        // Manage Buffs (Start of Turn)
+        this.manageBuffs(this.p1);
+
+        // Check if dead (Nagari/Damage could happen?)
+        if (this.p1.hp <= 0) return;
+
+        // Draw Tile Logic
+        // Fix: If P1 just Pon-ed, they don't draw, they just discard.
+        // But Player Pon handling usually skips to Discard state immediately.
+        // This function is called for Normal Draw.
+
+        const t = this.drawTiles(1, this.p1);
         if (t.length > 0) {
             const drawnTile = t[0];
             this.events.push({ type: 'DRAW', player: 'P1' });
@@ -1066,7 +1421,7 @@ const BattleEngine = {
         if (this.cpu.needsToDiscard) {
             this.cpu.needsToDiscard = false;
         } else {
-            const t = this.drawTiles(1);
+            const t = this.drawTiles(1, this.cpu);
             if (t.length > 0) {
                 this.events.push({ type: 'DRAW', player: 'CPU' });
                 this.cpu.hand.push(t[0]);
@@ -1076,7 +1431,13 @@ const BattleEngine = {
         // Reset Dialogue Flag for CPU turn
         this.dialogueTriggeredThisTurn = false;
 
+        // Manage Buffs
+        this.manageBuffs(this.cpu);
+
         // CPU AI Logic
+        // Active Skill Check
+        this.checkCpuActiveSkills(); // AI decides to use skills
+
         const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
 
         // 1. Check Tsumo
@@ -1250,8 +1611,48 @@ const BattleEngine = {
             }
             return 0;
         });
+        this.lastDrawGroupSize = 0;
+    },
 
-        this.lastDrawGroupSize = 0; // Reset grouping on sort
+    checkCpuActiveSkills: function () {
+        if (this.skillsUsedThisTurn) return;
+
+        // Iterate skills
+        const skills = this.cpu.skills || [];
+        for (const skillId of skills) {
+            const skill = SkillData[skillId];
+            if (!skill || skill.type !== 'ACTIVE') continue;
+            if (!this.checkSkillCost(skill, 'CPU')) continue;
+
+            let shouldUse = false;
+
+            // AI Heuristics
+            switch (skillId) {
+                case 'RECOVERY':
+                    // Heal if HP < 60%
+                    if (this.cpu.hp < this.cpu.maxHp * 0.6) shouldUse = true;
+                    break;
+                case 'TIGER_STRIKE':
+                case 'SPIRIT_RIICHI':
+                case 'CRITICAL':
+                    // Use if Tenpai (Ready to win)
+                    // Check hand (before draw, size 13)
+                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
+                    break;
+                case 'HELL_PILE':
+                case 'DISCARD_GUARD':
+                case 'WATER_MIRROR':
+                    // Defensive/Debuff: Use if Player is Riichi or HP Low
+                    if (this.p1.isRiichi || this.cpu.hp < this.cpu.maxHp * 0.4) shouldUse = true;
+                    break;
+            }
+
+            // Aggression/RNG Check (prevent deterministic spam)
+            if (shouldUse && Math.random() < 0.8) {
+                this.useSkill(skillId, 'CPU');
+                return; // Assume 1 skill per turn limit applies to CPU too
+            }
+        }
     },
 
     discardTile: function (index) {
@@ -1291,6 +1692,12 @@ const BattleEngine = {
     },
 
     checkCpuActions: function (discardedTile) {
+        // Discard Guard Check
+        // If P1 (discarder) has discardGuard, CPU cannot access this tile.
+        if (this.p1.buffs && this.p1.buffs.discardGuard > 0) {
+            return false;
+        }
+
         // 1. RON
         // Rule: Ron is allowed ONLY if Riichi is declared (same as player)
         // This prevents Ron after Pon (since Pon makes hand open and prevents Riichi)
@@ -1298,11 +1705,31 @@ const BattleEngine = {
         const checkHand = [...this.getFullHand(this.cpu), discardedTile];
         const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
         if (win && this.cpu.isRiichi) { // Added Riichi requirement
-            this.showPopup('RON', { blocking: true });
-            this.winningYaku = win;
-            const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen);
-            this.pendingDamage = { target: 'P1', amount: score };
-            this.startWinSequence('RON', 'CPU', score);
+            // --- SKILL CHECK: COUNTER-RON ---
+            const reactiveSkillId = this.p1 && this.p1.skills ? this.p1.skills.find(id => {
+                const s = SkillData[id];
+                return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
+            }) : null;
+
+            if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId])) {
+                // Trigger Reaction Modal
+                this.triggerReaction(reactiveSkillId, () => {
+                    // YES: Cancel Ron
+                    this.useSkill(reactiveSkillId); // Deducts MP & Logs
+                    this.cancelRonAndSwap(reactiveSkillId);
+                    // Flow continues?
+                    // cancelRonAndSwap should likely set state to CPU_TURN or just let discardTile continue.
+                    // Since we return true, discardTile stops.
+                    // We need to manually resume state.
+                    this.currentState = this.STATE_CPU_TURN;
+                }, () => {
+                    // NO: Allow Ron
+                    this.finishRon(win);
+                });
+                return true; // Block standard flow
+            }
+
+            this.finishRon(win);
             return true;
         }
 
@@ -1423,6 +1850,10 @@ const BattleEngine = {
     // View proxies removed (Use BattleRenderer directly)
 
     checkPlayerActions: function (discardedTile) {
+        // Discard Guard Check
+        if (this.cpu.buffs && this.cpu.buffs.discardGuard > 0) {
+            return false;
+        }
         this.possibleActions = [];
         const hand = this.p1.hand;
         const fullHand = this.getFullHand(this.p1);
@@ -1782,6 +2213,25 @@ const BattleEngine = {
             }
 
         } else if (action.type === 'RON') {
+            // --- SKILL CHECK: CPU COUNTER-RON ---
+            const reactiveSkillId = this.cpu.skills ? this.cpu.skills.find(id => {
+                const s = SkillData[id];
+                return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
+            }) : null;
+
+            if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
+                // AI DECISION: High chance to use if affordable
+                if (this.cpu.hp < 8000 || Math.random() < 0.8) {
+                    this.useSkill(reactiveSkillId, 'CPU');
+                    this.cancelRonAndSwap(reactiveSkillId, 'CPU');
+
+                    // Resume Flow: Treat as if discard happened and was passed
+                    this.currentState = this.STATE_CPU_TURN;
+                    return;
+                }
+            }
+            // -------------------------------------
+
             this.showPopup('RON', { blocking: true });
             this.p1Character.setState('joy');
             this.cpuCharacter.setState('ko');

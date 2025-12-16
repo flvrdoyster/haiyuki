@@ -89,3 +89,39 @@ This document serves as the single source of truth for the game's rules and logi
   - **Tenho**: Winning by Tsumo on the very first turn.
   - **Haitei**: Winning by Tsumo on the last turn (Turn 20).
   - **Houtei**: Winning by Ron on the last turn (Turn 20).
+
+## 10. Character Skill System
+- **MP (Mana Points)**: Characters have MP (Max 100). Using skills consumes MP.
+- **Skill Categories**:
+  - **ACTIVE**: Used during the player's Main Phase (Action Select, before Discard).
+  - **REACTIVE**: Triggered automatically or by user choice in response to specific events (Win, Loss, Round End).
+  - **SETUP**: Used at the start of a round to manipulate the initial hand.
+
+### Active Skills
+- **Constraint**: Only **1 Active Skill** can be used per turn.
+- **List**:
+  - `TIGER_STRIKE` (Ataho): If Tenpai, the next draw is guaranteed to be a Tsumo tile. (Cannot use after Turn 20).
+  - `HELL_PILE` (Ataho): Forces the opponent to draw useless tiles for 3 turns.
+  - `RECOVERY` (Fari): Restores a small amount of HP. (Exception: Can be used multiple times per turn).
+  - `DISCARD_GUARD` (Fari): The opponent cannot call Ron or Pon on your discards for 5 turns.
+  - `WATER_MIRROR` (Rinxiang): Reduces damage taken from an opponent's win by 25%. (Applied for the current Round, checked at damage calculation).
+  - `CRITICAL` (Petum): Increases damage dealt by your win by 25%. (Applied for the current Round, checked at damage calculation).
+  - `SPIRIT_RIICHI` (Yuri): If usable, guarantees a Tsumo win after 5 turns.
+
+### Reactive Skills
+- **Trigger**: Specific conditions like Opponent Ron, Self Win, or Nagari.
+- **List**:
+  - `DORA_BOMB` (Rinxiang): When winning with Riichi, converts Hidden Dora indicators into tiles in your hand (Score Boost).
+  - `EXCHANGE_RON` (Smash): When opponent declares Ron, cancel it by swapping the discarded tile with another tile from your hand.
+  - `SUPER_IAI` (Yuri): When opponent declares Ron, cancel it by destroying the discarded tile (Invalidates the Ron completely).
+  - `LAST_CHANCE` (Petum): If Nagari (Draw) occurs while Tenpai, trigger a Roulette minigame to attempt a forced win.
+
+### Setup Skills
+- **Trigger**: Round Start (Dealing Phase).
+- **List**:
+  - `EXCHANGE_TILE` (Smash): Swap tiles from your initial hand for new ones. (Cost is per tile).
+  - `PAINT_TILE` (Mayu): Swap tiles from your initial hand for new ones. (Reduced MP cost).
+
+### Buffs & Status Effects
+- **Turn-Based**: Effects like `DISCARD_GUARD` or `HELL_PILE` last for a specific number of turns.
+- **Decrement**: Buff timers decrease at the start of the owner's turn.
