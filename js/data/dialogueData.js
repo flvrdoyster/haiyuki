@@ -409,35 +409,35 @@ const DialogueData = {
         },
         // Ataho
         ataho: {
-            PON: ["그 패를 가져가도 되겠나?"],
-            PON_REPLY: [],
+            PON: ["그 패를 가져가도 되겠는가?"],
+            PON_REPLY: [""],
             RIICHI: ["그럼 가볼까."],
-            RIICHI_REPLY: ["흠, 제법 하는구만."],
+            RIICHI_REPLY: ["흠, 제법 하는구먼."],
             WIN: ["자네한테는 아직 질 수 없지."],
-            RANDOM: ["이건 쓸모없는 패로구만", "이 패를 기다리고 있었지.", "흠."],
+            RANDOM: ["이건 쓸모없는 패로구먼", "이 패를 기다리고 있었지.", "흠."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
             WORRY_RON: ["이건 좀 위험한가?"],
             // Skills
-            TIGER_STRIKE: ["猛虎一発拳!!\nこれでわしの勝ちじゃの。"],
-            HELL_PILE: ["そんなに勝ちいそいではいかんの。\nおヌシには地獄積みじゃい。"]
+            TIGER_STRIKE: ["맹호일발권!\n이걸로 나의 승리라네."],
+            HELL_PILE: ["그렇게 승리를 서두르면 안 되지.\n자네에겐 지옥 쌓기일세."]
         },
         // Rinxiang
         rinxiang: {
-            PON: [],
-            PON_REPLY: [],
+            PON: ["좋았어, 이게 필요했다구."],
+            PON_REPLY: ["김빠지네. 이런 게 필요했어?"],
             RIICHI: ["좋아, 승부에요!!"],
             RIICHI_REPLY: ["제법이잖아."],
             WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
-            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "에이."],
+            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "에잇."],
             COUNTER_RIICHI: ["당신만 웃게 놔둘 수 없지!"],
             WORRY_RON: ["이거... 혹시..."],
             // Skills
-            WATER_MIRROR: [""],
-            DORA_BOMB: [""]
+            WATER_MIRROR: ["수경!"],
+            DORA_BOMB: ["받아랏, 도라폭진!"]
         },
         // Smash
         smash: {
-            PON: [],
+            PON: ["헷헷헷, 잘 먹겠어."],
             PON_REPLY: ["뭐라굿!?"],
             RIICHI: ["좋아! 승부닷!!"],
             RIICHI_REPLY: ["제법이잖아."],
@@ -446,13 +446,13 @@ const DialogueData = {
             COUNTER_RIICHI: ["후우, 간신히 모았네..."],
             WORRY_RON: ["이거 위험하려나..."],
             // Skills
-            EXCHANGE_TILE: [""],
-            EXCHANGE_RON: ["本当に、この捨て牌で上がれるのかな?"]
+            EXCHANGE_TILE: [],
+            EXCHANGE_RON: ["이 버린 패로 날 수 있을 거라 생각해?"]
         },
         // Petum
         petum: {
             PON: ["그거, 받아갑니다."],
-            PON_REPLY: [],
+            PON_REPLY: [""],
             RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["어라, 제법이지 않습니까."],
             WIN: ["전략의 차이네요."],
@@ -460,36 +460,36 @@ const DialogueData = {
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
             WORRY_RON: ["가끔은 운을 하늘에 맡겨보죠."],
             // Skills
-            CRITICAL: ["ふふっ、クリティカルの攻撃ですよ。\n痛いと思いますがガマンしてくださいね。"],
-            LAST_CHANCE: ["さて、ラストチャンスが私に訪れるでしょうか？"]
+            CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프겠지만 참아 주세요."],
+            LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
         },
         // Fari
         fari: {
-            PON: [],
-            PON_REPLY: [],
+            PON: ["그거~ 받아가도 괜찮을까요?"],
+            PON_REPLY: [""],
             RIICHI: ["먼저 실례할게요."],
             RIICHI_REPLY: ["어머, 꽤 강하시네요."],
             WIN: ["어머나, 운이 좋네요."],
-            RANDOM: ["유감스럽지만,\n이건 필요 없겠네요.", "좋은 패가 들어왔네요."],
+            RANDOM: ["유감스럽지만,\n이건 필요 없겠네요.", "좋은 패가 들어왔네요.", "에잇."],
             COUNTER_RIICHI: ["후후, 질 수는 없잖아요?"],
             WORRY_RON: ["이건... 위험할까요?"],
             // Skills
-            RECOVERY: [""],
-            DISCARD_GUARD: ["捨て牌防御ですわ。\n待っていってはダメですよ。"]
+            RECOVERY: ["상처를 회복하겠어요."],
+            DISCARD_GUARD: ["버린 패 방어에요.\n가져가면 안 돼요."]
         },
         // Yuriwakamaru
         yuri: {
-            PON: [],
-            PON_REPLY: [],
+            PON: ["이 녀석은 가져갈게."],
+            PON_REPLY: ["방금 그건... 뭐야."],
             RIICHI: ["그럼 먼저~"],
             RIICHI_REPLY: ["빠르기도 하군..."],
             WIN: ["미안하구만!!"],
             RANDOM: ["뭐야.", "훗...", "이런이런..."],
-            COUNTER_RIICHI: [],
+            COUNTER_RIICHI: [""],
             WORRY_RON: ["이건 어떠냐!!"],
             // Skills
             SUPER_IAI: [""],
-            SPIRIT_RIICHI: ["すぐにあがって、楽にしてやるさ。"]
+            SPIRIT_RIICHI: ["금방 이겨서, 편하게 해줄게."]
         },
         // Mayu
         mayu: {
@@ -502,7 +502,7 @@ const DialogueData = {
             COUNTER_RIICHI: [],
             WORRY_RON: [],
             // Skills
-            PAINT_TILE: [""]
+            PAINT_TILE: []
         }
     }
 };
