@@ -7,7 +7,7 @@ const Assets = {
     toLoad: [
         'ui/title.png',
         'ui/pushok.png',   // "PUSH SPACE KEY"
-        'ui/logo_compile_1998.png',  // Small Compile Logo?
+        'ui/logo_compile_1998.png',  // Compile Logo with 1998
 
         // Audio
         { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
@@ -142,7 +142,6 @@ const Assets = {
         'ui/riichi.png', // New Riichi stick asset
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
-        // 'ui/cursor_yellow.png', // File missing
         'ui/alphabet.png',
         'ui/pointer.png',
 

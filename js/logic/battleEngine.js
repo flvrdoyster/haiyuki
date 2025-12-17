@@ -95,8 +95,6 @@ const BattleEngine = {
             blocking: options.blocking // blocking usually passed by logic context
         };
 
-        // Sound Logic - REMOVED (Handled by View via popupType)
-
         // Pass type info for View sound handling
         finalOptions.popupType = type;
 
@@ -107,9 +105,8 @@ const BattleEngine = {
     cpuIndex: 0,
 
     // Battle Data
-    // Battle Data
-    p1: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false },
-    cpu: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: 100, maxMp: 100, hand: [], openSets: [], isRiichi: false, isRevealed: false },
+    p1: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: BattleConfig.RULES.INITIAL_MP, maxMp: BattleConfig.RULES.INITIAL_MP, hand: [], openSets: [], isRiichi: false },
+    cpu: { hp: BattleConfig.RULES.INITIAL_HP, maxHp: BattleConfig.RULES.INITIAL_HP, mp: BattleConfig.RULES.INITIAL_MP, maxMp: BattleConfig.RULES.INITIAL_MP, hand: [], openSets: [], isRiichi: false, isRevealed: false },
 
     deck: [],
     discards: [],
@@ -245,6 +242,10 @@ const BattleEngine = {
             this.cpu.hp = BattleConfig.RULES.INITIAL_HP;
             this.p1.maxHp = BattleConfig.RULES.INITIAL_HP;
             this.cpu.maxHp = BattleConfig.RULES.INITIAL_HP;
+            this.p1.mp = BattleConfig.RULES.INITIAL_MP;
+            this.cpu.mp = BattleConfig.RULES.INITIAL_MP;
+            this.p1.maxMp = BattleConfig.RULES.INITIAL_MP;
+            this.cpu.maxMp = BattleConfig.RULES.INITIAL_MP;
         }
 
         // Store tournament data
@@ -279,27 +280,19 @@ const BattleEngine = {
 
         // Attack Up (CRITICAL)
         if (attacker.buffs && attacker.buffs.attackUp) {
-            finalScore = Math.floor(finalScore * 1.5); // Can be 1.25 or 1.5 depending on design (User previous edit said 1.5, calculateScore said 1.25. Let's sync with 1.5 as per this function's previous state)
+            finalScore = Math.floor(finalScore * 1.25);
             attacker.buffs.attackUp = false; // Consume Buff;
             activeBuffs.push('CRITICAL');
-            console.log(`[Skill] Critical Hit! Score x1.5 -> ${finalScore}`);
+            console.log(`[Skill] Critical Hit! Score x1.25 -> ${finalScore}`);
         }
 
         // Defense Up (WATER MIRROR) on Defender
         if (defender.buffs && defender.buffs.defenseUp) {
-            finalScore = Math.floor(finalScore * 0.5); // Can be 0.5 or 0.75. Previous calculateScore said 0.75. User requested -25% there. startWinSequence previous code said 0.5. Let's stick to startWinSequence existing 0.5 for now or 0.75? The calculateScore had 0.75 (-25%). Use 0.75 for consistency with -25%.
-            // Wait, previous VIEW showed: score = Math.floor(score * 1.25); // Critical: +25%. 
-            // BUT startWinSequence showed * 1.5 and * 0.5. I should probably respect the user's intent or consistency.
-            // Let's use 1.25/0.75 to match calculateScore logic I saw earlier for consistency.
-            // ACTUALLY, I'll use what was in calculateScore (1.25, 0.75) effectively, or just apply the multiplier here.
-            // Wait, startWinSequence code I viewed in step 261 showed * 1.5 and * 0.5. I will stick to those values if they were user intent, OR sync with calculateScore. StartWinSequence is the authority for result handling now.
-            // Let's keep existing values from startWinSequence (1.5, 0.5) if that's what was there, BUT add 'activeBuffs'.
-            // Actually, I should probably check if I should sync them.
-            // Let's use 1.5 (+50%) and 0.5 (-50%) for dramatic effect as likely intended by "Critical" and "Mirror".
-            finalScore = Math.floor(finalScore * 0.5);
+            finalScore = Math.floor(finalScore * 0.75);
             defender.buffs.defenseUp = false; // Consume Buff
             activeBuffs.push('WATER_MIRROR');
-            console.log(`[Skill] Water Mirror! Damage Halved -> ${finalScore}`);
+            console.log(`[Skill] Water Mirror! Damage -25% -> ${finalScore}`);
+
         }
 
         // 2. Prepare Data
@@ -823,6 +816,10 @@ const BattleEngine = {
         const skill = SkillData[skillId];
         if (!skill) return false;
 
+        // 0. Type Check (Active Phase only)
+        // REACTIVE and SETUP skills cannot be used manually via menu
+        if (skill.type === 'REACTIVE' || skill.type === 'SETUP') return false;
+
         // 1. Cost
         if (!this.checkSkillCost(skill, who)) return false;
 
@@ -836,17 +833,15 @@ const BattleEngine = {
             case 'TIGER_STRIKE':
                 // Check 1: Turn < 20
                 if (this.turnCount >= 20) return false;
-                // Check 2: Must be Tenpai (Ready to Riichi/Win)
-                // We use checkTenpai on the current hand.
-                // Logic: Riichi is declared after draw (12 tiles) -> discard (11) -> wait.
-                // Tiger Strike is used during Main Phase (after Draw, hand has 12 tiles).
-                // So if we discard one, are we Tenpai?
-                // Effectively, "Can declare Riichi" means:
-                // Is Menzen + Has 12 tiles + Discarding one specific tile leads to Tenpai.
 
-                // Existing checkTenpai: 
-                // checkTenpai(hand) returns true if hand (11 tiles) needs 1 to win.
-                // Player hand has 12 tiles now.
+            // Fallthrough to Tenpai check shared with SPIRIT_RIICHI
+            case 'SPIRIT_RIICHI':
+                if (skillId === 'SPIRIT_RIICHI') {
+                    // Spirit Riichi Check: Turn <= 16
+                    if (this.turnCount > 16) return false;
+                }
+
+                // Check 2: Must be Tenpai (Ready to Riichi/Win)
                 {
                     let canReachTenpai = false;
                     for (let i = 0; i < char.hand.length; i++) {
@@ -870,10 +865,8 @@ const BattleEngine = {
             case 'HELL_PILE':
             case 'CRITICAL':
             case 'WATER_MIRROR':
-            case 'SPIRIT_RIICHI':
             case 'DISCARD_GUARD':
             case 'RECOVERY':
-                // No extra conditions beyond MP/Turn Limit?
                 // Valid at any time in main phase.
                 break;
         }

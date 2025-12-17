@@ -220,7 +220,7 @@ const CharacterSelectScene = {
             }
             // Mouse Input
             if (Input.isMouseJustPressed()) {
-                const clickedIndex = this.getClickedCharacterIndex();
+                const clickedIndex = this.getHoveredCharacterIndex();
                 if (clickedIndex !== -1) {
                     this.playerIndex = clickedIndex;
                     this.updateP1Portrait();
@@ -258,7 +258,7 @@ const CharacterSelectScene = {
 
                 // Mouse Input (Debug Manual)
                 if (Input.isMouseJustPressed()) {
-                    const clickedIndex = this.getClickedCharacterIndex();
+                    const clickedIndex = this.getHoveredCharacterIndex();
                     if (clickedIndex !== -1) {
                         this.cpuIndex = clickedIndex;
                         this.updateCpuPortrait();
@@ -271,20 +271,7 @@ const CharacterSelectScene = {
                     }
                 }
 
-                // Mouse Input (Debug Manual)
-                if (Input.isMouseJustPressed()) {
-                    const clickedIndex = this.getClickedCharacterIndex();
-                    if (clickedIndex !== -1) {
-                        this.cpuIndex = clickedIndex;
-                        this.updateCpuPortrait();
-                        // Confirm if clicked again?
-                        if (this.cpuIndex === clickedIndex) {
-                            this.currentState = this.STATE_READY;
-                            this.readyTimer = 0;
-                            console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
-                        }
-                    }
-                }
+
 
             } else {
                 // Original Roulette Logic
@@ -453,6 +440,8 @@ const CharacterSelectScene = {
         const totalW = (iconW * this.characters.length) + (gap * (this.characters.length - 1));
         const startX = (640 - totalW) / 2;
 
+        const hoveredIndex = this.getHoveredCharacterIndex();
+
         this.characters.forEach((char, index) => {
             const x = startX + index * (iconW + gap);
             const y = iconY;
@@ -472,6 +461,15 @@ const CharacterSelectScene = {
             }
 
             ctx.restore();
+
+            // Hover Effect
+            if (index === hoveredIndex) {
+                ctx.save();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x - 2, y - 2, iconW + 4, iconH + 4);
+                ctx.restore();
+            }
         });
 
         // 7. Draw Cursors
@@ -497,7 +495,7 @@ const CharacterSelectScene = {
         }
     },
 
-    getClickedCharacterIndex: function () {
+    getHoveredCharacterIndex: function () {
         const firstIcon = Assets.get(this.characters[0].selectIcon);
         if (!firstIcon) return -1;
 

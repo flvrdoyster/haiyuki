@@ -17,6 +17,7 @@ const BattleConfig = {
     },
     RULES: {
         INITIAL_HP: 10000,
+        INITIAL_MP: 100,
         NAGARI_DAMAGE: 1000,
         SKILLS_ENABLED: false,
 
