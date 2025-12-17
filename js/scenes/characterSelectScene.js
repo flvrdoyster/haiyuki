@@ -61,7 +61,10 @@ const CharacterSelectScene = {
         this.cpuIndex = 0; // Initialize to 0 to avoid draw crash
         this.timer = 0;
         this.cpuTimer = 0; // Ensure timer is reset
+        this.timer = 0;
+        this.cpuTimer = 0; // Ensure timer is reset
         this.readyTimer = 0;
+        this.lastHoveredIndex = -1; // Track mouse hover state
 
         // BGM
         Assets.playMusic('audio/bgm_chrsel');
@@ -200,10 +203,12 @@ const CharacterSelectScene = {
                 this.playerIndex--;
                 if (this.playerIndex < 0) this.playerIndex = this.characters.length - 1;
                 this.updateP1Portrait();
+                Assets.playSound('audio/tick');
             } else if (Input.isJustPressed(Input.RIGHT)) {
                 this.playerIndex++;
                 if (this.playerIndex >= this.characters.length) this.playerIndex = 0;
                 this.updateP1Portrait();
+                Assets.playSound('audio/tick');
             }
 
             if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
@@ -219,12 +224,21 @@ const CharacterSelectScene = {
                 }
             }
             // Mouse Input
+            // Hybrid: Update selection on hover change
+            const hoveredIndex = this.getHoveredCharacterIndex();
+            if (hoveredIndex !== -1 && hoveredIndex !== this.lastHoveredIndex) {
+                this.playerIndex = hoveredIndex;
+                this.updateP1Portrait();
+                this.lastHoveredIndex = hoveredIndex;
+                // Add sound?
+                Assets.playSound('audio/tick');
+            } else if (hoveredIndex === -1) {
+                this.lastHoveredIndex = -1;
+            }
+
             if (Input.isMouseJustPressed()) {
-                const clickedIndex = this.getHoveredCharacterIndex();
-                if (clickedIndex !== -1) {
-                    this.playerIndex = clickedIndex;
-                    this.updateP1Portrait();
-                    // Click sets state directly
+                if (hoveredIndex !== -1) {
+                    // Click confirms current selection (which is already sync'd via hover)
                     this.currentState = this.STATE_CPU_SELECT;
                     this.cpuTimer = 0;
                     this.updateCpuPortrait();
@@ -462,14 +476,7 @@ const CharacterSelectScene = {
 
             ctx.restore();
 
-            // Hover Effect
-            if (index === hoveredIndex) {
-                ctx.save();
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(x - 2, y - 2, iconW + 4, iconH + 4);
-                ctx.restore();
-            }
+
         });
 
         // 7. Draw Cursors

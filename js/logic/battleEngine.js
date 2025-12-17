@@ -862,11 +862,14 @@ const BattleEngine = {
                 if (this.turnCount !== 1) return false;
                 break;
 
+            case 'RECOVERY':
+                if (char.hp >= char.maxHp) return false;
+                break;
+
             case 'HELL_PILE':
             case 'CRITICAL':
             case 'WATER_MIRROR':
             case 'DISCARD_GUARD':
-            case 'RECOVERY':
                 // Valid at any time in main phase.
                 break;
         }
@@ -959,6 +962,7 @@ const BattleEngine = {
                 case 'RECOVERY':
                     this.heal(user, 3000); // 3000 HP
                     this.playFX('fx/heal', BattleConfig.PORTRAIT[user].x + 100, 300, { scale: 1.5 });
+                    Assets.playSound('audio/recovery');
                     break;
 
                 case 'DISCARD_GUARD':
@@ -977,11 +981,13 @@ const BattleEngine = {
                 // PETUM
                 case 'CRITICAL':
                     userObj.buffs.attackUp = true; // Duration? Round? Assuming Round based on desc "When I win"
+                    Assets.playSound('audio/buff');
                     break;
 
                 // RINXIANG
                 case 'WATER_MIRROR':
                     userObj.buffs.defenseUp = true;
+                    Assets.playSound('audio/barrier');
                     break;
 
                 // YURI

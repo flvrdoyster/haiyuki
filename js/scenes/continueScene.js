@@ -48,6 +48,7 @@ const ContinueScene = {
         this.pointerTimer = 0;
 
         console.log("Continue Scene Init", this.data);
+        Assets.playMusic('audio/bgm_inn', false); // Play Inn BGM once
     },
 
     update: function () {
