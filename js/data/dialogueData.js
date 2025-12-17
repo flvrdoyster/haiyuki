@@ -409,56 +409,56 @@ const DialogueData = {
         },
         // Ataho
         ataho: {
-            PON: ["그 패를 가져가도 되겠는가?"],
-            PON_REPLY: [""],
+            PON: ["그걸 좀 가져가야겠구먼."],
+            PON_REPLY: ["뭐야, 그걸 노리고 있었던 겐가..."],
             RIICHI: ["그럼 가볼까."],
-            RIICHI_REPLY: ["흠, 제법 하는구먼."],
-            WIN: ["자네에게 아직 질 수는 없지."],
-            RANDOM: ["이건 쓸모없는 패로구먼", "이 패를 기다리고 있었네.", "흠."],
+            RIICHI_REPLY: ["음, 제법이구먼."],
+            WIN: ["아직 자네에게 질 수는 없지."],
+            RANDOM: ["이건 필요 없는 패로구먼.", "이걸 기다리고 있었다네.", "흠."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
-            WORRY_RON: ["이건 좀 위험한가?"],
+            WORRY_RON: ["이거 위험한가?"],
             // Skills
             TIGER_STRIKE: ["맹호일발권!\n이걸로 나의 승리라네."],
             HELL_PILE: ["그렇게 승리를 서두르면 안 되지.\n자네에겐 지옥 쌓기일세."]
         },
         // Rinxiang
         rinxiang: {
-            PON: ["좋았어, 이게 필요했다구."],
-            PON_REPLY: ["김빠지네. 이런 게 필요했어?"],
-            RIICHI: ["좋아, 승부에요!!"],
-            RIICHI_REPLY: ["제법이잖아."],
-            WIN: ["후훗, 미안하지만 이기도록 하겠어요."],
-            RANDOM: ["이런 거 필요없어.", "좋아좋아, 분위기 좋네.", "에잇."],
-            COUNTER_RIICHI: ["당신만 웃게 놔둘 수 없지!"],
-            WORRY_RON: ["이거... 혹시..."],
+            PON: ["됐다! 이거 갖고 싶었어."],
+            PON_REPLY: ["시시하긴. 이런 게 갖고 싶어?"],
+            RIICHI: ["좋아, 승부야!!"],
+            RIICHI_REPLY: ["제법 하는걸."],
+            WIN: ["후훗, 미안하지만 내가 이겨야겠어."],
+            RANDOM: ["이런 건 필요없어.", "좋았어, 운이 좀 따르는걸.", "에잇."],
+            COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
+            WORRY_RON: ["이거... 설마..."],
             // Skills
             WATER_MIRROR: ["수경!"],
             DORA_BOMB: ["받아랏, 도라폭진!"]
         },
         // Smash
         smash: {
-            PON: ["헷헷헷, 잘 먹겠어."],
+            PON: ["헤헤헤, 잘 먹을게~!"],
             PON_REPLY: ["뭐라굿!?"],
-            RIICHI: ["좋아! 승부닷!!"],
-            RIICHI_REPLY: ["제법이잖아."],
+            RIICHI: ["좋았어! 승부라고!!"],
+            RIICHI_REPLY: ["꽤 하잖아?"],
             WIN: ["절호조!(철 지난 유행어)"],
-            RANDOM: ["에~엣취!!", "옷! 럭키!", "이 녀석은 필요 없어..."],
-            COUNTER_RIICHI: ["후우, 간신히 모았네..."],
-            WORRY_RON: ["이거 위험하려나..."],
+            RANDOM: ["에~엣취!!", "오옷! 럭키~!!", "이건 필요 없겠는데..."],
+            COUNTER_RIICHI: ["후우~ 겨우 다 모았네..."],
+            WORRY_RON: ["이거 위험하겠는데..."],
             // Skills
             EXCHANGE_TILE: [],
-            EXCHANGE_RON: ["이 버린 패로 날 수 있을 거라 생각해?"]
+            EXCHANGE_RON: ["정말 이 버림패로 날 수 있을까?"]
         },
         // Petum
         petum: {
-            PON: ["그거, 받아갑니다."],
+            PON: ["그거, 제가 가져가죠."],
             PON_REPLY: [""],
             RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["어라, 제법이지 않습니까."],
-            WIN: ["전략의 차이네요."],
-            RANDOM: ["하아.", "흠."],
+            WIN: ["전략의 차이군요."],
+            RANDOM: ["하아.", "흠.", "과연."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: ["가끔은 운을 하늘에 맡겨보죠."],
+            WORRY_RON: ["때로는 운을 하늘에 맡겨 봅시다."],
             // Skills
             CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프겠지만 참아 주세요."],
             LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
@@ -466,12 +466,12 @@ const DialogueData = {
         // Fari
         fari: {
             PON: ["그거~ 받아가도 괜찮을까요?"],
-            PON_REPLY: [""],
+            PON_REPLY: ["부디, 가져가시지요."],
             RIICHI: ["먼저 실례할게요."],
-            RIICHI_REPLY: ["어머, 꽤 강하시네요."],
-            WIN: ["어머나, 운이 좋네요."],
-            RANDOM: ["유감스럽지만,\n이건 필요 없겠네요.", "좋은 패가 들어왔네요.", "에잇."],
-            COUNTER_RIICHI: ["후후, 질 수는 없잖아요?"],
+            RIICHI_REPLY: ["어머, 정말 강하시네요."],
+            WIN: ["어머나, 운이 좋았네요."],
+            RANDOM: ["유감이지만,\n이건 필요 없겠어요.", "좋은 패가 들어왔네요.", "에잇."],
+            COUNTER_RIICHI: ["우후훗, 지고 있을 순 없죠."],
             WORRY_RON: ["이건... 위험할까요?"],
             // Skills
             RECOVERY: ["상처를 회복하겠어요."],
@@ -479,17 +479,17 @@ const DialogueData = {
         },
         // Yuriwakamaru
         yuri: {
-            PON: ["이 녀석은 가져갈게."],
-            PON_REPLY: ["방금 그건... 뭐야."],
-            RIICHI: ["그럼 먼저~"],
-            RIICHI_REPLY: ["빠르기도 하군..."],
+            PON: ["이건 내가 가져가지."],
+            PON_REPLY: ["지금 그건... 뭐냐."],
+            RIICHI: ["먼저 실례~"],
+            RIICHI_REPLY: ["빠르기도 하네..."],
             WIN: ["미안하구만!!"],
-            RANDOM: ["뭐야.", "훗...", "이런이런..."],
+            RANDOM: ["뭐야...", "훗...", "이런이런..."],
             COUNTER_RIICHI: [""],
             WORRY_RON: ["이건 어떠냐!!"],
             // Skills
             SUPER_IAI: [""],
-            SPIRIT_RIICHI: ["금방 이겨서, 편하게 해줄게."]
+            SPIRIT_RIICHI: ["금방 끝내서 편하게 해줄게."]
         },
         // Mayu
         mayu: {
