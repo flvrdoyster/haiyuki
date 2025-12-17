@@ -466,7 +466,7 @@ const DialogueData = {
         // Fari
         fari: {
             PON: ["그거~ 받아가도 괜찮을까요?"],
-            PON_REPLY: ["부디, 가져가시지요."],
+            PON_REPLY: ["어서 가져가세요."],
             RIICHI: ["먼저 실례할게요."],
             RIICHI_REPLY: ["어머, 정말 강하시네요."],
             WIN: ["어머나, 운이 좋았네요."],
