@@ -19,8 +19,8 @@ This document tracks the current implementation status of all character skills i
 ## Rinxiang (린샹)
 - [x] **WATER_MIRROR (수경)**: Reduces damage taken by 25%.
   - *Status*: Implemented. `startWinSequence` applies multiplier. Result screen has animation.
-- [ ] **DORA_BOMB (도라폭진)**: Converts hidden Dora to hand tiles on Riichi win.
-  - *Status*: **Pending**. Requires efficient logic to identify and swap Dora tiles.
+- [x] **DORA_BOMB (도라폭진)**: Converts hidden Dora to hand tiles on Riichi win.
+  - *Status*: Implemented. Interactive confirmation modal added. Checks for Skills Enabled rule.
 
 ## Fari (화린)
 - [x] **RECOVERY (회복)**: Restores HP.

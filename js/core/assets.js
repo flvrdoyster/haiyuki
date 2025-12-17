@@ -38,6 +38,7 @@ const Assets = {
         { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
         { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
         { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' }, // Tiger Strike SFX
+        { id: 'audio/quake', src: 'assets/audio/quake.mp3', type: 'audio' }, // Dora Bomb SFX
 
         // New Dealing Sounds
         { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // Alias for deal

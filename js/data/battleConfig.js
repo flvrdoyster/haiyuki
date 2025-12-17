@@ -153,7 +153,7 @@ const BattleConfig = {
         font: `18px ${FONTS.regular}`,
         color: 'white',
         lineHeight: 20, // Added for multi-line support
-        life: 180, // Duration in frames
+        life: 160, // Duration in frames
         replyDelay: 360, // Response delay in ms
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
@@ -245,6 +245,18 @@ const BattleConfig = {
             { type: 'SEPARATOR' },
             { id: 'HELP', label: '역 일람' }
         ]
+    },
+
+    CONFIRM: {
+        minWidth: 200,
+        minHeight: 80,
+        padding: { x: 0, y: 14 }, // Inner padding around text
+        font: `16px ${FONTS.regular}`,
+        lineHeight: 24,
+        buttonHeight: 36,
+        buttonWidth: 100,
+        buttonGap: 6,
+        buttonMarginTop: 14 // Gap between text and buttons
     },
 
     // ----------------------------------------------------------------

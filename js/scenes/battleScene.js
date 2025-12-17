@@ -3,7 +3,81 @@ const BattleScene = {
         BattleEngine.init(data, this);
         BattleRenderer.reset(); // Crucial for Layering Optimization
         this.activeFX = [];
+        this.activeFX = [];
         this.confirmData = null; // Local Confirm State { msg, onYes, onNo, selected, timer }
+        this._confirmLayout = null; // Cache layout
+    },
+
+    // Helper to calculate dynamic layout
+    getConfirmLayout: function (msg) {
+        if (this._confirmLayout && this._confirmLayout.msg === msg) return this._confirmLayout;
+
+        const conf = BattleConfig.CONFIRM || {
+            minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
+            font: '20px sans-serif', lineHeight: 28,
+            buttonHeight: 40, buttonWidth: 100, buttonGap: 40, buttonMarginTop: 30
+        };
+
+        const lines = msg.split('\\n');
+
+        // Measure Text Width (Approximate or use Canvas)
+        // Since we are in Logic/Scene, we can't easily access Canvas Context without passed arg.
+        // But we can estimate or lazy load in draw. 
+        // Best hack: Calculate in draw? But update needs it too.
+        // Solution: Use a temporary canvas or approximation. 
+        // 20px font => avg char width ~12px (CJK ~20px). 
+        // Let's assume CJK wide.
+        let maxLineWidth = 0;
+        lines.forEach(line => {
+            // Rough CJK estimation: 1 char = 1em. 
+            // Better: use simple length * fontSize. 
+            // canvas measureText is ideal. Let's create a temp ctx if needed or assume width.
+            // Since we need it for Hit detection in update(), we assume standard width.
+            const len = line.length;
+            // Count non-ascii vs ascii
+            let width = 0;
+            for (let i = 0; i < len; i++) {
+                const code = line.charCodeAt(i);
+                width += (code > 255) ? 20 : 12; // 20px font
+            }
+            if (width > maxLineWidth) maxLineWidth = width;
+        });
+
+        const textW = maxLineWidth;
+        const textH = lines.length * conf.lineHeight;
+
+        const buttonAreaH = conf.buttonMarginTop + conf.buttonHeight;
+
+        // Calculate Box Size
+        let boxW = textW + (conf.padding.x * 2);
+        let boxH = textH + (conf.padding.y * 2) + buttonAreaH;
+
+        // Min Size
+        boxW = Math.max(boxW, conf.minWidth);
+        boxH = Math.max(boxH, conf.minHeight);
+
+        // Center
+        const boxX = (640 - boxW) / 2;
+        const boxY = (480 - boxH) / 2;
+
+        // Button Positions
+        const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
+        const totalBtnW = (conf.buttonWidth * 2) + conf.buttonGap;
+        const startBtnX = 320 - (totalBtnW / 2);
+
+        const yesBtn = { x: startBtnX, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
+        const noBtn = { x: startBtnX + conf.buttonWidth + conf.buttonGap, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
+
+        const layout = {
+            msg: msg,
+            box: { x: boxX, y: boxY, w: boxW, h: boxH },
+            text: { startY: boxY + conf.padding.y + (conf.lineHeight), lines: lines, lineHeight: conf.lineHeight },
+            yesBtn: yesBtn,
+            noBtn: noBtn
+        };
+
+        this._confirmLayout = layout;
+        return layout;
     },
 
     processEvents: function (engine) {
@@ -288,6 +362,9 @@ const BattleScene = {
 
         // Global Toggles
         if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
+            // Block Menu during Riichi (Auto-discard)
+            if (engine.p1 && engine.p1.isRiichi) return;
+
             BattleMenuSystem.toggle();
             return;
         }
@@ -483,6 +560,7 @@ const BattleScene = {
             selected: 1, // Default to NO
             timer: 10 // Cooldown
         };
+        this._confirmLayout = null; // Reset cache
     },
 
     updateConfirm: function () {
@@ -496,19 +574,13 @@ const BattleScene = {
         const mx = Input.mouseX;
         const my = Input.mouseY;
 
-        // Reconstruct Button Coordinates (Must match drawConfirm)
-        const boxY = 140;
-        const boxH = 200;
-        const buttonY = boxY + boxH - 60; // 280
-        const buttonW = 100;
-        const buttonH = 40;
-        const buttonGap = 40;
+        // Use Layout
+        const layout = this.getConfirmLayout(d.msg);
+        const yes = layout.yesBtn;
+        const no = layout.noBtn;
 
-        const yesX = 320 - buttonW - buttonGap / 2; // 200
-        const noX = 320 + buttonGap / 2;            // 340
-
-        const isOverYes = (mx >= yesX && mx <= yesX + buttonW && my >= buttonY && my <= buttonY + buttonH);
-        const isOverNo = (mx >= noX && mx <= noX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+        const isOverYes = (mx >= yes.x && mx <= yes.x + yes.w && my >= yes.y && my <= yes.y + yes.h);
+        const isOverNo = (mx >= no.x && mx <= no.x + no.w && my >= no.y && my <= no.y + no.h);
 
         if (isOverYes) {
             d.selected = 0;
@@ -552,6 +624,8 @@ const BattleScene = {
         const d = this.confirmData;
         if (!d) return;
 
+        const layout = this.getConfirmLayout(d.msg);
+
         ctx.save();
 
         // 1. Dimmer
@@ -559,39 +633,30 @@ const BattleScene = {
         ctx.fillRect(0, 0, 640, 480);
 
         // 2. Dialog Box
-        const boxX = 120;
-        const boxY = 140;
-        const boxW = 400;
-        const boxH = 200;
-
-        Assets.drawWindow(ctx, boxX, boxY, boxW, boxH);
+        Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
         // 3. Message Text
         ctx.fillStyle = 'white';
-        // Check global FONTS
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
-        ctx.font = `20px ${fontName}`;
+        const conf = BattleConfig.CONFIRM || {}; // Fallback if undefined? Should be defined
+        ctx.font = conf.font || `20px ${fontName}`;
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic'; // Reset baseline
 
-        const lines = d.msg.split('\\n');
-        const lineHeight = 28;
-        const startY = boxY + 60;
+        // Calculate Text Block Start Y to center securely
+        // Using layout line props
+        let currentY = layout.text.startY;
 
-        lines.forEach((line, i) => {
-            ctx.fillText(line, 320, startY + (i * lineHeight));
+        layout.text.lines.forEach((line, i) => {
+            ctx.fillText(line, 320, currentY + (i * layout.text.lineHeight));
         });
 
         // 4. Buttons
-        const buttonY = boxY + boxH - 60;
-        const buttonW = 100;
-        const buttonH = 40;
-        const buttonGap = 40;
+        const yes = layout.yesBtn;
+        const no = layout.noBtn;
 
-        const yesX = 320 - buttonW - buttonGap / 2;
-        const noX = 320 + buttonGap / 2;
-
-        Assets.drawButton(ctx, yesX, buttonY, buttonW, buttonH, 'YES', d.selected === 0, { noBorder: true });
-        Assets.drawButton(ctx, noX, buttonY, buttonW, buttonH, 'NO', d.selected === 1, { noBorder: true });
+        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, 'YES', d.selected === 0, { noBorder: true });
+        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, 'NO', d.selected === 1, { noBorder: true });
 
         ctx.restore();
     }

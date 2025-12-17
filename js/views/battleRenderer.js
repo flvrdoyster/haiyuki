@@ -234,9 +234,9 @@ const BattleRenderer = {
         }
 
         // 7.7 Dialogue (Behind Bars/UI)
-        if (state.currentState !== state.STATE_WIN && state.currentState !== state.STATE_LOSE) {
-            BattleDialogue.draw(ctx, state);
-        }
+        // 7.7 Dialogue (Behind Bars/UI)
+        // Draw always if active (Skills use dialogue during Win sequence)
+        BattleDialogue.draw(ctx, state);
 
         // 8. Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");

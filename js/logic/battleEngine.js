@@ -268,15 +268,79 @@ const BattleEngine = {
         });
     },
 
+    applyDoraBomb: function (attacker, who) {
+        // Validation
+        const skillId = 'DORA_BOMB';
+        const skill = SkillData[skillId];
+
+        // 1. Check if Character has skill (Simplified check against ID or Skills array)
+        if (!attacker.id || attacker.id !== 'rinxiang') return; // Specific to Rinxiang for now or check skills list
+        // Better: Check known skills from CharacterData? 
+        // For performance, let's just check if they have enough MP and are the right character.
+        // Actually, we should check logic:
+        // if (!this.canUseSkill(skillId, who)) return; // reusing canUseSkill might be cleaner but it checks restrictions.
+
+        // Manual Check for Reactive Trigger
+        if (attacker.mp < skill.cost) return;
+
+        // 2. Logic: Find most frequent tile in hand
+        const hand = this.getFullHand(attacker);
+        const counts = {};
+        hand.forEach(tile => {
+            const key = tile.type + '_' + tile.color;
+            if (!counts[key]) counts[key] = { count: 0, tile: tile };
+            counts[key].count++;
+        });
+
+        // Sort by Count Descending
+        const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+
+        if (sorted.length === 0) return;
+
+        // 3. Execute
+        this.consumeMp(who, skill.cost);
+
+        // Set Ura Doras
+        // Replace ALL Ura Doras with the best tiles? Or 1-to-1?
+        // Plan said: "For each existing Ura Dora slot... Replace"
+        // Let's replace up to number of Ura Doras available.
+        for (let i = 0; i < this.uraDoras.length; i++) {
+            // Use best tile. If multiple Ura Doras, use best then second best? 
+            // Or just reuse best for max damage? User said "Most frequent".
+            // Let's use the absolute best tile for ALL slots for maximum destruction (Bombs away!)
+            const targetTile = sorted[0].tile;
+
+            // If we have enough unique tiles, maybe spread? 
+            // But 3 Doras of same type is better.
+
+            this.uraDoras[i] = {
+                type: targetTile.type,
+                color: targetTile.color,
+                img: targetTile.img
+            };
+        }
+
+        // Visuals
+        console.log(`[Skill] DORA BOMB! Ura Dora became ${sorted[0].tile.name}`);
+        this.showPopup('SKILL', { text: skill.name, blocking: false });
+        this.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
+        this.events.push({ type: 'SOUND', id: 'audio/quake' }); // Quake SFX
+    },
+
     startWinSequence: function (type, who, score) {
         this.events.push({ type: 'STOP_MUSIC' });
 
-        // 1. Calculate Skill Modified Score
         // 1. Calculate Skill Modified Score
         let finalScore = score;
         const attacker = who === 'P1' ? this.p1 : this.cpu;
         const defender = who === 'P1' ? this.cpu : this.p1;
         const activeBuffs = [];
+        const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
+
+        // DORA_BOMB Logic (CPU Auto-Use)
+        if (who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
+            this.applyDoraBomb(attacker, who);
+        }
 
         // Attack Up (CRITICAL)
         if (attacker.buffs && attacker.buffs.attackUp) {
@@ -292,7 +356,6 @@ const BattleEngine = {
             defender.buffs.defenseUp = false; // Consume Buff
             activeBuffs.push('WATER_MIRROR');
             console.log(`[Skill] Water Mirror! Damage -25% -> ${finalScore}`);
-
         }
 
         // 2. Prepare Data
@@ -320,6 +383,40 @@ const BattleEngine = {
             { type: 'REVEAL_HAND' }
         ];
 
+        // Insert DORA_BOMB Confirmation Step (Player only)
+        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && isRiichi && attacker.id === 'rinxiang') {
+            const skillId = 'DORA_BOMB';
+            const skill = SkillData[skillId];
+            if (skill && attacker.mp >= skill.cost) {
+                steps.push({
+                    type: 'CALLBACK',
+                    callback: () => {
+                        if (this.scene && this.scene.showConfirm) {
+                            // Pause Sequence (Visuals pause on current frame)
+                            this.sequencing.active = false;
+
+                            this.scene.showConfirm(
+                                '도라폭진을 사용하시겠습니까?',
+                                () => {
+                                    // YES
+                                    this.applyDoraBomb(attacker, who);
+                                    // Slight delay for effect? Or resume immediately
+                                    // The applyDoraBomb adds popup/sound events which might run in parallel or need sequence step
+                                    // Resume Sequence
+                                    this.sequencing.active = true;
+                                },
+                                () => {
+                                    // NO
+                                    // Resume Sequence
+                                    this.sequencing.active = true;
+                                }
+                            );
+                        }
+                    }
+                });
+            }
+        }
+
         // Reveal Ura Dora if Riichi
         if ((who === 'P1' && this.p1.isRiichi) || (who === 'CPU' && this.cpu.isRiichi)) {
             steps.push({ type: 'REVEAL_URA' });
@@ -339,50 +436,67 @@ const BattleEngine = {
             this.winningYaku.score = score; // Use Base Score for Yaku display
         }
 
-        const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
-        const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
-        const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
-        // Note: Bonuses added to Final Score? Usually yes.
-        // If finalScore was modified by skills, do we add bonuses on top?
-        // Let's assume Skill Multiplier applies to Base, and Bonuses are additive flat.
-        // OR Skill Multiplier applies to Total?
-        // Let's keep it simple: Multiplier applied to Base Score (Hand Score). Bonuses added separately.
-        const totalScore = finalScore + bonusResult.score;
+        // Note: Bonuses calculated LATER in sequence execution? 
+        // No, calculateBonuses reads current state (this.uraDoras). 
+        // Since sequence executes over time, logic used to be pre-calculated here.
+        // BUT if DORA_BOMB changes uraDoras mid-sequence, pre-calculation here is WRONG.
+        // FIX: Move bonus calculation to the STATE transition or a LATE CALLBACK step.
+        // However, resultInfo is needed for STATE_WIN/LOSE which is the last step.
+        // We can pass a function or lazily evaluate resultInfo in the last step.
 
-        // Update Pending Damage with Total
-        if (this.pendingDamage) {
-            this.pendingDamage.amount = totalScore;
-        }
+        // Let's use a Callback Step before STATE transition to finalize score calculation.
+        steps.push({ type: 'WAIT_FX' }); // Wait for any FX (e.g. Ron/Tsumo animations)
+        steps.push({
+            type: 'CALLBACK',
+            callback: () => {
+                // Re-calculate score/bonuses here because Ura Dora might have changed
+                const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
+                // isRiichi is still valid from closure
 
-        // Record History
-        const resultData = {
-            round: this.currentRound,
-            result: (who === 'P1') ? '승' : '패',
-            yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
-        };
-        this.roundHistory.push(resultData);
+                const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
+                const totalScore = finalScore + bonusResult.score;
 
-        // Prepare Result Info for Renderer
-        this.resultInfo = {
-            type: (who === 'P1') ? 'WIN' : 'LOSE',
-            baseScore: score, // Original Score
-            score: totalScore, // Final Score (includes buffs & bonuses)
-            finalDamage: totalScore,
-            yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
-            yakuScore: this.winningYaku ? this.winningYaku.score : 0,
-            bonuses: bonusResult.details,
-            bonusScore: bonusResult.score,
-            activeBuffs: activeBuffs
-        };
+                if (this.pendingDamage) {
+                    this.pendingDamage.amount = totalScore;
+                }
+
+                // Update History
+                const resultData = {
+                    round: this.currentRound,
+                    result: (who === 'P1') ? '승' : '패',
+                    yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
+                };
+                this.roundHistory.push(resultData);
+
+                // Update Result Info
+                this.resultInfo = {
+                    type: (who === 'P1') ? 'WIN' : 'LOSE',
+                    baseScore: score,
+                    score: totalScore,
+                    finalDamage: totalScore,
+                    yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
+                    yakuScore: this.winningYaku ? this.winningYaku.score : 0,
+                    bonuses: bonusResult.details,
+                    bonusScore: bonusResult.score,
+                    activeBuffs: activeBuffs
+                };
+
+                // Update the STATE step's score if needed (though state usually reads resultInfo)
+            }
+        });
 
         // Final Step: Transition to STATE_WIN/LOSE
-        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE), score: totalScore });
+        // Note: Score argument passed to State might be stale if calculated early.
+        // But the State usually relies on resultInfo. Let's pass 0 or updated score via closure if possible?
+        // Actually, we can just omit score arg as it's in resultInfo.
+        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE) });
 
         this.sequencing = {
             active: true,
             timer: 0,
             currentStep: 0,
             steps: steps
+
         };
     },
 
@@ -522,6 +636,12 @@ const BattleEngine = {
                 this.sequencing.timer = 0;
                 this.sequencing.currentStep++;
             }
+        } else if (step.type === 'WAIT_FX') {
+            // Wait for visual FX in scene to finish
+            if (this.scene && this.scene.activeFX && this.scene.activeFX.length > 0) {
+                return; // Wait
+            }
+            this.sequencing.currentStep++;
         } else if (step.type === 'FX') {
             this.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom, popupType: step.popupType, blocking: step.blocking });
             this.sequencing.currentStep++;
@@ -1066,15 +1186,15 @@ const BattleEngine = {
     },
 
     cancelRonAndSwap: function (skillId, who = 'P1') {
-        const discarder = who === 'P1' ? 'cpu' : 'p1'; // If P1 uses skill, CPU was discarder
+        const discarder = who === 'P1' ? 'p1' : 'cpu'; // If P1 uses skill, P1 was the discarder (Countering Ron on self)
 
         // Swap discarded tile with a 'safe' one
         // 1. Remove dangerous discard
         const badTile = this.discards.pop();
 
-        // 2. Generate Safe Tile (e.g. West Wind 'z3')
-        // Ensure the new tile belongs to the original discarder
-        const safeTile = { type: 'z3', color: 'purple', img: 'pai/z3.png', owner: discarder };
+        // 2. Generate Safe Tile (Use generic weapon/item if possible, or random safe)
+        // Fallback to 'punch' (Basic Tile)
+        const safeTile = { type: 'punch', color: 'red', img: 'tiles/pai_punch.png', owner: discarder };
         this.discards.push(safeTile);
 
         console.log(`[Skill] Ron Cancelled by ${who}! Swapped ${badTile.type} with Safe Tile.`);
