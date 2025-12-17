@@ -67,10 +67,10 @@ body {
     /* Layout */
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
 
     /* Box Model */
-    margin-right: 20px;
+    margin-right: 6px;
 }
 
 .toolbar-label {
@@ -268,8 +268,8 @@ hr {
     }
 
     .toolbar-group {
-        margin-right: 10px;
-        gap: 5px;
+        margin-right: 0px;
+        gap: 4px;
     }
 
     /* Shrink/Hide Footer details if needed */

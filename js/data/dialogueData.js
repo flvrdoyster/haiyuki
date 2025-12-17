@@ -413,8 +413,8 @@ const DialogueData = {
             PON_REPLY: [""],
             RIICHI: ["그럼 가볼까."],
             RIICHI_REPLY: ["흠, 제법 하는구먼."],
-            WIN: ["자네한테는 아직 질 수 없지."],
-            RANDOM: ["이건 쓸모없는 패로구먼", "이 패를 기다리고 있었지.", "흠."],
+            WIN: ["자네에게 아직 질 수는 없지."],
+            RANDOM: ["이건 쓸모없는 패로구먼", "이 패를 기다리고 있었네.", "흠."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
             WORRY_RON: ["이건 좀 위험한가?"],
             // Skills

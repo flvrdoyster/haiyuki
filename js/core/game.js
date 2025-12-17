@@ -36,6 +36,27 @@ const Game = {
             };
         }
 
+        // Setup Skills Toggle Button
+        const skillsBtn = document.getElementById('skills-btn');
+        if (skillsBtn) {
+            // Initialize button state based on current config
+            const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
+            skillsBtn.classList.remove('toggle-on', 'toggle-off');
+            skillsBtn.classList.add(rulesEnabled ? 'toggle-on' : 'toggle-off');
+
+            skillsBtn.onclick = () => {
+                BattleConfig.RULES.SKILLS_ENABLED = !BattleConfig.RULES.SKILLS_ENABLED;
+
+                const isEnabled = BattleConfig.RULES.SKILLS_ENABLED;
+                skillsBtn.classList.remove('toggle-on', 'toggle-off');
+                skillsBtn.classList.add(isEnabled ? 'toggle-on' : 'toggle-off');
+
+                skillsBtn.blur();
+
+                console.log(`[Config] Skills Enabled: ${isEnabled}`);
+            };
+        }
+
         // Setup Yaku Toggle Button
         const yakuBtn = document.getElementById('yaku-btn');
         const yakuContainer = document.getElementById('yaku-container');

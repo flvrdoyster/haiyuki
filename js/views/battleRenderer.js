@@ -910,10 +910,46 @@ const BattleRenderer = {
             ctx.fillText("데미지", conf.yakuListX, damageY);
 
             // Total Score
-            Assets.drawNumberBig(ctx, info.score, conf.scoreListX, damageY - 12, {
+            // SKILL EFFECT ANIMATION
+            // Check if buffs impacted score
+            const hasBuffs = info.activeBuffs && info.activeBuffs.length > 0;
+            let displayScore = info.score;
+            let isRolling = false;
+
+            if (hasBuffs) {
+                // Animation Logic
+                // 0-60 frames: Wait (Show Base Total)
+                // 60-120 frames: ROLL (Interpolate Base -> Final)
+                // 120+ frames: Final
+
+                const baseTotal = (info.baseScore || 0) + (info.bonusScore || 0); // Base + Bonus
+                const finalTotal = info.score;
+
+                if (state.timer < 80) { // Increased delay to ~1.3s
+                    displayScore = baseTotal;
+                } else if (state.timer < 140) {
+                    isRolling = true;
+                    const progress = (state.timer - 80) / 60; // 0.0 to 1.0 (Same duration)
+                    // Ease Out Quad
+                    const ease = 1 - (1 - progress) * (1 - progress);
+
+                    displayScore = Math.floor(baseTotal + (finalTotal - baseTotal) * ease);
+
+                    // Play Tick Sound (Every 4 frames)
+                    if (state.timer % 4 === 0) {
+                        Assets.playSound('audio/tick');
+                    }
+                } else {
+                    displayScore = finalTotal;
+                }
+            }
+
+            Assets.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
                 align: 'right',
                 scale: 0.6, // Matched with others (0.6)
                 spacing: 1,
+                // Use red number when rolling or final state if buffs were active
+                // User Request: No color change
                 imgId: 'ui/number_yellow.png'
             });
 

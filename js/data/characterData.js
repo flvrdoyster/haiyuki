@@ -7,7 +7,7 @@ const SkillData = {
         desc: '리치를 걸 수 있을 때 사용하면 다음 쯔모로 반드시 난다. 20턴 째엔 사용할 수 없다.',
         type: 'ACTIVE',
         cost: 100,
-        sfx: null, // User to fill
+        sfx: 'audio/roar', // User to fill
         effect: {}
     },
     'HELL_PILE': {

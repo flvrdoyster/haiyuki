@@ -48,6 +48,7 @@ const BattleMenuSystem = {
         if (this.engine.currentState === this.engine.STATE_BATTLE_MENU) {
             this.engine.currentState = this.lastStateBeforeMenu || this.engine.STATE_PLAYER_TURN;
         } else {
+            this.constructMenu(); // Refresh validation
             this.lastStateBeforeMenu = this.engine.currentState;
             this.engine.currentState = this.engine.STATE_BATTLE_MENU;
             this.selectedMenuIndex = 0;
@@ -117,8 +118,7 @@ const BattleMenuSystem = {
             }
 
             // Delegate Skill Execution to Engine
-            // this.engine.useSkill(selectedId);
-            // Placeholder until Engine implements useSkill
+            this.engine.useSkill(selectedId);
         }
 
         this.toggle();

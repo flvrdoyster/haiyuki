@@ -33,10 +33,12 @@ const Assets = {
         { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
         { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
         { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
+        { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' }, // Tiger Strike SFX
 
         // New Dealing Sounds
         { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // Alias for deal
         { id: 'audio/flip', src: 'assets/audio/flip.mp3', type: 'audio' },
+        { id: 'audio/tick', src: 'assets/audio/tick.mp3', type: 'audio' },
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
