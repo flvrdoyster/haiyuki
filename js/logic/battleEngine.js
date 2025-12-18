@@ -1372,9 +1372,10 @@ const BattleEngine = {
                     if (this.turnCount === 1) {
                         // Skill Check: Setup Skills (Exchange Tile / Paint Tile)
                         const p1Skills = CharacterData.find(c => c.id === this.p1.id).skills;
-                        if (p1Skills.includes('EXCHANGE_TILE') || p1Skills.includes('PAINT_TILE')) {
+                        if (BattleConfig.RULES.SKILLS_ENABLED && (p1Skills.includes('EXCHANGE_TILE') || p1Skills.includes('PAINT_TILE'))) {
                             this.currentState = this.STATE_TILE_EXCHANGE;
                             this.exchangeIndices = []; // Reset selection
+                            this.hoverIndex = 0; // Fix: Initialize cursor focus
                             this.timer = 0;
                             console.log("[Skill] Entering Tile Exchange Mode");
                         } else {

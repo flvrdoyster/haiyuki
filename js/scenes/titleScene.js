@@ -1,4 +1,3 @@
-// Scene Configuration
 const TitleConfig = {
     TITLE: { path: 'ui/title.png', y: 80 },
     PUSH_KEY: { path: 'ui/pushok.png', y: 360 },
@@ -9,6 +8,55 @@ const TitleConfig = {
         ITEM3: { text: "RESET", y: 380 }
     }
 };
+
+// Helper: Calculate Confirm Layout (Ported from BattleScene)
+// Ideally this should be in Assets or a Shared Utils, but for now we duplicate efficiently
+function getConfirmLayout(msg) {
+    const conf = BattleConfig.CONFIRM || {
+        minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
+        font: '20px sans-serif', lineHeight: 28,
+        buttonHeight: 40, buttonWidth: 100, buttonGap: 40, buttonMarginTop: 30
+    };
+
+    const lines = msg.split('\\n');
+    let maxLineWidth = 0;
+    lines.forEach(line => {
+        let width = 0;
+        for (let i = 0; i < line.length; i++) {
+            width += (line.charCodeAt(i) > 255) ? 16 : 9;
+        }
+        if (width > maxLineWidth) maxLineWidth = width;
+    });
+
+    const textW = maxLineWidth;
+    const textH = lines.length * conf.lineHeight;
+    const buttonAreaH = conf.buttonMarginTop + conf.buttonHeight;
+
+    let boxW = textW + (conf.padding.x * 2);
+    let boxH = textH + (conf.padding.y * 2) + buttonAreaH;
+
+    boxW = Math.max(boxW, conf.minWidth);
+    boxH = Math.max(boxH, conf.minHeight);
+
+    const boxX = (640 - boxW) / 2;
+    const boxY = (240 - boxH / 2); // Center Y
+
+    const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
+    const totalBtnW = (conf.buttonWidth * 2) + conf.buttonGap;
+    const startBtnX = 320 - (totalBtnW / 2);
+
+    // Reverse button order? Battle uses YES (Left), NO (Right)
+    const yesBtn = { x: startBtnX, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
+    const noBtn = { x: startBtnX + conf.buttonWidth + conf.buttonGap, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
+
+    return {
+        msg: msg,
+        box: { x: boxX, y: boxY, w: boxW, h: boxH },
+        text: { startY: boxY + conf.padding.y + conf.lineHeight, lines: lines, lineHeight: conf.lineHeight },
+        yesBtn: yesBtn,
+        noBtn: noBtn
+    };
+}
 
 const TitleScene = {
     // States
@@ -116,23 +164,18 @@ const TitleScene = {
             return;
         }
 
+        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
+        const layout = getConfirmLayout(message);
+
         // --- Mouse Interaction ---
         const mx = Input.mouseX;
         const my = Input.mouseY;
 
-        // Coordinates (Match drawConfirm)
-        const boxY = 140;
-        const boxH = 200;
-        const buttonY = boxY + boxH - 60; // 280
-        const buttonW = 100;
-        const buttonH = 40;
-        const buttonGap = 40;
+        const yes = layout.yesBtn;
+        const no = layout.noBtn;
 
-        const yesX = 320 - buttonW - buttonGap / 2; // 200
-        const noX = 320 + buttonGap / 2;            // 340
-
-        const isOverYes = (mx >= yesX && mx <= yesX + buttonW && my >= buttonY && my <= buttonY + buttonH);
-        const isOverNo = (mx >= noX && mx <= noX + buttonW && my >= buttonY && my <= buttonY + buttonH);
+        const isOverYes = (mx >= yes.x && mx <= yes.x + yes.w && my >= yes.y && my <= yes.y + yes.h);
+        const isOverNo = (mx >= no.x && mx <= no.x + no.w && my >= no.y && my <= no.y + no.h);
 
         if (isOverYes) {
             this.confirmSelected = 0;
@@ -254,47 +297,40 @@ const TitleScene = {
 
     drawConfirm: function (ctx) {
         ctx.save();
+        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
+        const layout = getConfirmLayout(message);
 
         // 1. Dimmer (Full Screen)
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
         // 2. Dialog Box
-        const boxX = 120;
-        const boxY = 140;
-        const boxW = 400;
-        const boxH = 200;
-
-        Assets.drawWindow(ctx, boxX, boxY, boxW, boxH);
+        Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
         // 3. Message Text
         ctx.fillStyle = 'white';
-        ctx.font = `20px ${FONTS.regular}`;
+        const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
+        const conf = BattleConfig.CONFIRM || {};
+        ctx.font = conf.font || `20px ${fontName}`;
         ctx.textAlign = 'center';
 
-        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
-        const lines = message.split('\\n');
-        const lineHeight = 28;
-        const startY = boxY + 60;
-
-        lines.forEach((line, i) => {
-            ctx.fillText(line, 320, startY + (i * lineHeight));
+        layout.text.lines.forEach((line, i) => {
+            ctx.fillText(line, 320, layout.text.startY + (i * layout.text.lineHeight));
         });
 
         // 4. Buttons
-        const buttonY = boxY + boxH - 60;
-        const buttonW = 100;
-        const buttonH = 40;
-        const buttonGap = 40;
+        const yes = layout.yesBtn;
+        const no = layout.noBtn;
 
-        const yesX = 320 - buttonW - buttonGap / 2;
-        const noX = 320 + buttonGap / 2;
+        // Use BattleConfig Labels: '그래', '아니' based on user request (which matched Config default)
+        const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
+        const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
 
         // Draw YES Button
-        Assets.drawButton(ctx, yesX, buttonY, buttonW, buttonH, 'YES', this.confirmSelected === 0, { noBorder: true });
+        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, this.confirmSelected === 0, { noBorder: true });
 
         // Draw NO Button
-        Assets.drawButton(ctx, noX, buttonY, buttonW, buttonH, 'NO', this.confirmSelected === 1, { noBorder: true });
+        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, this.confirmSelected === 1, { noBorder: true });
 
         ctx.restore();
     }

@@ -19,7 +19,7 @@ const SelectConfig = {
         y: 380,
         gap: 14,
         dimOpacity: 0.5,
-        cursorPath: 'face/CHRSELEF_cursor.png'
+        cursorPath: 'face/select_cursor.png'
     }
 };
 

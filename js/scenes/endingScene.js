@@ -21,13 +21,13 @@ const EndingScene = {
         this.endingImageKey = 'ending/END' + charId.substring(0, 3).toUpperCase() + '.png'; // ENDATA, ENDRIN, ENDFAR... 
 
         // Manual Overrides if naming inconsistent
-        if (charId === 'ataho') this.endingImageKey = 'ending/ENDATA.png';
-        if (charId === 'rinxiang') this.endingImageKey = 'ending/ENDRIN.png';
-        if (charId === 'fari') this.endingImageKey = 'ending/ENDFAR.png';
-        if (charId === 'smash') this.endingImageKey = 'ending/ENDSMA.png';
-        if (charId === 'yuri') this.endingImageKey = 'ending/ENDYUR.png';
-        if (charId === 'mayu') this.endingImageKey = 'ending/ENDMAY.png';
-        if (charId === 'petum') this.endingImageKey = 'ending/ENDFAR.png';
+        if (charId === 'ataho') this.endingImageKey = 'ending/ending_ATA.png';
+        if (charId === 'rinxiang') this.endingImageKey = 'ending/ending_RIN.png';
+        if (charId === 'fari') this.endingImageKey = 'ending/ending_FARI.png';
+        if (charId === 'smash') this.endingImageKey = 'ending/ending_SMSH.png';
+        if (charId === 'yuri') this.endingImageKey = 'ending/ending_YURI.png';
+        if (charId === 'mayu') this.endingImageKey = 'ending/ending_MAYU.png';
+        if (charId === 'petum') this.endingImageKey = 'ending/ending_FARI.png'; // Placeholder fallback?
     },
 
     update: function () {

@@ -69,12 +69,12 @@ const Assets = {
         'ui/long_bubble_tail.png',
         'ui/short_bubble.png',
         'ui/battle_menu.png', // Battle Menu Overlay
-        'face/CHRSELEF_cursor.png',
+        'face/select_cursor.png',
 
         // Individual Select Icons
-        'face/CHRSELATA.png', 'face/CHRSELRIN.png', 'face/CHRSELFARI.png',
-        'face/CHRSELSMSH.png', 'face/CHRSELPET.png', 'face/CHRSELYURI.png',
-        'face/CHRSELMAYU.png',
+        'face/select_ATA.png', 'face/select_RIN.png', 'face/select_FARI.png',
+        'face/select_SMSH.png', 'face/select_PET.png', 'face/select_YURI.png',
+        'face/select_MAYU.png',
 
         // UI Frame
         'ui/frame/corner-lefttop.png', 'ui/frame/corner-righttop.png',
@@ -151,8 +151,8 @@ const Assets = {
         'ui/pointer.png',
 
         // Endings
-        'ending/ENDATA.png', 'ending/ENDFAR.png', 'ending/ENDMAY.png',
-        'ending/ENDRIN.png', 'ending/ENDSMA.png', 'ending/ENDYUR.png',
+        'ending/ending_ATA.png', 'ending/ending_FARI.png', 'ending/ending_MAYU.png',
+        'ending/ending_RIN.png', 'ending/ending_SMSH.png', 'ending/ending_YURI.png',
         'ending/theend.png'
     ],
     loadedCount: 0,
