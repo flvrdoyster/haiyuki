@@ -121,15 +121,20 @@ const BattleRenderer = {
         for (let i = 0; i < pCount; i++) {
             const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y;
-            const isHover = (state.currentState === state.STATE_PLAYER_TURN && i === state.hoverIndex);
+            // Update Hover Logic to include Exchange State
+            const isHover = ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && i === state.hoverIndex);
 
             if (isHover) {
                 y += BattleConfig.HAND.hoverYOffset;
             }
 
             // Determine side image based on face-down state
-            // If face-down (deal), use specific back-side asset. Otherwise normal side.
-            const sideAsset = state.p1.isFaceDown ? 'tiles/side-top-back.png' : 'tiles/side-top.png';
+            // If face-down (deal) or Exchanging, use specific back-side asset.
+            // isExchanging calculated here to avoid 'const' redecl issue if block scoped, but var var is safer or just let
+            const isExchanging = state.exchangeIndices && state.exchangeIndices.includes(i);
+            const useBackSide = state.p1.isFaceDown || isExchanging;
+
+            const sideAsset = useBackSide ? 'tiles/side-top-back.png' : 'tiles/side-top.png';
             const sideImg = Assets.get(sideAsset);
 
             if (sideImg) {
@@ -153,7 +158,10 @@ const BattleRenderer = {
             }
 
             // Draw Face or Back based on state
-            if (state.p1.isFaceDown) {
+            // Check Exchange Selection (Visual Flip)
+            // isExchanging is already calculated above
+
+            if (state.p1.isFaceDown || isExchanging) {
                 this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/pai_back.png');
             } else {
                 this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH, options);
@@ -161,7 +169,7 @@ const BattleRenderer = {
         }
 
         // Draw Cursor (Top Layer)
-        if (state.currentState === state.STATE_PLAYER_TURN && state.hoverIndex >= 0 && state.hoverIndex < pCount) {
+        if ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && state.hoverIndex >= 0 && state.hoverIndex < pCount) {
             const i = state.hoverIndex;
             const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y + BattleConfig.HAND.hoverYOffset;
@@ -240,7 +248,26 @@ const BattleRenderer = {
 
         // 8. Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
-        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP"); // P1 MP
+        // 8. Bars
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
+
+        // MP Bar with Preview Cost support
+        let p1PreviewCost = 0;
+        // Check Global BattleScene for confirm data (standard skills)
+        if (typeof BattleScene !== 'undefined' && BattleScene.confirmData && BattleScene.confirmData.cost) {
+            p1PreviewCost = BattleScene.confirmData.cost;
+        }
+        // Check Exchange State (custom skills)
+        if (state.currentState === state.STATE_TILE_EXCHANGE && state.skillId) {
+            // Calculate tile exchange cost?
+            // Exchange is usually per tile interaction, visually previewed on selection?
+            // Or initial cost? 
+            // The user request was "Other skills too". Standard skills.
+            // Exchange cost is dynamic. 
+            // Let's focus on Standard Confirm first.
+        }
+
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP", p1PreviewCost); // P1 MP
 
         this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, state.cpu.hp, state.cpu.maxHp, "HP");
         this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.cpu.mp, state.cpu.maxMp, "MP"); // CPU MP
@@ -266,6 +293,12 @@ const BattleRenderer = {
 
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
             this.drawDrawButton(ctx, state);
+        } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
+            if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
+                this.drawDrawButton(ctx, state);
+            } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
+                this.drawExchangeWindow(ctx, state);
+            }
         }
 
 
@@ -678,25 +711,71 @@ const BattleRenderer = {
         }
     },
 
-    drawBar: function (ctx, x, y, val, max, label) {
+    drawBar: function (ctx, x, y, val, max, label, previewCost = 0) {
         // Background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
 
-        // Fill
+        // Clamping
         const pct = Math.max(0, Math.min(1, val / max));
         const fillW = Math.floor(BattleConfig.BARS.width * pct);
 
         const path = label === 'HP' ? BattleConfig.BARS.hpPath : BattleConfig.BARS.mpPath;
         const img = Assets.get(path);
 
+        // Draw Base Bar
         if (img) {
-            // Slice/Stretch logic? 
-            // Simple stretch for now
-            ctx.drawImage(img, 0, 0, img.width, img.height, x, y, fillW, BattleConfig.BARS.height);
+            if (previewCost > 0) {
+                // Draw Full Bar first? checking layering.
+                // We want: [Remaining][Cost(Blinking)][Empty]
+                // val is CURRENT MP. We want to show (val - cost).
+
+                // 1. Remaining Safe MP
+                const safeVal = Math.max(0, val - previewCost);
+                const safePct = Math.max(0, Math.min(1, safeVal / max));
+                const safeW = Math.floor(BattleConfig.BARS.width * safePct);
+
+                if (safeW > 0) {
+                    ctx.drawImage(img, 0, 0, img.width, img.height, x, y, safeW, BattleConfig.BARS.height);
+                }
+
+                // 2. Cost Segment (Blinking)
+                // If we have cost to show
+                if (val > safeVal) {
+                    const costW = fillW - safeW;
+                    // Blinking Alpha
+                    const alpha = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    // Draw red tint or just draw the bar segment with filter? 
+                    // Simple: Draw same bar img but maybe verify color? 
+                    // User asked for "show in MP bar". usually red for cost.
+                    // Let's use a red fill or specific asset if avail. 
+                    // Fallback to red rectangle for visibility.
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(x + safeW, y, costW, BattleConfig.BARS.height);
+                    ctx.restore();
+                }
+            } else {
+                ctx.drawImage(img, 0, 0, img.width, img.height, x, y, fillW, BattleConfig.BARS.height);
+            }
         } else {
+            // Fallback Rect
             ctx.fillStyle = label === 'HP' ? 'blue' : 'yellow';
             ctx.fillRect(x, y, fillW, BattleConfig.BARS.height);
+
+            if (previewCost > 0) {
+                const safeVal = Math.max(0, val - previewCost);
+                const safePct = Math.max(0, Math.min(1, safeVal / max));
+                const safeW = Math.floor(BattleConfig.BARS.width * safePct);
+                const costW = fillW - safeW;
+
+                // Redraw cost part as red
+                ctx.fillStyle = 'red';
+                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
+                ctx.fillRect(x + safeW, y, costW, BattleConfig.BARS.height);
+                ctx.globalAlpha = 1.0;
+            }
         }
     },
 
@@ -1332,6 +1411,132 @@ const BattleRenderer = {
         }
         return -1;
     },
+
+    drawExchangeWindow: function (ctx, state) {
+        // Use Confirm Config for Style reference
+        const conf = BattleConfig.CONFIRM;
+
+        ctx.save();
+        ctx.font = conf.font; // Matches Confirm
+
+        // 1. Measure Text for Dynamic Width
+        // Use Configured Message
+        // Determine ID based on context (default to EXCHANGE_TILE)
+        // If we had the skill ID passed in 'state', better. 
+        // Assuming EXCHANGE_TILE for now or logic to switch.
+        // Actually, state should have skillId. If not, use generic.
+        const skillId = state.skillId || 'EXCHANGE_TILE';
+        const msgFn = BattleConfig.MESSAGES.SKILL_CONFIRM[skillId];
+        const text = msgFn ? msgFn(0) : "바꿀 패를 선택하세요."; // Pass 0 cost as this is instructions
+        const textMetrics = ctx.measureText(text);
+        const textW = textMetrics.width;
+        const textH = conf.lineHeight || 24; // Approx height
+
+        // 2. Calculate Layout (Matching BattleScene.getConfirmLayout logic)
+        // Box H = TextH + PadY*2 + BtnMargin + BtnH + Buffer
+        const buttonAreaH = (conf.buttonMarginTop || 14) + conf.buttonHeight;
+        let h = textH + (conf.padding.y * 2) + buttonAreaH;
+
+        // Min/Max constraints
+        const minW = conf.minWidth || 200;
+        const minH = conf.minHeight || 80;
+        h = Math.max(h, minH);
+
+        const paddingX = 60; // 30px each side
+        const w = Math.max(minW, textW + paddingX);
+
+        const x = (640 - w) / 2;
+        // Use Confirm Y if available, else Center (fallback)
+        const y = (conf.y !== undefined) ? conf.y : (480 - h) / 2;
+
+        Assets.drawWindow(ctx, x, y, w, h);
+
+        const count = state.exchangeIndices ? state.exchangeIndices.length : 0;
+
+        // Text
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'white';
+        // Font already set
+
+        // Layout Text - Start Y
+        // Logic: y + padding + lineHeight (Confirm uses loop, here simpler)
+        ctx.fillText(text, x + w / 2, y + conf.padding.y + textH);
+
+        // Button
+        const btnW = 140;
+        const btnH = conf.buttonHeight;
+        const btnX = x + (w - btnW) / 2;
+
+        // Position from bottom using padding
+        // confirmLayout uses: boxY + boxH - padding.y - btnH
+        const btnY = y + h - conf.padding.y - btnH;
+
+        // Use Exchange Check
+        const lab = (conf.labelsExchange) ? conf.labelsExchange : { confirm: '교환', cancel: '패스' };
+
+        let label = (count === 0) ? `${lab.cancel} (ENTER)` : `${lab.confirm} (ENTER)`;
+
+        // Hover handling
+        const isHover = state.drawButtonHover;
+
+        // Pass noBorder option
+        Assets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
+
+        // Show Cost Hint if selection > 0
+        if (count > 0) {
+            this.drawMpPreview(ctx, state, count);
+        }
+
+        // Cache Button Rect for Input
+        this._exchangeBtnRect = { x: btnX, y: btnY, w: btnW, h: btnH };
+
+        ctx.restore();
+    },
+
+    drawMpPreview: function (ctx, state, count) {
+        // Need Cost. Let's assume 6 for now or try to fetch.
+        const charId = state.p1Character ? state.p1Character.id : 'smash';
+        const costPerTile = (charId === 'mayu') ? 4 : 6;
+        const totalCost = count * costPerTile;
+
+        const barX = BattleConfig.BARS.P1.x;
+        const barY = BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap; // MP is below HP
+        // Calculate Width of Cost
+        const maxMp = state.p1.maxMp || 100;
+        const currentMp = state.p1.mp || 0;
+
+        // Pct of Max
+        const costPct = Math.min(1, totalCost / maxMp);
+        const costW = Math.floor(BattleConfig.BARS.width * costPct);
+
+        // Start X of Cost Bar = Current Fill End - Cost Width
+        const currentPct = Math.min(1, currentMp / maxMp);
+        const currentW = Math.floor(BattleConfig.BARS.width * currentPct);
+
+        // If cost > current, cap at currentW
+        const renderCostW = Math.min(costW, currentW);
+        const startX = barX + currentW - renderCostW;
+
+        // Draw Overlay (e.g., Flashing Red or Darker Yellow)
+        ctx.save();
+        ctx.fillStyle = (state.timer % 20 < 10) ? 'rgba(255, 50, 50, 0.8)' : 'rgba(200, 50, 50, 0.8)';
+        ctx.fillRect(startX, barY, renderCostW, BattleConfig.BARS.height);
+
+        // Show numeric cost -> Removed as per user request
+        // ctx.fillStyle = 'white';
+        // const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
+        // ctx.font = `bold 12px ${fontName}`;
+        // ctx.textAlign = 'center';
+        // ctx.fillText(`-${totalCost}`, startX + renderCostW / 2, barY - 4);
+
+        ctx.restore();
+    },
+
+    checkExchangeButton: function (x, y) {
+        if (!this._exchangeBtnRect) return false;
+        const b = this._exchangeBtnRect;
+        return (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    }
 
 
 };

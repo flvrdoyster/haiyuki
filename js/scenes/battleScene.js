@@ -38,7 +38,9 @@ const BattleScene = {
             let width = 0;
             for (let i = 0; i < len; i++) {
                 const code = line.charCodeAt(i);
-                width += (code > 255) ? 20 : 12; // 20px font
+                // Refined estimation for 16px font:
+                // CJK: ~16px, ASCII: ~9px
+                width += (code > 255) ? 16 : 9;
             }
             if (width > maxLineWidth) maxLineWidth = width;
         });
@@ -56,9 +58,9 @@ const BattleScene = {
         boxW = Math.max(boxW, conf.minWidth);
         boxH = Math.max(boxH, conf.minHeight);
 
-        // Center
+        // Center X, Locked Y or Center Y
         const boxX = (640 - boxW) / 2;
-        const boxY = (480 - boxH) / 2;
+        const boxY = (conf.y !== undefined) ? conf.y : (480 - boxH) / 2;
 
         // Button Positions
         const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
@@ -375,6 +377,8 @@ const BattleScene = {
             this.handleActionSelectInput(engine);
         } else if (engine.currentState === engine.STATE_PLAYER_TURN) {
             this.handlePlayerTurnInput(engine);
+        } else if (engine.currentState === engine.STATE_TILE_EXCHANGE) {
+            this.handleTileExchangeInput(engine);
         } else if (engine.currentState === engine.STATE_WAIT_FOR_DRAW) {
             // Manual Draw Input
 
@@ -552,13 +556,14 @@ const BattleScene = {
         }
     },
 
-    showConfirm: function (msg, onYes, onNo) {
+    showConfirm: function (msg, onYes, onNo, options = {}) {
         this.confirmData = {
             msg: msg,
             onYes: onYes,
             onNo: onNo,
             selected: 1, // Default to NO
-            timer: 10 // Cooldown
+            timer: 10, // Cooldown
+            cost: options.cost || 0 // Store cost
         };
         this._confirmLayout = null; // Reset cache
     },
@@ -655,9 +660,49 @@ const BattleScene = {
         const yes = layout.yesBtn;
         const no = layout.noBtn;
 
-        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, 'YES', d.selected === 0, { noBorder: true });
-        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, 'NO', d.selected === 1, { noBorder: true });
+        const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
+        const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
+
+        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, d.selected === 0, { noBorder: true });
+        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, d.selected === 1, { noBorder: true });
 
         ctx.restore();
-    }
+    },
+
+    handleTileExchangeInput: function (engine) {
+        // Reuse Player Turn Hover Logic for selection
+        const groupSize = 0; // No group in dealing phase
+        const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
+        if (hovered !== -1) { engine.hoverIndex = hovered; }
+
+        // Keyboard/Mouse Navigation
+        const handSize = engine.p1.hand.length;
+        if (Input.isJustPressed(Input.LEFT)) {
+            engine.hoverIndex--;
+            if (engine.hoverIndex < 0) engine.hoverIndex = handSize - 1;
+        } else if (Input.isJustPressed(Input.RIGHT)) {
+            engine.hoverIndex++;
+            if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
+        }
+
+        // Toggle Selection
+        if (Input.isJustPressed(Input.SPACE) || (Input.isMouseJustPressed() && hovered !== -1)) {
+            if (engine.hoverIndex >= 0 && engine.hoverIndex < handSize) {
+                engine.toggleExchangeSelection(engine.hoverIndex);
+            }
+        }
+
+        // Confirm / Cancel
+        // Button Logic?
+        // Let's implement Confirm Button Logic too.
+        // Reuse Draw Button Area Check for Exchange Button
+        const isHoverButton = BattleRenderer.checkExchangeButton(Input.mouseX, Input.mouseY);
+        engine.drawButtonHover = isHoverButton; // Reuse this flag or new one? Reuse OK.
+
+        if (Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.Z) || (Input.isMouseJustPressed() && isHoverButton)) {
+            engine.confirmTileExchange();
+        }
+        // ESC Removed as per user request
+    },
+
 };

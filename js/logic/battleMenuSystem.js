@@ -117,10 +117,43 @@ const BattleMenuSystem = {
                 return; // Do not close menu
             }
 
-            // Delegate Skill Execution to Engine
-            this.engine.useSkill(selectedId);
+            // Trigger Confirmation via Scene
+            if (this.engine.scene && this.engine.scene.showConfirm) {
+                const cost = selectedItem.data.cost; // Access cost from skill data
+
+                // Lookup Message
+                let msgFn = BattleConfig.MESSAGES.SKILL_CONFIRM[selectedId];
+                let msg = "";
+
+                if (msgFn) {
+                    msg = msgFn(cost);
+                } else {
+                    // Fallback using DEFAULT
+                    msgFn = BattleConfig.MESSAGES.SKILL_CONFIRM.DEFAULT;
+                    msg = msgFn(selectedItem.label, cost);
+                }
+
+                this.engine.scene.showConfirm(
+                    msg,
+                    () => {
+                        // YES: Execute
+                        this.toggle(); // Close menu
+                        this.engine.useSkill(selectedId);
+                    },
+                    () => {
+                        // NO: Just close modal
+                    },
+                    { cost: cost } // Pass cost for MP Bar Preview
+                );
+                return; // Do not close menu yet
+            } else {
+                // Fallback (Direct Use)
+                this.engine.useSkill(selectedId);
+            }
         }
 
         this.toggle();
     }
 };
+
+

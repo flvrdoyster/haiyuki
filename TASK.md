@@ -29,31 +29,31 @@ This document tracks the current implementation status of all character skills i
   - *Status*: Implemented. `checkPlayerActions` and `checkRon` block actions if `discardGuard` buff is active.
 
 ## Smash (스마슈)
-- [ ] **EXCHANGE_TILE (패 교환)**: Exchange tiles at start of round.
-  - *Status*: **Pending**. Logic is currently blocked as "Not Implemented". Need to implement Tile Exchange UI/State.
+- [x] **EXCHANGE_TILE (패 교환)**: Exchange tiles at start of round.
+  - *Status*: **Implemented**. Added `STATE_TILE_EXCHANGE` logic, Logic in Engine, input in Scene, rendering in Renderer.
 - [ ] **EXCHANGE_RON (론 패 교환)**: Negate opponent's Ron by swapping the discarded tile.
-  - *Status*: **Pending**. Logic for Reactive skill trigger on Ron needs refinement.
+  - *Status*: **Pending**. Deferring logic for Reactive skill trigger.
 
 ## Petum (페톰)
 - [x] **CRITICAL (크리티컬)**: Increases damage dealt by 25%.
   - *Status*: Implemented. `startWinSequence` applies multiplier. Result screen has animation.
 - [ ] **LAST_CHANCE (라스트 찬스)**: Roulette chance on Nagari (Draw) while Tenpai.
-  - *Status*: **Pending**. Needs Nagari hook and Roulette UI implementation.
+  - *Status*: **Pending**. Deferred.
 
 ## Yuri (유리와카마루)
 - [ ] **SUPER_IAI (초 거합베기)**: Negate opponent's Ron by cutting the tile.
-  - *Status*: **Pending**. Similar to `EXCHANGE_RON`, needs Reactive Trigger logic.
+  - *Status*: **Pending**. Deferring logic.
 - [x] **SPIRIT_RIICHI (기합 리치)**: Guaranteed Tsumo after 5 turns if Riichi declared.
   - *Status*: Implemented. Timer logic in `updateLogic` (or turn end) checks `spiritTimer`.
 
 ## Mayu (눈썹개)
-- [ ] **PAINT_TILE (패 덧칠)**: Improved tile exchange.
-  - *Status*: **Pending**. Shares logic with `EXCHANGE_TILE`.
+- [x] **PAINT_TILE (패 덧칠)**: Improved tile exchange.
+  - *Status*: **Implemented**. Shares logic with `EXCHANGE_TILE`.
 
 ---
 
 ## Implementation Roadmap (User Priority)
-1. **DORA_BOMB (도라폭진)**: "On Win" logic. (Priority 1)
-2. **Reactive Skills (Ron Defense)**: `EXCHANGE_RON` & `SUPER_IAI`. (Priority 2)
-3. **Setup Skills**: `EXCHANGE_TILE` & `PAINT_TILE`. (Priority 3)
-4. **Last Chance**: `LAST_CHANCE`. (Priority 4)
+1. **DORA_BOMB (도라폭진)**: "On Win" logic. (Implemented)
+2. **Setup Skills**: `EXCHANGE_TILE` & `PAINT_TILE`. (Implemented)
+3. **Reactive Skills (Ron Defense)**: `EXCHANGE_RON` & `SUPER_IAI`. (Deferred)
+4. **Last Chance**: `LAST_CHANCE`. (Deferred)

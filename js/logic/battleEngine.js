@@ -15,6 +15,7 @@ const BattleEngine = {
     STATE_LOSE: 10,
     STATE_NAGARI: 11,
     STATE_MATCH_OVER: 12,   // Game End
+    STATE_TILE_EXCHANGE: 13, // Skill: Exchange Tiles
 
     currentState: 0,
     timer: 0,
@@ -833,7 +834,11 @@ const BattleEngine = {
         // Skill System Initialization
         this.skillsUsedThisTurn = false;
         this.p1.buffs = {};
+        this.p1.buffs = {};
         this.cpu.buffs = {};
+
+        // Reset Exchange Indices
+        this.exchangeIndices = [];
 
         // Init Deck
         this.deck = this.generateDeck();
@@ -1365,11 +1370,28 @@ const BattleEngine = {
             case this.STATE_INIT:
                 if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
                     if (this.turnCount === 1) {
-                        // Fix: Go to Wait State to show Draw Button
+                        // Skill Check: Setup Skills (Exchange Tile / Paint Tile)
+                        const p1Skills = CharacterData.find(c => c.id === this.p1.id).skills;
+                        if (p1Skills.includes('EXCHANGE_TILE') || p1Skills.includes('PAINT_TILE')) {
+                            this.currentState = this.STATE_TILE_EXCHANGE;
+                            this.exchangeIndices = []; // Reset selection
+                            this.timer = 0;
+                            console.log("[Skill] Entering Tile Exchange Mode");
+                        } else {
+                            // Fix: Go to Wait State to show Draw Button
+                            this.currentState = this.STATE_WAIT_FOR_DRAW;
+                            this.timer = 0;
+                        }
+                    } else {
+                        // Normal subsequent turns
                         this.currentState = this.STATE_WAIT_FOR_DRAW;
                         this.timer = 0;
                     }
                 }
+                break;
+
+            case this.STATE_TILE_EXCHANGE:
+                this.activeStateTileExchange();
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
@@ -2602,5 +2624,114 @@ const BattleEngine = {
         } else {
             console.log(`[BattleEngine] Trigger Dialogue Failed: No lines found for Key=${key}, Owner=${owner}, CharID=${charId}`);
         }
+    },
+
+    activeStateTileExchange: function () {
+        // Logic handled by Scene Input (Selection toggling)
+        // Here we just wait for Confirmation or Input updates.
+
+        // Note: Actual Input processing (Left/Right/Space/Enter) is delegated to BattleScene.update()
+    },
+
+    toggleExchangeSelection: function (index) {
+        if (this.exchangeIndices.includes(index)) {
+            this.exchangeIndices = this.exchangeIndices.filter(i => i !== index);
+            Assets.playSound('audio/cursor');
+        } else {
+            // Check MP Cost before adding
+            const charData = CharacterData.find(c => c.id === this.p1.id);
+            const p1Skills = charData ? charData.skills : [];
+            let skillId = null;
+            if (p1Skills.includes('PAINT_TILE')) skillId = 'PAINT_TILE';
+            else if (p1Skills.includes('EXCHANGE_TILE')) skillId = 'EXCHANGE_TILE';
+
+            if (skillId) {
+                const skill = SkillData[skillId];
+                const currentCost = this.exchangeIndices.length * skill.cost;
+                if (this.p1.mp < currentCost + skill.cost) {
+                    // Not enough MP for next tile
+                    Assets.playSound('audio/cancel');
+                    return;
+                }
+            }
+
+            this.exchangeIndices.push(index);
+            Assets.playSound('audio/cursor');
+        }
+    },
+
+    confirmTileExchange: function () {
+        // Safe check for skills to avoid errors if data missing
+        const charData = CharacterData.find(c => c.id === this.p1.id);
+        const p1Skills = charData ? charData.skills : [];
+
+        let skillId = null;
+        if (p1Skills.includes('PAINT_TILE')) skillId = 'PAINT_TILE';
+        else if (p1Skills.includes('EXCHANGE_TILE')) skillId = 'EXCHANGE_TILE';
+
+        const skill = SkillData[skillId];
+        if (!skill) {
+            // Should not happen if state was entered correctly
+            this.currentState = this.STATE_WAIT_FOR_DRAW;
+            this.timer = 0;
+            return;
+        }
+
+        const count = this.exchangeIndices.length;
+
+        if (count === 0) {
+            // Skip
+            this.currentState = this.STATE_WAIT_FOR_DRAW;
+            this.timer = 0;
+            console.log("[Skill] Tile Exchange Skipped.");
+            return;
+        }
+
+        const totalCost = count * skill.cost;
+
+        if (this.p1.mp < totalCost) {
+            console.log("Not enough MP!");
+            this.showPopup('SKILL', { text: "MP 부족!", blocking: false });
+            Assets.playSound('audio/cancel');
+            return;
+        }
+
+        // Execute Exchange
+        this.consumeMp('P1', totalCost);
+
+        // 1. Remove tiles
+        // Sort indices descending to splice correctly
+        const sortedIndices = [...this.exchangeIndices].sort((a, b) => b - a);
+        const removedTiles = [];
+
+        sortedIndices.forEach(idx => {
+            const tile = this.p1.hand.splice(idx, 1)[0];
+            removedTiles.push(tile);
+        });
+
+        // 2. Return to Deck (Random insert)
+        removedTiles.forEach(tile => {
+            const r = Math.floor(Math.random() * this.deck.length);
+            this.deck.splice(r, 0, tile);
+        });
+
+        // 3. Draw New
+        const newTiles = this.drawTiles(count, this.p1);
+        this.p1.hand.push(...newTiles);
+
+        // 4. Sort
+        this.sortHand(this.p1.hand);
+
+        // Visuals
+        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+        this.showPopup('SKILL', { text: skill.name, blocking: false });
+
+        // Reset Selection State
+        this.exchangeIndices = [];
+
+        // Proceed
+        this.currentState = this.STATE_WAIT_FOR_DRAW;
+        this.timer = 0;
+        console.log(`[Skill] Exchanged ${count} tiles.`);
     }
 };

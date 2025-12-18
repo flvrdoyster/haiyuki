@@ -248,16 +248,50 @@ const BattleConfig = {
     },
 
     CONFIRM: {
+        y: 200,
         minWidth: 200,
-        minHeight: 80,
-        padding: { x: 0, y: 14 }, // Inner padding around text
+        minHeight: 120, // Slightly taller to fit 2 lines comfortably
+        padding: { x: 20, y: 20 }, // Increased horizontal padding
         font: `16px ${FONTS.regular}`,
         lineHeight: 24,
-        buttonHeight: 36,
-        buttonWidth: 100,
-        buttonGap: 6,
-        buttonMarginTop: 14 // Gap between text and buttons
+        buttonHeight: 32, // Slightly smaller buttons
+        buttonWidth: 90,
+        buttonGap: 10,
+        buttonMarginTop: 20,
+        labels: { yes: '그래', no: '아니' }, // Default labels
+        labelsExchange: { confirm: '바꿔', cancel: '싫어' } // Exchange specific
     },
+
+    MESSAGES: {
+        // Explicit messages to avoid generic "을(를)" post-positions
+        SKILL_CONFIRM: {
+            // Ataho
+            'TIGER_STRIKE': (cost) => `맹호일발권을 사용할까요?`,
+            'HELL_PILE': (cost) => `지옥쌓기를 사용할까요?`,
+
+            // Rinxiang
+            'WATER_MIRROR': (cost) => `수경을 사용할까요?`,
+            'DORA_BOMB': (cost) => `도라폭진을 사용할까요?`,
+
+            // Fari
+            'RECOVERY': (cost) => `회복을 사용할까요?`,
+            'DISCARD_GUARD': (cost) => `버린 패 방어를 사용할까요?`,
+
+            // Smash / Mayu
+            'EXCHANGE_TILE': (cost) => `바꿀 패를 선택하세요.`,
+            'PAINT_TILE': (cost) => `덧칠할 패를 선택하세요.`,
+
+            // Petum
+            'CRITICAL': (cost) => `크리티컬을 사용할까요?`,
+
+            // Yuri
+            'SPIRIT_RIICHI': (cost) => `기합 리치를 사용할까요?`,
+
+            // Fallback (Functionally used if ID missing)
+            'DEFAULT': (name, cost) => `${name} 스킬을 사용할까요?`
+        }
+    },
+
 
     // ----------------------------------------------------------------
     // 6. Audio

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Skill Confirm UI Debug</title>
+    <style>
+        body {
+            background: #333;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            background: #000;
+            border: 1px solid #666;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls">
+        <h1>Skill Confirm Window Debug</h1>
+        <p>Rendering all skill confirmation dialogs based on BattleConfig using REAL Assets/Renderer.</p>
+    </div>
+    <!-- Increased Height to fit all items -->
+    <canvas id="debugCanvas" width="800" height="8000"></canvas>
+
+    <!-- 1. Define Global Dependencies + Mock Environment -->
+    <script>
+        // Mock FONTS globally
+        window.FONTS = { regular: 'sans-serif', bold: 'sans-serif bold' };
+
+        // Mock Input
+        window.Input = { mouseX: 0, mouseY: 0 };
+
+        // Mock BattleEngine (required for BattleScene init)
+        window.BattleEngine = {
+            init: function () { },
+            events: [],
+            // Shims for potential usage in logic (not drawing)
+            p1: { hp: 1000, mp: 100 },
+            cpu: { hp: 1000, mp: 100 }
+        };
+
+        // --- Mock Image Generation ---
+        // Assets.js relies on images being loaded. 
+        // We will "Pre-load" generated canvas placeholder images into Assets.images.
+        // This ensures Assets.drawUIFrame works correctly with real logic (9-slice).
+
+        function createColorCanvas(w, h, color) {
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const x = c.getContext('2d');
+            x.fillStyle = color;
+            x.fillRect(0, 0, w, h);
+            x.strokeStyle = '#444';
+            x.strokeRect(0, 0, w, h);
+            return c; // Uses Canvas as Image source (supported by drawImage)
+        }
+
+        // We will perform "Manual Load" after Assets script loads.
+    </script>
+
+    <!-- 2. Load Core Systems -->
+    <script src="js/data/battleConfig.js"></script>
+    <script src="js/data/characterData.js"></script>
+    <script src="js/core/assets.js"></script>
+
+    <!-- 3. Load Renderer & Scene -->
+    <script src="js/views/BattleRenderer.js"></script>
+    <script src="js/scenes/battleScene.js"></script>
+
+    <!-- 4. Initialization & Debug Logic -->
+    <script>
+        // Setup Canvas
+        const canvas = document.getElementById('debugCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Step A: Inject Mock Assets ---
+        // We populate Assets.images with valid Canvas objects acting as Images.
+        // Needed for: UI Frame parts, Bar parts, etc.
+
+        const mockImages = {
+            // UI Frame (Corners/Lines) - Assuming 16x16 or similar size for corners
+            'ui/frame/corner-lefttop.png': createColorCanvas(16, 16, '#Gold'),
+            'ui/frame/corner-righttop.png': createColorCanvas(16, 16, '#Gold'),
+            'ui/frame/corner-leftbottom.png': createColorCanvas(16, 16, '#Gold'),
+            'ui/frame/corner-rightbottom.png': createColorCanvas(16, 16, '#Gold'),
+
+            'ui/frame/line-top.png': createColorCanvas(16, 16, '#Silver'),
+            'ui/frame/line-bottom.png': createColorCanvas(16, 16, '#Silver'),
+            'ui/frame/line-left.png': createColorCanvas(16, 16, '#Silver'),
+            'ui/frame/line-right.png': createColorCanvas(16, 16, '#Silver'),
+
+            // Bars (if Exchange window uses drawMpPreview which uses MP bar assets)
+            'ui/bar_blue.png': createColorCanvas(140, 10, 'blue'),
+            'ui/bar_yellow.png': createColorCanvas(140, 10, 'yellow'),
+
+            // Fonts (Number) - used by drawMpPreview? Not anymore (removed numeric).
+            // But just in case.
+            'ui/number.png': createColorCanvas(128, 16, 'white'),
+        };
+
+        // Inject into Assets
+        Object.keys(mockImages).forEach(k => {
+            Assets.images[k] = mockImages[k];
+        });
+
+        // Also stub Assets.load to do nothing or callback immediately
+        Assets.load = function (cb) { cb(); };
+
+
+        // --- Step B: Drawing Helpers (Using Real Logic) ---
+
+        function drawSceneConfirm(ctx, msg, offsetY, title, cost = 0) {
+
+            // Draw Title
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#FFCC00';
+            ctx.font = '20px sans-serif';
+            ctx.fillText(title, 20, offsetY + 30);
+
+            const screenX = 80;
+            const screenY = offsetY;
+
+            // Reference Box
+            ctx.strokeStyle = '#555';
+            ctx.strokeRect(screenX, screenY, 640, 480);
+
+            BattleScene.confirmData = {
+                msg: msg,
+                selected: 0,
+                onYes: null, onNo: null,
+                cost: cost
+            };
+            BattleScene._confirmLayout = null;
+            BattleScene._confirmLayout = null;
+
+            // Masking/Clipping for "Screen" area
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(screenX, screenY, 640, 480);
+            ctx.clip();
+            ctx.translate(screenX, screenY);
+
+            try {
+                // BattleScene.drawConfirm calls Assets.drawWindow -> Assets.drawUIFrame
+                // Since we injected mock images, it should "draw" correctly (with placeholder gfx).
+                // The Logic (Math) will be identical to game.
+                BattleScene.drawConfirm(ctx);
+            } catch (e) {
+                ctx.fillStyle = 'red';
+                ctx.textAlign = 'center';
+                ctx.fillText("FAIL: " + e.message, 320, 240);
+                console.error(e);
+            }
+
+            ctx.restore(); // Restore clip/translate
+            ctx.restore(); // Restore title state
+
+            return 500;
+        }
+
+        function drawExchangeDebug(ctx, state, offsetY, title) {
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#AAAaff';
+            ctx.font = '20px sans-serif';
+            ctx.fillText(title, 20, offsetY + 30);
+
+            const screenX = 80;
+            const screenY = offsetY;
+            ctx.strokeStyle = '#555';
+            ctx.strokeRect(screenX, screenY, 640, 480);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(screenX, screenY, 640, 480);
+            ctx.clip();
+            ctx.translate(screenX, screenY);
+
+            try {
+                BattleRenderer.drawExchangeWindow(ctx, state);
+            } catch (e) {
+                console.error(e);
+                ctx.fillStyle = 'red';
+                ctx.fillText("FAIL: " + e.message, 320, 240);
+            }
+
+            ctx.restore();
+            ctx.restore();
+            return 500;
+        }
+
+        // --- Step C: Main Loop ---
+        let currentY = 0;
+
+        // Wait for page load to ensure scripts ran? 
+        // Scripts are blocking, so safe here.
+
+        Object.keys(SkillData).forEach(key => {
+            const skill = SkillData[key];
+
+            if (key === 'EXCHANGE_TILE' || key === 'PAINT_TILE') {
+                const state = {
+                    skillId: key, // Added for text resolution
+                    exchangeIndices: [0, 1, 2],
+                    p1: { maxMp: 100, mp: 80 },
+                    p1Character: (key === 'PAINT_TILE') ? { id: 'mayu' } : { id: 'smash' },
+                    drawButtonHover: false
+                };
+                currentY += drawExchangeDebug(ctx, state, currentY, `Skill: ${skill.name} (${key})`);
+            }
+            // Render Generic Confirm for Others (USING SCENE LOGIC)
+            else {
+                // Use Centralized Message Config (Lookup Dictionary)
+                let msgFn = BattleConfig.MESSAGES.SKILL_CONFIRM[key];
+                let msg = "";
+                if (msgFn) {
+                    msg = msgFn(skill.cost);
+                } else {
+                    msg = BattleConfig.MESSAGES.SKILL_CONFIRM.DEFAULT(skill.name, skill.cost);
+                }
+
+                currentY += drawSceneConfirm(ctx, msg, currentY, `Skill: ${skill.name} (${key})`, skill.cost);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
