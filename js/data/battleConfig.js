@@ -259,7 +259,7 @@ const BattleConfig = {
         buttonGap: 10,
         buttonMarginTop: 20,
         labels: { yes: '그래', no: '아니' }, // Default labels
-        labelsExchange: { confirm: '바꿔', cancel: '싫어' } // Exchange specific
+        labelsExchange: { confirm: '바꾸자', cancel: '싫어' } // Exchange specific
     },
 
     MESSAGES: {
