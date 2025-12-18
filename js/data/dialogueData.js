@@ -485,7 +485,7 @@ const DialogueData = {
             RIICHI_REPLY: ["빠르기도 하네..."],
             WIN: ["미안하구만!!"],
             RANDOM: ["뭐야...", "훗...", "이런이런..."],
-            COUNTER_RIICHI: [""],
+            COUNTER_RIICHI: ["나도 질 수 없지"],
             WORRY_RON: ["이건 어떠냐!!"],
             // Skills
             SUPER_IAI: [""],
