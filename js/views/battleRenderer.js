@@ -1151,7 +1151,7 @@ const BattleRenderer = {
                 // Frame Bottom Y = ry + rh
                 // Ensure ry/rh are defined. Logic at top set them.
                 // We need to access them here or recap.
-                const ry = conf.y !== undefined ? conf.y : 80;
+                const ry = conf.y !== undefined ? conf.y : 0;
                 const rh = conf.h || 320;
                 const pressY = ry + rh + offset;
 
