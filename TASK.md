@@ -4,7 +4,6 @@ This document tracks the current implementation status of all character skills i
 
 ## Summary
 - **Implemented**: 7
-- **In Progress**: 0
 - **Pending**: 6
 - **Total Skills**: 13
 
@@ -19,8 +18,8 @@ This document tracks the current implementation status of all character skills i
 ## Rinxiang (린샹)
 - [x] **WATER_MIRROR (수경)**: Reduces damage taken by 25%.
   - *Status*: Implemented. `startWinSequence` applies multiplier. Result screen has animation.
-- [x] **DORA_BOMB (도라폭진)**: Converts hidden Dora to hand tiles on Riichi win.
-  - *Status*: Implemented. Interactive confirmation modal added. Checks for Skills Enabled rule.
+- [ ] **DORA_BOMB (도라폭진)**: Converts hidden Dora to hand tiles on Riichi win.
+  - *Status*: **Pending**. UI and Logic need integration (Logic currently has placeholders in `handleWin`).
 
 ## Fari (화린)
 - [x] **RECOVERY (회복)**: Restores HP.
@@ -29,10 +28,10 @@ This document tracks the current implementation status of all character skills i
   - *Status*: Implemented. `checkPlayerActions` and `checkRon` block actions if `discardGuard` buff is active.
 
 ## Smash (스마슈)
-- [x] **EXCHANGE_TILE (패 교환)**: Exchange tiles at start of round.
-  - *Status*: **Implemented**. Added `STATE_TILE_EXCHANGE` logic, Logic in Engine, input in Scene, rendering in Renderer.
+- [ ] **EXCHANGE_TILE (패 교환)**: Exchange tiles at start of round.
+  - *Status*: **Partially Implemented**. UI built (Exchange Window), but Engine logic is blocked (`Batch 2`).
 - [ ] **EXCHANGE_RON (론 패 교환)**: Negate opponent's Ron by swapping the discarded tile.
-  - *Status*: **Pending**. Deferring logic for Reactive skill trigger.
+  - *Status*: **Pending**. Deferring logic for Reactive skill trigger (checkRon).
 
 ## Petum (페톰)
 - [x] **CRITICAL (크리티컬)**: Increases damage dealt by 25%.
@@ -47,13 +46,16 @@ This document tracks the current implementation status of all character skills i
   - *Status*: Implemented. Timer logic in `updateLogic` (or turn end) checks `spiritTimer`.
 
 ## Mayu (눈썹개)
-- [x] **PAINT_TILE (패 덧칠)**: Improved tile exchange.
-  - *Status*: **Implemented**. Shares logic with `EXCHANGE_TILE`.
+- [ ] **PAINT_TILE (패 덧칠)**: Improved tile exchange.
+  - *Status*: **Partially Implemented**. Shares logic with `EXCHANGE_TILE`.
 
 ---
 
-## Implementation Roadmap (User Priority)
-1. **DORA_BOMB (도라폭진)**: "On Win" logic. (Implemented)
-2. **Setup Skills**: `EXCHANGE_TILE` & `PAINT_TILE`. (Implemented)
-3. **Reactive Skills (Ron Defense)**: `EXCHANGE_RON` & `SUPER_IAI`. (Deferred)
-4. **Last Chance**: `LAST_CHANCE`. (Deferred)
+## Implementation Roadmap (Remaining Work)
+1.  **Setup Skills (Priority)**:
+    *   `EXCHANGE_TILE` (Smash) & `PAINT_TILE` (Mayu): Unblock logic, connect Exchange UI to Engine state.
+2.  **Reactive Skills**:
+    *   `DORA_BOMB` (Rinxiang): Implement "On Win" Ura-Dora swap logic.
+    *   `EXCHANGE_RON` (Smash) & `SUPER_IAI` (Yuri): Implement "On Opponent Ron" interrupt logic.
+3.  **Nagari Skills**:
+    *   `LAST_CHANCE` (Petum): Implement Roulette mini-game on Tenpai Draw.
