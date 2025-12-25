@@ -153,17 +153,17 @@ const DialogueData = {
 
     // Fari vs Yuriwakamaru
     "fari_yuri": [
-        { speaker: "fari", text: "안녕하세요.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "화린이잖아.\n오랜만이네.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "유리와카마루씨야 말로\n변함없는 모습이네요.\n성에서의 생활은 어떠세요?", speakerState: '', listenerState: '' },
+        { speaker: "fari", text: "안녕하세요.", speakerState: 'smile', listenerState: '' },
+        { speaker: "yuri", text: "화린이잖아.\n오랜만이네.", speakerState: 'smile', listenerState: 'smile' },
+        { speaker: "fari", text: "유리와카마루씨야 말로\n변함없는 모습이네요.\n성에서의 생활은 어떠세요?", speakerState: '', listenerState: 'smile' },
         { speaker: "yuri", text: "그게, 실은 그 후에...", speakerState: '', listenerState: '' },
         { speaker: "yuri", text: "형님도 돌아오셔서,", speakerState: '', listenerState: '' },
         { speaker: "yuri", text: "또 성을 빠져 나왔어.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "아니, 사실을 말하자면,\n성에서의 생활이랑 여자 옷을 입는게\n갑갑했어서 그런 거지만.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "뭐, 그런 거였나요.\n그래도 조금 안타깝네요.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "뭐...뭐가?", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "한 번만이라도 좋으니까,\n유리와카마루씨의 기모노 차림이 보고 싶었는데.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "어... 어이,\n농담하지 말아줘.\n난 그런 거 입는 거, 두 번 다신 사양이라구.", speakerState: '', listenerState: '' }
+        { speaker: "yuri", text: "아니, 사실을 말하자면,\n성에서의 생활이랑 여자 옷을 입는게\n갑갑했어서 그런 거지만.", speakerState: 'shocked', listenerState: '' },
+        { speaker: "fari", text: "뭐, 그런 거였나요.\n그래도 조금 안타깝네요.", speakerState: 'shocked', listenerState: '' },
+        { speaker: "yuri", text: "뭐...뭐가?", speakerState: '', listenerState: 'shocked' },
+        { speaker: "fari", text: "한 번만이라도 좋으니까,\n유리와카마루씨의 기모노 차림이 보고 싶었는데.", speakerState: 'smile', listenerState: '' },
+        { speaker: "yuri", text: "어... 어이,\n농담하지 말아줘.\n난 그런 거 입는 거, 두 번 다신 사양이라구.", speakerState: 'shocked', listenerState: 'smile' }
     ],
 
     // Petum vs Smash
