@@ -25,12 +25,14 @@ body {
 
     /* Box Model */
     padding: 20px;
+    width: 100%;
 }
 
 #toolbar-row {
     /* Layout */
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 20px;
 
@@ -251,9 +253,17 @@ hr {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
     #main-wrapper {
         padding: 5px;
-        gap: 5px;
+        gap: 10px;
+    }
+
+    #toolbar-row {
+        gap: 10px;
     }
 
     /* Shrink Toolbar */
@@ -269,6 +279,7 @@ hr {
 
     .toolbar-group {
         margin-right: 0px;
+        margin-bottom: 5px;
         gap: 4px;
     }
 
