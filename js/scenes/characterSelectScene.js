@@ -227,11 +227,13 @@ const CharacterSelectScene = {
             // Hybrid: Update selection on hover change
             const hoveredIndex = this.getHoveredCharacterIndex();
             if (hoveredIndex !== -1 && hoveredIndex !== this.lastHoveredIndex) {
-                this.playerIndex = hoveredIndex;
-                this.updateP1Portrait();
+                if (Input.hasMouseMoved()) {
+                    this.playerIndex = hoveredIndex;
+                    this.updateP1Portrait();
+                    // Add sound?
+                    Assets.playSound('audio/tick');
+                }
                 this.lastHoveredIndex = hoveredIndex;
-                // Add sound?
-                Assets.playSound('audio/tick');
             } else if (hoveredIndex === -1) {
                 this.lastHoveredIndex = -1;
             }
@@ -274,8 +276,10 @@ const CharacterSelectScene = {
                 if (Input.isMouseJustPressed()) {
                     const clickedIndex = this.getHoveredCharacterIndex();
                     if (clickedIndex !== -1) {
-                        this.cpuIndex = clickedIndex;
-                        this.updateCpuPortrait();
+                        if (Input.hasMouseMoved()) {
+                            this.cpuIndex = clickedIndex;
+                            this.updateCpuPortrait();
+                        }
                         // Confirm if clicked again?
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;

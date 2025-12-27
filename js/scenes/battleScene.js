@@ -417,12 +417,11 @@ const BattleScene = {
         // Mouse Hover using Renderer Helper
         // Mouse Click
         const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems);
-        if (hovered !== -1) {
+        if (hovered !== -1 && Input.hasMouseMoved()) {
             BattleMenuSystem.selectedMenuIndex = hovered;
         }
 
         if (Input.isMouseJustPressed()) {
-            // const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems); // Redundant calc but OK
             if (hovered !== -1) {
                 BattleMenuSystem.selectedMenuIndex = hovered;
                 BattleMenuSystem.handleSelection();
@@ -449,7 +448,7 @@ const BattleScene = {
         // Mouse Hover using Renderer Helper
         // Mouse Click
         const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
-        if (hovered !== -1) {
+        if (hovered !== -1 && Input.hasMouseMoved()) {
             engine.selectedActionIndex = hovered;
         }
 
@@ -475,7 +474,7 @@ const BattleScene = {
         const groupSize = engine.lastDrawGroupSize || 0;
         // Hover removed per request
         const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
-        if (hovered !== -1) { engine.hoverIndex = hovered; }
+        if (hovered !== -1 && Input.hasMouseMoved()) { engine.hoverIndex = hovered; }
 
         // Keyboard
         const handSize = engine.p1.hand.length;
@@ -586,14 +585,14 @@ const BattleScene = {
         const isOverNo = (mx >= no.x && mx <= no.x + no.w && my >= no.y && my <= no.y + no.h);
 
         if (isOverYes) {
-            d.selected = 0;
+            if (Input.hasMouseMoved()) d.selected = 0;
             if (Input.isMouseJustPressed()) {
                 if (d.onYes) d.onYes();
                 this.confirmData = null;
                 return;
             }
         } else if (isOverNo) {
-            d.selected = 1;
+            if (Input.hasMouseMoved()) d.selected = 1;
             if (Input.isMouseJustPressed()) {
                 if (d.onNo) d.onNo();
                 this.confirmData = null;
@@ -671,7 +670,7 @@ const BattleScene = {
         // Reuse Player Turn Hover Logic for selection
         const groupSize = 0; // No group in dealing phase
         const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
-        if (hovered !== -1) { engine.hoverIndex = hovered; }
+        if (hovered !== -1 && Input.hasMouseMoved()) { engine.hoverIndex = hovered; }
 
         // Keyboard/Mouse Navigation
         const handSize = engine.p1.hand.length;
@@ -695,7 +694,9 @@ const BattleScene = {
         // Let's implement Confirm Button Logic too.
         // Reuse Draw Button Area Check for Exchange Button
         const isHoverButton = BattleRenderer.checkExchangeButton(Input.mouseX, Input.mouseY);
-        engine.drawButtonHover = isHoverButton; // Reuse this flag or new one? Reuse OK.
+        if (Input.hasMouseMoved()) {
+            engine.drawButtonHover = isHoverButton; // Reuse this flag or new one? Reuse OK.
+        }
 
         if (Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.Z) || (Input.isMouseJustPressed() && isHoverButton)) {
             engine.confirmTileExchange();

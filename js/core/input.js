@@ -5,6 +5,8 @@ const Input = {
     // Mouse state
     mouseX: 0,
     mouseY: 0,
+    prevMouseX: 0,
+    prevMouseY: 0,
     isMouseDown: false,
     prevMouseDown: false,
     isRightMouseDown: false,
@@ -136,6 +138,14 @@ const Input = {
         this.prevKeys = { ...this.keys };
         this.prevMouseDown = this.isMouseDown;
         this.prevRightMouseDown = this.isRightMouseDown;
+
+        // Mouse move tracking
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+    },
+
+    hasMouseMoved: function () {
+        return Math.abs(this.mouseX - this.prevMouseX) > 0.1 || Math.abs(this.mouseY - this.prevMouseY) > 0.1;
     },
 
     isDown: function (key) {
