@@ -2530,75 +2530,7 @@ const BattleEngine = {
 
 
 
-    performAutoTurn: function () {
-        if (this.currentState !== this.STATE_PLAYER_TURN) {
-            return;
-        }
 
-        // Riichi Enforcement: Must discard drawn tile (last one)
-        if (this.p1.isRiichi) {
-            if (this.p1.declaringRiichi && this.p1.validRiichiDiscardIndices) {
-                // Pick the first valid discard (or random valid)
-                const validIdx = this.p1.validRiichiDiscardIndices[0];
-                this.discardTile(validIdx);
-            } else {
-                this.discardTile(this.p1.hand.length - 1);
-            }
-            return;
-        }
-
-        // Auto-Riichi Check
-        if (this.p1.isMenzen && this.p1.hand.length >= 2) {
-            let canRiichi = false;
-            let riichiDiscardIndex = -1;
-
-            for (let i = 0; i < this.p1.hand.length; i++) {
-                const tempHand = [...this.p1.hand];
-                tempHand.splice(i, 1);
-                if (this.checkTenpai(tempHand)) {
-                    canRiichi = true;
-                    riichiDiscardIndex = i;
-                    break;
-                }
-            }
-
-            if (canRiichi) {
-                this.p1.isRiichi = true;
-                this.p1.declaringRiichi = true;
-                this.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
-                // Sound handled by showPopup -> View (popupType check)
-                this.updateBattleMusic();
-                this.discardTile(riichiDiscardIndex);
-                return;
-            }
-        }
-
-        try {
-            // Delegate to AI Logic
-            // Use 'NORMAL' difficulty as standard auto-play
-            const context = {
-                discards: this.discards,
-                opponentRiichi: this.cpu.isRiichi // Auto-play defends against CPU Riichi
-            };
-            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY, null, context);
-
-            if (typeof discardIdx !== 'number' || discardIdx < 0) {
-                console.error("AILogic returned invalid index:", discardIdx);
-                // Fallback: Discard rightmost tile safely
-                this.discardTile(this.p1.hand.length - 1);
-                return;
-            }
-
-            this.discardTile(discardIdx);
-        } catch (e) {
-            console.error("Error during Auto-Select:", e);
-            console.error(e.stack);
-            // Fallback: Discard rightmost tile safely to prevent soft-lock
-            if (this.p1.hand.length > 0) {
-                this.discardTile(this.p1.hand.length - 1);
-            }
-        }
-    },
 
     executeAction: function (action) {
         if (!action) return;
@@ -3234,6 +3166,75 @@ const BattleEngine = {
 
         // Small delay to let the sound play and allow player to realize something happened
         this.timer = -30;
+    },
+    performAutoTurn: function () {
+        if (this.currentState !== this.STATE_PLAYER_TURN) {
+            return;
+        }
+
+        // Riichi Enforcement: Must discard drawn tile (last one)
+        if (this.p1.isRiichi) {
+            if (this.p1.declaringRiichi && this.p1.validRiichiDiscardIndices) {
+                // Pick the first valid discard (or random valid)
+                const validIdx = this.p1.validRiichiDiscardIndices[0];
+                this.discardTile(validIdx);
+            } else {
+                this.discardTile(this.p1.hand.length - 1);
+            }
+            return;
+        }
+
+        // Auto-Riichi Check
+        if (this.p1.isMenzen && this.p1.hand.length >= 2) {
+            let canRiichi = false;
+            let riichiDiscardIndex = -1;
+
+            for (let i = 0; i < this.p1.hand.length; i++) {
+                const tempHand = [...this.p1.hand];
+                tempHand.splice(i, 1);
+                if (this.checkTenpai(tempHand)) {
+                    canRiichi = true;
+                    riichiDiscardIndex = i;
+                    break;
+                }
+            }
+
+            if (canRiichi) {
+                this.p1.isRiichi = true;
+                this.p1.declaringRiichi = true;
+                this.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
+                // Sound handled by showPopup -> View (popupType check)
+                this.updateBattleMusic();
+                this.discardTile(riichiDiscardIndex);
+                return;
+            }
+        }
+
+        try {
+            // Delegate to AI Logic
+            // Use 'NORMAL' difficulty as standard auto-play
+            const context = {
+                discards: this.discards,
+                opponentRiichi: this.cpu.isRiichi // Auto-play defends against CPU Riichi
+            };
+            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY, null, context);
+
+            if (typeof discardIdx !== 'number' || discardIdx < 0) {
+                console.error("AILogic returned invalid index:", discardIdx);
+                // Fallback: Discard rightmost tile safely
+                this.discardTile(this.p1.hand.length - 1);
+                return;
+            }
+
+            this.discardTile(discardIdx);
+        } catch (e) {
+            console.error("Error during Auto-Select:", e);
+            console.error(e.stack);
+            // Fallback: Discard rightmost tile safely to prevent soft-lock
+            if (this.p1.hand.length > 0) {
+                this.discardTile(this.p1.hand.length - 1);
+            }
+        }
     }
 };
 
