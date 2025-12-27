@@ -32,7 +32,10 @@ const BattleConfig = {
     },
     SPEED: {
         RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
-        CPU_THINK_TIME: 15       // CPU decision delay (Lower = Faster)
+        CPU_THINK_TIME: 15,      // CPU decision delay (Lower = Faster)
+        ACTION_WAIT: 30,        // Wait time after Pon/Ron (ticks)
+        REPLY_DELAY: 22,        // Dialogue reply delay (ticks)
+        WIN_WAIT: 80            // Wait before revealing hand on win (ticks)
     },
 
     // ----------------------------------------------------------------
@@ -188,9 +191,9 @@ const BattleConfig = {
         // Sound mapping for Popups
         TYPES: {
             'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' },
-            'PON': { life: 30, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
-            'RON': { life: 30, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'TSUMO': { life: 30, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'PON': { life: 50, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
+            'RON': { life: 50, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'TSUMO': { life: 50, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
             'NAGARI': { life: 80, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' }
         }
     },

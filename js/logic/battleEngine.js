@@ -24,6 +24,7 @@ const BattleEngine = {
 
     currentState: 0,
     timer: 0,
+    totalTicks: 0,        // NEW: Absolute tick counter (never resets)
     stateTimer: 0,
     lastState: -1,
     timeouts: [],
@@ -89,11 +90,12 @@ const BattleEngine = {
 
     showPopup: function (type, options = {}) {
         // Debounce: Prevent same popup within 10 frames (Fixes double trigger issues)
-        if (this._lastPopupType === type && (this.timer - this._lastPopupTime) < 10) {
+        // Using totalTicks instead of timer because timer resets frequently
+        if (this._lastPopupType === type && (this.totalTicks - this._lastPopupTime) < 10) {
             return;
         }
         this._lastPopupType = type;
-        this._lastPopupTime = this.timer;
+        this._lastPopupTime = this.totalTicks;
 
         const conf = BattleConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
@@ -401,7 +403,7 @@ const BattleEngine = {
         this.currentState = this.STATE_FX_PLAYING;
 
         const steps = [
-            { type: 'WAIT', duration: 80 },
+            { type: 'WAIT', duration: BattleConfig.SPEED.WIN_WAIT },
             { type: 'REVEAL_HAND' }
         ];
 
@@ -1203,10 +1205,15 @@ const BattleEngine = {
                 // SMASH / MAYU
                 case 'EXCHANGE_TILE':
                 case 'PAINT_TILE':
-                    // Trigger Exchange UI
-                    // Logic should be handled by Scene changing state
-                    // checking validation first
-                    // For now, auto-complete or placeholder
+                    if (user === 'CPU') {
+                        this.executeCpuTileExchange(skillId);
+                    } else {
+                        // Player: Trigger UI
+                        this.currentState = this.STATE_TILE_EXCHANGE;
+                        this.exchangeIndices = [];
+                        this.hoverIndex = 0;
+                        this.timer = 0;
+                    }
                     break;
             }
         }
@@ -1561,7 +1568,8 @@ const BattleEngine = {
     },
 
     updateLogic: function (dt = 1.0) {
-        dt = dt || 1.0;
+        this.timer += dt;
+        this.totalTicks += dt; // Always advance
 
         // Update Timeouts first (May trigger state changes)
         this.updateTimeouts(dt);
@@ -2098,6 +2106,16 @@ const BattleEngine = {
                     // Defensive/Debuff: Use if Player is Riichi or HP Low
                     if (this.p1.isRiichi || this.cpu.hp < this.cpu.maxHp * 0.4) shouldUse = true;
                     break;
+
+                case 'EXCHANGE_TILE':
+                case 'PAINT_TILE':
+                    // Setup Phase (Wait for Draw): Use if hand is far from Tenpai
+                    // Heuristic: If more than 3 "bad" tiles (not part of sets)
+                    if (this.currentState === this.STATE_WAIT_FOR_DRAW && this.cpu.mp >= skill.cost * 3) {
+                        const badIndices = this.getAiBadTileIndices(this.cpu.hand);
+                        if (badIndices.length >= 3) shouldUse = true;
+                    }
+                    break;
             }
 
             // Aggression/RNG Check (prevent deterministic spam)
@@ -2263,10 +2281,15 @@ const BattleEngine = {
     },
 
     executeCpuPon: function (tile) {
+        // Visuals (Immediate feedback)
+        this.p1Character.setState('shocked'); // P1 is shocked by CPU's Pon
+        this.cpuCharacter.setState('smile');
+        this.showPopup('PON', { blocking: true });
+        this.triggerDialogue('PON', 'cpu');
+        this.dialogueTriggeredThisTurn = true;
+
         this.currentState = this.STATE_FX_PLAYING;
         this.setTimeout(() => {
-            this.showPopup('PON', { blocking: true });
-
             // Remove 2 matching tiles logic
             let matches = [];
             let keep = [];
@@ -2298,14 +2321,8 @@ const BattleEngine = {
                 this.currentState = this.STATE_CPU_TURN;
                 this.timer = 30; // Short delay before discard
                 this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
-
-                // Trigger Dialogue (PON)
-                this.triggerDialogue('PON', 'cpu');
-                // Set flag to inhibit Random/Worry dialogue on discard
-                this.dialogueTriggeredThisTurn = true;
-
             }
-        }, 27); // 450ms -> 27 ticks
+        }, BattleConfig.SPEED.ACTION_WAIT);
     },
 
     // View proxies removed (Use BattleRenderer directly)
@@ -2561,6 +2578,13 @@ const BattleEngine = {
             });
 
             if (matches.length === 2) {
+                // Visuals (Immediate feedback)
+                this.p1Character.setState('smile');
+                this.cpuCharacter.setState('shocked');
+                this.showPopup('PON', { blocking: true });
+                this.triggerDialogue('PON', 'p1');
+                this.dialogueTriggeredThisTurn = true;
+
                 this.currentState = this.STATE_FX_PLAYING;
                 this.setTimeout(() => {
                     this.p1.hand = keep;
@@ -2575,26 +2599,16 @@ const BattleEngine = {
                     // Update Menzen Status
                     this.p1.isMenzen = false;
 
-                    // Expressions
-                    this.p1Character.setState('smile');
-                    this.cpuCharacter.setState('shocked');
-                    this.showPopup('PON', { blocking: true });
-
-                    // Dialogue
-                    this.triggerDialogue('PON', 'p1');
-                    this.dialogueTriggeredThisTurn = true;
                     this.setTimeout(() => {
                         this.triggerDialogue('PON_REPLY', 'cpu');
-                    }, 22); // replyDelay (360ms) -> 22 ticks
-
-                    // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
+                    }, BattleConfig.SPEED.REPLY_DELAY);
 
                     // Force Discard State (Turn continues but starts at discard phase)
                     this.currentState = this.STATE_PLAYER_TURN;
                     this.possibleActions = []; // Clear actions (e.g. Pon button)
                     this.timer = 0;
                     this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
-                }, 27); // 450ms -> 27 ticks
+                }, BattleConfig.SPEED.ACTION_WAIT);
             }
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
@@ -2606,23 +2620,19 @@ const BattleEngine = {
             this.showPopup('RIICHI', { slideFrom: 'LEFT' });
 
             // Dialogue
-            // Dialogue
             const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
             this.triggerDialogue(riichiKey, 'p1');
             this.setTimeout(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, 22); // replyDelay (360ms) -> 22 ticks
+            }, BattleConfig.SPEED.REPLY_DELAY);
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
             this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
             // this.updateBattleMusic(); // Redundant now as we forced it
 
-            // Expression: Smile -> Idle
+            // Expression: Smile (Will be reset on discard)
             this.p1Character.setState('smile');
-            this.setTimeout(() => {
-                if (this.p1Character) this.p1Character.setState('idle');
-            }, 60); // 1000ms -> 60 ticks
 
             // Logic:
             // Smart Auto-Select: Evaluate all valid discards and pick the best one.
@@ -3096,6 +3106,72 @@ const BattleEngine = {
             this.currentState = this.STATE_ACTION_SELECT;
             this.selectedActionIndex = 0; // Important: Reset index for new actions
         }
+    },
+
+    // ----------------------------------------------------------------
+    // AI Utility Methods
+    // ----------------------------------------------------------------
+
+    /**
+     * Identifies indices of tiles in hand that are not part of any set (Triplet/Pair).
+     * Used by AI to decide which tiles to discard or exchange.
+     */
+    getAiBadTileIndices: function (hand) {
+        const analysis = YakuLogic.analyzeHand(hand);
+        const counts = analysis.counts;
+        const badIndices = [];
+
+        hand.forEach((tile, index) => {
+            const key = `${tile.type}_${tile.color}`;
+            const c = counts[key] ? counts[key].count : 0;
+            if (c < 2) {
+                badIndices.push(index);
+            }
+        });
+
+        // If no bad tiles (all pairs/triplets), return empty
+        return badIndices;
+    },
+
+    /**
+     * Automates tile exchange for CPU AI.
+     */
+    executeCpuTileExchange: function (skillId) {
+        const skill = SkillData[skillId];
+        if (!skill) return;
+
+        const badIndices = this.getAiBadTileIndices(this.cpu.hand);
+        if (badIndices.length === 0) return;
+
+        // Decision: Exchange up to 3 worst tiles if MP allows
+        const count = Math.min(badIndices.length, 3, Math.floor(this.cpu.mp / skill.cost));
+        if (count === 0) return;
+
+        const totalCost = count * skill.cost;
+        this.consumeMp('CPU', totalCost);
+
+        // 1. Remove tiles (Descending indices)
+        const exchangeIndices = badIndices.slice(0, count).sort((a, b) => b - a);
+        const removedTiles = [];
+        exchangeIndices.forEach(idx => {
+            removedTiles.push(this.cpu.hand.splice(idx, 1)[0]);
+        });
+
+        // 2. Return to Deck
+        removedTiles.forEach(tile => {
+            const r = Math.floor(Math.random() * this.deck.length);
+            this.deck.splice(r, 0, tile);
+        });
+
+        // 3. Draw New
+        const newTiles = this.drawTiles(count, this.cpu);
+        this.cpu.hand.push(...newTiles);
+
+        // 4. Sort & Visuals
+        this.sortHand(this.cpu.hand);
+        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+        this.showPopup('SKILL', { text: skill.name, blocking: false });
+        this.triggerDialogue(skillId, 'cpu');
     }
 };
 
