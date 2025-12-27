@@ -10,8 +10,12 @@ This document serves as the single source of truth for the game's rules and logi
 **ALL** future code changes must verify against this rulebook.
 
 ## 1. General Gameplay Flow
-- **Turn Limit**: The game lasts for a maximum of **20 Turns** per round.
+- **Turn Limit**: The game lasts for a maximum of **20 Turns** per round. (Nagari occurs at Turn 20).
 - **Round Limit**: The match ends when one side's HP reaches 0 or after a set number of rounds (e.g., 3 rounds).
+- **Tile Set**: 
+  - **Types**: 13 Types (6 Characters, 3 Weapons, 4 Brows).
+  - **Count**: **9 Tiles** per type. Total **117 Tiles**.
+  - **Dora Exclusion**: Dora Indicator tiles are **NOT** included in the 117 playable tiles. They exist separately.
 - **Turn Phase**:
   1. **Draw Phase**: Active player draws 1 tile. (Total Hand: 12)
   2. **Action Phase**: Check for Self-Actions (Tsumo, Riichi).
@@ -114,7 +118,9 @@ This document serves as the single source of truth for the game's rules and logi
   - `DORA_BOMB` (Rinxiang): When winning with Riichi, converts Hidden Dora indicators into tiles in your hand (Score Boost).
   - `EXCHANGE_RON` (Smash): When opponent declares Ron, cancel it by swapping the discarded tile with another tile from your hand.
   - `SUPER_IAI` (Yuri): When opponent declares Ron, cancel it by destroying the discarded tile (Invalidates the Ron completely).
-  - `LAST_CHANCE` (Petum): If Nagari (Draw) occurs while Tenpai, trigger a Roulette minigame to attempt a forced win.
+  - `LAST_CHANCE` (Petum): If Nagari (Draw) occurs while Tenpai, trigger a Roulette of the actual **Remaining Deck**.
+    - If the picked tile is a winning tile, trigger Tsumo Win.
+    - Uses the actual physical state of the remaining Wall (`this.deck`) which contains ~50+ tiles at Turn 20.
 
 ### Setup Skills
 - **Trigger**: Round Start (Dealing Phase).

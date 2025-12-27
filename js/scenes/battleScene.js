@@ -510,7 +510,6 @@ const BattleScene = {
                         if (!validIndices || !validIndices.includes(clickIndex)) {
                             // Invalid Discard (Breaks Tenpai) - Block
                             Assets.playSound('audio/wrong'); // Error sound
-                            console.log(`Invalid Riichi Discard: ${clickIndex}. Valid: ${validIndices}`);
                             return;
                         }
                     }
@@ -535,7 +534,6 @@ const BattleScene = {
                     if (!validIndices || !validIndices.includes(engine.hoverIndex)) {
                         // Invalid Discard (Breaks Tenpai) - Block
                         Assets.playSound('audio/wrong'); // Error sound
-                        console.log(`Invalid Riichi Discard: ${engine.hoverIndex}. Valid: ${validIndices}`);
                         return;
                     }
                 }

@@ -16,6 +16,11 @@ const BattleEngine = {
     STATE_NAGARI: 11,
     STATE_MATCH_OVER: 12,   // Game End
     STATE_TILE_EXCHANGE: 13, // Skill: Exchange Tiles
+    STATE_ROULETTE: 14,     // Skill: Last Chance Roulette
+
+    rouletteTimer: 0,
+    rouletteIndex: 0,
+    rouletteTileType: null,
 
     currentState: 0,
     timer: 0,
@@ -54,12 +59,10 @@ const BattleEngine = {
         // Skill Modifiers
         if (attacker && attacker.buffs && attacker.buffs.attackUp) {
             score = Math.floor(score * 1.25); // Critical: +25%
-            console.log("[Skill] Critical Hit! +25% Damage");
         }
 
         if (defender && defender.buffs && defender.buffs.defenseUp) {
             score = Math.floor(score * 0.75); // Water Mirror: -25%
-            console.log("[Skill] Water Mirror! -25% Damage Taken");
         }
 
         // Round to nearest 10
@@ -153,11 +156,13 @@ const BattleEngine = {
         if (p1Data) {
             this.p1.id = p1Data.id;
             this.p1.name = p1Data.name;
+            this.p1.skills = p1Data.skills || [];
         }
         if (cpuData) {
             this.cpu.id = cpuData.id;
             this.cpu.name = cpuData.name;
             this.cpu.aiProfile = cpuData.aiProfile || null;
+            this.cpu.skills = cpuData.skills || [];
         }
 
         // Menu construction moved to BattleMenuSystem
@@ -322,7 +327,6 @@ const BattleEngine = {
         }
 
         // Visuals
-        console.log(`[Skill] DORA BOMB! Ura Dora became ${sorted[0].tile.name}`);
         this.showPopup('SKILL', { text: skill.name, blocking: false });
         this.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
         this.events.push({ type: 'SOUND', id: 'audio/quake' }); // Quake SFX
@@ -348,7 +352,6 @@ const BattleEngine = {
             finalScore = Math.floor(finalScore * 1.25);
             attacker.buffs.attackUp = false; // Consume Buff;
             activeBuffs.push('CRITICAL');
-            console.log(`[Skill] Critical Hit! Score x1.25 -> ${finalScore}`);
         }
 
         // Defense Up (WATER MIRROR) on Defender
@@ -356,7 +359,6 @@ const BattleEngine = {
             finalScore = Math.floor(finalScore * 0.75);
             defender.buffs.defenseUp = false; // Consume Buff
             activeBuffs.push('WATER_MIRROR');
-            console.log(`[Skill] Water Mirror! Damage -25% -> ${finalScore}`);
         }
 
         // 2. Prepare Data
@@ -583,11 +585,47 @@ const BattleEngine = {
 
         // Logic for Tenpai/Noten
         const steps = [
+            // SKILL: LAST_CHANCE (Before Nagari Finalizes)
             {
                 type: 'CALLBACK', callback: () => {
-                    this.showPopup('NAGARI', { blocking: true });
-                    const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
-                    if (sound) this.events.push({ type: 'SOUND', id: sound });
+                    const skillId = 'LAST_CHANCE';
+                    const player = this.p1;
+                    // Check if Player has skill & is Tenpai
+                    if (BattleConfig.RULES.SKILLS_ENABLED && p1Tenpai && player.skills && player.skills.includes(skillId)) {
+                        const skill = SkillData[skillId];
+                        if (this.checkSkillCost(skill, 'P1')) {
+                            // Pause Sequence handling manually if we show confirmation
+                            this.sequencing.active = false;
+
+                            if (this.scene && this.scene.showConfirm) {
+                                this.scene.showConfirm(
+                                    (BattleConfig.MESSAGES && BattleConfig.MESSAGES.SKILL_CONFIRM && BattleConfig.MESSAGES.SKILL_CONFIRM[skillId]) ?
+                                        BattleConfig.MESSAGES.SKILL_CONFIRM[skillId](skill.cost) : skill.name,
+                                    () => {
+                                        // YES
+                                        this.activateLastChance('P1');
+                                        // activateLastChance handles sequencing state
+                                    },
+                                    () => {
+                                        // NO
+                                        this.sequencing.active = true; // Resume
+                                    }
+                                );
+                            } else {
+                                this.sequencing.active = true; // Safety
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                type: 'CALLBACK', callback: () => {
+                    // Only continue if not interrupted by Win
+                    if (this.currentState === this.STATE_FX_PLAYING) {
+                        this.showPopup('NAGARI', { blocking: true });
+                        const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
+                        if (sound) this.events.push({ type: 'SOUND', id: sound });
+                    }
                 }
             },
             { type: 'WAIT', duration: 30 },
@@ -822,6 +860,7 @@ const BattleEngine = {
         this.resultInfo = null; // Clear result info
         this.sequencing.active = false; // Ensure sequence is off
         this.events = []; // Clear event queue
+        this.showLastChanceResult = false; // Clear persistent Last Chance result
 
         // Reset Popup Debounce state to prevent carry-over bugs
         this._lastPopupType = null;
@@ -937,13 +976,14 @@ const BattleEngine = {
         return true;
     },
 
-    canUseSkill: function (skillId, who = 'P1') {
+    canUseSkill: function (skillId, who = 'P1', isInternal = false) {
         const skill = SkillData[skillId];
         if (!skill) return false;
 
         // 0. Type Check (Active Phase only)
         // REACTIVE and SETUP skills cannot be used manually via menu
-        if (skill.type === 'REACTIVE' || skill.type === 'SETUP') return false;
+        // Internal calls (e.g. Ron Counters) bypass this check
+        if (!isInternal && (skill.type === 'REACTIVE' || skill.type === 'SETUP')) return false;
 
         // 1. Cost
         if (!this.checkSkillCost(skill, who)) return false;
@@ -1002,13 +1042,12 @@ const BattleEngine = {
         return true;
     },
 
-    useSkill: function (skillId, who = 'P1') {
+    useSkill: function (skillId, who = 'P1', isInternal = false) {
         const skill = SkillData[skillId];
         if (!skill) return false;
 
         // Use core validation
-        if (!this.canUseSkill(skillId, who)) {
-            console.log(`Cannot use skill ${skill.name} (Conditions not met)`);
+        if (!this.canUseSkill(skillId, who, isInternal)) {
             return false;
         }
 
@@ -1022,15 +1061,13 @@ const BattleEngine = {
         // If user hacks usage, canUseSkill returns false.
 
         // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
-        if (['EXCHANGE_TILE', 'PAINT_TILE', 'LAST_CHANCE'].includes(skillId)) {
-            console.log("Skill logic not yet implemented (Batch 2)");
+        if (['EXCHANGE_TILE', 'PAINT_TILE'].includes(skillId)) {
             this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
             return false;
         }
 
         // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
         if (['EXCHANGE_TILE', 'PAINT_TILE', 'LAST_CHANCE'].includes(skillId)) {
-            console.log("Skill logic not yet implemented (Batch 2)");
             // Show "Not Implemented" popup?
             this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
             return false;
@@ -1069,7 +1106,6 @@ const BattleEngine = {
         this.triggerDialogue(skillId, dialOwner);
 
         // Log
-        console.log(`${who} used skill: ${skill.name}`);
 
         return true;
     },
@@ -1140,7 +1176,6 @@ const BattleEngine = {
             who.buffs.spiritTimer--;
             if (who.buffs.spiritTimer === 0) {
                 who.buffs.guaranteedWin = true; // Activate Tiger Strike effect
-                console.log("[Skill] Spirit Riichi Activated! Next draw is a win.");
                 this.triggerDialogue('SKILL_WIN', who === this.p1 ? 'p1' : 'cpu'); // Generic win skill line
             }
         }
@@ -1149,7 +1184,6 @@ const BattleEngine = {
         if (who.buffs.discardGuard > 0) {
             who.buffs.discardGuard--;
             if (who.buffs.discardGuard === 0) {
-                console.log("[Skill] Discard Guard Ended.");
             }
         }
 
@@ -1170,9 +1204,17 @@ const BattleEngine = {
     triggerReaction: function (skillId, onYes, onNo) {
         const skill = SkillData[skillId];
         // Ensure Scene has showConfirm
+        let msg = `${skill.name}을(를) 사용하여 방어하시겠습니까? (MP: ${skill.cost})`;
+        if (BattleConfig.MESSAGES && BattleConfig.MESSAGES.SKILL_CONFIRM) {
+            const msgFunc = BattleConfig.MESSAGES.SKILL_CONFIRM[skillId] || BattleConfig.MESSAGES.SKILL_CONFIRM['DEFAULT'];
+            if (msgFunc) {
+                msg = msgFunc(skill.cost, skill.name); // Pass cost, name just in case
+            }
+        }
+
         if (this.scene && this.scene.showConfirm) {
             this.scene.showConfirm(
-                `${skill.name}을(를) 사용하여 방어하시겠습니까? (MP: ${skill.cost})`,
+                msg,
                 onYes,
                 onNo
             );
@@ -1190,25 +1232,203 @@ const BattleEngine = {
         this.startWinSequence('RON', 'CPU', score);
     },
 
-    cancelRonAndSwap: function (skillId, who = 'P1') {
-        const discarder = who === 'P1' ? 'p1' : 'cpu'; // If P1 uses skill, P1 was the discarder (Countering Ron on self)
+    activateSuperIaido: function (who) {
+        // 1. Remove dangerous discard from table
+        const badTile = this.discards.pop();
 
-        // Swap discarded tile with a 'safe' one
+        // 2. Play FX (Cut animation)
+        this.playFX('fx/slash_lr', 320, 240, { scale: 2.0, life: 30 });
+        this.events.push({ type: 'SOUND', id: 'audio/sword_draw' });
+
+
+        // 3. Trigger Dialogue
+        const dialKey = 'SKILL_DEFENSE';
+        const dialOwner = who === 'P1' ? 'p1' : 'cpu';
+        this.triggerDialogue(dialKey, dialOwner);
+
+        // 4. Flow Logic
+        // The discard is gone. The turn effectively ends without a tile on the table.
+        // It becomes the OTHER player's turn.
+        // If P1 used it (on P1's discard), it's now CPU's turn.
+        // If CPU used it (on CPU's discard), it's now P1's turn.
+
+        const isP1TurnNow = (who === 'CPU'); // If CPU used skill, it was CPU's turn, now it's P1's.
+
+        if (isP1TurnNow) {
+            this.currentState = this.STATE_PLAYER_TURN;
+            this.playerDraw(); // Start P1 turn
+        } else {
+            this.currentState = this.STATE_CPU_TURN;
+            this.timer = 0; // Will trigger cpuDraw
+        }
+    },
+
+    activateRonTileExchange: function (who) {
         // 1. Remove dangerous discard
         const badTile = this.discards.pop();
 
-        // 2. Generate Safe Tile (Use generic weapon/item if possible, or random safe)
-        // Fallback to 'punch' (Basic Tile)
-        const safeTile = { type: 'punch', color: 'red', img: 'tiles/pai_punch.png', owner: discarder };
-        this.discards.push(safeTile);
+        // 2. Return to hand
+        const hand = who === 'P1' ? this.p1.hand : this.cpu.hand;
+        badTile.owner = who === 'P1' ? 'p1' : 'cpu'; // Reset owner just in case
+        delete badTile.isRiichi; // Clear Riichi mark if it was one
+        hand.push(badTile);
 
-        console.log(`[Skill] Ron Cancelled by ${who}! Swapped ${badTile.type} with Safe Tile.`);
+        // 3. Sort hand
+        this.sortHand(hand);
 
-        // Use generalized trigger
-        const dialKey = 'SKILL_DEFENSE'; // Or specific skill key?
-        const dialOwner = who === 'P1' ? 'p1' : 'cpu';
-        this.triggerDialogue(dialKey, dialOwner);
+
+        // 4. Play FX
+        this.showPopup('SKILL', { text: '론 패 교환', blocking: false });
+        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+
+        // 5. Flow Logic
+        // The turn REWINDS to the Discard Phase of the SAME player.
+        if (who === 'P1') {
+            this.currentState = this.STATE_PLAYER_TURN;
+            // Highlight the SPECIFIC returned tile
+            const returnedIndex = this.p1.hand.indexOf(badTile);
+            this.hoverIndex = returnedIndex !== -1 ? returnedIndex : this.p1.hand.length - 1;
+
+            this.p1.declaringRiichi = false; // Reset Riichi declaration status if active
+            // Note: If player WAS in Riichi committed state... wait. 
+            // Skill condition says "Cannot use if in Riichi". So this is fine. 
+            // Only declaringRiichi might be true if they JUST declared.
+        } else {
+            this.currentState = this.STATE_CPU_TURN;
+            this.cpu.needsToDiscard = true; // Ensure they discard immediately
+            this.timer = 0;
+            this.cpu.declaringRiichi = false;
+        }
     },
+
+    activateLastChance: function (who) {
+        const skillId = 'LAST_CHANCE';
+        const skill = SkillData[skillId];
+        this.consumeMp(who, skill.cost);
+        this.showPopup('SKILL', { text: skill.name, blocking: false });
+        this.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
+
+        // Logic: 50% Chance to Find Winning Tile
+        // In real MJ, this would search the wall. Here we simulate.
+        // First, find WHAT we are waiting for.
+        const player = who === 'P1' ? this.p1 : this.cpu;
+        const hand = this.getFullHand(player);
+
+        let winningTiles = [];
+        PaiData.TYPES.forEach(type => {
+            const testHand = [...hand, { type: type.id, color: type.color, img: type.img }];
+            if (YakuLogic.checkYaku(testHand, player.id)) {
+                winningTiles.push(type);
+            }
+        });
+
+        if (winningTiles.length === 0) {
+            console.error("Critical: Last Chance used but no winning tiles pattern found?");
+            // Even if no winning pattern found (e.g. furiten or layout issue?), we fail.
+            this.showPopup('MISS', { blocking: false });
+            this.sequencing.active = true;
+            return;
+        }
+
+        // Logic: Roulette of Actual REMAINING Deck
+        // The user clarified only the physical tiles in the Wall count.
+        // We just pick one random tile from `this.deck`.
+
+        if (this.deck.length === 0) {
+            this.showPopup('MISS', { blocking: false });
+            this.sequencing.active = true;
+            return;
+        }
+
+        // --- NEW LOGIC: Enter Roulette State for Animation ---
+        this.currentState = this.STATE_ROULETTE;
+        this.rouletteTimer = 0;
+        this.rouletteIndex = 0;
+        this.rouletteTileType = PaiData.TYPES[0].id; // Start with first type
+
+        this.rouletteFinished = false;
+        this.rouletteFinishTimer = 0;
+        this.showLastChanceResult = false;
+
+    },
+
+    updateRoulette: function () {
+        // If finished (stopped), wait for delay then resolve
+        if (this.rouletteFinished) {
+            this.rouletteFinishTimer++;
+            if (this.rouletteFinishTimer > 60) { // 1 second delay
+                this.resolveRouletteResult();
+            }
+            return;
+        }
+
+        this.rouletteTimer++;
+
+        // Cycle Image (Every 4 frames = Fast)
+        if (this.rouletteTimer % 4 === 0) {
+            this.rouletteIndex = (this.rouletteIndex + 1) % PaiData.TYPES.length;
+            this.rouletteTileType = PaiData.TYPES[this.rouletteIndex].id;
+        }
+
+        // Input Check (Space or Click)
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            this.finishRoulette();
+        }
+    },
+
+    finishRoulette: function () {
+
+        // 1. Draw One from Deck (Random Index)
+        const randIdx = Math.floor(Math.random() * this.deck.length);
+        const resultTile = this.deck[randIdx];
+
+        // 2. Update Visual to show FINAL tile (Stop spinning)
+        this.rouletteTileType = resultTile.type;
+        this.rouletteFinished = true;
+        this.rouletteFinishTimer = 0;
+        this.rouletteResultTile = resultTile;
+
+        // Play Selection Sound
+        this.events.push({ type: 'SOUND', id: 'audio/system_enter' });
+    },
+
+    resolveRouletteResult: function () {
+        const resultTile = this.rouletteResultTile;
+        if (!resultTile) return;
+
+        const who = 'P1';
+        const player = this.p1;
+        const hand = this.getFullHand(player);
+
+
+        // Check Win
+        const winTile = { type: resultTile.type, color: resultTile.color, img: resultTile.img };
+        const testHand = [...hand, winTile];
+        const winYaku = YakuLogic.checkYaku(testHand, player.id);
+
+        if (winYaku) {
+            this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+
+            player.hand.push(winTile);
+            this.winningYaku = winYaku;
+            const score = this.calculateScore(winYaku.score, player.isMenzen, player, this.cpu);
+
+            this.sequencing.active = false; // Stop Nagari sequence completely
+            this.pendingDamage = { target: 'CPU', amount: score };
+            this.startWinSequence('TSUMO', 'P1', score);
+        } else {
+            this.showPopup('MISS', { blocking: false });
+
+            // Show Result Persistently until next round/action changes screen significantly
+            this.showLastChanceResult = true;
+
+            // Resume Nagari Sequence
+            this.sequencing.active = true;
+            this.currentState = this.STATE_FX_PLAYING;
+        }
+    },
+
+
 
     generateDeck: function () {
         const deck = [];
@@ -1253,9 +1473,7 @@ const BattleEngine = {
                     const tile = this.deck.splice(winningTileIdx, 1)[0];
                     this.deck.push(tile);
                     who.buffs.guaranteedWin = false; // Consume buff
-                    console.log("[Skill] Manipulated Deck for Guaranteed Win!");
                 } else {
-                    console.log("[Skill] No winning tile found in deck...");
                 }
             }
 
@@ -1283,7 +1501,6 @@ const BattleEngine = {
                     }
                 }
                 who.buffs.curseDraw--; // Decrement duration (turns)
-                console.log("[Skill] Cursed Draw applied.");
             }
         }
 
@@ -1315,7 +1532,8 @@ const BattleEngine = {
             this.STATE_PLAYER_TURN,
             this.STATE_ACTION_SELECT,
             this.STATE_BATTLE_MENU,
-            this.STATE_CPU_TURN
+            this.STATE_CPU_TURN,
+            this.STATE_ROULETTE
         ];
 
         if (activeMusicStates.includes(this.currentState) && !this.sequencing.active) {
@@ -1355,7 +1573,8 @@ const BattleEngine = {
             this.STATE_NAGARI,
             this.STATE_MATCH_OVER,
             this.STATE_FX_PLAYING,
-            this.STATE_DAMAGE_ANIMATION
+            this.STATE_DAMAGE_ANIMATION,
+            this.STATE_ROULETTE
         ];
 
         if (!endStates.includes(this.currentState) && this.currentState !== this.STATE_INIT) {
@@ -1367,6 +1586,10 @@ const BattleEngine = {
 
         // State Machine
         switch (this.currentState) {
+            case this.STATE_ROULETTE:
+                this.updateRoulette();
+                break;
+
             case this.STATE_INIT:
                 if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
                     if (this.turnCount === 1) {
@@ -1377,7 +1600,6 @@ const BattleEngine = {
                             this.exchangeIndices = []; // Reset selection
                             this.hoverIndex = 0; // Fix: Initialize cursor focus
                             this.timer = 0;
-                            console.log("[Skill] Entering Tile Exchange Mode");
                         } else {
                             // Fix: Go to Wait State to show Draw Button
                             this.currentState = this.STATE_WAIT_FOR_DRAW;
@@ -1502,7 +1724,6 @@ const BattleEngine = {
         // 2. Turn Limit
         // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
-            console.log("Turn Limit Reached (20). Starting Nagari.");
             this.startNagariSequence();
             return;
         }
@@ -1883,22 +2104,27 @@ const BattleEngine = {
                 return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
             }) : null;
 
-            if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId])) {
-                // Trigger Reaction Modal
-                this.triggerReaction(reactiveSkillId, () => {
-                    // YES: Cancel Ron
-                    this.useSkill(reactiveSkillId); // Deducts MP & Logs
-                    this.cancelRonAndSwap(reactiveSkillId);
-                    // Flow continues?
-                    // cancelRonAndSwap should likely set state to CPU_TURN or just let discardTile continue.
-                    // Since we return true, discardTile stops.
-                    // We need to manually resume state.
-                    this.currentState = this.STATE_CPU_TURN;
-                }, () => {
-                    // NO: Allow Ron
-                    this.finishRon(win);
-                });
-                return true; // Block standard flow
+            if (reactiveSkillId) {
+                const canAfford = this.checkSkillCost(SkillData[reactiveSkillId]);
+
+                if (canAfford) {
+                    // Trigger Reaction Modal
+                    this.triggerReaction(reactiveSkillId, () => {
+                        // YES: Cancel Ron
+                        this.useSkill(reactiveSkillId, 'P1', true); // isInternal = true
+
+                        if (reactiveSkillId === 'SUPER_IAI') {
+                            this.activateSuperIaido('P1');
+                        } else if (reactiveSkillId === 'EXCHANGE_RON') {
+                            this.activateRonTileExchange('P1');
+                        }
+
+                    }, () => {
+                        // NO: Allow Ron
+                        this.finishRon(win);
+                    });
+                    return true; // Block standard flow
+                }
             }
 
             this.finishRon(win);
@@ -2082,11 +2308,9 @@ const BattleEngine = {
 
         // 1. Tsumo
         const yakuResult = YakuLogic.checkYaku(fullHand, this.p1.id);
-        console.log(`[Turn ${this.turnCount}] checkSelfActions: HandSize=${fullHand.length}, Yaku=`, yakuResult);
 
         if (yakuResult) {
             this.possibleActions.push({ type: 'TSUMO', label: '쯔모' });
-            console.log("-> Tsumo Action Added");
         }
 
         // 2. Riichi
@@ -2235,7 +2459,6 @@ const BattleEngine = {
                 // Return to player turn for discard
                 this.currentState = this.STATE_PLAYER_TURN;
             } else if (action.type === 'PASS') {
-                console.log("Player Passed.");
                 this.turnCount++;
                 this.checkRoundEnd();
                 if (this.currentState !== this.STATE_ACTION_SELECT) return;
@@ -2389,22 +2612,27 @@ const BattleEngine = {
 
         } else if (action.type === 'RON') {
             // --- SKILL CHECK: CPU COUNTER-RON ---
-            const reactiveSkillId = this.cpu.skills ? this.cpu.skills.find(id => {
-                const s = SkillData[id];
-                return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
-            }) : null;
+            if (BattleConfig.RULES.SKILLS_ENABLED && !this.cpu.isRiichi) {
+                const reactiveSkillId = this.cpu.skills ? this.cpu.skills.find(id => {
+                    const s = SkillData[id];
+                    return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
+                }) : null;
 
-            if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
-                // AI DECISION: High chance to use if affordable
-                if (this.cpu.hp < 8000 || Math.random() < 0.8) {
-                    this.useSkill(reactiveSkillId, 'CPU');
-                    this.cancelRonAndSwap(reactiveSkillId, 'CPU');
+                if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
+                    // AI DECISION: High chance to use if affordable
+                    if (this.cpu.hp < 8000 || Math.random() < 0.8) {
+                        this.useSkill(reactiveSkillId, 'CPU', true); // isInternal = true
 
-                    // Resume Flow: Treat as if discard happened and was passed
-                    this.currentState = this.STATE_CPU_TURN;
-                    return;
+                        if (reactiveSkillId === 'SUPER_IAI') {
+                            this.activateSuperIaido('CPU');
+                        } else if (reactiveSkillId === 'EXCHANGE_RON') {
+                            this.activateRonTileExchange('CPU');
+                        }
+                        return; // Stop Ron execution
+                    }
                 }
             }
+
             // -------------------------------------
 
             this.showPopup('RON', { blocking: true });
@@ -2499,7 +2727,6 @@ const BattleEngine = {
 
         // Only switch if different
         if (this.currentBgm !== targetBgm) {
-            // console.log(`Switching Battle BGM to: ${targetBgm}`);
             this.currentBgm = targetBgm;
             this.events.push({ type: 'MUSIC', id: targetBgm, loop: true });
         }
@@ -2608,22 +2835,18 @@ const BattleEngine = {
         const usedData = charData || DialogueData.BATTLE.default;
         const usedId = charData ? charId : 'default';
 
-        console.log(`[BattleEngine] Dialogue Lookup: Key=${key}, Owner=${owner}, CharID=${charId}, ResolvedTo=${usedId}`);
 
         let lines = usedData[key];
         if (!lines || lines.length === 0) {
             lines = DialogueData.BATTLE.default[key];
-            if (lines && lines.length > 0) console.log(`[BattleEngine] Falling back to default for Key=${key}`);
         }
 
         if (lines && lines.length > 0) {
             const text = lines[Math.floor(Math.random() * lines.length)];
             const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
-            console.log(`[BattleEngine] Triggering Dialogue: Key=${key}, Owner=${owner}, Text="${text}"`);
             BattleDialogue.show(text, who);
             this.dialogueTriggeredThisTurn = true;
         } else {
-            console.log(`[BattleEngine] Trigger Dialogue Failed: No lines found for Key=${key}, Owner=${owner}, CharID=${charId}`);
         }
     },
 
@@ -2684,14 +2907,12 @@ const BattleEngine = {
             // Skip
             this.currentState = this.STATE_WAIT_FOR_DRAW;
             this.timer = 0;
-            console.log("[Skill] Tile Exchange Skipped.");
             return;
         }
 
         const totalCost = count * skill.cost;
 
         if (this.p1.mp < totalCost) {
-            console.log("Not enough MP!");
             this.showPopup('SKILL', { text: "MP 부족!", blocking: false });
             Assets.playSound('audio/cancel');
             return;
@@ -2733,6 +2954,46 @@ const BattleEngine = {
         // Proceed
         this.currentState = this.STATE_WAIT_FOR_DRAW;
         this.timer = 0;
-        console.log(`[Skill] Exchanged ${count} tiles.`);
+    },
+
+    // ----------------------------------------------------------------
+    // Debug / Test Functions
+    // ----------------------------------------------------------------
+    testLastChance: function () {
+
+        // 1. Force Character to Petum (P1)
+        // We can't easily swap the whole character object structure if it wasn't init, 
+        // but we can inject the skill and MP.
+        this.p1.skills = ['LAST_CHANCE', 'CRITICAL']; // Give Petum's skills
+        this.p1.mp = 100;
+
+        // 2. Set Turn Count to 20 (Last Turn)
+        this.turnCount = 20;
+
+        // 3. Construct Tenpai Hand
+        // Goal: 11 Tiles (Tenpai) + 1 Tile to Discard = 12 Tiles.
+        // Target Hand: 3 Ataho, 3 Smash, 3 Rin, 2 Fari. (Waiting for Fari)
+        // Current Hand: Above + 1 Punch (to discard).
+
+        const createTile = (id) => {
+            const data = PaiData.TYPES.find(t => t.id === id);
+            return { type: data.id, color: data.color, img: data.img };
+        };
+
+        const newHand = [];
+        for (let i = 0; i < 3; i++) newHand.push(createTile('ataho'));
+        for (let i = 0; i < 3; i++) newHand.push(createTile('smash'));
+        for (let i = 0; i < 3; i++) newHand.push(createTile('rin'));
+        for (let i = 0; i < 2; i++) newHand.push(createTile('fari'));
+        newHand.push(createTile('punch')); // Trash tile to discard
+
+        this.p1.hand = newHand;
+
+        // Update UI
+        this.sortHand(this.p1.hand);
+
+        // 4. Set State to Player Turn
+        this.currentState = this.STATE_PLAYER_TURN;
+
     }
 };

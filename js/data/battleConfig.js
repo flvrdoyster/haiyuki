@@ -277,15 +277,20 @@ const BattleConfig = {
             'RECOVERY': (cost) => `회복을 사용할까요?`,
             'DISCARD_GUARD': (cost) => `버린 패 방어를 사용할까요?`,
 
-            // Smash / Mayu
+            // Smash 
             'EXCHANGE_TILE': (cost) => `바꿀 패를 선택하세요.`,
+            'EXCHANGE_RON': (cost) => `론 패 교환을 사용할까요?`,
+
+            // Mayu
             'PAINT_TILE': (cost) => `덧칠할 패를 선택하세요.`,
 
             // Petum
             'CRITICAL': (cost) => `크리티컬을 사용할까요?`,
+            'LAST_CHANCE': (cost) => `라스트 찬스를 사용할까요?`,
 
             // Yuri
             'SPIRIT_RIICHI': (cost) => `기합 리치를 사용할까요?`,
+            'SUPER_IAI': (cost) => `초 거합베기를 사용할까요?`,
 
             // Fallback (Functionally used if ID missing)
             'DEFAULT': (name, cost) => `${name} 스킬을 사용할까요?`

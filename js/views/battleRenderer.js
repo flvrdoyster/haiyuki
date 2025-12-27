@@ -299,9 +299,52 @@ const BattleRenderer = {
             } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
                 this.drawExchangeWindow(ctx, state);
             }
+        } else if (state.currentState === state.STATE_ROULETTE || state.showLastChanceResult) {
+            this.drawRoulette(ctx, state);
         }
 
+    },
 
+    drawRoulette: function (ctx, state) {
+        // 1. Calculate Position (Same as Draw Tile)
+        // We pretend groupSize=1 to get the gap
+        const metrics = this.getVisualMetrics(state.p1, 1, 'p1');
+        const pStartX = metrics.handStartX;
+        const pCount = state.p1.hand.length;
+
+        const pos = this.getPlayerHandPosition(pCount, pCount + 1, 1, pStartX);
+        const tileW = BattleConfig.HAND.tileWidth;
+        const tileH = BattleConfig.HAND.tileHeight;
+
+        const x = pos.x;
+        const y = BattleConfig.HAND.playerY; // Standard Y
+
+        // 2. Draw the Roulette Tile
+        if (state.rouletteTileType) {
+            const typeData = PaiData.TYPES.find(t => t.id === state.rouletteTileType);
+            const tile = { type: state.rouletteTileType, img: typeData.img, color: typeData.color };
+
+            // Draw Side (like normal hand)
+            const sideImg = Assets.get('tiles/side-top.png');
+            if (sideImg) {
+                const sy = y - sideImg.height;
+                ctx.drawImage(sideImg, x, sy, tileW, sideImg.height);
+            }
+
+            // Draw Glow or Highlight?
+            ctx.save();
+            ctx.shadowColor = 'gold';
+            ctx.shadowBlur = 20;
+            this.drawTile(ctx, tile, x, y, tileW, tileH);
+            ctx.restore();
+
+            // Draw Border
+            ctx.strokeStyle = 'gold';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, tileW, tileH);
+        }
+
+        // Removed Prompt Text as requested
     },
 
     drawCharacterNames: function (ctx, state) {
