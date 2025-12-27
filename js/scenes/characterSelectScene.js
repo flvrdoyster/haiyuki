@@ -185,10 +185,11 @@ const CharacterSelectScene = {
         }
     },
 
-    update: function () {
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
         // Update Animation States
-        if (this.p1Portrait) this.p1Portrait.update();
-        if (this.cpuPortrait) this.cpuPortrait.update();
+        if (this.p1Portrait) this.p1Portrait.update(dt);
+        if (this.cpuPortrait) this.cpuPortrait.update(dt);
 
         if (this.currentState === this.STATE_PLAYER_SELECT) {
             // Auto Test: Select First Character
@@ -292,16 +293,22 @@ const CharacterSelectScene = {
 
 
             } else {
-                // Original Roulette Logic
-                this.cpuTimer++;
+                this.cpuTimer += dt;
+                // Spin effect: change index every few frames based on absolute time
+                const spinInterval = 5;
+                const prevSpin = Math.floor((this.cpuTimer - dt) / spinInterval);
+                const currentSpin = Math.floor(this.cpuTimer / spinInterval);
 
-                // Spin effect: change index every few frames
-                if (this.cpuTimer % 5 === 0) {
-                    let nextIndex = Math.floor(Math.random() * this.characters.length);
-                    // Simple retry to avoid player index
-                    while (nextIndex === this.playerIndex) {
-                        nextIndex = Math.floor(Math.random() * this.characters.length);
-                    }
+                if (currentSpin > prevSpin) {
+                    // Calculate how many indices to skip if dt was large
+                    const skipCount = currentSpin - prevSpin;
+
+                    // Instead of random, let's just cycle through characters for a consistent 'spin' feel
+                    // but we can shuffle the array or use a random seed if we want "random"
+                    // To keep it simple and random-looking:
+                    let nextIndex = (this.cpuIndex + skipCount) % this.characters.length;
+                    if (nextIndex === this.playerIndex) nextIndex = (nextIndex + 1) % this.characters.length;
+
                     this.cpuIndex = nextIndex;
                     this.updateCpuPortrait();
                 }
@@ -356,7 +363,7 @@ const CharacterSelectScene = {
             }
         } else if (this.currentState === this.STATE_READY) {
             // Auto transition after a short delay
-            this.readyTimer++;
+            this.readyTimer += dt;
             if (this.readyTimer > (Game.isAutoTest ? 10 : 60)) {
                 if (this.debugSkipDialogue) {
                     Game.changeScene(BattleScene, {

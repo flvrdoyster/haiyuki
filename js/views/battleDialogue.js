@@ -29,11 +29,11 @@ const BattleDialogue = {
         state.texture = this._generateTexture(text, owner);
     },
 
-    update: function () {
+    update: function (dt = 1.0) {
         ['P1', 'CPU'].forEach(owner => {
             const state = this.states[owner];
             if (state.active) {
-                state.timer--;
+                state.timer -= dt;
                 if (state.timer <= 0) {
                     state.active = false;
                     state.texture = null;

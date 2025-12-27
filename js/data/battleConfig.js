@@ -31,8 +31,8 @@ const BattleConfig = {
         AI_DIFFICULTY: 2
     },
     SPEED: {
-        RIICHI_AUTO_DISCARD: 40, // Frames to wait before auto-discarding in Riichi
-        CPU_THINK_TIME: 80       // Frames to wait for CPU action
+        RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
+        CPU_THINK_TIME: 15       // CPU decision delay (Lower = Faster)
     },
 
     // ----------------------------------------------------------------
@@ -126,6 +126,20 @@ const BattleConfig = {
         P1: { x: 10, y: 324, align: 'left' },
         CPU: { x: 630, y: 324, align: 'right' }
     },
+    BUFF_DISPLAY: {
+        font: `bold 16px ${FONTS.bold}`,
+        color: '#4848c7',
+        stroke: 'white',
+        strokeWidth: 2,
+        P1: { offsetX: 6, offsetY: -4 }, // Gap from Name's end
+        CPU: { offsetX: 6, offsetY: -4 },
+        icons: {
+            discardGuard: '버린 패 방어 ',
+            curseDraw: '지옥쌓기 ',
+            spiritTimer: '기합 리치 ',
+            guaranteedWin: '맹호일발권 '
+        }
+    },
     BARS: {
         width: 140, height: 10,
         hpPath: 'ui/bar_blue.png',
@@ -174,9 +188,9 @@ const BattleConfig = {
         // Sound mapping for Popups
         TYPES: {
             'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' },
-            'PON': { life: 40, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
-            'RON': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'TSUMO': { life: 40, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'PON': { life: 30, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
+            'RON': { life: 30, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
+            'TSUMO': { life: 30, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
             'NAGARI': { life: 80, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' }
         }
     },
@@ -305,8 +319,9 @@ const BattleConfig = {
         // Generic Battle Sounds
         DRAW: 'audio/draw',
         DISCARD: 'audio/discard',
-        HIT: 'audio/hit', // Default hit sound
-        DAMAGE: 'audio/hit', // Used if specific damage sound needed
+        HIT: 'audio/impact-1', // Default hit sound
+        DAMAGE: 'audio/impact-2', // Slightly heavier default for total damage
+        TICK: 'audio/tick' // Score rolling sound
     },
     BGM: {
         BASIC: 'audio/bgm_basic',

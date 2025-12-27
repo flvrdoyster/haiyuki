@@ -51,11 +51,12 @@ const ContinueScene = {
         Assets.playMusic('audio/bgm_inn', false); // Play Inn BGM once
     },
 
-    update: function () {
-        this.timer++;
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
+        this.timer += dt;
 
         // Pointer anim
-        this.pointerTimer++;
+        this.pointerTimer += dt;
 
 
 

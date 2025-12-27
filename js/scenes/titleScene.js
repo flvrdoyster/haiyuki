@@ -88,14 +88,16 @@ const TitleScene = {
         Assets.playMusic('audio/bgm_title');
     },
 
-    update: function () {
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
         // Update Local Confirm Dialog
         if (this.confirmActive) {
-            this.updateConfirm();
+            this.updateConfirm(dt);
             return;
         }
 
-        this.blinkTimer++;
+        this.blinkTimer += dt;
+        this.pointerTimer += dt;
         if (this.blinkTimer > 40) { // Slower blink
             this.showPushKey = !this.showPushKey;
             this.blinkTimer = 0;
@@ -162,9 +164,9 @@ const TitleScene = {
         }
     },
 
-    updateConfirm: function () {
+    updateConfirm: function (dt = 1.0) {
         if (this.confirmTimer > 0) {
-            this.confirmTimer--;
+            this.confirmTimer -= dt;
             return;
         }
 

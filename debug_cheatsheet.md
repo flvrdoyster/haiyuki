@@ -106,3 +106,12 @@ Injects Petum's skills and MP to P1 (regardless of selected character), forces T
 ```javascript
 BattleEngine.testLastChance();
 ```
+
+### Instant Tsumo Setup (Win Cheat)
+**Prerequisite**: Must be in `BattleScene`.
+Sets your hand to "입에 담을 수도 없는 엄청난 기술" (IP_E_DAM).
+1. Run command during your turn.
+2. Declare **TSUMO** immediately from the menu.
+```javascript
+debugWin();
+```

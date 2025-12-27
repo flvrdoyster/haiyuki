@@ -24,10 +24,6 @@ const Game = {
         // Setup Mute Button
         const muteBtn = document.getElementById('mute-btn');
         if (muteBtn) {
-            // Set initial state
-            muteBtn.classList.remove('toggle-on', 'toggle-off');
-            muteBtn.classList.add(Assets.muted ? 'toggle-off' : 'toggle-on');
-
             muteBtn.onclick = () => {
                 const isMuted = Assets.toggleMute();
                 muteBtn.classList.remove('toggle-on', 'toggle-off');
@@ -39,11 +35,6 @@ const Game = {
         // Setup Skills Toggle Button
         const skillsBtn = document.getElementById('skills-btn');
         if (skillsBtn) {
-            // Initialize button state based on current config
-            const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
-            skillsBtn.classList.remove('toggle-on', 'toggle-off');
-            skillsBtn.classList.add(rulesEnabled ? 'toggle-on' : 'toggle-off');
-
             skillsBtn.onclick = () => {
                 BattleConfig.RULES.SKILLS_ENABLED = !BattleConfig.RULES.SKILLS_ENABLED;
 
@@ -52,10 +43,22 @@ const Game = {
                 skillsBtn.classList.add(isEnabled ? 'toggle-on' : 'toggle-off');
 
                 skillsBtn.blur();
-
                 console.log(`[Config] Skills Enabled: ${isEnabled}`);
             };
         }
+
+        // --- Visual "Power On" Sequence for Toolbar ---
+        setTimeout(() => {
+            if (muteBtn) {
+                muteBtn.classList.remove('toggle-on', 'toggle-off');
+                muteBtn.classList.add(Assets.muted ? 'toggle-off' : 'toggle-on');
+            }
+            if (skillsBtn) {
+                const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
+                skillsBtn.classList.remove('toggle-on', 'toggle-off');
+                skillsBtn.classList.add(rulesEnabled ? 'toggle-on' : 'toggle-off');
+            }
+        }, 100); // 100ms delay for a snappier "power-on" sequence
 
         // Setup Yaku Toggle Button
         const yakuBtn = document.getElementById('yaku-btn');
@@ -143,8 +146,9 @@ const Game = {
         // Load assets
         Assets.load(() => {
             console.log('Assets loaded. Starting game...');
+            this.lastTime = performance.now();
             this.changeScene(TitleScene);
-            this.loop();
+            this.loop(this.lastTime);
         });
     },
 
@@ -176,9 +180,9 @@ const Game = {
         }
     },
 
-    update: function () {
+    update: function (dt = 1.0) {
         if (this.currentScene && this.currentScene.update) {
-            this.currentScene.update();
+            this.currentScene.update(dt);
         }
         // Input.update() must be called AFTER scene update to properly detect 'just pressed' events
         Input.update();
@@ -226,12 +230,23 @@ const Game = {
         });
     },
 
-    loop: function () {
+    lastTime: 0,
+    loop: function (currentTime) {
+        // Calculate deltaTime (scaled such that 1.0 = 1/60 sec)
+        const elapsed = currentTime - Game.lastTime;
+        Game.lastTime = currentTime;
+
+        let dt = elapsed / (1000 / 60);
+
+        // Cap dt to avoid massive jumps (max 250ms / ~15 frames)
+        // This allows the game to maintain real-time speed even at 4fps.
+        dt = Math.min(15, dt);
+
         // Speed up in Auto Test Mode (10x speed)
         const iterations = Game.isAutoTest ? 10 : 1;
 
         for (let i = 0; i < iterations; i++) {
-            Game.update();
+            Game.update(dt);
         }
 
         Game.draw();

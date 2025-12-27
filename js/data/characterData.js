@@ -15,6 +15,7 @@ const SkillData = {
         desc: '3턴 간 상대가 받는 패를 쓸모 없는 패로 바꿔 쯔모로 나는 것을 막는다.',
         type: 'ACTIVE',
         cost: 18,
+        sfx: 'audio/skill_activate',
         effect: {}
     },
 
@@ -25,6 +26,7 @@ const SkillData = {
         type: 'ACTIVE', // Buff triggered manually? Description says "When opponent wins", suggesting passive/reactive. But in Ataho, defensive skills are usually buffs. Let's assume Buff for now.
         // Actually "Uses MP" usually means Active. So it's a Buff you cast.
         cost: 22,
+        sfx: 'audio/barrier',
         effect: {}
     },
     'DORA_BOMB': {
@@ -32,7 +34,7 @@ const SkillData = {
         desc: '리치로 났을 때 숨김 도라를 자신이 가진 패로 바꾼다.',
         type: 'REACTIVE', // Triggered on Win
         cost: 32,
-        sfx: null,
+        sfx: 'audio/quake',
         effect: {}
     },
 
@@ -42,6 +44,7 @@ const SkillData = {
         desc: 'HP를 조금 회복한다. 한 라운드에 몇 번이고 사용할 수 있다.',
         type: 'ACTIVE',
         cost: 24,
+        sfx: 'audio/recovery',
         effect: {}
     },
     'DISCARD_GUARD': {
@@ -49,6 +52,7 @@ const SkillData = {
         desc: '5턴 간 상대가 내가 버린 패로 펑과 론을 할 수 없다. 한 라운드에 몇 번이고 사용할 수 있다.',
         type: 'ACTIVE',
         cost: 18,
+        sfx: 'audio/barrier',
         effect: {}
     },
 
@@ -58,7 +62,7 @@ const SkillData = {
         desc: '라운드 시작 시 필요 없는 패를 교환한다.',
         type: 'SETUP', // Phase restricted
         cost: 6, // Per tile
-        sfx: null,
+        sfx: 'audio/flip',
         effect: {}
     },
     'EXCHANGE_RON': {
@@ -66,7 +70,7 @@ const SkillData = {
         desc: '상대 론 시, 내가 버린 패를 다른 패로 바꿔 론을 무효화한다. 내가 리치를 걸고 있을 때는 사용할 수 없다.',
         type: 'REACTIVE',
         cost: 10,
-        sfx: null,
+        sfx: 'audio/skill_activate',
         effect: {}
     },
 
@@ -76,6 +80,7 @@ const SkillData = {
         desc: '내가 났을 때 상대에게 주는 데미지를 25% 증가시킨다.',
         type: 'ACTIVE', // Buff
         cost: 24,
+        sfx: 'audio/buff',
         effect: {}
     },
     'LAST_CHANCE': {
@@ -83,6 +88,7 @@ const SkillData = {
         desc: '텐파이 상태로 나가리가 되었을 때 남은 패 룰렛에 도전할 수 있다. 룰렛에 성공하면 난다.',
         type: 'REACTIVE', // Triggered on Nagari
         cost: 18,
+        sfx: 'audio/skill_activate',
         effect: {}
     },
 
@@ -92,6 +98,7 @@ const SkillData = {
         desc: '상대 론 시, 내가 버린 패를 거합베기로 잘라 무효화한다. 내가 리치를 걸고 있을 때는 사용할 수 없다.',
         type: 'REACTIVE',
         cost: 22,
+        sfx: 'audio/slash',
         effect: {}
     },
     'SPIRIT_RIICHI': {
@@ -99,6 +106,7 @@ const SkillData = {
         desc: '리치 가능 시 사용하면 5턴 후 쯔모로 반드시 난다. 16턴 이후에는 사용할 수 없다.',
         type: 'ACTIVE', // Sets a timer state
         cost: 24,
+        sfx: 'audio/buff',
         effect: {}
     },
 
@@ -108,6 +116,7 @@ const SkillData = {
         desc: '라운드 시작 시 필요 없는 패를 교환한다.', // EXCHANGE_TILE의 상위 호환 (MP가 더 적게 소비)
         type: 'SETUP',
         cost: 4, // Per tile
+        sfx: 'audio/flip',
         effect: {}
     }
 };

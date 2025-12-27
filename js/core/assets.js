@@ -31,14 +31,18 @@ const Assets = {
         { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
         { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' }, // Gong Sound
         { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' }, // New Victory Sound
-        { id: 'audio/hit', src: 'assets/audio/hit-1.mp3', type: 'audio' },
         { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
         { id: 'audio/hit-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
         { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
+        { id: 'audio/impact-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
+        { id: 'audio/impact-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
+        { id: 'audio/impact-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
         { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
+        { id: 'audio/slash', src: 'assets/audio/hit-4.mp3', type: 'audio' },
         { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
         { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' }, // Tiger Strike SFX
         { id: 'audio/quake', src: 'assets/audio/quake.mp3', type: 'audio' }, // Dora Bomb SFX
+        { id: 'audio/skill_activate', src: 'assets/audio/whoosh.mp3', type: 'audio' }, // Default Skill SFX
 
         // New Dealing Sounds
         { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // Alias for deal

@@ -118,15 +118,15 @@ const BattleScene = {
                     if (attackerId) {
                         const isSword = (attackerId === 'smash' || attackerId === 'yuri');
                         if (isSword) {
-                            Assets.playSound('audio/hit-4');
+                            Assets.playSound('audio/slash');
                         } else {
-                            // Random 1-3
+                            // Random Impact 1-3
                             const r = Math.floor(Math.random() * 3) + 1;
-                            Assets.playSound(`audio/hit-${r}`);
+                            Assets.playSound(`audio/impact-${r}`);
                         }
                     } else {
                         // Fallback
-                        Assets.playSound('audio/hit-1');
+                        Assets.playSound(BattleConfig.AUDIO.DAMAGE);
                     }
 
                     engine.events.splice(i, 1);
@@ -220,10 +220,11 @@ const BattleScene = {
         }
     },
 
-    updateFX: function () {
+    updateFX: function (dt = 1.0) {
         for (let i = this.activeFX.length - 1; i >= 0; i--) {
             const fx = this.activeFX[i];
-            fx.life--;
+            fx.life -= dt;
+            fx.timer += dt; // If we use timer for any logic
 
             // Animation Logic
             // Fade In (0-10)
@@ -335,24 +336,25 @@ const BattleScene = {
         }
     },
 
-    update: function () {
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
 
         // Local Confirmation Update (Blocks Logic)
         if (this.confirmData) {
-            this.updateConfirm();
+            this.updateConfirm(dt);
             return;
         }
 
         this.processEvents(BattleEngine);
-        this.updateFX();
-        BattleDialogue.update(); // Update Dialogue Timers
+        this.updateFX(dt);
+        BattleDialogue.update(dt); // Update Dialogue Timers
 
         // Check Blocking Status
         const isBlocking = this.activeFX.some(fx => fx.blocking);
         if (isBlocking) {
             // Even if blocking logic, visual animations (Characters) should continue
-            if (BattleEngine.p1Character) BattleEngine.p1Character.update();
-            if (BattleEngine.cpuCharacter) BattleEngine.cpuCharacter.update();
+            if (BattleEngine.p1Character) BattleEngine.p1Character.update(dt);
+            if (BattleEngine.cpuCharacter) BattleEngine.cpuCharacter.update(dt);
             return; // Pause Logic and Input
         }
 
@@ -565,10 +567,10 @@ const BattleScene = {
         this._confirmLayout = null; // Reset cache
     },
 
-    updateConfirm: function () {
+    updateConfirm: function (dt = 1.0) {
         const d = this.confirmData;
         if (d.timer > 0) {
-            d.timer--;
+            d.timer -= dt;
             return;
         }
 

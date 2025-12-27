@@ -28,20 +28,36 @@ const BattleEngine = {
     lastState: -1,
     timeouts: [],
 
-    setTimeout: function (callback, delay) {
-        const id = setTimeout(() => {
-            // Remove from list when executed
-            this.timeouts = this.timeouts.filter(t => t !== id);
-            callback();
-        }, delay);
-        this.timeouts.push(id);
-        return id;
+    /**
+     * DeltaTime-Aware Timeout System
+     * Uses logic ticks (dt) instead of system clock.
+     * Prevents "early firing" on slow PCs where game time is slower than real time.
+     */
+    setTimeout: function (callback, delayTicks) {
+        // delayTicks: Expected frames (1.0 = 1/60th sec)
+        const timeout = {
+            callback: callback,
+            timer: 0,
+            duration: delayTicks,
+            id: ++this._timeoutIdCounter
+        };
+        this.dtTimeouts.push(timeout);
+        return timeout.id;
+    },
+
+    updateTimeouts: function (dt = 1.0) {
+        for (let i = this.dtTimeouts.length - 1; i >= 0; i--) {
+            const t = this.dtTimeouts[i];
+            t.timer += dt;
+            if (t.timer >= t.duration) {
+                this.dtTimeouts.splice(i, 1);
+                t.callback();
+            }
+        }
     },
 
     clearTimeouts: function () {
-        this.timeouts.forEach(id => clearTimeout(id));
-        this.timeouts = [];
-
+        this.dtTimeouts = [];
     },
 
     // Constants
@@ -179,6 +195,8 @@ const BattleEngine = {
         }
 
         this.activeFX = [];
+        this.dtTimeouts = [];
+        this._timeoutIdCounter = 0;
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         // Init Characters
@@ -664,7 +682,7 @@ const BattleEngine = {
         };
     },
 
-    updateSequence: function () {
+    updateSequence: function (dt = 1.0) {
         if (!this.sequencing.active) return;
 
         const step = this.sequencing.steps[this.sequencing.currentStep];
@@ -674,7 +692,7 @@ const BattleEngine = {
         }
 
         if (step.type === 'WAIT') {
-            this.sequencing.timer++;
+            this.sequencing.timer += dt;
             if (this.sequencing.timer >= step.duration) {
                 this.sequencing.timer = 0;
                 this.sequencing.currentStep++;
@@ -771,6 +789,7 @@ const BattleEngine = {
         this.currentState = this.STATE_DAMAGE_ANIMATION;
         this.timer = 0;
         this.stateTimer = 0; // Reset state timer
+        this._damageEffectTriggered = false;
     },
     matchOver: function (winner) {
         this.currentState = this.STATE_MATCH_OVER;
@@ -907,17 +926,17 @@ const BattleEngine = {
             currentStep: 0,
             timer: 0,
             steps: [
-                { type: 'WAIT', duration: 30 },
+                { type: 'WAIT', duration: 15 },
                 { type: 'DEAL', count: 4, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 20 },
+                { type: 'WAIT', duration: 8 },
                 { type: 'DEAL', count: 4, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 20 },
+                { type: 'WAIT', duration: 8 },
                 { type: 'DEAL', count: 2, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 20 },
+                { type: 'WAIT', duration: 8 },
                 { type: 'DEAL', count: 1, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 30 },
+                { type: 'WAIT', duration: 15 },
                 { type: 'FLIP_HAND', sound: 'audio/flip' }, // Reveal & Sort
-                { type: 'WAIT', duration: 10 },
+                { type: 'WAIT', duration: 5 },
                 { type: 'STATE', state: this.STATE_INIT } // Hand off to INIT to start turn logic
             ]
         };
@@ -1034,6 +1053,28 @@ const BattleEngine = {
             case 'RECOVERY':
                 if (char.hp >= char.maxHp) return false;
                 break;
+
+            case 'DISCARD_GUARD':
+                if (char.buffs && char.buffs.discardGuard > 0) return false;
+                break;
+
+            case 'HELL_PILE':
+                const target = who === 'P1' ? this.cpu : this.p1;
+                if (target.buffs && target.buffs.curseDraw > 0) return false;
+                break;
+
+            case 'SPIRIT_RIICHI':
+                if (char.buffs && char.buffs.spiritTimer > 0) return false;
+                // Also canUseSkill already has Tenpai check above
+                break;
+
+            case 'CRITICAL':
+                if (char.buffs && char.buffs.attackUp) return false;
+                break;
+
+            case 'WATER_MIRROR':
+                if (char.buffs && char.buffs.defenseUp) return false;
+                break;
         }
 
         return true;
@@ -1100,7 +1141,11 @@ const BattleEngine = {
         const dialOwner = who === 'P1' ? 'p1' : 'cpu';
         this.triggerDialogue(skillId, dialOwner);
 
-        // Log
+        // Refresh actions (some skills might change possible actions, e.g. Spirit Riichi)
+        if (who === 'P1' && (this.currentState === this.STATE_PLAYER_TURN || this.currentState === this.STATE_ACTION_SELECT)) {
+            this.checkSelfActions();
+            this.selectedActionIndex = 0; // Reset index when actions refresh
+        }
 
         return true;
     },
@@ -1118,7 +1163,6 @@ const BattleEngine = {
                 case 'RECOVERY':
                     this.heal(user, 3000); // 3000 HP
                     this.playFX('fx/heal', BattleConfig.PORTRAIT[user].x + 100, 300, { scale: 1.5 });
-                    Assets.playSound('audio/recovery');
                     break;
 
                 case 'DISCARD_GUARD':
@@ -1137,13 +1181,11 @@ const BattleEngine = {
                 // PETUM
                 case 'CRITICAL':
                     userObj.buffs.attackUp = true; // Duration? Round? Assuming Round based on desc "When I win"
-                    Assets.playSound('audio/buff');
                     break;
 
                 // RINXIANG
                 case 'WATER_MIRROR':
                     userObj.buffs.defenseUp = true;
-                    Assets.playSound('audio/barrier');
                     break;
 
                 // YURI
@@ -1347,21 +1389,26 @@ const BattleEngine = {
 
     },
 
-    updateRoulette: function () {
+    updateRoulette: function (dt = 1.0) {
         // If finished (stopped), wait for delay then resolve
         if (this.rouletteFinished) {
-            this.rouletteFinishTimer++;
+            this.rouletteFinishTimer += dt;
             if (this.rouletteFinishTimer > 60) { // 1 second delay
                 this.resolveRouletteResult();
             }
             return;
         }
 
-        this.rouletteTimer++;
+        const cycleInterval = 4;
+        const prevRoulette = Math.floor(this.rouletteTimer / cycleInterval);
+        this.rouletteTimer += dt;
+        const currentRoulette = Math.floor(this.rouletteTimer / cycleInterval);
 
         // Cycle Image (Every 4 frames = Fast)
-        if (this.rouletteTimer % 4 === 0) {
-            this.rouletteIndex = (this.rouletteIndex + 1) % PaiData.TYPES.length;
+        // If dt is large, increment index multiple times
+        if (currentRoulette > prevRoulette) {
+            const skip = currentRoulette - prevRoulette;
+            this.rouletteIndex = (this.rouletteIndex + skip) % PaiData.TYPES.length;
             this.rouletteTileType = PaiData.TYPES[this.rouletteIndex].id;
         }
 
@@ -1506,14 +1553,18 @@ const BattleEngine = {
         return drawn;
     },
 
-    updateLogic: function () {
+    updateLogic: function (dt = 1.0) {
+        dt = dt || 1.0;
+
+        // Update Timeouts first (May trigger state changes)
+        this.updateTimeouts(dt);
         // State Timer Logic
         if (this.currentState !== this.lastState) {
             this.stateTimer = 0;
             this.lastState = this.currentState;
         }
-        this.stateTimer++;
-        this.timer++;
+        this.stateTimer += dt;
+        this.timer += dt;
 
         // Update Dialogue (Always run)
         // this.updateDialogue(); // Removed
@@ -1551,12 +1602,12 @@ const BattleEngine = {
         // 1. Timer Update
         // this.timer++; // Removed, handled above
         // Update Characters
-        if (this.p1Character) this.p1Character.update();
-        if (this.cpuCharacter) this.cpuCharacter.update();
+        if (this.p1Character) this.p1Character.update(dt);
+        if (this.cpuCharacter) this.cpuCharacter.update(dt);
 
         // Update Sequencing
         if (this.sequencing.active) {
-            this.updateSequence();
+            this.updateSequence(dt);
             return; // Block other logic
         }
 
@@ -1573,16 +1624,18 @@ const BattleEngine = {
         ];
 
         if (!endStates.includes(this.currentState) && this.currentState !== this.STATE_INIT) {
-            if (this.timer % 30 === 0) {
+            const prevCheck = Math.floor((this.timer - dt) / 30);
+            const currentCheck = Math.floor(this.timer / 30);
+            if (currentCheck > prevCheck) {
                 this.checkRoundEnd();
             }
         }
-        BattleDialogue.update();
+        BattleDialogue.update(dt);
 
         // State Machine
         switch (this.currentState) {
             case this.STATE_ROULETTE:
-                this.updateRoulette();
+                this.updateRoulette(dt);
                 break;
 
             case this.STATE_INIT:
@@ -1624,7 +1677,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_ACTION_SELECT:
-                if (this.actionTimer > 0) this.actionTimer--;
+                if (this.actionTimer > 0) this.actionTimer -= dt;
 
                 // Auto Test: Wait for user input for actions (Ron/Pon/Riichi)
                 // if (Game.isAutoTest && this.actionTimer <= 0) { ... } -> REMOVED
@@ -1635,7 +1688,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer > (Game.isAutoTest ? 5 : 20)) { // Speed up CPU
+                if (this.timer > (Game.isAutoTest ? 5 : BattleConfig.SPEED.CPU_THINK_TIME)) { // Use config for CPU speed
                     this.cpuDraw();
                 }
                 break;
@@ -1663,21 +1716,18 @@ const BattleEngine = {
 
             case this.STATE_DAMAGE_ANIMATION:
                 // Animation Logic
-                // 1. Init (Timer 0): Play Sound, Start Visuals?
-                // Sound handled by Event?
-                if (this.timer === 1) {
+                // 1. Trigger Damage Effect once
+                if (!this._damageEffectTriggered) {
+                    this._damageEffectTriggered = true;
                     if (this.pendingDamage) {
                         // Emit Damage Event (Sound + Renderer Shake)
                         this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
 
-                        // Apply actual HP change (Render will handle bar sliding if optimized, or jump)
-                        // If we want sliding, we need to interpolate in Renderer.
-                        // For now, jump is acceptable as per previous design, but maybe delay it?
-                        // Let's apply it now so bars update.
+                        // Apply actual HP change
                         if (this.pendingDamage.target === 'P1') {
                             this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
                             this.p1Character.setState('shocked');
-                        } else if (this.pendingDamage.target === 'CPU') {
+                        } else {
                             this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
                             this.cpuCharacter.setState('shocked');
                         }
@@ -2009,8 +2059,10 @@ const BattleEngine = {
         const skills = this.cpu.skills || [];
         for (const skillId of skills) {
             const skill = SkillData[skillId];
-            if (!skill || skill.type !== 'ACTIVE') continue;
-            if (!this.checkSkillCost(skill, 'CPU')) continue;
+            if (!skill) continue;
+
+            // Core Validation (Checks MP, existing buffs, round limits, etc)
+            if (!this.canUseSkill(skillId, 'CPU', true)) continue;
 
             let shouldUse = false;
 
@@ -2020,28 +2072,26 @@ const BattleEngine = {
                     // Heal if HP < 60%
                     if (this.cpu.hp < this.cpu.maxHp * 0.6) shouldUse = true;
                     break;
+
                 case 'TIGER_STRIKE':
                 case 'SPIRIT_RIICHI':
+                case 'CRITICAL':
+                    // Use if Tenpai (Ready to win)
+                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
+                    break;
+
                 case 'HELL_PILE':
                 case 'DISCARD_GUARD':
                 case 'WATER_MIRROR':
-                    // Check round limit
-                    if (this.roundSkillUsage.cpu[skillId]) continue;
                     // Defensive/Debuff: Use if Player is Riichi or HP Low
                     if (this.p1.isRiichi || this.cpu.hp < this.cpu.maxHp * 0.4) shouldUse = true;
-                    break;
-                case 'CRITICAL':
-                    // Check round limit
-                    if (this.roundSkillUsage.cpu[skillId]) continue;
-                    // Use if Tenpai (Ready to win)
-                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
                     break;
             }
 
             // Aggression/RNG Check (prevent deterministic spam)
             if (shouldUse && Math.random() < 0.8) {
                 this.useSkill(skillId, 'CPU');
-                return; // Assume 1 skill per turn limit applies to CPU too
+                return; // 1 skill per turn
             }
         }
     },
@@ -2243,7 +2293,7 @@ const BattleEngine = {
                 this.dialogueTriggeredThisTurn = true;
 
             }
-        }, 450);
+        }, 27); // 450ms -> 27 ticks
     },
 
     // View proxies removed (Use BattleRenderer directly)
@@ -2293,7 +2343,8 @@ const BattleEngine = {
 
         // Generate State Key
         const currentHandKey = this.p1.hand.map(t => t.type + t.color).sort().join('|') +
-            `_${this.p1.openSets.length}_${this.p1.isRiichi}_${this.turnCount}`;
+            `_${this.p1.openSets.length}_${this.p1.isRiichi}_${this.turnCount}_` +
+            `${this.p1.buffs.guaranteedWin}_${this.p1.buffs.spiritTimer}`;
 
         if (this._cachedSelfActionsKey === currentHandKey) {
             // Restore cached actions
@@ -2370,8 +2421,17 @@ const BattleEngine = {
             }
         }
 
+        // 5. Special Skill Enforcement (Tiger Strike / Spirit Riichi)
+        // If Tiger Strike is active, player MUST Riichi now.
+        if (this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0)) {
+            if (!this.p1.isRiichi) {
+                // Filter actions to only keep RIICHI
+                this.possibleActions = this.possibleActions.filter(a => a.type === 'RIICHI');
+            }
+        }
+
         if (this.possibleActions.length > 0) {
-            // Skill Constraint: If Tiger Strike (guaranteedWin) or Spirit Riichi (spiritTimer) is active, cannot Pass
+            // Tiger Strike (guaranteedWin) or Spirit Riichi (spiritTimer) cannot Pass (must Riichi)
             if (!(this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0))) {
                 this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
             }
@@ -2454,6 +2514,7 @@ const BattleEngine = {
     },
 
     executeAction: function (action) {
+        if (!action) return;
         if (action.type === 'PASS' || action.type === 'PASS_SELF') {
             // Pass logic
             if (action.type === 'PASS_SELF') {
@@ -2510,9 +2571,9 @@ const BattleEngine = {
                     // Dialogue
                     this.triggerDialogue('PON', 'p1');
                     this.dialogueTriggeredThisTurn = true;
-                    setTimeout(() => {
+                    this.setTimeout(() => {
                         this.triggerDialogue('PON_REPLY', 'cpu');
-                    }, BattleConfig.DIALOGUE.replyDelay);
+                    }, 22); // replyDelay (360ms) -> 22 ticks
 
                     // this.events.push({ type: 'SOUND', id: 'audio/pon' }); // Handled by showPopup
 
@@ -2521,7 +2582,7 @@ const BattleEngine = {
                     this.possibleActions = []; // Clear actions (e.g. Pon button)
                     this.timer = 0;
                     this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
-                }, 450);
+                }, 27); // 450ms -> 27 ticks
             }
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
@@ -2536,9 +2597,9 @@ const BattleEngine = {
             // Dialogue
             const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
             this.triggerDialogue(riichiKey, 'p1');
-            setTimeout(() => {
+            this.setTimeout(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, BattleConfig.DIALOGUE.replyDelay);
+            }, 22); // replyDelay (360ms) -> 22 ticks
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
@@ -2547,9 +2608,9 @@ const BattleEngine = {
 
             // Expression: Smile -> Idle
             this.p1Character.setState('smile');
-            setTimeout(() => {
+            this.setTimeout(() => {
                 if (this.p1Character) this.p1Character.setState('idle');
-            }, 1000); // 60 frames approx
+            }, 60); // 1000ms -> 60 ticks
 
             // Logic:
             // Smart Auto-Select: Evaluate all valid discards and pick the best one.
@@ -2996,5 +3057,35 @@ const BattleEngine = {
         // 4. Set State to Player Turn
         this.currentState = this.STATE_PLAYER_TURN;
 
+    },
+
+    /**
+     * Debug: Set hand to 'IP_E_DAM' Yaku without auto-win
+     */
+    debugWin: function () {
+        const yakuName = 'IP_E_DAM';
+        // 9 Atahos + 3 Punches
+        const template = [
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }
+        ];
+
+        this.p1.hand = template.map(t => {
+            const data = PaiData.TYPES.find(p => p.id === t.id);
+            return { type: t.id, color: t.color, img: data ? data.img : "" };
+        });
+
+        console.log(`[Cheat] Hand set to ${yakuName}. You can now declare TSUMO.`);
+        this.checkSelfActions();
+        if (this.possibleActions.length > 0) {
+            this.currentState = this.STATE_ACTION_SELECT;
+            this.selectedActionIndex = 0; // Important: Reset index for new actions
+        }
     }
 };
+
+// Global Exposure
+window.BattleEngine = BattleEngine;
+window.debugWin = () => BattleEngine.debugWin();

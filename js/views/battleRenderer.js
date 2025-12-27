@@ -80,6 +80,9 @@ const BattleRenderer = {
         // 3. Draw Static FG (UI BG + Names)
         ctx.drawImage(this.fgCanvas, 0, 0);
 
+        // 3.5. Draw Dynamic UI (Buff Indicators)
+        this.drawBuffIndicators(ctx, state);
+
         // 4.5 Discards
         this.drawDiscards(ctx, state);
 
@@ -373,6 +376,77 @@ const BattleRenderer = {
             ctx.strokeText(name, conf.CPU.x, conf.CPU.y);
             ctx.fillText(name, conf.CPU.x, conf.CPU.y);
         }
+        ctx.restore();
+    },
+
+    /**
+     * Skill Buff UI Indicators
+     * Displays remaining turns for active buffs near character names.
+     */
+    drawBuffIndicators: function (ctx, engine) {
+        const conf = BattleConfig.BUFF_DISPLAY;
+        if (!conf) return;
+
+        const nameConf = BattleConfig.NAME_DISPLAY;
+
+        ctx.save();
+        ctx.font = conf.font;
+        ctx.fillStyle = conf.color;
+        ctx.strokeStyle = conf.stroke;
+        ctx.lineWidth = conf.strokeWidth;
+        ctx.textBaseline = 'alphabetic';
+
+        // P1 Buffs
+        const p1 = engine.p1;
+        if (p1 && p1.buffs) {
+            const buffs = p1.buffs;
+            const indicators = [];
+            if (buffs.discardGuard > 0) indicators.push(`${conf.icons.discardGuard}${buffs.discardGuard}`);
+            if (buffs.curseDraw > 0) indicators.push(`${conf.icons.curseDraw}${buffs.curseDraw}`);
+            if (buffs.spiritTimer > 0) indicators.push(`${conf.icons.spiritTimer}${buffs.spiritTimer}`);
+            if (buffs.guaranteedWin === true) indicators.push(`${conf.icons.guaranteedWin}1`);
+
+            if (indicators.length > 0) {
+                // Use engine.p1.name for measurement (more direct)
+                ctx.save();
+                ctx.font = nameConf.font;
+                const nameWidth = ctx.measureText(p1.name || "").width;
+                ctx.restore();
+
+                const text = indicators.join(' ');
+                const x = nameConf.P1.x + nameWidth + conf.P1.offsetX;
+                const y = nameConf.P1.y + conf.P1.offsetY;
+                ctx.textAlign = 'left';
+                ctx.strokeText(text, x, y);
+                ctx.fillText(text, x, y);
+            }
+        }
+
+        // CPU Buffs
+        const cpu = engine.cpu;
+        if (cpu && cpu.buffs) {
+            const buffs = cpu.buffs;
+            const indicators = [];
+            if (buffs.discardGuard > 0) indicators.push(`${conf.icons.discardGuard}${buffs.discardGuard}`);
+            if (buffs.curseDraw > 0) indicators.push(`${conf.icons.curseDraw}${buffs.curseDraw}`);
+            if (buffs.spiritTimer > 0) indicators.push(`${conf.icons.spiritTimer}${buffs.spiritTimer}`);
+            if (buffs.guaranteedWin === true) indicators.push(`${conf.icons.guaranteedWin}1`);
+
+            if (indicators.length > 0) {
+                ctx.save();
+                ctx.font = nameConf.font;
+                const nameWidth = ctx.measureText(cpu.name || "").width;
+                ctx.restore();
+
+                const text = indicators.join(' ');
+                const x = nameConf.CPU.x - nameWidth - conf.CPU.offsetX;
+                const y = nameConf.CPU.y + conf.CPU.offsetY;
+                ctx.textAlign = 'right';
+                ctx.strokeText(text, x, y);
+                ctx.fillText(text, x, y);
+            }
+        }
+
         ctx.restore();
     },
 
@@ -1055,8 +1129,10 @@ const BattleRenderer = {
                     displayScore = Math.floor(baseTotal + (finalTotal - baseTotal) * ease);
 
                     // Play Tick Sound (Every 4 frames)
-                    if (state.timer % 4 === 0) {
-                        Assets.playSound('audio/tick');
+                    const prevTick = Math.floor((state.timer - 1.0) / 4); // Use 1.0 as fallback dt if not available, or just state.timer-delta
+                    const currentTick = Math.floor(state.timer / 4);
+                    if (currentTick > prevTick) {
+                        Assets.playSound(BattleConfig.AUDIO.TICK);
                     }
                 } else {
                     displayScore = finalTotal;
@@ -1183,7 +1259,7 @@ const BattleRenderer = {
 
         // 3. Footer "Press Space" (Global for all result types)
         if (state.stateTimer > 120) {
-            if (state.stateTimer % 60 < 30) {
+            if (Math.floor(state.stateTimer / 30) % 2 === 0) {
                 ctx.fillStyle = '#FFFFFF';
                 // ctx.font = "16px monospace";
                 ctx.font = `bold 16px ${FONTS.bold}`;
@@ -1559,7 +1635,7 @@ const BattleRenderer = {
 
         // Draw Overlay (e.g., Flashing Red or Darker Yellow)
         ctx.save();
-        ctx.fillStyle = (state.timer % 20 < 10) ? 'rgba(255, 50, 50, 0.8)' : 'rgba(200, 50, 50, 0.8)';
+        ctx.fillStyle = (Math.floor(state.timer / 10) % 2 === 0) ? 'rgba(255, 50, 50, 0.8)' : 'rgba(200, 50, 50, 0.8)';
         ctx.fillRect(startX, barY, renderCostW, BattleConfig.BARS.height);
 
         // Show numeric cost -> Removed as per user request

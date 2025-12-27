@@ -30,8 +30,9 @@ const EndingScene = {
         if (charId === 'petum') this.endingImageKey = 'ending/ending_FARI.png'; // Placeholder fallback?
     },
 
-    update: function () {
-        this.timer++;
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
+        this.timer += dt;
 
         if (this.timer > (Game.isAutoTest ? 10 : 60)) {
             this.canSkip = true;

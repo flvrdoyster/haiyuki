@@ -184,12 +184,13 @@ const EncounterScene = {
         }
     },
 
-    update: function () {
-        this.textTimer++;
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
+        this.textTimer += dt;
 
         // Update Portraits
-        if (this.p1Portrait) this.p1Portrait.update();
-        if (this.cpuPortrait) this.cpuPortrait.update();
+        if (this.p1Portrait) this.p1Portrait.update(dt);
+        if (this.cpuPortrait) this.cpuPortrait.update(dt);
 
         // -- STATE CHALLENGER INTRO --
         if (this.state === -1) {

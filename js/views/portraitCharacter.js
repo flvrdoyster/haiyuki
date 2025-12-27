@@ -149,39 +149,41 @@ class PortraitCharacter {
 
         this.talkFrameIndex = 0;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED;
+        this.talkTimer = (this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED);
         return true;
     }
 
-    update() {
+    update(dt = 1.0) {
         if (!this.animConfig) return;
+        if (dt <= 0) return;
 
         // Blink Logic
-        this.blinkTimer--;
+        this.blinkTimer -= dt;
         if (this.blinkTimer <= 0) {
             if (this.blinkFrameIndex === -1) {
                 this.startBlink();
             } else {
-                this.advanceBlink();
+                this.advanceBlink(dt);
             }
         }
 
         // Talk Logic
         if (this.isTalking) {
             if (this.animConfig.talk?.length > 0) {
-                this.talkTimer--;
-                if (this.talkTimer <= 0) this.advanceTalk();
+                this.talkTimer -= dt;
+                if (this.talkTimer <= 0) this.advanceTalk(dt);
             } else {
                 this.isTalking = false;
             }
         }
     }
 
-    advanceTalk() {
+    advanceTalk(dt = 1.0) {
         if (!this.talkSequence?.length) return;
         this.talkFrameIndex = (this.talkFrameIndex + 1) % this.talkSequence.length;
         this.updateTalkFrame();
-        this.talkTimer = this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED;
+        // Carry over remaining timer if dt was large, though usually just reset
+        this.talkTimer = (this.animConfig.talkSpeed || BattleConfig.ANIMATION.TALK_SPEED);
     }
 
     updateTalkFrame() {
@@ -206,18 +208,18 @@ class PortraitCharacter {
 
         this.blinkFrameIndex = 0;
         this.updateBlinkFrame();
-        this.blinkTimer = this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED;
+        this.blinkTimer = (this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED);
     }
 
-    advanceBlink() {
+    advanceBlink(dt = 1.0) {
         this.blinkFrameIndex++;
         if (this.blinkFrameIndex >= this.blinkSequence.length) {
             this.blinkFrameIndex = -1;
             this.currentBlinkFrame = null;
-            this.blinkTimer = this.animConfig.interval || BattleConfig.ANIMATION.BLINK_INTERVAL;
+            this.blinkTimer = (this.animConfig.interval || BattleConfig.ANIMATION.BLINK_INTERVAL);
         } else {
             this.updateBlinkFrame();
-            this.blinkTimer = this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED;
+            this.blinkTimer = (this.animConfig.speed || BattleConfig.ANIMATION.BLINK_SPEED);
         }
     }
 

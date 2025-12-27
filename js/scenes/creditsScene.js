@@ -24,8 +24,9 @@ const CreditsScene = {
         console.log(`Credits Scene Initialized. Type: ${this.endingType}`);
     },
 
-    update: function () {
-        this.timer++;
+    update: function (dt = 1.0) {
+        dt = dt || 1.0;
+        this.timer += dt;
 
         if (this.timer > CreditsConfig.EXIT_DELAY) {
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
