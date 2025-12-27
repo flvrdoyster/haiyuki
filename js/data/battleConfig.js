@@ -19,7 +19,7 @@ const BattleConfig = {
         INITIAL_HP: 10000,
         INITIAL_MP: 100,
         NAGARI_DAMAGE: 1000,
-        SKILLS_ENABLED: false,
+        SKILLS_ENABLED: true,
 
         // AI Difficulty Settings
         // 0: EASY   - Discard: Random from Top 4 (Frequent mistakes)
