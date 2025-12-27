@@ -1128,6 +1128,13 @@ const BattleEngine = {
         // Only show Popup for P1? Or both? Both is fine.
         this.showPopup('SKILL', { text: skill.name, blocking: false });
 
+        // Set smile expression for user
+        if (who === 'P1') {
+            this.p1Character.setState('smile');
+        } else {
+            this.cpuCharacter.setState('smile');
+        }
+
         // Play SFX
         if (skill.sfx) {
             this.events.push({ type: 'SOUND', id: skill.sfx });
@@ -1980,6 +1987,11 @@ const BattleEngine = {
         }
 
         this.discards.push(discarded);
+
+        // Reset Expressions
+        this.p1Character.setState('idle');
+        this.cpuCharacter.setState('idle');
+        this.selectedActionIndex = 0; // Reset index for safety
 
         let hasAction = false;
         // Check if Player can Ron
@@ -3078,6 +3090,7 @@ const BattleEngine = {
         });
 
         console.log(`[Cheat] Hand set to ${yakuName}. You can now declare TSUMO.`);
+        this.p1Character.setState('smile'); // Smile on cheat
         this.checkSelfActions();
         if (this.possibleActions.length > 0) {
             this.currentState = this.STATE_ACTION_SELECT;
