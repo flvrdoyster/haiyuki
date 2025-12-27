@@ -43,6 +43,13 @@ Game.changeScene(CreditsScene, { endingType: 'TRUE' });
 Game.changeScene(CharacterSelectScene);
 ```
 
+### Trigger Mayu Intrusion (Challenge)
+**Prerequisite**: Anytime.
+Triggers the "A NEW CHALLENGER" sequence with Mayu (눈썹개).
+```javascript
+Game.triggerMayu();
+```
+
 ### Jump to Battle (Test)
 **Prerequisite**: Anytime.
 Starts a battle between P1 (Ataho) and CPU (Rinxiang).

@@ -428,7 +428,7 @@ const DialogueData = {
             RIICHI: ["좋아, 승부야!!"],
             RIICHI_REPLY: ["제법 하는걸."],
             WIN: ["후훗, 미안하지만 내가 이겨야겠어."],
-            RANDOM: ["이런 건 필요없어.", "좋았어, 운이 좀 따르는걸.", "에잇."],
+            RANDOM: ["이런 건 필요없어.", "좋았어, 운이 좀 따르는걸.", "과연."],
             COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
             WORRY_RON: ["이거... 설마..."],
             // Skills
@@ -493,7 +493,7 @@ const DialogueData = {
         },
         // Mayu
         mayu: {
-            PON: [],
+            PON: ["멍!!"],
             PON_REPLY: [],
             RIICHI: [],
             RIICHI_REPLY: [],

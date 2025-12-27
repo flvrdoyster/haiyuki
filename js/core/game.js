@@ -216,6 +216,16 @@ const Game = {
         this.autoTestOptions = {};
     },
 
+    triggerMayu: function () {
+        console.log("!!! Debug: Triggering Mayu Intrusion !!!");
+        this.changeScene(EncounterScene, {
+            playerIndex: this.currentScene && this.currentScene.playerIndex !== undefined ? this.currentScene.playerIndex : 0,
+            cpuIndex: 6, // Mayu's index in CharacterData
+            mode: 'CHALLENGER',
+            defeatedOpponents: this.currentScene && this.currentScene.defeatedOpponents ? this.currentScene.defeatedOpponents : []
+        });
+    },
+
     loop: function () {
         // Speed up in Auto Test Mode (10x speed)
         const iterations = Game.isAutoTest ? 10 : 1;
