@@ -755,9 +755,6 @@ const BattleRenderer = {
     },
 
     drawBar: function (ctx, x, y, val, max, label, previewCost = 0) {
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(x, y, BattleConfig.BARS.width, BattleConfig.BARS.height);
 
         // Clamping
         const pct = Math.max(0, Math.min(1, val / max));

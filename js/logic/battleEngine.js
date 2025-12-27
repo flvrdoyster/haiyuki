@@ -131,6 +131,7 @@ const BattleEngine = {
     // selectedMenuIndex: 0, // Moved to BattleMenuSystem 
 
     dialogueTriggeredThisTurn: false,
+    roundSkillUsage: { p1: {}, cpu: {} },
 
     init: function (data, scene) {
         this.scene = scene;
@@ -457,7 +458,10 @@ const BattleEngine = {
                 // isRiichi is still valid from closure
 
                 const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
-                const totalScore = finalScore + bonusResult.score;
+                let totalScore = finalScore + bonusResult.score;
+
+                // Ensure final score is rounded to nearest 10 (Rule: Handle single digits)
+                totalScore = Math.round(totalScore / 10) * 10;
 
                 if (this.pendingDamage) {
                     this.pendingDamage.amount = totalScore;
@@ -872,6 +876,7 @@ const BattleEngine = {
 
         // Skill System Initialization
         this.skillsUsedThisTurn = false;
+        this.roundSkillUsage = { p1: {}, cpu: {} };
         this.p1.buffs = {};
         this.p1.buffs = {};
         this.cpu.buffs = {};
@@ -1031,9 +1036,14 @@ const BattleEngine = {
                 if (char.hp >= char.maxHp) return false;
                 break;
 
-            case 'HELL_PILE':
             case 'CRITICAL':
             case 'WATER_MIRROR':
+                // RULE: Once per round limitation
+                if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
+                    return false;
+                }
+                break;
+            case 'HELL_PILE':
             case 'DISCARD_GUARD':
                 // Valid at any time in main phase.
                 break;
@@ -1078,6 +1088,11 @@ const BattleEngine = {
 
         // Process Effect
         this.processSkillEffect(skill, who, skillId);
+
+        // Record round-based usage limit (Once per round)
+        if (['WATER_MIRROR', 'CRITICAL'].includes(skillId)) {
+            this.roundSkillUsage[who.toLowerCase()][skillId] = true;
+        }
 
         // Mark as used
         if (skillId !== 'RECOVERY') {
@@ -2027,16 +2042,19 @@ const BattleEngine = {
                     break;
                 case 'TIGER_STRIKE':
                 case 'SPIRIT_RIICHI':
-                case 'CRITICAL':
-                    // Use if Tenpai (Ready to win)
-                    // Check hand (before draw, size 13)
-                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
-                    break;
                 case 'HELL_PILE':
                 case 'DISCARD_GUARD':
                 case 'WATER_MIRROR':
+                    // Check round limit
+                    if (this.roundSkillUsage.cpu[skillId]) continue;
                     // Defensive/Debuff: Use if Player is Riichi or HP Low
                     if (this.p1.isRiichi || this.cpu.hp < this.cpu.maxHp * 0.4) shouldUse = true;
+                    break;
+                case 'CRITICAL':
+                    // Check round limit
+                    if (this.roundSkillUsage.cpu[skillId]) continue;
+                    // Use if Tenpai (Ready to win)
+                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
                     break;
             }
 
