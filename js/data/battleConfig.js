@@ -34,7 +34,6 @@ const BattleConfig = {
         RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
         CPU_THINK_TIME: 15,      // CPU decision delay (Lower = Faster)
         ACTION_WAIT: 30,        // Wait time after Pon/Ron (ticks)
-        REPLY_DELAY: 22,        // Dialogue reply delay (ticks)
         WIN_WAIT: 80            // Wait before revealing hand on win (ticks)
     },
 
@@ -170,8 +169,8 @@ const BattleConfig = {
         font: `18px ${FONTS.regular}`,
         color: 'white',
         lineHeight: 20, // Added for multi-line support
-        life: 160, // Duration in frames
-        replyDelay: 360, // Response delay in ms
+        life: 120,      // Duration in frames
+        replyDelay: 0, // Response delay (ticks)
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
         CHANCE: {

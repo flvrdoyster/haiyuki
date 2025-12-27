@@ -1607,6 +1607,26 @@ const BattleEngine = {
             return;
         }
 
+        // AUTO TEST MENU HANDLING (Skip Action Select)
+        if (Game.isAutoTest && this.currentState === this.STATE_ACTION_SELECT && this.timer > 5) {
+            // Priority: TSUMO > RIICHI > PASS
+            const tsumo = this.possibleActions.find(a => a.type === 'TSUMO');
+            if (tsumo) {
+                this.executeAction(tsumo);
+                return;
+            }
+            const riichi = this.possibleActions.find(a => a.type === 'RIICHI');
+            if (riichi) {
+                this.executeAction(riichi);
+                return;
+            }
+            const pass = this.possibleActions.find(a => a.type === 'PASS_SELF');
+            if (pass) {
+                this.executeAction(pass);
+                return;
+            }
+        }
+
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         // Only if NOT declaring Riichi (User Manual Discard)
         if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DISCARD) {
@@ -2077,51 +2097,83 @@ const BattleEngine = {
 
         // Iterate skills
         const skills = this.cpu.skills || [];
+        // Advanced AI Logic with Weighted Scoring
+        const cpuProfile = CharacterData.find(c => c.id === this.cpu.id).aiProfile;
+        if (!cpuProfile) return; // Should not happen
+
+        // Define Weights
+        // aggression: Likelihood to use Attack skills
+        // defense: Likelihood to use Defense skills
+        // speed: Likelihood to use Setup/Cycle skills
+
         for (const skillId of skills) {
             const skill = SkillData[skillId];
             if (!skill) continue;
 
-            // Core Validation (Checks MP, existing buffs, round limits, etc)
+            // Core Validation
             if (!this.canUseSkill(skillId, 'CPU', true)) continue;
 
-            let shouldUse = false;
+            let score = 0;
+            let threshold = 0.6; // Base threshold to activate
 
-            // AI Heuristics
+            const isTenpai = this.checkTenpai(this.cpu.hand, this.cpu.id);
+            const isPlayerRiichi = this.p1.isRiichi;
+            const turn = this.turnCount;
+
             switch (skillId) {
                 case 'RECOVERY':
-                    // Heal if HP < 60%
-                    if (this.cpu.hp < this.cpu.maxHp * 0.6) shouldUse = true;
+                    // Base: Inverse of HP% logic
+                    // If HP is low, score goes up.
+                    // Modifiers: Defense Profile
+                    {
+                        const hpPct = this.cpu.hp / this.cpu.maxHp;
+                        if (hpPct < 0.6) score += 0.5; // Base need
+                        if (hpPct < 0.3) score += 0.5; // Critical need
+                        score += cpuProfile.defense * 0.4;
+                        if (turn > 10) score += 0.2; // Late game safety
+                    }
                     break;
 
                 case 'TIGER_STRIKE':
                 case 'SPIRIT_RIICHI':
                 case 'CRITICAL':
-                    // Use if Tenpai (Ready to win)
-                    if (this.checkTenpai(this.cpu.hand, this.cpu.id)) shouldUse = true;
+                    // Aggressive Skills
+                    if (isTenpai) score += 0.8; // High priority if Tenpai
+                    if (turn > 15) score += 0.3; // Desperation
+                    score += cpuProfile.aggression * 0.5;
                     break;
 
                 case 'HELL_PILE':
                 case 'DISCARD_GUARD':
                 case 'WATER_MIRROR':
-                    // Defensive/Debuff: Use if Player is Riichi or HP Low
-                    if (this.p1.isRiichi || this.cpu.hp < this.cpu.maxHp * 0.4) shouldUse = true;
+                    // Defensive Skills
+                    if (isPlayerRiichi) score += 1.0; // Immediate reaction
+                    if (this.cpu.hp < 3000) score += 0.4;
+                    score += cpuProfile.defense * 0.5;
                     break;
 
                 case 'EXCHANGE_TILE':
                 case 'PAINT_TILE':
-                    // Setup Phase (Wait for Draw): Use if hand is far from Tenpai
-                    // Heuristic: If more than 3 "bad" tiles (not part of sets)
+                    // Setup Skills
                     if (this.currentState === this.STATE_WAIT_FOR_DRAW && this.cpu.mp >= skill.cost * 3) {
                         const badIndices = this.getAiBadTileIndices(this.cpu.hand);
-                        if (badIndices.length >= 3) shouldUse = true;
+                        if (badIndices.length >= 2) {
+                            score += 0.5;
+                            score += (badIndices.length * 0.1); // More bad tiles = higher score
+                            score += cpuProfile.speed * 0.5; // Speedsters prefer optimal hands
+                        }
                     }
                     break;
             }
 
-            // Aggression/RNG Check (prevent deterministic spam)
-            if (shouldUse && Math.random() < 0.8) {
+            // Random Factor (Mutation) - AI Difficulty affects this?
+            // Difficulty 2 (Hard) = Less random, more optimal.
+            // Difficulty 0 (Easy) = Random checks.
+            const randomFactor = Math.random() * 0.2; // 0.0 ~ 0.2 fluctuation
+
+            if (score + randomFactor > threshold) {
                 this.useSkill(skillId, 'CPU');
-                return; // 1 skill per turn
+                return; // One skill per turn
             }
         }
     },
@@ -2485,7 +2537,13 @@ const BattleEngine = {
 
         // Riichi Enforcement: Must discard drawn tile (last one)
         if (this.p1.isRiichi) {
-            this.discardTile(this.p1.hand.length - 1);
+            if (this.p1.declaringRiichi && this.p1.validRiichiDiscardIndices) {
+                // Pick the first valid discard (or random valid)
+                const validIdx = this.p1.validRiichiDiscardIndices[0];
+                this.discardTile(validIdx);
+            } else {
+                this.discardTile(this.p1.hand.length - 1);
+            }
             return;
         }
 
@@ -2601,7 +2659,7 @@ const BattleEngine = {
 
                     this.setTimeout(() => {
                         this.triggerDialogue('PON_REPLY', 'cpu');
-                    }, BattleConfig.SPEED.REPLY_DELAY);
+                    }, BattleConfig.DIALOGUE.replyDelay);
 
                     // Force Discard State (Turn continues but starts at discard phase)
                     this.currentState = this.STATE_PLAYER_TURN;
@@ -2624,7 +2682,7 @@ const BattleEngine = {
             this.triggerDialogue(riichiKey, 'p1');
             this.setTimeout(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, BattleConfig.SPEED.REPLY_DELAY);
+            }, BattleConfig.DIALOGUE.replyDelay);
 
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
@@ -3169,9 +3227,13 @@ const BattleEngine = {
 
         // 4. Sort & Visuals
         this.sortHand(this.cpu.hand);
-        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-        this.showPopup('SKILL', { text: skill.name, blocking: false });
+
+        // Audio Feedback (No visual popup as requested)
+        this.events.push({ type: 'SOUND', id: 'audio/flip' });
         this.triggerDialogue(skillId, 'cpu');
+
+        // Small delay to let the sound play and allow player to realize something happened
+        this.timer = -30;
     }
 };
 
