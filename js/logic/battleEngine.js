@@ -990,62 +990,49 @@ const BattleEngine = {
         // Internal calls (e.g. Ron Counters) bypass this check
         if (!isInternal && (skill.type === 'REACTIVE' || skill.type === 'SETUP')) return false;
 
-        // 1. Cost
+        // 1. MP Cost
         if (!this.checkSkillCost(skill, who)) return false;
 
-        // 2. Already Used (Limit 1) exception Recovery
-        if (this.skillsUsedThisTurn && skillId !== 'RECOVERY') return false;
+        // 2. Round/Turn Limits
+        const multiUseSkills = ['RECOVERY', 'DISCARD_GUARD', 'EXCHANGE_TILE', 'PAINT_TILE'];
+        if (!multiUseSkills.includes(skillId)) {
+            // Once per ROUND limit
+            if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
+                return false;
+            }
+            // Once per TURN limit (For ACTIVE skills)
+            if (this.skillsUsedThisTurn && skill.type === 'ACTIVE') {
+                return false;
+            }
+        }
 
         // 3. Specific Conditions
         const char = who === 'P1' ? this.p1 : this.cpu;
-
         switch (skillId) {
             case 'TIGER_STRIKE':
-                // Check 1: Turn < 20
                 if (this.turnCount >= 20) return false;
-
-            // Fallthrough to Tenpai check shared with SPIRIT_RIICHI
             case 'SPIRIT_RIICHI':
-                if (skillId === 'SPIRIT_RIICHI') {
-                    // Spirit Riichi Check: Turn <= 16
-                    if (this.turnCount > 16) return false;
-                }
-
-                // Check 2: Must be Tenpai (Ready to Riichi/Win)
-                {
-                    let canReachTenpai = false;
-                    for (let i = 0; i < char.hand.length; i++) {
-                        const tempHand = [...char.hand];
-                        tempHand.splice(i, 1);
-                        if (this.checkTenpai(tempHand)) {
-                            canReachTenpai = true;
-                            break;
-                        }
+                if (skillId === 'SPIRIT_RIICHI' && this.turnCount > 16) return false;
+                // Tenpai Check
+                let canReachTenpai = false;
+                for (let i = 0; i < char.hand.length; i++) {
+                    const tempHand = [...char.hand];
+                    tempHand.splice(i, 1);
+                    if (this.checkTenpai(tempHand)) {
+                        canReachTenpai = true;
+                        break;
                     }
-                    if (!canReachTenpai) return false;
                 }
+                if (!canReachTenpai) return false;
                 break;
 
             case 'PAINT_TILE':
             case 'EXCHANGE_TILE':
-                // Turn 1 Only
                 if (this.turnCount !== 1) return false;
                 break;
 
             case 'RECOVERY':
                 if (char.hp >= char.maxHp) return false;
-                break;
-
-            case 'CRITICAL':
-            case 'WATER_MIRROR':
-                // RULE: Once per round limitation
-                if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
-                    return false;
-                }
-                break;
-            case 'HELL_PILE':
-            case 'DISCARD_GUARD':
-                // Valid at any time in main phase.
                 break;
         }
 
@@ -1089,17 +1076,10 @@ const BattleEngine = {
         // Process Effect
         this.processSkillEffect(skill, who, skillId);
 
-        // Record round-based usage limit (Once per round)
-        if (['WATER_MIRROR', 'CRITICAL'].includes(skillId)) {
+        // Record usage
+        const multiUseSkills = ['RECOVERY', 'DISCARD_GUARD', 'EXCHANGE_TILE', 'PAINT_TILE'];
+        if (!multiUseSkills.includes(skillId)) {
             this.roundSkillUsage[who.toLowerCase()][skillId] = true;
-        }
-
-        // Mark as used
-        if (skillId !== 'RECOVERY') {
-            // Track per user? Currently engine has one flag 'skillsUsedThisTurn'
-            // Keep it simple: Shared flag or separate?
-            // Better to respect turn. If it's P1 turn, P1 uses. If CPU turn, CPU uses.
-            // But Reactive skills can trigger out of turn.
             this.skillsUsedThisTurn = true;
         }
 
@@ -2129,12 +2109,15 @@ const BattleEngine = {
                     // Trigger Reaction Modal
                     this.triggerReaction(reactiveSkillId, () => {
                         // YES: Cancel Ron
-                        this.useSkill(reactiveSkillId, 'P1', true); // isInternal = true
-
-                        if (reactiveSkillId === 'SUPER_IAI') {
-                            this.activateSuperIaido('P1');
-                        } else if (reactiveSkillId === 'EXCHANGE_RON') {
-                            this.activateRonTileExchange('P1');
+                        if (this.useSkill(reactiveSkillId, 'P1', true)) { // isInternal = true
+                            if (reactiveSkillId === 'SUPER_IAI') {
+                                this.activateSuperIaido('P1');
+                            } else if (reactiveSkillId === 'EXCHANGE_RON') {
+                                this.activateRonTileExchange('P1');
+                            }
+                        } else {
+                            // Skill failed (e.g. limit reached), allow Ron
+                            this.finishRon(win);
                         }
 
                     }, () => {
@@ -2639,14 +2622,14 @@ const BattleEngine = {
                 if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
                     // AI DECISION: High chance to use if affordable
                     if (this.cpu.hp < 8000 || Math.random() < 0.8) {
-                        this.useSkill(reactiveSkillId, 'CPU', true); // isInternal = true
-
-                        if (reactiveSkillId === 'SUPER_IAI') {
-                            this.activateSuperIaido('CPU');
-                        } else if (reactiveSkillId === 'EXCHANGE_RON') {
-                            this.activateRonTileExchange('CPU');
+                        if (this.useSkill(reactiveSkillId, 'CPU', true)) { // isInternal = true
+                            if (reactiveSkillId === 'SUPER_IAI') {
+                                this.activateSuperIaido('CPU');
+                            } else if (reactiveSkillId === 'EXCHANGE_RON') {
+                                this.activateRonTileExchange('CPU');
+                            }
+                            return; // Stop Ron execution
                         }
-                        return; // Stop Ron execution
                     }
                 }
             }

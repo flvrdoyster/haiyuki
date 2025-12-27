@@ -447,20 +447,20 @@ const DialogueData = {
             WORRY_RON: ["이거 위험하겠는데..."],
             // Skills
             EXCHANGE_TILE: [],
-            EXCHANGE_RON: ["정말 이 버림패로 날 수 있을까?"]
+            EXCHANGE_RON: ["설마 이걸로 론을 노린 건 아니겠지?"]
         },
         // Petum
         petum: {
-            PON: ["그거, 제가 가져가죠."],
-            PON_REPLY: [""],
+            PON: ["그건, 제가 가져가겠습니다."],
+            PON_REPLY: ["이런..."],
             RIICHI: ["후훗, 선수필승입니다."],
-            RIICHI_REPLY: ["어라, 제법이지 않습니까."],
+            RIICHI_REPLY: ["의외로군요. 제법이지 않습니까."],
             WIN: ["전략의 차이군요."],
             RANDOM: ["하아.", "흠.", "과연."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: ["때로는 운을 하늘에 맡겨 봅시다."],
+            WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요."],
             // Skills
-            CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프겠지만 참아 주세요."],
+            CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프실 겁니다만 참아 주시죠."],
             LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
         },
         // Fari
@@ -485,10 +485,10 @@ const DialogueData = {
             RIICHI_REPLY: ["빠르기도 하네..."],
             WIN: ["미안하구만!!"],
             RANDOM: ["뭐야...", "훗...", "이런이런..."],
-            COUNTER_RIICHI: ["나도 질 수 없지"],
+            COUNTER_RIICHI: ["나도 질 수 없지."],
             WORRY_RON: ["이건 어떠냐!!"],
             // Skills
-            SUPER_IAI: [""],
+            SUPER_IAI: ["어이쿠, 나도 모르게 손이 미끄러졌네.\n미안, 미안."],
             SPIRIT_RIICHI: ["금방 끝내서 편하게 해줄게."]
         },
         // Mayu
