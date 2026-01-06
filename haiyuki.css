@@ -214,28 +214,6 @@ hr {
     border-top: 1px solid #444;
 }
 
-#footer {
-    /* Layout */
-    display: block;
-
-    /* Box Model */
-    width: 100%;
-
-    /* Typography */
-    font-family: 'KoddiUDOnGothic-Regular', sans-serif;
-    font-size: small;
-    text-align: left;
-    color: white;
-}
-
-#footer a {
-    color: #88ccff;
-    text-decoration: none;
-}
-
-#footer a:hover {
-    text-decoration: underline;
-}
 
 @font-face {
     font-family: 'KoddiUDOnGothic-Regular';
