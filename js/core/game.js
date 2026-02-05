@@ -147,7 +147,18 @@ const Game = {
         Assets.load(() => {
             console.log('Assets loaded. Starting game...');
             this.lastTime = performance.now();
-            this.changeScene(TitleScene);
+
+            // Check for URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+
+            if (mode === 'story' || mode === 'watch') {
+                console.log("Direct access to Story/Watch Mode detected.");
+                this.changeScene(CharacterSelectScene, { mode: 'WATCH' });
+            } else {
+                this.changeScene(TitleScene);
+            }
+
             this.loop(this.lastTime);
         });
     },
