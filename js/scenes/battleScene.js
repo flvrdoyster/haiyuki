@@ -1,5 +1,6 @@
 const BattleScene = {
     init: function (data) {
+        QADebug.reset();
         BattleEngine.init(data, this);
         BattleRenderer.reset(); // Crucial for Layering Optimization
         this.activeFX = [];
@@ -338,6 +339,7 @@ const BattleScene = {
 
     update: function (dt = 1.0) {
         dt = dt || 1.0;
+        QADebug.sync(BattleEngine);
 
         // Local Confirmation Update (Blocks Logic)
         if (this.confirmData) {
