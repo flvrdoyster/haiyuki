@@ -143,11 +143,6 @@ const BattleEngine = {
     actionTimer: 0,
     selectedActionIndex: 0,
 
-    // Config for Battle Menu
-    // Action Logic
-    possibleActions: [], // { type: 'PON', tile: ... }
-    // selectedMenuIndex: 0, // Moved to BattleMenuSystem 
-
     dialogueTriggeredThisTurn: false,
     roundSkillUsage: { p1: {}, cpu: {} },
 
@@ -1032,8 +1027,11 @@ const BattleEngine = {
         switch (skillId) {
             case 'TIGER_STRIKE':
                 if (this.turnCount >= 20) return false;
+                break;
+
             case 'SPIRIT_RIICHI':
-                if (skillId === 'SPIRIT_RIICHI' && this.turnCount > 16) return false;
+                if (this.turnCount > 16) return false;
+                if (char.buffs && char.buffs.spiritTimer > 0) return false;
                 // Tenpai Check
                 let canReachTenpai = false;
                 for (let i = 0; i < char.hand.length; i++) {
@@ -1063,11 +1061,6 @@ const BattleEngine = {
             case 'HELL_PILE':
                 const target = who === 'P1' ? this.cpu : this.p1;
                 if (target.buffs && target.buffs.curseDraw > 0) return false;
-                break;
-
-            case 'SPIRIT_RIICHI':
-                if (char.buffs && char.buffs.spiritTimer > 0) return false;
-                // Also canUseSkill already has Tenpai check above
                 break;
 
             case 'CRITICAL':
