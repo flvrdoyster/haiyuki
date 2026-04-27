@@ -77,7 +77,7 @@ body {
 
 .toolbar-label {
     /* Typography */
-    font-family: 'KoddiUDOnGothic-Bold', sans-serif;
+    font-family: 'KoddiUDOnGothic', sans-serif;
     font-size: 18px;
     color: white;
 }
@@ -216,17 +216,19 @@ hr {
 
 
 @font-face {
-    font-family: 'KoddiUDOnGothic-Regular';
+    font-family: 'KoddiUDOnGothic';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Regular.woff') format('woff');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-    font-family: 'KoddiUDOnGothic-Bold';
+    font-family: 'KoddiUDOnGothic';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/KoddiUDOnGothic-Bold.woff') format('woff');
-    font-weight: bold;
+    font-weight: 700;
     font-style: normal;
+    font-display: swap;
 }
 
 /* Mobile Optimizations */
