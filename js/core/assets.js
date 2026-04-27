@@ -31,7 +31,6 @@ const Assets = {
         this._audioUnlocked = true;
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume();
-        // Pre-unlock all BGM HTMLAudioElements so future play() calls work outside gesture context
         Object.values(this.audio).forEach(el => {
             el.play().then(() => el.pause()).catch(() => {});
         });
@@ -123,42 +122,42 @@ const Assets = {
         'ui/number_big.png',
 
         // Encounter/Dialogue Portraits (Detailed)
-        // 0. Ataho
+        // Ataho
         'face/ATA_base.png',
         'face/ATA_blink-1.png', 'face/ATA_blink-2.png',
         'face/ATA_shocked.png', 'face/ATA_smile.png',
 
-        // 1. Rinxiang
+        // Rinxiang
         'face/RIN_base.png',
         'face/RIN_blink-1.png', 'face/RIN_blink-2.png',
         'face/RIN_shocked.png', 'face/RIN_smile.png',
         'face/RIN_talk-1.png', 'face/RIN_talk-2.png',
 
-        // 2. Fari
+        // Fari
         'face/FARI_base.png',
         'face/FARI_blink-1.png', 'face/FARI_blink-2.png',
         'face/FARI_shocked.png', 'face/FARI_smile.png',
         'face/FARI_talk-1.png', 'face/FARI_talk-2.png',
 
-        // 3. Smashu
+        // Smashu
         'face/SMSH.png', 'face/SMSH_base.png', 'face/SMSH_idle.png',
         'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png',
         'face/SMSH_shocked.png', 'face/SMSH_smile.png',
         'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png',
 
-        // 4. Petum
+        // Petum
         'face/PET_base.png',
         // 'face/PET_blink-1.png', 'face/PET_blink-2.png', // Petum has no blink frames in directory
         'face/PET_shocked.png', 'face/PET_smile.png',
         'face/PET_talk-1.png', 'face/PET_talk-2.png',
 
-        // 5. Yuri
+        // Yuri
         'face/YURI_base.png',
         'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
         'face/YURI_shocked.png', 'face/YURI_smile.png',
         'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
 
-        // 6. Mayu
+        // Mayu
         'face/MAYU_base.png',
         'face/MAYU_blink-1.png', 'face/MAYU_blink-2.png',
         'face/MAYU_shocked.png', 'face/MAYU_smile.png',
@@ -328,7 +327,6 @@ const Assets = {
         audio.volume = 0.5;
         this.currentMusic = audio;
 
-        // resume() resolves immediately if already running, ensuring play() works
         // even when called outside a direct user-gesture callback (e.g. scene transitions)
         this._getAudioContext().resume().then(() => {
             if (this.currentBgmId === id) {
@@ -442,7 +440,6 @@ const Assets = {
 
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!";
 
-        // Width Calculation for Alignment
         let totalWidth = 0;
         text = text.toUpperCase();
 
@@ -455,7 +452,6 @@ const Assets = {
             // A-Z defaults to 'spacing'
         };
 
-        // Helper to get advance width for a specific char
         const getAdvance = (char) => {
             if (char === ' ') return spaceWidth;
             if (charWidths[char] !== undefined) return charWidths[char] * scale;
@@ -485,11 +481,7 @@ const Assets = {
 
             const index = chars.indexOf(char);
             if (index !== -1) {
-                // Determine centering offset for narrow chars if they are drawn from a wide cell?
                 // If the user draws the dot in the center of the 32px grid cell, and we just advance 12px,
-                // we might overlap or have large gaps.
-                // Assuming user draws "Left Aligned" in the 32px cell? Or "Centered"?
-                // Let's stick to drawing it standard.
 
                 const sx = index * frameWidth;
                 ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, destW, destH);
@@ -628,8 +620,6 @@ const Assets = {
         ctx.save();
         ctx.translate(x, y);
         // Use default 'repeat' as the specific direction repeat (repeat-x/y) is rarely needed if we fillRect correctly?
-        // Actually, createPattern supports 'repeat', 'repeat-x', 'repeat-y', 'no-repeat'.
-        // For 'horizontal' tiling, 'repeat-x' is safer? 
         // Existing code used 'repeat'. Stick to 'repeat' as fillRect limits the area anyway.
         const ptrn = this.getPattern(ctx, img, 'repeat');
         ctx.fillStyle = ptrn;
@@ -642,10 +632,10 @@ const Assets = {
      */
     drawWindow: function (ctx, x, y, w, h) {
         ctx.save();
-        // 1. Frame
+        // Frame
         this.drawUIFrame(ctx, x, y, w, h);
 
-        // 2. Inner Dimmer (Standard 4px border)
+        // Inner Dimmer (Standard 4px border)
         const border = 4;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
@@ -659,18 +649,18 @@ const Assets = {
     drawButton: function (ctx, x, y, w, h, label, isSelected, options = {}) {
         ctx.save();
 
-        // 1. Frame (Optional)
+        // Frame (Optional)
         if (!options.noBorder) {
             this.drawUIFrame(ctx, x, y, w, h);
 
             // Fallback: If UI Frame assets missing, draw a border
             if (!this.get('ui/frame/corner-lefttop.png')) {
-                ctx.strokeStyle = 'white';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
                 ctx.strokeRect(x, y, w, h);
             }
         }
 
-        // 2. Inner Dimmer / Highlight
+        // Inner Dimmer / Highlight
         if (isSelected) {
             // Selected: Pink highlight
             ctx.fillStyle = options.cursorColor || 'rgba(255, 105, 180, 0.5)';
@@ -681,8 +671,8 @@ const Assets = {
             ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
         }
 
-        // 3. Text
-        ctx.fillStyle = isSelected ? '#FFFF00' : 'white';
+        // Text
+        ctx.fillStyle = isSelected ? 'rgba(255, 255, 0, 1)' : 'rgba(255, 255, 255, 1)';
         // Use Global FONTS if available, otherwise fallback
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
         ctx.font = options.font || `bold 16px ${fontName}`;

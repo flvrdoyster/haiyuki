@@ -74,7 +74,7 @@ const BattleDialogue = {
         const conf = BattleConfig.DIALOGUE;
         const bubbleImg = Assets.get(conf.bubblePath);
 
-        // 1. Setup Canvas
+        // Setup Canvas
         const w = bubbleImg ? bubbleImg.width : 200;
         const h = bubbleImg ? bubbleImg.height : 100;
 
@@ -85,7 +85,7 @@ const BattleDialogue = {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, w, h); // Clear previous
 
-        // 2. Draw Bubble
+        // Draw Bubble
         if (bubbleImg) {
             if (owner === 'CPU') {
                 // CPU: Rotate 180
@@ -100,15 +100,15 @@ const BattleDialogue = {
             }
         } else {
             // Fallback
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = 'black';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
             ctx.strokeRect(0, 0, w, h);
         }
 
-        // 3. Draw Text
+        // Draw Text
         ctx.font = conf.font;
-        ctx.fillStyle = conf.color || 'black';
+        ctx.fillStyle = conf.color || 'rgba(0, 0, 0, 1)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -130,7 +130,7 @@ const BattleDialogue = {
             ctx.fillText(line, startX, startY + i * lineHeight);
         });
 
-        // 4. Create a specific Image/Canvas for this state to avoid shared canvas overwrite
+        // Create a specific Image/Canvas for this state to avoid shared canvas overwrite
         // PROBLEM: _cacheCanvas is shared. If we return it, P1 will be overwritten by CPU gen.
         // FIX: Create a new canvas copy for the state.
         const outputCanvas = document.createElement('canvas');

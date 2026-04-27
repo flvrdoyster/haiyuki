@@ -271,7 +271,7 @@ const EncounterScene = {
             return;
         }
 
-        // 1. Tiled Background
+        // Tiled Background
         const bg = Assets.get('bg/CHRBAK.png');
         if (bg) {
             const pattern = ctx.createPattern(bg, 'repeat');
@@ -279,7 +279,7 @@ const EncounterScene = {
             ctx.fillRect(0, 0, 640, 480);
         }
 
-        // 2. Portraits & Highlighting
+        // Portraits & Highlighting
         const currentLine = this.dialogueSequence[this.currentLineIndex] || {};
 
         const p1Char = this.characters[this.playerIndex];
@@ -347,7 +347,7 @@ const EncounterScene = {
 
         ctx.globalAlpha = 1.0; // Reset
 
-        // 3. VS Logo (Hide in Ending Mode)
+        // VS Logo (Hide in Ending Mode)
         if (this.mode !== 'ENDING' && this.mode !== 'ENDING_WATCH') {
             const vs = Assets.get('ui/vs.png');
             if (vs) {
@@ -355,10 +355,10 @@ const EncounterScene = {
             }
         }
 
-        // 4. Names
+        // Names
         ctx.save();
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
         ctx.lineWidth = EncounterLayout.NAME.strokeWidth;
         ctx.font = EncounterLayout.NAME.font;
 
@@ -367,7 +367,7 @@ const EncounterScene = {
         const p1Name = p1Char.name;
         const nameY = EncounterLayout.NAME.y; // Moved up from 380
         ctx.strokeText(p1Name, EncounterLayout.NAME.xPadding, nameY);
-        ctx.fillStyle = (speakerSide === 'p1') ? '#AAAAFF' : '#888888'; // Highlight text color
+        ctx.fillStyle = (speakerSide === 'p1') ? 'rgba(170, 170, 255, 1)' : 'rgba(136, 136, 136, 1)'; // Highlight text color
         ctx.fillText(p1Name, EncounterLayout.NAME.xPadding, nameY);
 
         // CPU Name
@@ -375,12 +375,12 @@ const EncounterScene = {
         const cpuName = cpuChar.name;
         const rightX = 640 - EncounterLayout.NAME.xPadding;
         ctx.strokeText(cpuName, rightX, nameY);
-        ctx.fillStyle = (speakerSide === 'cpu') ? '#FF8888' : '#888888';
+        ctx.fillStyle = (speakerSide === 'cpu') ? 'rgba(255, 136, 136, 1)' : 'rgba(136, 136, 136, 1)';
         ctx.fillText(cpuName, rightX, nameY);
         ctx.restore();
 
 
-        // 5. Dialogue Box & Text
+        // Dialogue Box & Text
         const box = Assets.get('ui/long_bubble.png');
         const tail = Assets.get('ui/long_bubble_tail.png');
 
@@ -419,12 +419,12 @@ const EncounterScene = {
                 }
             }
 
-            // 6. Text
+            // Text
             ctx.save();
             ctx.font = EncounterLayout.DIALOGUE.text.font;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic'; // Reset baseline to ensure consistency
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
 
             if (currentLine.text) {
                 const text = currentLine.text;
@@ -471,14 +471,14 @@ const EncounterScene = {
         const w = 640;
         const h = 480;
 
-        // 1. Background
+        // Background
         const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
         if (bg) {
             const pattern = ctx.createPattern(bg, 'repeat');
             ctx.fillStyle = pattern;
             ctx.fillRect(0, 0, w, h);
         } else {
-            ctx.fillStyle = '#222';
+            ctx.fillStyle = 'rgba(34, 34, 34, 1)';
             ctx.fillRect(0, 0, w, h);
         }
 
@@ -494,8 +494,8 @@ const EncounterScene = {
 
         // Name "???"
         ctx.save();
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
         ctx.lineWidth = ChallengerConfig.UNKNOWN.NAME.strokeWidth;
         ctx.font = ChallengerConfig.UNKNOWN.NAME.font;
         ctx.textAlign = 'right';

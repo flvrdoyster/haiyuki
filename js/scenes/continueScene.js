@@ -1,5 +1,5 @@
 const ContinueConfig = {
-    BG_COLOR: 'black',
+    BG_COLOR: 'rgba(0, 0, 0, 1)',
     BG_IMAGE: 'bg/OVERBAK.png',
     BG_OVERLAY: 'rgba(0, 0, 0, 0.3)',
     TITLE: {
@@ -26,7 +26,7 @@ const ContinueConfig = {
         text: "진 엔딩 조건을 달성할 수 없습니다.",
         x: 320, y: 440,
         font: `16px ${FONTS.regular}`,
-        color: '#555'
+        color: 'rgba(85, 85, 85, 1)'
     },
 
 };

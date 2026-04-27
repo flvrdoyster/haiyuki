@@ -57,12 +57,12 @@ class PortraitCharacter {
 
         // --- OPTIMIZATION: Defaults & Auto-Generation ---
 
-        // 1. Scalar Defaults
+        // Scalar Defaults
         if (!this.animConfig.interval) this.animConfig.interval = BattleConfig.ANIMATION.BLINK_INTERVAL;
         if (!this.animConfig.speed) this.animConfig.speed = BattleConfig.ANIMATION.BLINK_SPEED;
         if (!this.animConfig.talkSpeed) this.animConfig.talkSpeed = BattleConfig.ANIMATION.TALK_SPEED;
 
-        // 2. Asset Auto-Generation
+        // Asset Auto-Generation
         if (this.animConfig.base) {
             const base = this.animConfig.base;
             const prefix = base.replace('_base.png', '');
@@ -236,8 +236,8 @@ class PortraitCharacter {
         const scale = this.config.scale || 1.0;
         const globalBaseW = BattleConfig.PORTRAIT.baseW || 264;
 
-        // 1. Determine Frame Width (Auto-Slice logic embedded here to avoid double lookup)
-        // 1. Determine Frame Width (Auto-Slice logic embedded here to avoid double lookup)
+        // Determine Frame Width (Auto-Slice logic embedded here to avoid double lookup)
+        // Determine Frame Width (Auto-Slice logic embedded here to avoid double lookup)
         // Check cache
         if (!this._sheetCache.has(baseImg)) {
             // Cache logic
@@ -250,11 +250,11 @@ class PortraitCharacter {
         const frameW = isSheet ? (baseImg.width / 2) : baseImg.width;
         const frameH = baseImg.height;
 
-        // 2. Calculate Dims
+        // Calculate Dims
         const destW = frameW * scale;
         const destH = frameH * scale;
 
-        // 3. Calculate Position
+        // Calculate Position
         let dx = Math.floor(this.config.x);
         let dy = Math.floor(this.config.y);
 
@@ -262,7 +262,7 @@ class PortraitCharacter {
             dx -= destW;
         }
 
-        // 4. Apply Offsets
+        // Apply Offsets
         if (this.animConfig) {
             dx += (this.animConfig.xOffset || 0);
             dy += (this.animConfig.yOffset || 0);

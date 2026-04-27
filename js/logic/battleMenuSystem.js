@@ -10,14 +10,8 @@ const BattleMenuSystem = {
     },
 
     constructMenu: function () {
-        // Construct Dynamic Battle Menu based on Config
         this.menuItems = [];
         const layout = BattleConfig.BATTLE_MENU.layout;
-
-        // Access player data via engine
-        // We need to resolve p1Data similar to how Engine did it, 
-        // or Engine should pass p1Data to init? 
-        // Engine init happens first. We can access CharacterData using engine.playerIndex
 
         const p1Data = CharacterData.find(c => c.index === this.engine.playerIndex) || CharacterData[this.engine.playerIndex];
 
@@ -27,11 +21,8 @@ const BattleMenuSystem = {
                     p1Data.skills.forEach(skillId => {
                         const skill = SkillData[skillId];
                         if (skill) {
-                            // Check Global Rule
                             const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
-                            // Check Engine Validation
                             const canUse = this.engine.canUseSkill(skillId, 'P1');
-
                             const isDisabled = !rulesEnabled || !canUse;
 
                             this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
@@ -48,7 +39,7 @@ const BattleMenuSystem = {
         if (this.engine.currentState === this.engine.STATE_BATTLE_MENU) {
             this.engine.currentState = this.lastStateBeforeMenu || this.engine.STATE_PLAYER_TURN;
         } else {
-            this.constructMenu(); // Refresh validation
+            this.constructMenu();
             this.lastStateBeforeMenu = this.engine.currentState;
             this.engine.currentState = this.engine.STATE_BATTLE_MENU;
             this.selectedMenuIndex = 0;
@@ -66,7 +57,6 @@ const BattleMenuSystem = {
                 const isHidden = yakuContainer.classList.contains('hidden');
                 yakuContainer.classList.toggle('hidden');
 
-                // Sync toolbar button state
                 const yakuBtn = document.getElementById('yaku-btn');
                 if (yakuBtn) {
                     yakuBtn.classList.remove('toggle-on', 'toggle-off');
@@ -74,7 +64,6 @@ const BattleMenuSystem = {
                 }
 
                 if (isHidden) {
-                    // Reload iframe src to force scroll to anchor
                     const iframe = document.getElementById('yaku-frame');
                     if (iframe) {
                         iframe.src = iframe.src;
@@ -84,47 +73,38 @@ const BattleMenuSystem = {
                 window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
             }
         } else if (selectedId === 'AUTO') {
-            if (this.lastStateBeforeMenu !== this.engine.STATE_PLAYER_TURN) {
-                // Optional: Play error sound
-            } else {
-                this.toggle(); // Close menu
+            if (this.lastStateBeforeMenu === this.engine.STATE_PLAYER_TURN) {
+                this.toggle();
                 this.engine.performAutoTurn();
-                return; // Prevent double toggle
+                return;
             }
         } else if (selectedId === 'RESTART') {
-            // Restart Round Strategy - Show in-game confirmation
-            // Restart Round Strategy - Show Local Confirmation
             if (this.engine.scene && this.engine.scene.showConfirm) {
                 this.engine.scene.showConfirm(
                     '정말로 이 라운드를 다시 시작할까요?',
                     () => {
-                        this.toggle(); // Close menu
+                        this.toggle();
                         this.engine.startRound();
                     },
                     () => {
-                        this.toggle(); // Close menu
+                        this.toggle();
                     }
                 );
             } else {
-                // Fallback if scene not linked
                 this.toggle();
                 this.engine.startRound();
             }
-            return; // Don't auto-close menu, let dialog handle it
+            return;
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
-                // Play error sound?
-                return; // Do not close menu
+                return;
             }
 
-            // User Request: No confirmation for battle menu skills
-            this.toggle(); // Close menu
+            this.toggle();
             this.engine.useSkill(selectedId);
-            return; // Exit
+            return;
         }
 
         this.toggle();
     }
 };
-
-

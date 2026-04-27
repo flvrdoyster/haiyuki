@@ -9,8 +9,6 @@ const TitleConfig = {
     }
 };
 
-// Helper: Calculate Confirm Layout (Ported from BattleScene)
-// Ideally this should be in Assets or a Shared Utils, but for now we duplicate efficiently
 function getConfirmLayout(msg) {
     const conf = BattleConfig.CONFIRM || {
         minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
@@ -39,13 +37,12 @@ function getConfirmLayout(msg) {
     boxH = Math.max(boxH, conf.minHeight);
 
     const boxX = (640 - boxW) / 2;
-    const boxY = (240 - boxH / 2); // Center Y
+    const boxY = (240 - boxH / 2);
 
     const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
     const totalBtnW = (conf.buttonWidth * 2) + conf.buttonGap;
     const startBtnX = 320 - (totalBtnW / 2);
 
-    // Reverse button order? Battle uses YES (Left), NO (Right)
     const yesBtn = { x: startBtnX, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
     const noBtn = { x: startBtnX + conf.buttonWidth + conf.buttonGap, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
 
@@ -59,7 +56,6 @@ function getConfirmLayout(msg) {
 }
 
 const TitleScene = {
-    // States
     STATE_PRESS_KEY: 0,
     STATE_MODE_SELECT: 1,
 
@@ -67,7 +63,7 @@ const TitleScene = {
     blinkTimer: 0,
     showPushKey: true,
 
-    menuIndex: 0, // 0: Start, 1: Watch
+    menuIndex: 0,
     pointerTimer: 0,
 
     init: function () {
@@ -77,20 +73,15 @@ const TitleScene = {
         this.menuIndex = 0;
         this.pointerTimer = 0;
 
-        // Local Confirm State
         this.confirmActive = false;
-        this.confirmSelected = 0; // 0:YES, 1:NO
-        this.confirmTimer = 0;
+        this.confirmSelected = 0;
         this.confirmTimer = 0;
 
-        // Start BGM
-        // Start BGM
         Assets.playMusic('audio/bgm_title');
     },
 
     update: function (dt = 1.0) {
         dt = dt || 1.0;
-        // Update Local Confirm Dialog
         if (this.confirmActive) {
             this.updateConfirm(dt);
             return;
@@ -98,23 +89,19 @@ const TitleScene = {
 
         this.blinkTimer += dt;
         this.pointerTimer += dt;
-        if (this.blinkTimer > 40) { // Slower blink
+        if (this.blinkTimer > 40) {
             this.showPushKey = !this.showPushKey;
             this.blinkTimer = 0;
         }
 
         if (this.currentState === this.STATE_PRESS_KEY) {
-            // Space to start
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.currentState = this.STATE_MODE_SELECT;
-                // Game.changeScene(CharacterSelectScene);
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
-            // Mouse Interaction Logic
             const mx = Input.mouseX;
             const my = Input.mouseY;
 
-            // Helper to check bounds
             const checkHover = (text, y, index) => {
                 const w = text.length * 32;
                 const h = 32;
@@ -146,21 +133,17 @@ const TitleScene = {
 
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 if (this.menuIndex === 0) {
-                    // Battle
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
                 } else if (this.menuIndex === 1) {
-                    // Story Only
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (this.menuIndex === 2) {
-                    // Reset Save Data 
                     this.confirmActive = true;
-                    this.confirmSelected = 1; // Default to NO for safety
-                    this.confirmTimer = 10; // Cooldown
+                    this.confirmSelected = 1;
+                    this.confirmTimer = 10;
                 }
             }
-
         }
     },
 
@@ -173,7 +156,6 @@ const TitleScene = {
         const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
         const layout = getConfirmLayout(message);
 
-        // --- Mouse Interaction ---
         const mx = Input.mouseX;
         const my = Input.mouseY;
 
@@ -186,11 +168,10 @@ const TitleScene = {
         if (isOverYes) {
             if (Input.hasMouseMoved()) this.confirmSelected = 0;
             if (Input.isMouseJustPressed()) {
-                // YES - Reset Data
                 Game.saveData = { unlocked: [], clearedOpponents: [] };
                 Game.continueCount = 0;
                 Game.save();
-                Assets.playSound('audio/riichi'); // Feedback sound
+                Assets.playSound('audio/riichi');
                 console.log("Save Data Reset");
                 this.confirmActive = false;
                 return;
@@ -203,43 +184,36 @@ const TitleScene = {
             }
         }
 
-        // Left/Right or Up/Down to toggle
         if (Input.isJustPressed(Input.LEFT) || Input.isJustPressed(Input.RIGHT) ||
             Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
             this.confirmSelected = (this.confirmSelected === 0) ? 1 : 0;
         }
 
-        // Confirm
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
             if (this.confirmSelected === 0) {
-                // YES - Reset Data
                 Game.saveData = { unlocked: [], clearedOpponents: [] };
                 Game.continueCount = 0;
                 Game.save();
-                Assets.playSound('audio/riichi'); // Feedback sound
+                Assets.playSound('audio/riichi');
                 console.log("Save Data Reset");
             }
-            this.confirmActive = false; // Close dialog
+            this.confirmActive = false;
         }
 
-        // Cancel
         if (Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)) {
             this.confirmActive = false;
         }
     },
 
     draw: function (ctx) {
-        // 1. Background
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, 640, 480);
 
-        // 2. Title
         const title = Assets.get(TitleConfig.TITLE.path);
         if (title) {
             ctx.drawImage(title, (640 - title.width) / 2, TitleConfig.TITLE.y);
         }
 
-        // 3. Press Key or Menu
         if (this.currentState === this.STATE_PRESS_KEY) {
             if (this.showPushKey) {
                 const push = Assets.get(TitleConfig.PUSH_KEY.path);
@@ -248,27 +222,21 @@ const TitleScene = {
                 }
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
-            // Draw Retro Font Menu
-
-            // Item 1: BATTLE MODE
             const text1 = TitleConfig.MENU.ITEM1.text;
             const color1 = (this.menuIndex === 0) ? 'yellow' : 'orange';
             const x1 = (640 - (text1.length * 32)) / 2;
             Assets.drawAlphabet(ctx, text1, x1, TitleConfig.MENU.ITEM1.y, color1);
 
-            // Item 2: STORY ONLY
             const text2 = TitleConfig.MENU.ITEM2.text;
             const color2 = (this.menuIndex === 1) ? 'yellow' : 'orange';
             const x2 = (640 - (text2.length * 32)) / 2;
             Assets.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
 
-            // Item 3: RESET SAVE DATA
             const text3 = TitleConfig.MENU.ITEM3.text;
             const color3 = (this.menuIndex === 2) ? 'yellow' : 'orange';
             const x3 = (640 - (text3.length * 32)) / 2;
             Assets.drawAlphabet(ctx, text3, x3, TitleConfig.MENU.ITEM3.y, color3);
 
-            // Draw Pointer
             let targetText, targetY, targetX;
             if (this.menuIndex === 0) {
                 targetText = text1;
@@ -282,23 +250,18 @@ const TitleScene = {
             }
             targetX = (640 - (targetText.length * 32)) / 2;
 
-            // Pointer Animation
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
-            // Draw to the left of the text
             Assets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
         }
 
-        // 4. Copyright
         const copy = Assets.get(TitleConfig.COPYRIGHT.path);
         if (copy) {
             ctx.drawImage(copy, (640 - copy.width) / 2, TitleConfig.COPYRIGHT.y);
         }
 
-        // 5. Local Confirmation Dialog (drawn on top)
         if (this.confirmActive) {
             this.drawConfirm(ctx);
         }
-
     },
 
     drawConfirm: function (ctx) {
@@ -306,15 +269,12 @@ const TitleScene = {
         const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
         const layout = getConfirmLayout(message);
 
-        // 1. Dimmer (Full Screen)
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
-        // 2. Dialog Box
         Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
-        // 3. Message Text
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
         const conf = BattleConfig.CONFIRM || {};
         ctx.font = conf.font || `20px ${fontName}`;
@@ -324,18 +284,13 @@ const TitleScene = {
             ctx.fillText(line, 320, layout.text.startY + (i * layout.text.lineHeight));
         });
 
-        // 4. Buttons
         const yes = layout.yesBtn;
         const no = layout.noBtn;
 
-        // Use BattleConfig Labels: '그래', '아니' based on user request (which matched Config default)
         const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
         const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
 
-        // Draw YES Button
         Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, this.confirmSelected === 0, { noBorder: true });
-
-        // Draw NO Button
         Assets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, this.confirmSelected === 1, { noBorder: true });
 
         ctx.restore();

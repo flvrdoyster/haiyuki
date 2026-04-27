@@ -14,7 +14,17 @@ body {
     padding: 20px;
 
     /* Visual */
-    background-color: #222;
+    background-color: rgba(34, 34, 34, 1);
+    color: rgba(255, 255, 255, 1);
+}
+
+a {
+    color: rgba(136, 204, 255, 1);
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgba(255, 255, 255, 1);
 }
 
 #main-wrapper {
@@ -79,7 +89,7 @@ body {
     /* Typography */
     font-family: 'KoddiUDOnGothic', sans-serif;
     font-size: 18px;
-    color: white;
+    color: rgba(255, 255, 255, 1);
 }
 
 .toolbar-btn {
@@ -120,7 +130,7 @@ canvas {
     display: block;
 
     /* Visual */
-    background-color: #000;
+    background-color: rgba(0, 0, 0, 1);
     image-rendering: pixelated;
 
     width: 100%;
@@ -139,10 +149,10 @@ canvas {
     /* Box Model */
     width: 380px;
     height: 480px;
-    border: 1px solid #444;
+    border: 1px solid rgba(68, 68, 68, 1);
 
     /* Visual */
-    background: #f0f0f0;
+    background: rgba(240, 240, 240, 1);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -159,7 +169,7 @@ canvas {
     border: none;
 
     /* Visual */
-    background: white;
+    background: rgba(255, 255, 255, 1);
 }
 
 #game-container:fullscreen {
@@ -173,7 +183,7 @@ canvas {
     height: 100vh;
 
     /* Visual */
-    background-color: #000;
+    background-color: rgba(0, 0, 0, 1);
 }
 
 #game-container:fullscreen canvas {
@@ -192,7 +202,7 @@ canvas {
     width: 100vw !important;
     height: 100vh !important;
     z-index: 9999;
-    background: black;
+    background: rgba(0, 0, 0, 1);
     margin: 0 !important;
     padding: 0 !important;
     border-radius: 0 !important;
@@ -211,7 +221,7 @@ hr {
     width: 100%;
     margin: 20px 0 10px 0;
     border: none;
-    border-top: 1px solid #444;
+    border-top: 1px solid rgba(68, 68, 68, 1);
 }
 
 

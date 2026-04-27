@@ -46,8 +46,8 @@ const EndingScene = {
     },
 
     draw: function (ctx) {
-        // Clear screen (black)
-        ctx.fillStyle = '#000000';
+        // Clear screen (rgba(0, 0, 0, 1))
+        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, 640, 480);
 
         // Draw Ending Image
@@ -67,7 +67,7 @@ const EndingScene = {
             ctx.drawImage(img, (640 - w) / 2, (480 - h) / 2 - 20, w, h);
         } else {
             console.log("Missing ending image: " + this.endingImageKey);
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.textAlign = 'center';
             ctx.fillText("ENDING (Image Missing)", 320, 240);
         }
@@ -100,8 +100,8 @@ const EndingScene = {
             console.log("TRUE ENDING PATH TRIGGERED!");
             // Transition to Mayu Encounter
             // Transition to Mayu Encounter
-            // 1. Encounter Scene
-            // 2. Battle Scene
+            // Encounter Scene
+            // Battle Scene
 
             // We need Mayu's index.
             const mayu = CharacterData.find(c => c.id === 'mayu');

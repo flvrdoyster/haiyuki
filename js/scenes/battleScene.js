@@ -88,8 +88,8 @@ const BattleScene = {
 
         let i = 0;
         // Simple queue scan:
-        // 1. Audio -> Play & Remove
-        // 2. Visual -> Check Blocking. If blocked, skip (i++). If not, Play & Remove.
+        // Audio -> Play & Remove
+        // Visual -> Check Blocking. If blocked, skip (i++). If not, Play & Remove.
         while (i < engine.events.length) {
             try {
                 const evt = engine.events[i];
@@ -634,15 +634,15 @@ const BattleScene = {
 
         ctx.save();
 
-        // 1. Dimmer
+        // Dimmer
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
-        // 2. Dialog Box
+        // Dialog Box
         Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
-        // 3. Message Text
-        ctx.fillStyle = 'white';
+        // Message Text
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
         const conf = BattleConfig.CONFIRM || {}; // Fallback if undefined? Should be defined
         ctx.font = conf.font || `20px ${fontName}`;
@@ -657,7 +657,7 @@ const BattleScene = {
             ctx.fillText(line, 320, currentY + (i * layout.text.lineHeight));
         });
 
-        // 4. Buttons
+        // Buttons
         const yes = layout.yesBtn;
         const no = layout.noBtn;
 

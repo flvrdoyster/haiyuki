@@ -128,17 +128,17 @@ const YakuLogic = {
         if (!config) return key; // Fallback to key
         if (typeof config === 'string') return config; // Simple string
 
-        // 1. Check Character Specific
+        // Check Character Specific
         if (charId && config[charId]) {
             return config[charId];
         }
 
-        // 2. Check Color/Variant Specific
+        // Check Color/Variant Specific
         if (meta && meta.color && config[meta.color]) {
             return config[meta.color];
         }
 
-        // 3. Fallback
+        // Fallback
         return config.default || key;
     },
 
@@ -179,8 +179,8 @@ const YakuLogic = {
         if (!c9) return false;
 
         // Valid if:
-        // 1. That pile implies 12 (count >= 12)
-        // 2. Or there exists another pile with count >= 3
+        // That pile implies 12 (count >= 12)
+        // Or there exists another pile with count >= 3
         if (c9.count >= 12) return true;
 
         return Object.values(a.counts).some(c => c !== c9 && c.count >= 3);

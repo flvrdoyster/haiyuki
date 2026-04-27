@@ -6,7 +6,7 @@ const FONTS = {
 
 const BattleConfig = {
     // ----------------------------------------------------------------
-    // 1. Core Settings
+    // Core Settings
     // ----------------------------------------------------------------
     GAME_ID: 'HAIYUKI_WEB',
     SCREEN: {
@@ -38,9 +38,9 @@ const BattleConfig = {
     },
 
     // ----------------------------------------------------------------
-    // 2. Visuals & Animation
+    // Visuals & Animation
     // ----------------------------------------------------------------
-    UI_BG: { path: 'bg/GAMEBG.png', color: '#225522' },
+    UI_BG: { path: 'bg/GAMEBG.png', color: 'rgba(34, 85, 34, 1)' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {
         P1: { x: -34, y: 60, scale: 1, align: 'left' },
@@ -73,7 +73,7 @@ const BattleConfig = {
     },
 
     // ----------------------------------------------------------------
-    // 3. Table Elements
+    // Table Elements
     // ----------------------------------------------------------------
     HAND: {
         playerY: 410,     // Unified Player Hand Y Position
@@ -87,8 +87,8 @@ const BattleConfig = {
         sectionGap: 10,   // Gap between Hand and Open Sets
 
         hoverYOffset: -10,
-        hoverColor: '#ffaa00',
-        hoverColors: ['#ffaa00', '#9cc041', '#b4dcff'],
+        hoverColor: 'rgba(255, 170, 0, 1)',
+        hoverColors: ['rgba(255, 170, 0, 1)', 'rgba(156, 192, 65, 1)', 'rgba(180, 220, 255, 1)'],
         hoverBlinkSpeed: 8,
         hoverWidth: 3
     },
@@ -118,20 +118,20 @@ const BattleConfig = {
     },
 
     // ----------------------------------------------------------------
-    // 4. UI / HUD
+    // UI / HUD
     // ----------------------------------------------------------------
     NAME_DISPLAY: {
         font: `bold 28px ${FONTS.bold}`,
-        color: '#4848c7', // Text fill color
-        stroke: 'white', // Text border color
+        color: 'rgba(72, 72, 199, 1)', // Text fill color
+        stroke: 'rgba(255, 255, 255, 1)', // Text border color
         strokeWidth: 3,
         P1: { x: 10, y: 324, align: 'left' },
         CPU: { x: 630, y: 324, align: 'right' }
     },
     BUFF_DISPLAY: {
         font: `bold 16px ${FONTS.bold}`,
-        color: '#4848c7',
-        stroke: 'white',
+        color: 'rgba(72, 72, 199, 1)',
+        stroke: 'rgba(255, 255, 255, 1)',
         strokeWidth: 2,
         P1: { offsetX: 6, offsetY: -4 }, // Gap from Name's end
         CPU: { offsetX: 6, offsetY: -4 },
@@ -167,7 +167,7 @@ const BattleConfig = {
     DIALOGUE: {
         bubblePath: 'ui/short_bubble.png',
         font: `18px ${FONTS.regular}`,
-        color: 'white',
+        color: 'rgba(255, 255, 255, 1)',
         lineHeight: 20, // Added for multi-line support
         life: 120,      // Duration in frames
         replyDelay: 0, // Response delay (ticks)
@@ -198,7 +198,7 @@ const BattleConfig = {
     },
 
     // ----------------------------------------------------------------
-    // 5. Menus & Interaction
+    // Menus & Interaction
     // ----------------------------------------------------------------
     ACTION: {
         // Menu Layout
@@ -215,10 +215,10 @@ const BattleConfig = {
 
         // Colors (Match Battle Menu)
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
-        textDefault: 'white',
-        textSelected: '#FFFF00',
-        stroke: 'white',
-        border: 'white',
+        textDefault: 'rgba(255, 255, 255, 1)',
+        textSelected: 'rgba(255, 255, 0, 1)',
+        stroke: 'rgba(255, 255, 255, 1)',
+        border: 'rgba(255, 255, 255, 1)',
 
         // Colors
         colors: {
@@ -233,7 +233,7 @@ const BattleConfig = {
         font: `bold 16px ${FONTS.bold}`,
         dimmer: 'rgba(0, 0, 0, 0.5)',
         cursor: 'rgba(255, 105, 180, 0.5)',
-        textColor: 'white'
+        textColor: 'rgba(255, 255, 255, 1)'
     },
     BATTLE_MENU: {
         w: 140,
@@ -241,8 +241,8 @@ const BattleConfig = {
         x: 500, // 640 - 140
         y: 330, // 480 - 150
         font: `bold 16px ${FONTS.bold}`,
-        textDefault: 'white',
-        textSelected: '#FFFF00',
+        textDefault: 'rgba(255, 255, 255, 1)',
+        textSelected: 'rgba(255, 255, 0, 1)',
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
         dimmer: 'rgba(0, 0, 0, 0.5)',
         padding: 2, // Increased padding for 9-slice look
@@ -315,7 +315,7 @@ const BattleConfig = {
 
 
     // ----------------------------------------------------------------
-    // 6. Audio
+    // Audio
     // ----------------------------------------------------------------
     AUDIO: {
         // Generic Battle Sounds
@@ -339,13 +339,13 @@ const BattleConfig = {
     SOUNDS: {},
 
     // ----------------------------------------------------------------
-    // 7. Result Screen
+    // Result Screen
     // ----------------------------------------------------------------
     RESULT: {
         // --- Window Configuration ---
         x: 120, y: 90, w: 400, h: 300,
         windowColor: 'rgba(0, 0, 0, 0.85)',
-        borderColor: 'white',
+        borderColor: 'rgba(255, 255, 255, 1)',
         borderWidth: 2,
 
         // --- Title Configuration ---
@@ -371,30 +371,30 @@ const BattleConfig = {
         infoFont: `24px ${FONTS.regular}`,
 
         // --- Colors ---
-        yakuColor: 'white',
-        scoreColor: '#FFD700', // Gold
-        resultColor: 'white',  // Legacy/Fallback
-        subColor: '#FFFF00',   // Legacy/Fallback
-        infoColor: 'white',    // Legacy/Fallback
+        yakuColor: 'rgba(255, 255, 255, 1)',
+        scoreColor: 'rgba(255, 215, 0, 1)', // Gold
+        resultColor: 'rgba(255, 255, 255, 1)',  // Legacy/Fallback
+        subColor: 'rgba(255, 255, 0, 1)',   // Legacy/Fallback
+        infoColor: 'rgba(255, 255, 255, 1)',    // Legacy/Fallback
 
         // --- Type Specific Configuration ---
         TYPES: {
             WIN: {
                 title: "승!",
                 text: "{yaku}\n데미지: {score}",
-                color: "white",
+                color: "rgba(255, 255, 255, 1)",
                 sound: "audio/fanfare" // Configurable Sound
             },
             LOSE: {
                 title: "패!",
                 text: "{yaku}\n데미지: -{score}",
-                color: "white",
+                color: "rgba(255, 255, 255, 1)",
                 sound: "audio/lose" // Configurable Sound
             },
             NAGARI: {
                 title: "무승부!",
                 text: "플레이어: {p1Status} / 상대: {cpuStatus}\n{damageMsg}",
-                color: "white",
+                color: "rgba(255, 255, 255, 1)",
                 sound: "audio/wrong" // Configurable Sound
             },
             MATCH_WIN: {
@@ -414,13 +414,13 @@ const BattleConfig = {
         // Bonus Display Configuration
         BONUS: {
             font: `bold 20px ${FONTS.bold}`,
-            color: 'white',
+            color: 'rgba(255, 255, 255, 1)',
             lineHeight: 32    // Match main list
         }
     },
 
     // ----------------------------------------------------------------
-    // 8. Data & Texts
+    // Data & Texts
     // ----------------------------------------------------------------
     // Yaku Names for Configuration
     YAKU_NAMES: {
@@ -501,12 +501,12 @@ const BattleConfig = {
     },
 
     FALLBACK: {
-        tileBg: '#EEE',
+        tileBg: 'rgba(238, 238, 238, 1)',
         tileTextFont: `bold 12px ${FONTS.bold}`,
-        cardBackBg: '#B22222',
-        cardBackStroke: '#FFFFFF',
-        cardBackPattern: '#880000',
-        unknownBg: '#444',
-        unknownStroke: '#888'
+        cardBackBg: 'rgba(178, 34, 34, 1)',
+        cardBackStroke: 'rgba(255, 255, 255, 1)',
+        cardBackPattern: 'rgba(136, 0, 0, 1)',
+        unknownBg: 'rgba(68, 68, 68, 1)',
+        unknownStroke: 'rgba(136, 136, 136, 1)'
     }
 };

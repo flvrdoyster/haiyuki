@@ -37,11 +37,11 @@ const AILogic = {
         for (let i = 0; i < hand.length; i++) {
             const tile = hand[i];
 
-            // 1. Simulate Discard
+            // Simulate Discard
             const remainingHand = [...hand];
             remainingHand.splice(i, 1);
 
-            // 2. Calculate Potential of Remaining Hand
+            // Calculate Potential of Remaining Hand
             // We want to MAXIMIZE the potential of what's left.
             // Pass modifiers to calculation if needed, or apply here.
             // Currently calculateHandPotential uses hardcoded weights, let's inject modifier there or wrap it.
@@ -52,7 +52,7 @@ const AILogic = {
             const potential = this.calculateHandPotential(remainingHand, profile, doras, doraModifier);
             let score = potential;
 
-            // 3. Defense Logic (If Opponent Riichi)
+            // Defense Logic (If Opponent Riichi)
             // If Riichi, we prioritise SAFETY over potential.
             if (opponentRiichi && defenseModifier > 0) {
                 const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
@@ -65,7 +65,7 @@ const AILogic = {
                 }
             }
 
-            // 4. Synergies with already discarded tiles? (Genbutsu logic is above)
+            // Synergies with already discarded tiles? (Genbutsu logic is above)
             // If we have 3, and we discard 1, we are left with Pair.
             // If we have 1, and discard 1, we are left with 0. 
             // Potential calc handles this.
@@ -101,7 +101,7 @@ const AILogic = {
         const counts = analysis.counts;
         let score = 0;
 
-        // 1. Set Efficiency (Speed)
+        // Set Efficiency (Speed)
         // Prefer Pairs (2) and Triplets (3+).
         // Heavily penalize Singles (1).
 
@@ -118,7 +118,7 @@ const AILogic = {
             }
         });
 
-        // 2. Color Bias (Greed / Strategy)
+        // Color Bias (Greed / Strategy)
         // If colorBias is high, boost score for tiles of dominant color.
         const byColor = { red: 0, blue: 0, yellow: 0, purple: 0 };
         hand.forEach(t => {
@@ -145,7 +145,7 @@ const AILogic = {
             });
         }
 
-        // 3. Dora Bonus
+        // Dora Bonus
         if (doras && doras.length > 0 && doraModifier > 0) {
             hand.forEach(t => {
                 const isDora = doras.some(d => d.type === t.type && d.color === t.color);
@@ -155,7 +155,7 @@ const AILogic = {
             });
         }
 
-        // 4. Character Specific Synergies? (Simple heuristic from YakuLogic)
+        // Character Specific Synergies? (Simple heuristic from YakuLogic)
         // E.g. Check for Char+Weapon pairs if aggression/greed is high
 
         return score;

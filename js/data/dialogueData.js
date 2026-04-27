@@ -1,6 +1,6 @@
 const DialogueData = {
     // ----------------------------------------------------------------
-    // 1. Encounter Dialogues (Pre-Battle)
+    // Encounter Dialogues (Pre-Battle)
     // ----------------------------------------------------------------
 
     // Ataho vs Rinxiang
@@ -243,7 +243,7 @@ const DialogueData = {
     ],
 
     // ----------------------------------------------------------------
-    // 2. Ending Dialogues (Post-Battle)
+    // Ending Dialogues (Post-Battle)
     // ----------------------------------------------------------------
 
     // Ataho vs Rinxiang (Ending)
@@ -337,7 +337,7 @@ const DialogueData = {
     // but if we had them, they would go here.
 
     // ----------------------------------------------------------------
-    // 3. True Ending Dialogues (Post-Battle)
+    // True Ending Dialogues (Post-Battle)
     // ----------------------------------------------------------------
 
     // Ataho vs Mayu (True Ending)
@@ -391,7 +391,7 @@ const DialogueData = {
 
 
     // ----------------------------------------------------------------
-    // 4. Battle Dialogues (In-Game)
+    // Battle Dialogues (In-Game)
     // ----------------------------------------------------------------
     // Format: "KEY": ["Dialog Option 1", "Option 2", ...]
 

@@ -117,7 +117,6 @@ const BattleEngine = {
             blocking: options.blocking // blocking usually passed by logic context
         };
 
-        // Pass type info for View sound handling
         finalOptions.popupType = type;
 
         this.playFX(asset, conf.x, conf.y, finalOptions);
@@ -153,7 +152,6 @@ const BattleEngine = {
         if (canvas) {
             canvas.oncontextmenu = (e) => {
                 e.preventDefault();
-                // BattleMenuSystem.toggle(); // Handled by Input in BattleScene
             };
         }
 
@@ -181,7 +179,6 @@ const BattleEngine = {
 
         // Menu construction moved to BattleMenuSystem
         BattleMenuSystem.init(this);
-        // this.menuItems = []; // Removed
 
 
         if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
@@ -211,8 +208,8 @@ const BattleEngine = {
         const getAnimConfig = (charData, side) => {
             if (!charData) return null;
 
-            // 1. Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
-            // 1. Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
+            // Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
+            // Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
 
             // Auto-Detection (Standard face folder only)
             const prefix = idMap[charData.id] || charData.id.toUpperCase();
@@ -225,8 +222,6 @@ const BattleEngine = {
         };
 
         // BGM (Basic Battle Theme)
-        // BGM (Basic Battle Theme) - REMOVED: Managed by startRound() events to prevent double-play
-        // Assets.playMusic('audio/bgm_basic');
 
         this.p1Character = new PortraitCharacter(p1Data, {
             ...BattleConfig.PORTRAIT.P1,
@@ -280,7 +275,6 @@ const BattleEngine = {
     },
 
     playFX: function (type, x, y, options = {}) {
-        // Push event for BattleScene to handle
         this.events.push({
             type: 'FX',
             asset: type,
@@ -295,17 +289,14 @@ const BattleEngine = {
         const skillId = 'DORA_BOMB';
         const skill = SkillData[skillId];
 
-        // 1. Check if Character has skill (Simplified check against ID or Skills array)
+        // Check if Character has skill (Simplified check against ID or Skills array)
         if (!attacker.id || attacker.id !== 'rinxiang') return; // Specific to Rinxiang for now or check skills list
         // Better: Check known skills from CharacterData? 
-        // For performance, let's just check if they have enough MP and are the right character.
         // Actually, we should check logic:
-        // if (!this.canUseSkill(skillId, who)) return; // reusing canUseSkill might be cleaner but it checks restrictions.
 
-        // Manual Check for Reactive Trigger
         if (attacker.mp < skill.cost) return;
 
-        // 2. Logic: Find most frequent tile in hand
+        // Logic: Find most frequent tile in hand
         const hand = this.getFullHand(attacker);
         const counts = {};
         hand.forEach(tile => {
@@ -319,21 +310,15 @@ const BattleEngine = {
 
         if (sorted.length === 0) return;
 
-        // 3. Execute
+        // Execute
         this.consumeMp(who, skill.cost);
 
         // Set Ura Doras
-        // Replace ALL Ura Doras with the best tiles? Or 1-to-1?
-        // Plan said: "For each existing Ura Dora slot... Replace"
-        // Let's replace up to number of Ura Doras available.
         for (let i = 0; i < this.uraDoras.length; i++) {
             // Use best tile. If multiple Ura Doras, use best then second best? 
-            // Or just reuse best for max damage? User said "Most frequent".
-            // Let's use the absolute best tile for ALL slots for maximum destruction (Bombs away!)
             const targetTile = sorted[0].tile;
 
             // If we have enough unique tiles, maybe spread? 
-            // But 3 Doras of same type is better.
 
             this.uraDoras[i] = {
                 type: targetTile.type,
@@ -351,7 +336,7 @@ const BattleEngine = {
     startWinSequence: function (type, who, score) {
         this.events.push({ type: 'STOP_MUSIC' });
 
-        // 1. Calculate Skill Modified Score
+        // Calculate Skill Modified Score
         let finalScore = score;
         const attacker = who === 'P1' ? this.p1 : this.cpu;
         const defender = who === 'P1' ? this.cpu : this.p1;
@@ -377,13 +362,13 @@ const BattleEngine = {
             activeBuffs.push('WATER_MIRROR');
         }
 
-        // 2. Prepare Data
+        // Prepare Data
         this.pendingDamage = { target: who === 'P1' ? 'CPU' : 'P1', amount: finalScore };
 
         const winner = who === 'P1' ? 'p1' : 'cpu';
         const loser = who === 'P1' ? 'cpu' : 'p1';
 
-        // 3. Visuals & Dialogue (Immediate)
+        // Visuals & Dialogue (Immediate)
         if (who === 'P1') {
             this.p1Character.setState('smile');
             this.cpuCharacter.setState('shocked');
@@ -394,7 +379,7 @@ const BattleEngine = {
         this.triggerDialogue('WIN', winner);
         this.triggerDialogue('LOSE', loser);
 
-        // 4. Build Sequence (FX -> Result Screen)
+        // Build Sequence (FX -> Result Screen)
         this.currentState = this.STATE_FX_PLAYING;
 
         const steps = [
@@ -419,8 +404,6 @@ const BattleEngine = {
                                 () => {
                                     // YES
                                     this.applyDoraBomb(attacker, who);
-                                    // Slight delay for effect? Or resume immediately
-                                    // The applyDoraBomb adds popup/sound events which might run in parallel or need sequence step
                                     // Resume Sequence
                                     this.sequencing.active = true;
                                 },
@@ -450,7 +433,7 @@ const BattleEngine = {
             if (sound) steps.push({ type: 'SOUND', id: sound });
         }
 
-        // 5. Calculate Bonuses & Final Result Logic
+        // Calculate Bonuses & Final Result Logic
         if (this.winningYaku) {
             this.winningYaku.score = score; // Use Base Score for Yaku display
         }
@@ -458,10 +441,8 @@ const BattleEngine = {
         // Note: Bonuses calculated LATER in sequence execution? 
         // No, calculateBonuses reads current state (this.uraDoras). 
         // Since sequence executes over time, logic used to be pre-calculated here.
-        // BUT if DORA_BOMB changes uraDoras mid-sequence, pre-calculation here is WRONG.
         // FIX: Move bonus calculation to the STATE transition or a LATE CALLBACK step.
         // However, resultInfo is needed for STATE_WIN/LOSE which is the last step.
-        // We can pass a function or lazily evaluate resultInfo in the last step.
 
         // Let's use a Callback Step before STATE transition to finalize score calculation.
         steps.push({ type: 'WAIT_FX' }); // Wait for any FX (e.g. Ron/Tsumo animations)
@@ -510,7 +491,6 @@ const BattleEngine = {
         // Final Step: Transition to STATE_WIN/LOSE
         // Note: Score argument passed to State might be stale if calculated early.
         // But the State usually relies on resultInfo. Let's pass 0 or updated score via closure if possible?
-        // Actually, we can just omit score arg as it's in resultInfo.
         steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE) });
 
         this.sequencing = {
@@ -531,8 +511,6 @@ const BattleEngine = {
         let damageMsg = "데미지 없음";
 
         if (p1Tenpai && !cpuTenpai) {
-            // Player Wins (Tenpai vs Noten) -> In game terms, usually small damage or just score transfer.
-            // Let's deal standard Tenpai damage (e.g. 1000 or 1500 or 3000)
             damage = 1000; // Flat 1000 for Tenpai win
             this.pendingDamage = { target: 'CPU', amount: damage };
             damageMsg = `데미지: ${damage}`;
@@ -542,7 +520,6 @@ const BattleEngine = {
             this.pendingDamage = { target: 'P1', amount: damage };
             damageMsg = `데미지: -${damage}`;
         } else {
-            // Draw (Both Tenpai or Both Noten)
             damage = 0;
             damageMsg = "무승부";
         }
@@ -585,21 +562,17 @@ const BattleEngine = {
         this.roundHistory.push(resultData);
 
         // Visual Sequence
-        // 1. "Nagari" Text
-        // 2. Show Hands (Reveal CPU)
-        // 3. Show Tenpai/Noten status
-        // 4. Apply Damage Animation
-        // 5. Next Round
+        // "Nagari" Text
+        // Show Hands (Reveal CPU)
+        // Show Tenpai/Noten status
+        // Apply Damage Animation
+        // Next Round
 
         // Setup sequence steps
         const p1X = 150; const p1Y = 300;
         const cpuX = 490; const cpuY = 300;
 
         const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten'; // We don't have these images yet. 
-        // Or use text bubbles.
-        // Let's use text bubble FX or specific assets if they existed.
-        // For this task, we can assume standard assets or re-use existing system.
-        // Actually, let's just use the `damageMsg` in the Result window for now, 
         // as `STATE_NAGARI` transitions to `drawResult` which can show the message.
 
         // Logic for Tenpai/Noten
@@ -664,8 +637,6 @@ const BattleEngine = {
             steps: steps
         };
 
-        // Add Tenpai/Noten text to resultInfo for Renderer to optionally use?
-        // Or just the damage msg.
         this.resultInfo = {
             type: 'NAGARI',
             damageMsg: damageMsg,
@@ -695,7 +666,6 @@ const BattleEngine = {
                 this.sequencing.currentStep++;
             }
         } else if (step.type === 'WAIT_FX') {
-            // Wait for visual FX in scene to finish
             if (this.scene && this.scene.activeFX && this.scene.activeFX.length > 0) {
                 return; // Wait
             }
@@ -729,7 +699,6 @@ const BattleEngine = {
             const prevSeq = this.sequencing;
             if (step.callback) step.callback();
 
-            // Critical Fix: If callback started a NEW sequence, do not increment step
             if (this.sequencing === prevSeq) {
                 this.sequencing.currentStep++;
             }
@@ -746,8 +715,6 @@ const BattleEngine = {
             this.p1.hand = this.p1.hand.concat(newP1);
             this.cpu.hand = this.cpu.hand.concat(newCpu);
 
-            // Should playing sound here or via sequence? 
-            // Sequence 'SOUND' usually used, but let's allow inline for sync
             if (step.sound) {
                 this.events.push({ type: 'SOUND', id: step.sound });
             }
@@ -777,9 +744,8 @@ const BattleEngine = {
 
     confirmResult: function () {
         // User clicked to confirm result (Win/Lose/Nagari)
-        // Transition to Damage Animation or Next Round or Match Over
 
-        // 1. Calculate Damage if needed (Usually done in checkRoundEnd, stored in resultInfo)
+        // Calculate Damage if needed (Usually done in checkRoundEnd, stored in resultInfo)
         // Actually, checkRoundEnd sets currentState. 
         // We just need to move to DAMAGE_ANIMATION state to play visual fx.
 
@@ -910,9 +876,7 @@ const BattleEngine = {
         // P1 starts Face Down during dealing
         this.p1.isFaceDown = true;
 
-        // Init Hands - Modified for Realistic Dealing (4-4-2-1)
         // this.p1.hand = this.drawTiles(11);
-        // this.cpu.hand = this.drawTiles(11);
         this.cpu.isRevealed = false; // Reset reveal status
         // this.sortHand(this.p1.hand); // Sorting happens after deal reveal
 
@@ -947,11 +911,11 @@ const BattleEngine = {
         this.uraDoras = [];
         this.uraDoraRevealed = false; // Reset Ura Dora state
 
-        // 1. Visible Dora
+        // Visible Dora
         const d1 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
         this.doras.push({ type: d1.id, color: d1.color, img: d1.img });
 
-        // 2. Ura Dora (Hidden, Persistent)
+        // Ura Dora (Hidden, Persistent)
         // Rule: Can be same as visible Dora (User Request)
         const d2 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
 
@@ -1001,28 +965,27 @@ const BattleEngine = {
         const skill = SkillData[skillId];
         if (!skill) return false;
 
-        // 0. Type Check (Active Phase only)
+        // Type Check (Active Phase only)
         // REACTIVE and SETUP skills cannot be used manually via menu
         // Internal calls (e.g. Ron Counters) bypass this check
         if (!isInternal && (skill.type === 'REACTIVE' || skill.type === 'SETUP')) return false;
 
-        // 1. MP Cost
+        // MP Cost
         if (!this.checkSkillCost(skill, who)) return false;
 
-        // 2. Round/Turn Limits
+        // Round/Turn Limits
         const multiUseSkills = ['RECOVERY', 'DISCARD_GUARD', 'EXCHANGE_TILE', 'PAINT_TILE'];
         if (!multiUseSkills.includes(skillId)) {
             // Once per ROUND limit
             if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
                 return false;
             }
-            // Once per TURN limit (For ACTIVE skills)
             if (this.skillsUsedThisTurn && skill.type === 'ACTIVE') {
                 return false;
             }
         }
 
-        // 3. Specific Conditions
+        // Specific Conditions
         const char = who === 'P1' ? this.p1 : this.cpu;
         switch (skillId) {
             case 'TIGER_STRIKE':
@@ -1085,9 +1048,7 @@ const BattleEngine = {
         }
 
         // ONE USE PER TURN RULE & UNIMPLEMENTED SKILLS
-        // These are effectively double-checked by canUseSkill, but we keep the UNIMPLEMENTED check 
         // explicit here if we want to show a popup? 
-        // Actually, canUseSkill should probably handle unimplemented skills returning false too?
         // But useSkill logic for unimplemented skills was showing a specific popup "Not Implemented".
         // Let's rely on canUseSkill generally, but keep the popup logic for unimplemented skills?
         // No, let's move unimplemented logic to canUseSkill or just let them fail silently in menu (disabled).
@@ -1120,10 +1081,8 @@ const BattleEngine = {
         }
 
         // Visuals
-        // Only show Popup for P1? Or both? Both is fine.
         this.showPopup('SKILL', { text: skill.name, blocking: false });
 
-        // Set smile expression for user
         if (who === 'P1') {
             this.p1Character.setState('smile');
         } else {
@@ -1157,7 +1116,7 @@ const BattleEngine = {
         const userObj = user === 'P1' ? this.p1 : this.cpu;
         const targetObj = user === 'P1' ? this.cpu : this.p1;
 
-        // 1. Buffs / Debuffs
+        // Buffs / Debuffs
         if (skill.type === 'ACTIVE' || skill.type === 'SETUP') {
             // Handle specific skills
             switch (skillId) {
@@ -1215,7 +1174,7 @@ const BattleEngine = {
     manageBuffs: function (who) {
         if (!who.buffs) return;
 
-        // 1. Spirit Riichi Timer
+        // Spirit Riichi Timer
         if (who.buffs.spiritTimer > 0) {
             who.buffs.spiritTimer--;
             if (who.buffs.spiritTimer === 0) {
@@ -1224,7 +1183,7 @@ const BattleEngine = {
             }
         }
 
-        // 2. Discard Guard Timer
+        // Discard Guard Timer
         if (who.buffs.discardGuard > 0) {
             who.buffs.discardGuard--;
             if (who.buffs.discardGuard === 0) {
@@ -1277,20 +1236,20 @@ const BattleEngine = {
     },
 
     activateSuperIaido: function (who) {
-        // 1. Remove dangerous discard from table
+        // Remove dangerous discard from table
         const badTile = this.discards.pop();
 
-        // 2. Play FX (Cut animation)
+        // Play FX (Cut animation)
         this.playFX('fx/slash_lr', 320, 240, { scale: 2.0, life: 30 });
         this.events.push({ type: 'SOUND', id: 'audio/sword_draw' });
 
 
-        // 3. Trigger Dialogue
+        // Trigger Dialogue
         const dialKey = 'SKILL_DEFENSE';
         const dialOwner = who === 'P1' ? 'p1' : 'cpu';
         this.triggerDialogue(dialKey, dialOwner);
 
-        // 4. Flow Logic
+        // Flow Logic
         // The discard is gone. The turn effectively ends without a tile on the table.
         // It becomes the OTHER player's turn.
         // If P1 used it (on P1's discard), it's now CPU's turn.
@@ -1308,24 +1267,24 @@ const BattleEngine = {
     },
 
     activateRonTileExchange: function (who) {
-        // 1. Remove dangerous discard
+        // Remove dangerous discard
         const badTile = this.discards.pop();
 
-        // 2. Return to hand
+        // Return to hand
         const hand = who === 'P1' ? this.p1.hand : this.cpu.hand;
         badTile.owner = who === 'P1' ? 'p1' : 'cpu'; // Reset owner just in case
         delete badTile.isRiichi; // Clear Riichi mark if it was one
         hand.push(badTile);
 
-        // 3. Sort hand
+        // Sort hand
         this.sortHand(hand);
 
 
-        // 4. Play FX
+        // Play FX
         this.showPopup('SKILL', { text: '론 패 교환', blocking: false });
         this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
 
-        // 5. Flow Logic
+        // Flow Logic
         // The turn REWINDS to the Discard Phase of the SAME player.
         if (who === 'P1') {
             this.currentState = this.STATE_PLAYER_TURN;
@@ -1354,7 +1313,6 @@ const BattleEngine = {
 
         // Logic: 50% Chance to Find Winning Tile
         // In real MJ, this would search the wall. Here we simulate.
-        // First, find WHAT we are waiting for.
         const player = who === 'P1' ? this.p1 : this.cpu;
         const hand = this.getFullHand(player);
 
@@ -1368,7 +1326,6 @@ const BattleEngine = {
 
         if (winningTiles.length === 0) {
             console.error("Critical: Last Chance used but no winning tiles pattern found?");
-            // Even if no winning pattern found (e.g. furiten or layout issue?), we fail.
             this.showPopup('MISS', { blocking: false });
             this.sequencing.active = true;
             return;
@@ -1397,7 +1354,6 @@ const BattleEngine = {
     },
 
     updateRoulette: function (dt = 1.0) {
-        // If finished (stopped), wait for delay then resolve
         if (this.rouletteFinished) {
             this.rouletteFinishTimer += dt;
             if (this.rouletteFinishTimer > 60) { // 1 second delay
@@ -1419,7 +1375,6 @@ const BattleEngine = {
             this.rouletteTileType = PaiData.TYPES[this.rouletteIndex].id;
         }
 
-        // Input Check (Space or Click)
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
             this.finishRoulette();
         }
@@ -1427,11 +1382,11 @@ const BattleEngine = {
 
     finishRoulette: function () {
 
-        // 1. Draw One from Deck (Random Index)
+        // Draw One from Deck (Random Index)
         const randIdx = Math.floor(Math.random() * this.deck.length);
         const resultTile = this.deck[randIdx];
 
-        // 2. Update Visual to show FINAL tile (Stop spinning)
+        // Update Visual to show FINAL tile (Stop spinning)
         this.rouletteTileType = resultTile.type;
         this.rouletteFinished = true;
         this.rouletteFinishTimer = 0;
@@ -1505,14 +1460,11 @@ const BattleEngine = {
     drawTiles: function (count, who) {
         // Skill Logic: Deck Manipulation (Only for single draws)
         if (who && count === 1 && this.deck.length > 0) {
-            // 1. Guaranteed Win (Tiger Strike / Spirit Riichi)
+            // Guaranteed Win (Tiger Strike / Spirit Riichi)
             if (who.buffs && who.buffs.guaranteedWin) {
-                // Search for a winning tile
                 const winningTileIdx = this.deck.findIndex(tile => {
                     // Check if this tile completes the hand
                     const testHand = [...who.hand, tile];
-                    // Note: We need to respect Menzen status for score calc, but for Win Check it matters less unless Yaku requires it.
-                    // But checkYaku needs correct menzen flag? Usually pass it if needed, or checkYaku infers.
                     // Our YakuLogic.checkYaku checks patterns.
                     return YakuLogic.checkYaku(testHand, who.id);
                 });
@@ -1526,11 +1478,9 @@ const BattleEngine = {
                 }
             }
 
-            // 2. Curse Draw (Hell Pile)
+            // Curse Draw (Hell Pile)
             if (who.buffs && who.buffs.curseDraw > 0) {
                 // Simplistic: Ensure we don't give a winning tile if possible
-                // Or give a wind/dragon tile that they don't have pairs for.
-                // Let's just shuffle the top tile if it looks "good" to a "bad" one.
                 // Simple implementation: Move top tile to bottom if it matches any tile in hand (set building).
                 // Try up to 3 times to find a 'bad' tile.
 
@@ -1545,7 +1495,6 @@ const BattleEngine = {
                         this.deck.unshift(buried); // Move to bottom
                         attempts++;
                     } else {
-                        // Found a garbage tile (or ran out of attempts)
                         break;
                     }
                 }
@@ -1575,7 +1524,6 @@ const BattleEngine = {
         this.timer += dt;
 
         // Update Dialogue (Always run)
-        // this.updateDialogue(); // Removed
 
         // Music Update
         // Only update battle music during active battle states
@@ -1627,8 +1575,7 @@ const BattleEngine = {
             return;
         }
 
-        // 1. Timer Update
-        // this.timer++; // Removed, handled above
+        // Timer Update
         // Update Characters
         if (this.p1Character) this.p1Character.update(dt);
         if (this.cpuCharacter) this.cpuCharacter.update(dt);
@@ -1694,21 +1641,17 @@ const BattleEngine = {
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
-                // Wait for click to confirm draw
                 if ((window.Input && Input.isMouseJustPressed() && this.timer > 15) || (Game.isAutoTest && this.timer > 5)) {
                     this.confirmDraw();
                 }
                 break;
 
             case this.STATE_PLAYER_TURN:
-                // Waiting for input... (Handled by Auto Test above or manual click)
                 break;
 
             case this.STATE_ACTION_SELECT:
                 if (this.actionTimer > 0) this.actionTimer -= dt;
 
-                // Auto Test: Wait for user input for actions (Ron/Pon/Riichi)
-                // if (Game.isAutoTest && this.actionTimer <= 0) { ... } -> REMOVED
                 break;
 
             case this.STATE_FX_PLAYING:
@@ -1736,7 +1679,6 @@ const BattleEngine = {
                 break;
 
             case this.STATE_MATCH_OVER:
-                // Wait for input to transition
                 if (this.stateTimer > 60 && (Input.isMouseDown || Input.isDown(Input.SPACE) || Input.isDown(Input.ENTER) || Input.isMouseJustPressed())) {
                     this.proceedFromMatchOver();
                 }
@@ -1744,7 +1686,7 @@ const BattleEngine = {
 
             case this.STATE_DAMAGE_ANIMATION:
                 // Animation Logic
-                // 1. Trigger Damage Effect once
+                // Trigger Damage Effect once
                 if (!this._damageEffectTriggered) {
                     this._damageEffectTriggered = true;
                     if (this.pendingDamage) {
@@ -1788,13 +1730,13 @@ const BattleEngine = {
             return;
         }
 
-        // 1. Deck Exhaustion
+        // Deck Exhaustion
         if (this.deck.length === 0) {
             this.startNagariSequence();
             return;
         }
 
-        // 2. Turn Limit
+        // Turn Limit
         // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
             this.startNagariSequence();
@@ -1805,7 +1747,6 @@ const BattleEngine = {
 
 
     handleRoundEnd: function () {
-        // Check HP for Match Over
         if (this.p1.hp <= 0) {
             this.currentState = this.STATE_MATCH_OVER;
             this.matchOver('CPU');
@@ -1830,7 +1771,6 @@ const BattleEngine = {
             return;
         }
 
-        // Reset Dialogue Flag for this turn
         this.dialogueTriggeredThisTurn = false;
         this.skillsUsedThisTurn = false;
 
@@ -1841,9 +1781,7 @@ const BattleEngine = {
         if (this.p1.hp <= 0) return;
 
         // Draw Tile Logic
-        // Fix: If P1 just Pon-ed, they don't draw, they just discard.
         // But Player Pon handling usually skips to Discard state immediately.
-        // This function is called for Normal Draw.
 
         const t = this.drawTiles(1, this.p1);
         if (t.length > 0) {
@@ -1856,7 +1794,6 @@ const BattleEngine = {
             this.lastDrawGroupSize = 1;
         }
 
-        // DO NOT SORT HERE. Only on discard or initial deal.
 
         // CHECK SELF ACTIONS (Riichi, Tsumo)
         if (this.checkSelfActions()) {
@@ -1882,7 +1819,6 @@ const BattleEngine = {
     },
 
     cpuDraw: function () {
-        // Fix: If CPU just Pon-ed, they don't draw, they just discard.
         if (this.cpu.needsToDiscard) {
             this.cpu.needsToDiscard = false;
         } else {
@@ -1893,7 +1829,6 @@ const BattleEngine = {
             }
         }
 
-        // Reset Dialogue Flag for CPU turn
         this.dialogueTriggeredThisTurn = false;
 
         // Manage Buffs
@@ -1905,7 +1840,7 @@ const BattleEngine = {
 
         const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
 
-        // 1. Check Tsumo
+        // Check Tsumo
         if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
             if (this.winningYaku) {
@@ -1917,7 +1852,7 @@ const BattleEngine = {
             }
         }
 
-        // 2. Check Riichi
+        // Check Riichi
         if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
             // Check if can Riichi (Tenpai check)
             let canRiichi = false;
@@ -1971,7 +1906,7 @@ const BattleEngine = {
             }
         }
 
-        // 3. Decide Discard
+        // Decide Discard
         // If Riichi (existing state), discard drawn tile
         if (this.cpu.isRiichi) {
             this.discardTileCPU(this.cpu.hand.length - 1);
@@ -1997,7 +1932,6 @@ const BattleEngine = {
             this.cpu.declaringRiichi = false;
         }
 
-        // Dialogue Trigger (Random or Worry)
         // Suppress random dialogue if CPU is Riichi (Silent Focus)
         if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !this.cpu.isRiichi) {
             if (this.p1.isRiichi) {
@@ -2048,19 +1982,17 @@ const BattleEngine = {
                 // We need to CALL playerDraw explicitly or setup state such that it draws.
                 this.playerDraw();
             } else {
-                // Transition to Wait for Draw
                 this.currentState = this.STATE_WAIT_FOR_DRAW;
                 this.timer = 0;
             }
         }
     },
-    // Sort: Category -> Color -> ID
     sortHand: function (hand) {
         const catOrder = { 'character': 1, 'weapon': 2, 'mayu': 3 };
         const colorOrder = { 'red': 1, 'blue': 2, 'yellow': 3, 'purple': 4 };
 
         hand.sort((a, b) => {
-            // 0. Get Data to check category
+            // Get Data to check category
             const typeA = PaiData.TYPES.find(t => t.id === a.type) || {};
             const typeB = PaiData.TYPES.find(t => t.id === b.type) || {};
 
@@ -2071,11 +2003,11 @@ const BattleEngine = {
                 return (catOrder[catA] || 99) - (catOrder[catB] || 99);
             }
 
-            // 1. Color
+            // Color
             if (a.color !== b.color) {
                 return (colorOrder[a.color] || 99) - (colorOrder[b.color] || 99);
             }
-            // 2. ID (Name)
+            // ID (Name)
             if (a.type !== b.type) {
                 return a.type.localeCompare(b.type);
             }
@@ -2159,7 +2091,6 @@ const BattleEngine = {
                     break;
             }
 
-            // Random Factor (Mutation) - AI Difficulty affects this?
             // Difficulty 2 (Hard) = Less random, more optimal.
             // Difficulty 0 (Easy) = Random checks.
             const randomFactor = Math.random() * 0.2; // 0.0 ~ 0.2 fluctuation
@@ -2214,7 +2145,7 @@ const BattleEngine = {
             return false;
         }
 
-        // 1. RON
+        // RON
         // Rule: Ron is allowed ONLY if Riichi is declared (same as player)
         // This prevents Ron after Pon (since Pon makes hand open and prevents Riichi)
         // Check if adding this tile completes the hand
@@ -2257,8 +2188,7 @@ const BattleEngine = {
             return true;
         }
 
-        // 2. PON
-        // Check for pairs in hand
+        // PON
         let pairCount = 0;
         this.cpu.hand.forEach(t => {
             if (t.type === discardedTile.type && t.color === discardedTile.color) pairCount++;
@@ -2290,7 +2220,6 @@ const BattleEngine = {
             tempHand.splice(i, 1);
 
             // Must have 11 tiles (since hand is 12).
-            // checkTenpai expects 11 tiles (waiting for 12th).
             if (this.checkTenpai(tempHand)) {
                 validIndices.push(i);
             }
@@ -2303,9 +2232,6 @@ const BattleEngine = {
      */
     getTenpaiInfo: function (player) {
         // This function is intended to return information about tenpai, not to execute a pon.
-        // The provided snippet seems to be a copy-paste error from executeCpuPon.
-        // Assuming the user intended to add a new helper function for Tenpai info.
-        // For now, I'll add a placeholder based on the comment.
         // If this was meant to be a modification of executeCpuPon, please clarify.
 
         // Placeholder for Tenpai Info logic:
@@ -2316,11 +2242,8 @@ const BattleEngine = {
             potentialYakus: []
         };
 
-        // Simplified check for demonstration
         if (this.checkTenpai(hand)) {
             tenpaiInfo.isTenpai = true;
-            // In a real implementation, you'd calculate waiting tiles and potential yakus here.
-            // For now, just a basic flag.
         }
         return tenpaiInfo;
     },
@@ -2370,7 +2293,6 @@ const BattleEngine = {
         }, BattleConfig.SPEED.ACTION_WAIT);
     },
 
-    // View proxies removed (Use BattleRenderer directly)
 
     checkPlayerActions: function (discardedTile) {
         // Discard Guard Check
@@ -2381,7 +2303,7 @@ const BattleEngine = {
         const hand = this.p1.hand;
         const fullHand = this.getFullHand(this.p1);
 
-        // 1. Check PON (Pair matches discard)
+        // Check PON (Pair matches discard)
         let matchCount = 0;
         hand.forEach(t => {
             if (t.type === discardedTile.type) matchCount++;
@@ -2392,18 +2314,16 @@ const BattleEngine = {
             this.possibleActions.push(ponAction);
         }
 
-        // 3. Check RON (Win)
+        // Check RON (Win)
         // Rule: Ron is allowed ONLY if Riichi is declared (User Requirement)
         // Since Pon disables Riichi, this effectively disables Ron after Pon.
-        // Wait, if I Pon I can't Riichi? Usually yes in Riichi Mahjong (unless specific rule).
-        // User didn't explicitly say Pon disables Riichi, but implied "Riichi declared condition".
         // Also need to check Yaku with FULL HAND.
         const tempHand = [...fullHand, discardedTile];
         if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand, this.p1.id)) {
             this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
-        // 4. Pass
+        // Pass
         if (this.possibleActions.length > 0) {
             this.possibleActions.push({ type: 'PASS', label: '패스' });
             return true;
@@ -2413,7 +2333,6 @@ const BattleEngine = {
 
     checkSelfActions: function () {
         // Optimization: Cache result check to strictly avoid re-calculation on same state
-        // This is critical because checkTenpai -> checkYaku is combinatorial (O(N!))
 
         // Generate State Key
         const currentHandKey = this.p1.hand.map(t => t.type + t.color).sort().join('|') +
@@ -2432,14 +2351,14 @@ const BattleEngine = {
         const hand = this.p1.hand;
         const fullHand = this.getFullHand(this.p1);
 
-        // 1. Tsumo
+        // Tsumo
         const yakuResult = YakuLogic.checkYaku(fullHand, this.p1.id);
 
         if (yakuResult) {
             this.possibleActions.push({ type: 'TSUMO', label: '쯔모' });
         }
 
-        // 2. Riichi
+        // Riichi
         // Cond: Closed hand (isMenzen), Not already Riichi
         // Ruile: "Have 11 tiles" -> Draw 1 -> 12. Discard -> 11.
         // Riichi is declared before discard.
@@ -2459,9 +2378,7 @@ const BattleEngine = {
                 const tempHand = [...hand];
                 tempHand.splice(i, 1); // Remove 1 tile -> 11 tiles
 
-                // For Tenpai check, we need to pass the hand that would remain.
                 // Since this is Riichi check, we assume Menzen, so fullHand == hand.
-                // But generally checkTenpai should take the "hand to check".
 
                 if (this.checkTenpai(tempHand)) {
                     canRiichi = true;
@@ -2472,11 +2389,8 @@ const BattleEngine = {
             if (canRiichi) {
                 this.possibleActions.push({ type: 'RIICHI', label: '리치' });
 
-                // Debug: Calculate potential Yaku
                 // We need to re-scan to get DETAILS
                 // Find WHICH discard allows Tenpai
-                // Optimization: Only run debug calculation if explicitly needed (or just log it once)
-                // We leave it but note it's heavy.
                 const debugInfo = [];
                 const validDiscards = [];
                 for (let i = 0; i < hand.length; i++) {
@@ -2495,7 +2409,7 @@ const BattleEngine = {
             }
         }
 
-        // 5. Special Skill Enforcement (Tiger Strike / Spirit Riichi)
+        // Special Skill Enforcement (Tiger Strike / Spirit Riichi)
         // If Tiger Strike is active, player MUST Riichi now.
         if (this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0)) {
             if (!this.p1.isRiichi) {
@@ -2505,7 +2419,6 @@ const BattleEngine = {
         }
 
         if (this.possibleActions.length > 0) {
-            // Tiger Strike (guaranteedWin) or Spirit Riichi (spiritTimer) cannot Pass (must Riichi)
             if (!(this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0))) {
                 this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
             }
@@ -2530,7 +2443,6 @@ const BattleEngine = {
         if (action.type === 'PASS' || action.type === 'PASS_SELF') {
             // Pass logic
             if (action.type === 'PASS_SELF') {
-                // Return to player turn for discard
                 this.currentState = this.STATE_PLAYER_TURN;
             } else if (action.type === 'PASS') {
                 this.turnCount++;
@@ -2596,7 +2508,6 @@ const BattleEngine = {
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
-            // Manual Discard for Riichi Declaration:
             // Calculate valid discards (must maintain tenpai)
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
 
@@ -2612,7 +2523,6 @@ const BattleEngine = {
             // Force BGM update immediately
             this.currentBgm = 'audio/bgm_showdown';
             this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
-            // this.updateBattleMusic(); // Redundant now as we forced it
 
             // Expression: Smile (Will be reset on discard)
             this.p1Character.setState('smile');
@@ -2622,7 +2532,6 @@ const BattleEngine = {
             const hand = this.p1.hand;
             let candidates = [];
 
-            // console.time('RiichiCalc'); // Performance Check
 
             for (let i = 0; i < hand.length; i++) {
                 const temp = [...hand];
@@ -2634,17 +2543,13 @@ const BattleEngine = {
                 }
             }
 
-            // console.timeEnd('RiichiCalc'); // End Performance Check
 
             if (candidates.length > 0) {
-                // Just log (Debug)
                 // We do NOT force selection. User must choose manually.
                 // candidates.sort ...
 
-                // this.riichiTargetIndex = -1; // Ensure unlocked
             } else {
                 console.error("Riichi declared but no valid discards found? Should not happen.");
-                // this.riichiTargetIndex = -1;
             }
 
             // Ensure unlocked
@@ -2652,7 +2557,6 @@ const BattleEngine = {
 
             this.p1.riichiValidDiscards = null; // Clear manual list just in case
 
-            // Update BGM immediately (Tension or Showdown)
             this.updateBattleMusic();
 
             // Go to discard
@@ -2804,7 +2708,7 @@ const BattleEngine = {
         let totalBonus = 0;
         let details = []; // Array of { name, score }
 
-        // 1. Tenho (Heavenly Hand)
+        // Tenho (Heavenly Hand)
         // 1st Turn & Tsumo
         if (this.turnCount <= 1 && winType === 'TSUMO') {
             const s = 800;
@@ -2813,8 +2717,6 @@ const BattleEngine = {
         }
 
         // 2 & 3. Haitei / Houtei (Last Turn)
-        // Check if it's the 20th turn (or last turn context)
-        // Using strict 20 for now as requested. 
         if (this.turnCount >= 20) {
             if (winType === 'TSUMO') {
                 const s = 800;
@@ -2827,7 +2729,7 @@ const BattleEngine = {
             }
         }
 
-        // 4. Dora
+        // Dora
         // Check visible Doras
         let doraCount = 0;
         this.doras.forEach(dora => {
@@ -2919,9 +2821,7 @@ const BattleEngine = {
 
     activeStateTileExchange: function () {
         // Logic handled by Scene Input (Selection toggling)
-        // Here we just wait for Confirmation or Input updates.
 
-        // Note: Actual Input processing (Left/Right/Space/Enter) is delegated to BattleScene.update()
     },
 
     toggleExchangeSelection: function (index) {
@@ -2940,7 +2840,6 @@ const BattleEngine = {
                 const skill = SkillData[skillId];
                 const currentCost = this.exchangeIndices.length * skill.cost;
                 if (this.p1.mp < currentCost + skill.cost) {
-                    // Not enough MP for next tile
                     Assets.playSound('audio/cancel');
                     return;
                 }
@@ -2988,7 +2887,7 @@ const BattleEngine = {
         // Execute Exchange
         this.consumeMp('P1', totalCost);
 
-        // 1. Remove tiles
+        // Remove tiles
         // Sort indices descending to splice correctly
         const sortedIndices = [...this.exchangeIndices].sort((a, b) => b - a);
         const removedTiles = [];
@@ -2998,17 +2897,17 @@ const BattleEngine = {
             removedTiles.push(tile);
         });
 
-        // 2. Return to Deck (Random insert)
+        // Return to Deck (Random insert)
         removedTiles.forEach(tile => {
             const r = Math.floor(Math.random() * this.deck.length);
             this.deck.splice(r, 0, tile);
         });
 
-        // 3. Draw New
+        // Draw New
         const newTiles = this.drawTiles(count, this.p1);
         this.p1.hand.push(...newTiles);
 
-        // 4. Sort
+        // Sort
         this.sortHand(this.p1.hand);
 
         // Visuals
@@ -3024,22 +2923,19 @@ const BattleEngine = {
     },
 
     // ----------------------------------------------------------------
-    // Debug / Test Functions
     // ----------------------------------------------------------------
     testLastChance: function () {
 
-        // 1. Force Character to Petum (P1)
+        // Force Character to Petum (P1)
         // We can't easily swap the whole character object structure if it wasn't init, 
-        // but we can inject the skill and MP.
         this.p1.skills = ['LAST_CHANCE', 'CRITICAL']; // Give Petum's skills
         this.p1.mp = 100;
 
-        // 2. Set Turn Count to 20 (Last Turn)
+        // Set Turn Count to 20 (Last Turn)
         this.turnCount = 20;
 
-        // 3. Construct Tenpai Hand
+        // Construct Tenpai Hand
         // Goal: 11 Tiles (Tenpai) + 1 Tile to Discard = 12 Tiles.
-        // Target Hand: 3 Ataho, 3 Smash, 3 Rin, 2 Fari. (Waiting for Fari)
         // Current Hand: Above + 1 Punch (to discard).
 
         const createTile = (id) => {
@@ -3059,7 +2955,7 @@ const BattleEngine = {
         // Update UI
         this.sortHand(this.p1.hand);
 
-        // 4. Set State to Player Turn
+        // Set State to Player Turn
         this.currentState = this.STATE_PLAYER_TURN;
 
     },
@@ -3133,24 +3029,24 @@ const BattleEngine = {
         const totalCost = count * skill.cost;
         this.consumeMp('CPU', totalCost);
 
-        // 1. Remove tiles (Descending indices)
+        // Remove tiles (Descending indices)
         const exchangeIndices = badIndices.slice(0, count).sort((a, b) => b - a);
         const removedTiles = [];
         exchangeIndices.forEach(idx => {
             removedTiles.push(this.cpu.hand.splice(idx, 1)[0]);
         });
 
-        // 2. Return to Deck
+        // Return to Deck
         removedTiles.forEach(tile => {
             const r = Math.floor(Math.random() * this.deck.length);
             this.deck.splice(r, 0, tile);
         });
 
-        // 3. Draw New
+        // Draw New
         const newTiles = this.drawTiles(count, this.cpu);
         this.cpu.hand.push(...newTiles);
 
-        // 4. Sort & Visuals
+        // Sort & Visuals
         this.sortHand(this.cpu.hand);
 
         // Audio Feedback (No visual popup as requested)
@@ -3168,7 +3064,6 @@ const BattleEngine = {
         // Riichi Enforcement: Must discard drawn tile (last one)
         if (this.p1.isRiichi) {
             if (this.p1.declaringRiichi && this.p1.validRiichiDiscardIndices) {
-                // Pick the first valid discard (or random valid)
                 const validIdx = this.p1.validRiichiDiscardIndices[0];
                 this.discardTile(validIdx);
             } else {

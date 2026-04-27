@@ -382,7 +382,7 @@ const CharacterSelectScene = {
     },
 
     draw: function (ctx) {
-        // 1. Background
+        // Background
         const bg = Assets.get(SelectConfig.BACKGROUND.path);
         if (bg) {
             const pattern = Assets.getPattern(ctx, bg, 'repeat');
@@ -390,7 +390,7 @@ const CharacterSelectScene = {
             ctx.fillRect(0, 0, 640, 480);
         }
 
-        // 2. Title "CHARACTER SELECT"
+        // Title "CHARACTER SELECT"
         // const title = Assets.get(SelectConfig.TITLE.path);
         // if (title) {
         //     ctx.drawImage(title, (640 - title.width) / 2, SelectConfig.TITLE.y);
@@ -400,21 +400,21 @@ const CharacterSelectScene = {
         const titleX = (640 - (titleText.length * 32)) / 2;
         Assets.drawAlphabet(ctx, titleText, titleX, SelectConfig.TITLE.y, 'yellow');
 
-        // 3. VS Logo
+        // VS Logo
         const vs = Assets.get(SelectConfig.VS_LOGO.path);
         if (vs) {
             ctx.drawImage(vs, (640 - vs.width) / 2, SelectConfig.VS_LOGO.y);
         }
 
-        // 4. Big Portrait (Left - Player 1)
+        // Big Portrait (Left - Player 1)
         if (this.p1Portrait) {
             this.p1Portrait.draw(ctx);
         }
 
-        // 5. Name (Text)
+        // Name (Text)
         ctx.save();
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
         ctx.lineWidth = SelectConfig.NAME.strokeWidth;
         ctx.font = SelectConfig.NAME.font;
 
@@ -451,7 +451,7 @@ const CharacterSelectScene = {
 
         ctx.restore();
 
-        // 6. Draw Icon Row (Using Individual Icons)
+        // Draw Icon Row (Using Individual Icons)
         const iconY = SelectConfig.ICON_ROW.y;
         const gap = SelectConfig.ICON_ROW.gap;
 
@@ -490,7 +490,7 @@ const CharacterSelectScene = {
 
         });
 
-        // 7. Draw Cursors
+        // Draw Cursors
         const cursorImg = Assets.get(SelectConfig.ICON_ROW.cursorPath);
         if (cursorImg) {
             const cursorW = cursorImg.width / 2; // contains 2 frames

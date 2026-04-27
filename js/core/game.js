@@ -6,22 +6,19 @@ const Game = {
     isTrueEndingPath: false,
 
     init: function () {
-        this.load(); // Load saved data
+        this.load();
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.continueCount = 0;
         this.isTrueEndingPath = true;
 
-        // Auto-Mute for Auto Test
         if (this.isAutoTest) {
             console.log("Auto Test Mode detected. Muting Audio.");
             Assets.setMute(true);
         }
 
-        // Initialize modules with canvas for mouse input
         Input.init(this.canvas);
 
-        // Setup Mute Button
         const muteBtn = document.getElementById('mute-btn');
         if (muteBtn) {
             muteBtn.onclick = () => {
@@ -32,7 +29,6 @@ const Game = {
             };
         }
 
-        // Setup Skills Toggle Button
         const skillsBtn = document.getElementById('skills-btn');
         if (skillsBtn) {
             skillsBtn.onclick = () => {
@@ -47,7 +43,6 @@ const Game = {
             };
         }
 
-        // --- Visual "Power On" Sequence for Toolbar ---
         setTimeout(() => {
             if (muteBtn) {
                 muteBtn.classList.remove('toggle-on', 'toggle-off');
@@ -58,28 +53,23 @@ const Game = {
                 skillsBtn.classList.remove('toggle-on', 'toggle-off');
                 skillsBtn.classList.add(rulesEnabled ? 'toggle-on' : 'toggle-off');
             }
-        }, 100); // 100ms delay for a snappier "power-on" sequence
+        }, 100);
 
-        // Setup Yaku Toggle Button
         const yakuBtn = document.getElementById('yaku-btn');
         const yakuContainer = document.getElementById('yaku-container');
         if (yakuBtn && yakuContainer) {
             yakuBtn.onclick = () => {
-                // Mobile: Open in new tab
                 if (window.innerWidth <= 768) {
                     window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank');
                     yakuBtn.blur();
                     return;
                 }
 
-                // Desktop: Toggle Iframe
                 const isHidden = yakuContainer.classList.toggle('hidden');
 
-                // Update Button State (Red/On = Open, Blue/Off = Closed)
                 yakuBtn.classList.remove('toggle-on', 'toggle-off');
                 yakuBtn.classList.add(isHidden ? 'toggle-off' : 'toggle-on');
 
-                // Reload iframe if showing (to fix scroll/rendering)
                 if (!isHidden) {
                     const iframe = document.getElementById('yaku-frame');
                     if (iframe) {
@@ -90,7 +80,6 @@ const Game = {
             };
         }
 
-        // Setup Full Screen Button
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const gameContainer = document.getElementById('game-container');
         if (fullscreenBtn && gameContainer) {
@@ -107,22 +96,19 @@ const Game = {
                     document.msFullscreenElement;
 
                 if (!isFullscreen) {
-                    // Try native fullscreen
                     if (requestMethod) {
                         requestMethod.call(element).catch(err => {
-                            console.log(`Native fullscreen failed, using fallback: ${err.message}`);
+                            console.log(`Native fullscreen failed: ${err.message}`);
                             gameContainer.classList.toggle('pseudo-fullscreen');
                             fullscreenBtn.classList.toggle('toggle-on');
                             fullscreenBtn.classList.toggle('toggle-off');
                         });
                     } else {
-                        // Fallback for iOS/unsupported
                         gameContainer.classList.toggle('pseudo-fullscreen');
                         fullscreenBtn.classList.toggle('toggle-on');
                         fullscreenBtn.classList.toggle('toggle-off');
                     }
                 } else {
-                    // Exit native fullscreen
                     const exitMethod = document.exitFullscreen ||
                         document.webkitExitFullscreen ||
                         document.mozCancelFullScreen ||
@@ -135,7 +121,6 @@ const Game = {
                 fullscreenBtn.blur();
             };
 
-            // Listen for fullscreen change events (e.g. user presses ESC)
             document.addEventListener('fullscreenchange', () => {
                 const isFullscreen = !!document.fullscreenElement;
                 fullscreenBtn.classList.remove('toggle-on', 'toggle-off');
@@ -143,24 +128,10 @@ const Game = {
             });
         }
 
-        // Load assets
-        Assets.load(() => {
-            console.log('Assets loaded. Starting game...');
-            this.lastTime = performance.now();
-
-            // Check for URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const mode = urlParams.get('mode');
-
-            if (mode === 'story' || mode === 'watch') {
-                console.log("Direct access to Story/Watch Mode detected.");
-                this.changeScene(CharacterSelectScene, { mode: 'WATCH' });
-            } else {
-                this.changeScene(TitleScene);
-            }
-
-            this.loop(this.lastTime);
-        });
+        console.log('Starting LoadingScene...');
+        this.lastTime = performance.now();
+        this.changeScene(LoadingScene);
+        this.loop(this.lastTime);
     },
 
     saveData: {
@@ -206,9 +177,8 @@ const Game = {
         }
     },
 
-    // Auto-Test Mode
     isAutoTest: false,
-    autoTestOptions: {}, // { loseMode: true }
+    autoTestOptions: {},
     testLogs: [],
 
     startAutoTest: function (options = {}) {
@@ -235,7 +205,7 @@ const Game = {
         console.log("!!! Debug: Triggering Mayu Intrusion !!!");
         this.changeScene(EncounterScene, {
             playerIndex: this.currentScene && this.currentScene.playerIndex !== undefined ? this.currentScene.playerIndex : 0,
-            cpuIndex: 6, // Mayu's index in CharacterData
+            cpuIndex: 6,
             mode: 'CHALLENGER',
             defeatedOpponents: this.currentScene && this.currentScene.defeatedOpponents ? this.currentScene.defeatedOpponents : []
         });
@@ -243,17 +213,13 @@ const Game = {
 
     lastTime: 0,
     loop: function (currentTime) {
-        // Calculate deltaTime (scaled such that 1.0 = 1/60 sec)
         const elapsed = currentTime - Game.lastTime;
         Game.lastTime = currentTime;
 
         let dt = elapsed / (1000 / 60);
-
         // Cap dt to avoid massive jumps (max 250ms / ~15 frames)
-        // This allows the game to maintain real-time speed even at 4fps.
         dt = Math.min(15, dt);
 
-        // Speed up in Auto Test Mode (10x speed)
         const iterations = Game.isAutoTest ? 10 : 1;
 
         for (let i = 0; i < iterations; i++) {
@@ -265,7 +231,6 @@ const Game = {
     }
 };
 
-// Start the game when the window loads
 window.onload = function () {
     Game.init();
 };

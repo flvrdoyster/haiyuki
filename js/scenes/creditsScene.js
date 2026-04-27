@@ -1,5 +1,5 @@
 const CreditsConfig = {
-    BG_COLOR: 'black',
+    BG_COLOR: 'rgba(0, 0, 0, 1)',
     SCREEN_CENTER_X: 320,
     EXIT_DELAY: 180, // 3 seconds
     DATA: {
