@@ -1,8 +1,41 @@
 const Assets = {
     images: {},
-    audio: {}, // New: Audio storage
-    currentMusic: null, // Track currently playing music
-    muted: false, // Global Mute State
+    audio: {},          // BGM only: { [id]: HTMLAudioElement }
+    sfxBuffers: {},     // SFX: { [id]: AudioBuffer }
+    currentMusic: null,
+    muted: false,
+
+    audioContext: null,
+    _audioUnlocked: false,
+    _sfxGainNode: null,
+
+    _getAudioContext: function () {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return this.audioContext;
+    },
+
+    _getSfxGain: function () {
+        if (!this._sfxGainNode) {
+            const ctx = this._getAudioContext();
+            this._sfxGainNode = ctx.createGain();
+            this._sfxGainNode.gain.value = 0.5;
+            this._sfxGainNode.connect(ctx.destination);
+        }
+        return this._sfxGainNode;
+    },
+
+    _unlockAudio: function () {
+        if (this._audioUnlocked) return;
+        this._audioUnlocked = true;
+        const ctx = this._getAudioContext();
+        if (ctx.state !== 'running') ctx.resume();
+        // Pre-unlock all BGM HTMLAudioElements so future play() calls work outside gesture context
+        Object.values(this.audio).forEach(el => {
+            el.play().then(() => el.pause()).catch(() => {});
+        });
+    },
 
     toLoad: [
         'ui/title.png',
@@ -167,6 +200,17 @@ const Assets = {
             return;
         }
 
+        // Unlock AudioContext and pre-warm BGM elements on first user gesture
+        const unlock = () => this._unlockAudio();
+        window.addEventListener('touchstart', unlock, { once: true, passive: true });
+        window.addEventListener('click', unlock, { once: true });
+        window.addEventListener('keydown', unlock, { once: true });
+
+        const done = () => {
+            this.loadedCount++;
+            if (this.loadedCount === this.toLoad.length) onComplete();
+        };
+
         this.toLoad.forEach(item => {
             let src = '';
             let id = '';
@@ -182,57 +226,46 @@ const Assets = {
             }
 
             if (type === 'audio') {
-                const audio = new Audio();
-                // Audio doesn't reliably fire onload for preloading in some browsers without interaction,
-                // but cancanplaythrough works. However, for simple assets, 'canplaythrough' is good.
-                // To avoid blocking if audio fails/hangs, we'll treat it liberally.
-                audio.addEventListener('canplaythrough', () => {
-                    if (!this.audio[id]) { // Prevent double count
-                        this.audio[id] = audio;
-                        this.loadedCount++;
-
-                        // OPTIMIZATION: Pre-Warm Pools for Sound Effects
-                        // Avoid cloning on first play
-                        if (!id.includes('bgm')) {
-                            const poolSize = 2; // Pre-create 2 instances
-                            this.pools[id] = [];
-                            for (let i = 0; i < poolSize; i++) {
-                                const clone = audio.cloneNode();
-                                clone.volume = 0.5;
-                                this.pools[id].push(clone);
-                            }
+                if (id.includes('bgm')) {
+                    // BGM: HTMLAudioElement (streaming, long file)
+                    const audio = new Audio();
+                    audio.addEventListener('canplaythrough', () => {
+                        if (!this.audio[id]) {
+                            this.audio[id] = audio;
+                            done();
                         }
-
-                        if (this.loadedCount === this.toLoad.length) onComplete();
-                    }
-                }, { once: true });
-
-                audio.addEventListener('error', (e) => {
-                    console.error(`Failed to load audio ${src}`, e);
-                    this.loadedCount++;
-                    if (this.loadedCount === this.toLoad.length) onComplete();
-                });
-
-                audio.src = src;
-                audio.load();
-
+                    }, { once: true });
+                    audio.addEventListener('error', () => {
+                        console.error(`Failed to load BGM: ${src}`);
+                        done();
+                    });
+                    audio.src = src;
+                    audio.load();
+                } else {
+                    // SFX: Web Audio API — decoded once, zero-latency playback
+                    fetch(src)
+                        .then(r => r.arrayBuffer())
+                        .then(buf => this._getAudioContext().decodeAudioData(buf))
+                        .then(audioBuffer => {
+                            this.sfxBuffers[id] = audioBuffer;
+                            done();
+                        })
+                        .catch(e => {
+                            console.error(`Failed to load SFX: ${src}`, e);
+                            done();
+                        });
+                }
             } else {
                 // Image
                 const img = new Image();
                 img.src = src;
                 img.onload = () => {
                     this.images[id] = img;
-                    this.loadedCount++;
-                    if (this.loadedCount === this.toLoad.length) {
-                        onComplete();
-                    }
+                    done();
                 };
-                img.onerror = (e) => {
-                    console.error(`Failed to load ${src}`, e);
-                    this.loadedCount++; // Increment anyway
-                    if (this.loadedCount === this.toLoad.length) {
-                        onComplete();
-                    }
+                img.onerror = () => {
+                    console.error(`Failed to load: ${src}`);
+                    done();
                 };
             }
         });
@@ -246,107 +279,49 @@ const Assets = {
         return this.audio[id];
     },
 
-    pools: {}, // Audio object pools
-
-    playSound: function (id) {
-        if (this.muted) return; // Mute Check
-
-        const template = this.getAudio(id);
-        if (template) {
-            // Initialize pool if needed
-            if (!this.pools[id]) {
-                this.pools[id] = [];
-            }
-
-            const pool = this.pools[id];
-
-            // 1. Try to find a free player (ended or paused)
-            let player = pool.find(p => p.paused || p.ended);
-
-            // 2. If no free player, create new one if below limit
-            if (!player && pool.length < 5) {
-                player = template.cloneNode();
-                player.volume = 0.5;
-                pool.push(player);
-            }
-
-            // 3. Play if valid player found
-            if (player) {
-                player.currentTime = 0; // Reset
-                player.volume = 0.5; // Ensure volume reset
-                player.play().catch(e => {
-                    // console.warn("Audio play blocked (pool)", e)
-                });
-            } else {
-                // Pool exhausted, skip sound for performance
-            }
-        } else {
-            console.warn(`Audio not found: ${id}`);
-        }
-    },
-
-    isWaitingForInteraction: false, // Flag to prevent duplicate listeners
-
-    // State tracking for Resume on Unmute
     currentBgmId: null,
     currentBgmLoop: false,
 
-    playMusic: function (id, loop = true) {
-        // CRITICAL: Stop current music if playing to prevent overlap
-        this.stopMusic();
+    playSound: function (id) {
+        if (this.muted) return;
+        const buffer = this.sfxBuffers[id];
+        if (!buffer) {
+            console.warn(`SFX not found: ${id}`);
+            return;
+        }
+        const ctx = this._getAudioContext();
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this._getSfxGain());
+        source.start(0);
+    },
 
-        // Save Intent
+    playMusic: function (id, loop = true) {
+        this.stopMusic();
         this.currentBgmId = id;
         this.currentBgmLoop = loop;
 
-        if (this.muted) {
+        if (this.muted) return;
+
+        const audio = this.audio[id];
+        if (!audio) {
+            console.warn(`BGM not found: ${id}`);
             return;
         }
 
-        const audio = this.getAudio(id);
-        if (audio) {
-            // Ensure audio is fully reset
-            audio.pause();
-            audio.currentTime = 0;
-            audio.loop = loop;
-            audio.volume = 0.5;
-            // audio.muted = this.muted; // Apply mute state - handled by setMute/toggleMute logic
+        audio.pause();
+        audio.currentTime = 0;
+        audio.loop = loop;
+        audio.volume = 0.5;
+        this.currentMusic = audio;
 
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.warn(`Music play blocked for ${id}. Waiting for interaction...`);
-
-                    if (this.isWaitingForInteraction) {
-                        return;
-                    }
-
-                    // Add one-time listener to resume/retry
-                    const resumeAudio = () => {
-                        this.isWaitingForInteraction = false; // Reset flag
-
-                        // Try playing whatever is current intent
-                        if (this.currentBgmId && !this.muted) {
-                            this.playMusic(this.currentBgmId, this.currentBgmLoop);
-                        }
-
-                        // Remove listeners
-                        window.removeEventListener('keydown', resumeAudio);
-                        window.removeEventListener('click', resumeAudio);
-                        window.removeEventListener('touchstart', resumeAudio);
-                    };
-
-                    this.isWaitingForInteraction = true;
-                    window.addEventListener('keydown', resumeAudio, { once: true });
-                    window.addEventListener('click', resumeAudio, { once: true });
-                    window.addEventListener('touchstart', resumeAudio, { once: true });
-                });
+        // resume() resolves immediately if already running, ensuring play() works
+        // even when called outside a direct user-gesture callback (e.g. scene transitions)
+        this._getAudioContext().resume().then(() => {
+            if (this.currentBgmId === id) {
+                audio.play().catch(e => console.warn(`BGM play blocked: ${id}`, e));
             }
-            audio._id = id; // Store ID for state checking
-            this.currentMusic = audio;
-        } else {
-            console.warn(`Music audio not found: ${id}`);
-        }
+        });
     },
 
     toggleMute: function () {
@@ -357,14 +332,14 @@ const Assets = {
         this.muted = muted;
 
         if (this.muted) {
-            // Mute: Stop playback but KEEP intent
             if (this.currentMusic) {
                 this.currentMusic.pause();
                 this.currentMusic.currentTime = 0;
                 this.currentMusic = null;
             }
+            if (this._sfxGainNode) this._sfxGainNode.gain.value = 0;
         } else {
-            // Unmute: Restore playback from intent
+            if (this._sfxGainNode) this._sfxGainNode.gain.value = 0.5;
             if (this.currentBgmId) {
                 this.playMusic(this.currentBgmId, this.currentBgmLoop);
             }
@@ -373,30 +348,19 @@ const Assets = {
     },
 
     stopMusic: function () {
-        // Clear Intent
         this.currentBgmId = null;
         this.currentBgmLoop = false;
 
         if (this.currentMusic) {
             this.currentMusic.pause();
             this.currentMusic.currentTime = 0;
-            // Clear the reference immediately to prevent any race conditions
-            const stoppedMusic = this.currentMusic;
             this.currentMusic = null;
-            // Ensure it's truly stopped
-            stoppedMusic.pause();
         }
     },
 
     stopAll: function () {
         this.stopMusic();
-        // Brute force stop all audio instances (except clones which we can't track)
-        Object.values(this.audio).forEach(audio => {
-            if (!audio.paused) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
-        });
+        // SFX BufferSourceNodes are fire-and-forget, no active references to stop
     },
 
     /**
