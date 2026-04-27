@@ -243,17 +243,23 @@ const Assets = {
                     audio.load();
                 } else {
                     // SFX: Web Audio API — decoded once, zero-latency playback
-                    fetch(src)
-                        .then(r => r.arrayBuffer())
-                        .then(buf => this._getAudioContext().decodeAudioData(buf))
-                        .then(audioBuffer => {
-                            this.sfxBuffers[id] = audioBuffer;
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', src, true);
+                    xhr.responseType = 'arraybuffer';
+                    xhr.onload = () => {
+                        if (xhr.status === 200 || xhr.status === 0) {
+                            this._getAudioContext().decodeAudioData(
+                                xhr.response,
+                                (audioBuffer) => { this.sfxBuffers[id] = audioBuffer; done(); },
+                                (e) => { console.error(`Failed to decode SFX: ${src}`, e); done(); }
+                            );
+                        } else {
+                            console.error(`Failed to fetch SFX (${xhr.status}): ${src}`);
                             done();
-                        })
-                        .catch(e => {
-                            console.error(`Failed to load SFX: ${src}`, e);
-                            done();
-                        });
+                        }
+                    };
+                    xhr.onerror = () => { console.error(`Network error for SFX: ${src}`); done(); };
+                    xhr.send();
                 }
             } else {
                 // Image
@@ -290,10 +296,17 @@ const Assets = {
             return;
         }
         const ctx = this._getAudioContext();
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(this._getSfxGain());
-        source.start(0);
+        const play = () => {
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this._getSfxGain());
+            source.start(0);
+        };
+        if (ctx.state === 'running') {
+            play();
+        } else {
+            ctx.resume().then(play);
+        }
     },
 
     playMusic: function (id, loop = true) {
