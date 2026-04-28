@@ -138,17 +138,17 @@ const DialogueData = {
 
     // Fari vs Smash
     "fari_smash": [
-        { speaker: "smash", text: "이게 누구야, 화린양이잖아.\n만나고 싶었어.", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "어머, 스마슈씨.\n저도 스마슈씨를 만나고 싶었어요.", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "이게 누구야, 화린양이잖아.\n만나고 싶었어.", speakerState: 'smile', listenerState: '' },
+        { speaker: "fari", text: "어머, 스마슈씨.\n저도 스마슈씨를 만나고 싶었어요.", speakerState: '', listenerState: 'smile' },
         { speaker: "smash", text: "우우...\n화린양, 설마하니\n그렇게까지 날 생각해주고 있던거야?", speakerState: '', listenerState: '' },
         { speaker: "fari", text: "물론이죠, 스마슈씨.\n지난 번에 빌려간 돈 2000G,\n갚아주셨으면 하는데요.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "그... 그러고보니, 그런 것도 있었었나...", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "있었다구요.\n게다가 이미 기한도 지났다구요.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "미안해, 화린양!\n지금, 가진 게 없어!!", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "조금만 더... 조금만 더 기다려줘!!", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "어떡할까요...", speakerState: '', listenerState: '' },
-        { speaker: "fari", text: "그래요, 나랑 승부해서 이기면,\n조금 더 기다려 드릴게요.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "역시 화린양.\n말이 통한다니까!!", speakerState: '', listenerState: '' }
+        { speaker: "smash", text: "그... 그러고보니, 그런 것도 있었었나...", speakerState: 'shocked', listenerState: '' },
+        { speaker: "fari", text: "있었다구요.\n게다가 이미 기한도 지났다구요.", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "smash", text: "미안해, 화린양!\n지금, 가진 게 없어!!", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "smash", text: "조금만 더... 조금만 더 기다려줘!!", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "fari", text: "어떡할까요...", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "fari", text: "그래요, 나랑 승부해서 이기면,\n조금 더 기다려 드릴게요.", speakerState: 'smile', listenerState: 'shocked' },
+        { speaker: "smash", text: "역시 화린양.\n말이 통한다니까!!", speakerState: 'smile', listenerState: 'smile' }
     ],
 
     // Fari vs Yuriwakamaru
@@ -196,13 +196,13 @@ const DialogueData = {
     // Smash vs Yuriwakamaru
     "smash_yuri": [
         { speaker: "smash", text: "드디어 마지막인가...\n도대체, 어떤 놈이 상대냐?", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "아무렴 어때.\n어떤 녀석이 상대라고 해도, 나는 지지 않아!", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "뭐야. 마지막 상대는 바보 개였던 건가...", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "너는 유리와카마루!", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "헉, 여전히 변태같은 얼굴을 하고 있구만.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "뭐어라고오~!\n너야말로\n여전히 색기라곤 없구만.", speakerState: '', listenerState: '' },
-        { speaker: "yuri", text: "그렇게까지 죽음을 재촉하는 건가? 스마슈.", speakerState: '', listenerState: '' },
-        { speaker: "smash", text: "흥, 죽음을 재촉하는 건 네놈이 아닌가?\n유리와카마루, 승부다!!", speakerState: '', listenerState: '' },
+        { speaker: "smash", text: "아무렴 어때.\n어떤 녀석이 상대라고 해도, 나는 지지 않아!", speakerState: 'smile', listenerState: '' },
+        { speaker: "yuri", text: "뭐야. 마지막 상대는 바보 개였던 건가...", speakerState: '', listenerState: 'smile' },
+        { speaker: "smash", text: "너는 유리와카마루!", speakerState: 'shocked', listenerState: '' },
+        { speaker: "yuri", text: "헉, 여전히 변태같은 얼굴을 하고 있구만.", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "smash", text: "뭐어라고오~!\n너야말로\n여전히 색기라곤 없구만.", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "yuri", text: "그렇게까지 죽음을 재촉하는 건가? 스마슈.", speakerState: 'shocked', listenerState: 'shocked' },
+        { speaker: "smash", text: "흥, 죽음을 재촉하는 건 네놈이 아닌가?\n유리와카마루, 승부다!!", speakerState: '', listenerState: 'shocked' },
         { speaker: "yuri", text: "바라던 바다.", speakerState: '', listenerState: '' }
     ],
 
