@@ -16,6 +16,9 @@ body {
     /* Visual */
     background-color: rgba(34, 34, 34, 1);
     color: rgba(255, 255, 255, 1);
+
+    /* Typography */
+    font-family: 'KoddiUDOnGothic', sans-serif;
 }
 
 a {
