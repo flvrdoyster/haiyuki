@@ -1,7 +1,9 @@
 // Battle Configuration (Rules & UI)
+// Must match the @font-face family in haiyuki.css ('KoddiUDOnGothic', weights 400/700).
+// Bold is selected via the 'bold' prefix in canvas font strings, not by family name.
 const FONTS = {
-    regular: '"KoddiUDOnGothic-Regular"',
-    bold: '"KoddiUDOnGothic-Bold"'
+    regular: '"KoddiUDOnGothic"',
+    bold: '"KoddiUDOnGothic"'
 };
 
 const BattleConfig = {
@@ -211,7 +213,7 @@ const BattleConfig = {
 
         // Fonts
         buttonFont: `bold 16px ${FONTS.bold}`,
-        helpFont: `16px ${FONTS.bold}`,
+        helpFont: `bold 16px ${FONTS.bold}`,
 
         // Colors (Match Battle Menu)
         cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5

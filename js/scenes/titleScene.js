@@ -6,54 +6,9 @@ const TitleConfig = {
         ITEM1: { text: "BATTLE", y: 300 },
         ITEM2: { text: "STORY ONLY", y: 340 },
         ITEM3: { text: "RESET", y: 380 }
-    }
+    },
+    RESET_CONFIRM_MSG: '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.'
 };
-
-function getConfirmLayout(msg) {
-    const conf = BattleConfig.CONFIRM || {
-        minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
-        font: '20px sans-serif', lineHeight: 28,
-        buttonHeight: 40, buttonWidth: 100, buttonGap: 40, buttonMarginTop: 30
-    };
-
-    const lines = msg.split('\\n');
-    let maxLineWidth = 0;
-    lines.forEach(line => {
-        let width = 0;
-        for (let i = 0; i < line.length; i++) {
-            width += (line.charCodeAt(i) > 255) ? 16 : 9;
-        }
-        if (width > maxLineWidth) maxLineWidth = width;
-    });
-
-    const textW = maxLineWidth;
-    const textH = lines.length * conf.lineHeight;
-    const buttonAreaH = conf.buttonMarginTop + conf.buttonHeight;
-
-    let boxW = textW + (conf.padding.x * 2);
-    let boxH = textH + (conf.padding.y * 2) + buttonAreaH;
-
-    boxW = Math.max(boxW, conf.minWidth);
-    boxH = Math.max(boxH, conf.minHeight);
-
-    const boxX = (640 - boxW) / 2;
-    const boxY = (240 - boxH / 2);
-
-    const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
-    const totalBtnW = (conf.buttonWidth * 2) + conf.buttonGap;
-    const startBtnX = 320 - (totalBtnW / 2);
-
-    const yesBtn = { x: startBtnX, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
-    const noBtn = { x: startBtnX + conf.buttonWidth + conf.buttonGap, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
-
-    return {
-        msg: msg,
-        box: { x: boxX, y: boxY, w: boxW, h: boxH },
-        text: { startY: boxY + conf.padding.y + conf.lineHeight, lines: lines, lineHeight: conf.lineHeight },
-        yesBtn: yesBtn,
-        noBtn: noBtn
-    };
-}
 
 const TitleScene = {
     STATE_PRESS_KEY: 0,
@@ -153,8 +108,7 @@ const TitleScene = {
             return;
         }
 
-        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
-        const layout = getConfirmLayout(message);
+        const layout = UIHelpers.getConfirmLayout(TitleConfig.RESET_CONFIRM_MSG, { centerY: true });
 
         const mx = Input.mouseX;
         const my = Input.mouseY;
@@ -265,34 +219,7 @@ const TitleScene = {
     },
 
     drawConfirm: function (ctx) {
-        ctx.save();
-        const message = '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.';
-        const layout = getConfirmLayout(message);
-
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(0, 0, 640, 480);
-
-        Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
-        const conf = BattleConfig.CONFIRM || {};
-        ctx.font = conf.font || `20px ${fontName}`;
-        ctx.textAlign = 'center';
-
-        layout.text.lines.forEach((line, i) => {
-            ctx.fillText(line, 320, layout.text.startY + (i * layout.text.lineHeight));
-        });
-
-        const yes = layout.yesBtn;
-        const no = layout.noBtn;
-
-        const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
-        const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
-
-        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, this.confirmSelected === 0, { noBorder: true });
-        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, this.confirmSelected === 1, { noBorder: true });
-
-        ctx.restore();
+        const layout = UIHelpers.getConfirmLayout(TitleConfig.RESET_CONFIRM_MSG, { centerY: true });
+        UIHelpers.drawConfirmDialog(ctx, layout, this.confirmSelected);
     }
 };

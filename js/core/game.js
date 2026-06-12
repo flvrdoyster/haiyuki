@@ -142,10 +142,18 @@ const Game = {
         const data = localStorage.getItem('haiyuki_save');
         if (data) {
             try {
-                this.saveData = JSON.parse(data);
-                console.log("Save data loaded:", this.saveData);
+                const parsed = JSON.parse(data);
+                // Minimal schema check so a corrupted save can't poison game state
+                if (parsed && Array.isArray(parsed.unlocked)) {
+                    this.saveData = parsed;
+                    console.log("Save data loaded:", this.saveData);
+                } else {
+                    console.error("Invalid save data shape, resetting.");
+                    this.saveData = { unlocked: [] };
+                }
             } catch (e) {
-                console.error("Failed to parse save data:", e);
+                console.error("Failed to parse save data, resetting:", e);
+                this.saveData = { unlocked: [] };
             }
         }
     },
@@ -232,5 +240,17 @@ const Game = {
 };
 
 window.onload = function () {
-    Game.init();
+    // Canvas text does not trigger @font-face loading by itself, so wait for the
+    // webfont before the first frame — capped at 3s so a CDN outage can't block the game.
+    const fontsReady = (document.fonts && document.fonts.load)
+        ? Promise.all([
+            document.fonts.load('16px "KoddiUDOnGothic"'),
+            document.fonts.load('bold 16px "KoddiUDOnGothic"')
+        ])
+        : Promise.resolve();
+
+    Promise.race([
+        fontsReady,
+        new Promise(resolve => setTimeout(resolve, 3000))
+    ]).catch(() => { }).then(() => Game.init());
 };

@@ -193,55 +193,8 @@ const BattleEngine = {
         this._timeoutIdCounter = 0;
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
-        // Init Characters
-        // Initialize Portraits
-        const idMap = {
-            'ataho': 'ATA',
-            'rinxiang': 'RIN',
-            'smash': 'SMSH',
-            'petum': 'PET',
-            'fari': 'FARI',
-            'yuri': 'YURI',
-            'mayu': 'MAYU'
-        };
-
-        const getAnimConfig = (charData, side) => {
-            if (!charData) return null;
-
-            // Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
-            // Check AnimConfig (Manual Overrides) - DEPRECATED/REMOVED
-
-            // Auto-Detection (Standard face folder only)
-            const prefix = idMap[charData.id] || charData.id.toUpperCase();
-            const base = `face/${prefix}_base.png`;
-            if (Assets.get(base)) {
-                return { base: base };
-            }
-
-            return null;
-        };
-
-        // BGM (Basic Battle Theme)
-
-        this.p1Character = new PortraitCharacter(p1Data, {
-            ...BattleConfig.PORTRAIT.P1,
-            baseW: BattleConfig.PORTRAIT.baseW,
-            baseH: BattleConfig.PORTRAIT.baseH,
-            isBattle: true
-        }, false);
-        this.p1Character.setAnimationConfig(getAnimConfig(p1Data, 'left'));
-
-        this.cpuCharacter = new PortraitCharacter(cpuData, {
-            ...BattleConfig.PORTRAIT.CPU,
-            baseW: BattleConfig.PORTRAIT.baseW,
-            baseH: BattleConfig.PORTRAIT.baseH,
-            isBattle: true
-        }, true);
-        this.cpuCharacter.setAnimationConfig(getAnimConfig(cpuData, 'right'));
-
-        // Ensure Expressions are Reset
-        if (this.p1Character) this.p1Character.setState('idle');
-        if (this.cpuCharacter) this.cpuCharacter.setState('idle');
+        // Portraits are view objects owned by BattleScene (initPortraits).
+        // The engine requests expression changes via EXPRESSION events.
 
         this.currentState = this.STATE_INIT;
         this.timer = 0;
@@ -338,8 +291,8 @@ const BattleEngine = {
 
         // Calculate Skill Modified Score
         let finalScore = score;
-        const attacker = who === 'P1' ? this.p1 : this.cpu;
-        const defender = who === 'P1' ? this.cpu : this.p1;
+        const attacker = this.getPlayer(who);
+        const defender = this.getOpponent(who);
         const activeBuffs = [];
         const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
 
@@ -369,13 +322,8 @@ const BattleEngine = {
         const loser = who === 'P1' ? 'cpu' : 'p1';
 
         // Visuals & Dialogue (Immediate)
-        if (who === 'P1') {
-            this.p1Character.setState('smile');
-            this.cpuCharacter.setState('shocked');
-        } else {
-            this.p1Character.setState('shocked');
-            this.cpuCharacter.setState('smile');
-        }
+        this.setExpression(who, 'smile');
+        this.setExpression(this.opponentOf(who), 'shocked');
         this.triggerDialogue('WIN', winner);
         this.triggerDialogue('LOSE', loser);
 
@@ -547,11 +495,9 @@ const BattleEngine = {
         const cpuTx = cpuTenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
 
         // Expressions
-        if (p1Tenpai) this.p1Character.setState('smile');
-        else this.p1Character.setState('shocked');
+        this.setExpression('P1', p1Tenpai ? 'smile' : 'shocked');
 
-        if (cpuTenpai) this.cpuCharacter.setState('smile');
-        else this.cpuCharacter.setState('shocked');
+        this.setExpression('CPU', cpuTenpai ? 'smile' : 'shocked');
 
         // Create result object
         const resultData = {
@@ -650,6 +596,95 @@ const BattleEngine = {
         };
     },
 
+    // Sequence step handlers. Each handler advances `this.sequencing` itself:
+    // most call _advanceSequence(); WAIT/WAIT_FX stay on the step until their
+    // condition is met; STATE/STATE_NAGARI end the sequence.
+    sequenceStepHandlers: {
+        WAIT: function (step, dt) {
+            this.sequencing.timer += dt;
+            if (this.sequencing.timer >= step.duration) {
+                this.sequencing.timer = 0;
+                this._advanceSequence();
+            }
+        },
+        WAIT_FX: function () {
+            if (this.scene && this.scene.activeFX && this.scene.activeFX.length > 0) {
+                return; // Wait
+            }
+            this._advanceSequence();
+        },
+        FX: function (step) {
+            this.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom, popupType: step.popupType, blocking: step.blocking });
+            this._advanceSequence();
+        },
+        FX_PARALLEL: function (step) {
+            step.items.forEach(item => {
+                this.playFX(item.asset, item.x, item.y, { scale: item.scale, slideFrom: item.slideFrom });
+            });
+            this._advanceSequence();
+        },
+        REVEAL_HAND: function () {
+            this.cpu.isRevealed = true;
+            this.sortHand(this.cpu.hand); // Sort for display
+            this._advanceSequence();
+        },
+        REVEAL_URA: function () {
+            this.uraDoraRevealed = true;
+            this._advanceSequence();
+        },
+        STATE: function (step) {
+            this.currentState = step.state;
+            this.sequencing.active = false;
+        },
+        MUSIC: function (step) {
+            this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
+            this._advanceSequence();
+        },
+        SOUND: function (step) {
+            this.events.push({ type: 'SOUND', id: step.id });
+            this._advanceSequence();
+        },
+        CALLBACK: function (step) {
+            const prevSeq = this.sequencing;
+            if (step.callback) step.callback();
+
+            // Only advance if the callback didn't replace the whole sequence
+            if (this.sequencing === prevSeq) {
+                this._advanceSequence();
+            }
+        },
+        STATE_NAGARI: function () {
+            // FIX: Must set state to NAGARI to allow input (Next Round)
+            this.currentState = this.STATE_NAGARI;
+            this.calculateTenpaiDamage(true); // skipFX = true
+            this.sequencing.active = false;
+        },
+        DEAL: function (step) {
+            const newP1 = this.drawTiles(step.count);
+            const newCpu = this.drawTiles(step.count);
+            this.p1.hand = this.p1.hand.concat(newP1);
+            this.cpu.hand = this.cpu.hand.concat(newCpu);
+
+            if (step.sound) {
+                this.events.push({ type: 'SOUND', id: step.sound });
+            }
+            this._advanceSequence();
+        },
+        FLIP_HAND: function (step) {
+            // Reveal player hand (was face down during deal)
+            this.p1.isFaceDown = false;
+            this.sortHand(this.p1.hand); // Sort immediately on reveal
+            if (step.sound) {
+                this.events.push({ type: 'SOUND', id: step.sound });
+            }
+            this._advanceSequence();
+        }
+    },
+
+    _advanceSequence: function () {
+        this.sequencing.currentStep++;
+    },
+
     updateSequence: function (dt = 1.0) {
         if (!this.sequencing.active) return;
 
@@ -659,74 +694,13 @@ const BattleEngine = {
             return;
         }
 
-        if (step.type === 'WAIT') {
-            this.sequencing.timer += dt;
-            if (this.sequencing.timer >= step.duration) {
-                this.sequencing.timer = 0;
-                this.sequencing.currentStep++;
-            }
-        } else if (step.type === 'WAIT_FX') {
-            if (this.scene && this.scene.activeFX && this.scene.activeFX.length > 0) {
-                return; // Wait
-            }
-            this.sequencing.currentStep++;
-        } else if (step.type === 'FX') {
-            this.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom, popupType: step.popupType, blocking: step.blocking });
-            this.sequencing.currentStep++;
-        } else if (step.type === 'FX_PARALLEL') {
-            step.items.forEach(item => {
-                this.playFX(item.asset, item.x, item.y, { scale: item.scale, slideFrom: item.slideFrom });
-            });
-            this.sequencing.currentStep++;
-        } else if (step.type === 'REVEAL_HAND') {
-            this.cpu.isRevealed = true;
-            this.sortHand(this.cpu.hand); // Sort for display
-            this.sequencing.currentStep++;
-        } else if (step.type === 'REVEAL_URA') {
-            this.uraDoraRevealed = true;
-            this.sequencing.currentStep++;
-        } else if (step.type === 'STATE') {
-            this.currentState = step.state;
-            this.sequencing.active = false;
-        } else if (step.type === 'MUSIC') {
-            // New Step: Play Music
-            this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
-            this.sequencing.currentStep++;
-        } else if (step.type === 'SOUND') {
-            this.events.push({ type: 'SOUND', id: step.id });
-            this.sequencing.currentStep++;
-        } else if (step.type === 'CALLBACK') {
-            const prevSeq = this.sequencing;
-            if (step.callback) step.callback();
-
-            if (this.sequencing === prevSeq) {
-                this.sequencing.currentStep++;
-            }
-        } else if (step.type === 'STATE_NAGARI') {
-            // FIX: Must set state to NAGARI to allow input (Next Round)
-            this.currentState = this.STATE_NAGARI;
-            this.calculateTenpaiDamage(true); // skipFX = true
-            this.sequencing.active = false;
-        } else if (step.type === 'DEAL') {
-            // Deal To Players
-            // step.count, step.sound
-            const newP1 = this.drawTiles(step.count);
-            const newCpu = this.drawTiles(step.count);
-            this.p1.hand = this.p1.hand.concat(newP1);
-            this.cpu.hand = this.cpu.hand.concat(newCpu);
-
-            if (step.sound) {
-                this.events.push({ type: 'SOUND', id: step.sound });
-            }
-            this.sequencing.currentStep++;
-        } else if (step.type === 'FLIP_HAND') {
-            // Reveal player hand (was face down during deal)
-            this.p1.isFaceDown = false;
-            this.sortHand(this.p1.hand); // Sort immediately on reveal
-            if (step.sound) {
-                this.events.push({ type: 'SOUND', id: step.sound });
-            }
-            this.sequencing.currentStep++;
+        const handler = this.sequenceStepHandlers[step.type];
+        if (handler) {
+            handler.call(this, step, dt);
+        } else {
+            // Unknown step types used to hang the sequence forever — warn and skip instead
+            console.warn(`Unknown sequence step type: ${step.type}`);
+            this._advanceSequence();
         }
     },
 
@@ -860,7 +834,6 @@ const BattleEngine = {
         this.skillsUsedThisTurn = false;
         this.roundSkillUsage = { p1: {}, cpu: {} };
         this.p1.buffs = {};
-        this.p1.buffs = {};
         this.cpu.buffs = {};
 
         // Reset Exchange Indices
@@ -929,8 +902,7 @@ const BattleEngine = {
         this.cpu.isMenzen = true; // Ensure CPU logic resets too
 
         // Reset Character Expressions
-        if (this.p1Character) this.p1Character.setState('idle');
-        if (this.cpuCharacter) this.cpuCharacter.setState('idle');
+        this.setExpressions('idle', 'idle');
 
 
         // Auto-Lose Mode Check (Re-apply effectively)
@@ -953,7 +925,7 @@ const BattleEngine = {
 
     checkSkillCost: function (skill, who = 'P1') {
         if (!skill) return false;
-        const char = who === 'P1' ? this.p1 : this.cpu;
+        const char = this.getPlayer(who);
 
         // Cost check
         if (char.mp < skill.cost) return false;
@@ -973,9 +945,10 @@ const BattleEngine = {
         // MP Cost
         if (!this.checkSkillCost(skill, who)) return false;
 
+        const entry = SkillRegistry[skillId] || {};
+
         // Round/Turn Limits
-        const multiUseSkills = ['RECOVERY', 'DISCARD_GUARD', 'EXCHANGE_TILE', 'PAINT_TILE'];
-        if (!multiUseSkills.includes(skillId)) {
+        if (!entry.multiUse) {
             // Once per ROUND limit
             if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
                 return false;
@@ -985,54 +958,9 @@ const BattleEngine = {
             }
         }
 
-        // Specific Conditions
-        const char = who === 'P1' ? this.p1 : this.cpu;
-        switch (skillId) {
-            case 'TIGER_STRIKE':
-                if (this.turnCount >= 20) return false;
-                break;
-
-            case 'SPIRIT_RIICHI':
-                if (this.turnCount > 16) return false;
-                if (char.buffs && char.buffs.spiritTimer > 0) return false;
-                // Tenpai Check
-                let canReachTenpai = false;
-                for (let i = 0; i < char.hand.length; i++) {
-                    const tempHand = [...char.hand];
-                    tempHand.splice(i, 1);
-                    if (this.checkTenpai(tempHand)) {
-                        canReachTenpai = true;
-                        break;
-                    }
-                }
-                if (!canReachTenpai) return false;
-                break;
-
-            case 'PAINT_TILE':
-            case 'EXCHANGE_TILE':
-                if (this.turnCount !== 1) return false;
-                break;
-
-            case 'RECOVERY':
-                if (char.hp >= char.maxHp) return false;
-                break;
-
-            case 'DISCARD_GUARD':
-                if (char.buffs && char.buffs.discardGuard > 0) return false;
-                break;
-
-            case 'HELL_PILE':
-                const target = who === 'P1' ? this.cpu : this.p1;
-                if (target.buffs && target.buffs.curseDraw > 0) return false;
-                break;
-
-            case 'CRITICAL':
-                if (char.buffs && char.buffs.attackUp) return false;
-                break;
-
-            case 'WATER_MIRROR':
-                if (char.buffs && char.buffs.defenseUp) return false;
-                break;
+        // Skill-specific conditions
+        if (entry.canUse && !entry.canUse(this, who, this.getPlayer(who))) {
+            return false;
         }
 
         return true;
@@ -1047,23 +975,11 @@ const BattleEngine = {
             return false;
         }
 
-        // ONE USE PER TURN RULE & UNIMPLEMENTED SKILLS
-        // explicit here if we want to show a popup? 
-        // But useSkill logic for unimplemented skills was showing a specific popup "Not Implemented".
-        // Let's rely on canUseSkill generally, but keep the popup logic for unimplemented skills?
-        // No, let's move unimplemented logic to canUseSkill or just let them fail silently in menu (disabled).
-        // If user hacks usage, canUseSkill returns false.
-
-        // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
-        if (['EXCHANGE_TILE', 'PAINT_TILE'].includes(skillId)) {
-            this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
-            return false;
-        }
-
-        // BLOCK UNIMPLEMENTED SKILLS (Batch 2)
-        if (['EXCHANGE_TILE', 'PAINT_TILE', 'LAST_CHANCE'].includes(skillId)) {
-            // Show "Not Implemented" popup?
-            this.showPopup('SKILL', { text: "구현 예정!", blocking: false });
+        // autoFlow skills fire through dedicated flows (round start / pre-nagari),
+        // NOT this generic path — block it so they can't double-fire.
+        const entry = SkillRegistry[skillId] || {};
+        if (entry.autoFlow) {
+            this.showPopup('SKILL', { text: "자동 발동 스킬!", blocking: false });
             return false;
         }
 
@@ -1074,8 +990,7 @@ const BattleEngine = {
         this.processSkillEffect(skill, who, skillId);
 
         // Record usage
-        const multiUseSkills = ['RECOVERY', 'DISCARD_GUARD', 'EXCHANGE_TILE', 'PAINT_TILE'];
-        if (!multiUseSkills.includes(skillId)) {
+        if (!entry.multiUse) {
             this.roundSkillUsage[who.toLowerCase()][skillId] = true;
             this.skillsUsedThisTurn = true;
         }
@@ -1083,11 +998,7 @@ const BattleEngine = {
         // Visuals
         this.showPopup('SKILL', { text: skill.name, blocking: false });
 
-        if (who === 'P1') {
-            this.p1Character.setState('smile');
-        } else {
-            this.cpuCharacter.setState('smile');
-        }
+        this.setExpression(who, 'smile');
 
         // Play SFX
         if (skill.sfx) {
@@ -1112,63 +1023,20 @@ const BattleEngine = {
     },
 
     processSkillEffect: function (skill, user, skillId) {
-        const target = user === 'P1' ? 'CPU' : 'P1';
-        const userObj = user === 'P1' ? this.p1 : this.cpu;
-        const targetObj = user === 'P1' ? this.cpu : this.p1;
+        if (skill.type !== 'ACTIVE' && skill.type !== 'SETUP') return;
 
-        // Buffs / Debuffs
-        if (skill.type === 'ACTIVE' || skill.type === 'SETUP') {
-            // Handle specific skills
-            switch (skillId) {
-                // FARI
-                case 'RECOVERY':
-                    this.heal(user, 3000); // 3000 HP
-                    this.playFX('fx/heal', BattleConfig.PORTRAIT[user].x + 100, 300, { scale: 1.5 });
-                    break;
-
-                case 'DISCARD_GUARD':
-                    userObj.buffs.discardGuard = 5; // 5 Turns
-                    break;
-
-                // ATAHO
-                case 'TIGER_STRIKE':
-                    userObj.buffs.guaranteedWin = true; // Next Draw = Win
-                    break;
-
-                case 'HELL_PILE':
-                    targetObj.buffs.curseDraw = 3; // 3 Turns
-                    break;
-
-                // PETUM
-                case 'CRITICAL':
-                    userObj.buffs.attackUp = true; // Duration? Round? Assuming Round based on desc "When I win"
-                    break;
-
-                // RINXIANG
-                case 'WATER_MIRROR':
-                    userObj.buffs.defenseUp = true;
-                    break;
-
-                // YURI
-                case 'SPIRIT_RIICHI':
-                    userObj.buffs.spiritTimer = 5; // 5 Turns countdown
-                    break;
-
-                // SMASH / MAYU
-                case 'EXCHANGE_TILE':
-                case 'PAINT_TILE':
-                    if (user === 'CPU') {
-                        this.executeCpuTileExchange(skillId);
-                    } else {
-                        // Player: Trigger UI
-                        this.currentState = this.STATE_TILE_EXCHANGE;
-                        this.exchangeIndices = [];
-                        this.hoverIndex = 0;
-                        this.timer = 0;
-                    }
-                    break;
-            }
+        const entry = SkillRegistry[skillId];
+        if (entry && entry.execute) {
+            entry.execute(this, user, this.getPlayer(user), this.getOpponent(user));
         }
+    },
+
+    // Open the player's round-start tile exchange UI (EXCHANGE_TILE / PAINT_TILE)
+    enterTileExchangeState: function () {
+        this.currentState = this.STATE_TILE_EXCHANGE;
+        this.exchangeIndices = [];
+        this.hoverIndex = 0;
+        this.timer = 0;
     },
 
     manageBuffs: function (who) {
@@ -1194,13 +1062,13 @@ const BattleEngine = {
     },
 
     heal: function (who, amount) {
-        const char = who === 'P1' ? this.p1 : this.cpu;
+        const char = this.getPlayer(who);
         char.hp = Math.min(char.hp + amount, char.maxHp);
         // Visual update handled by renderer update
     },
 
     consumeMp: function (who, amount) {
-        const char = who === 'P1' ? this.p1 : this.cpu;
+        const char = this.getPlayer(who);
         char.mp = Math.max(char.mp - amount, 0);
     },
 
@@ -1271,7 +1139,7 @@ const BattleEngine = {
         const badTile = this.discards.pop();
 
         // Return to hand
-        const hand = who === 'P1' ? this.p1.hand : this.cpu.hand;
+        const hand = this.getPlayer(who).hand;
         badTile.owner = who === 'P1' ? 'p1' : 'cpu'; // Reset owner just in case
         delete badTile.isRiichi; // Clear Riichi mark if it was one
         hand.push(badTile);
@@ -1313,7 +1181,7 @@ const BattleEngine = {
 
         // Logic: 50% Chance to Find Winning Tile
         // In real MJ, this would search the wall. Here we simulate.
-        const player = who === 'P1' ? this.p1 : this.cpu;
+        const player = this.getPlayer(who);
         const hand = this.getFullHand(player);
 
         let winningTiles = [];
@@ -1575,11 +1443,6 @@ const BattleEngine = {
             return;
         }
 
-        // Timer Update
-        // Update Characters
-        if (this.p1Character) this.p1Character.update(dt);
-        if (this.cpuCharacter) this.cpuCharacter.update(dt);
-
         // Update Sequencing
         if (this.sequencing.active) {
             this.updateSequence(dt);
@@ -1605,7 +1468,6 @@ const BattleEngine = {
                 this.checkRoundEnd();
             }
         }
-        BattleDialogue.update(dt);
 
         // State Machine
         switch (this.currentState) {
@@ -1616,13 +1478,18 @@ const BattleEngine = {
             case this.STATE_INIT:
                 if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
                     if (this.turnCount === 1) {
+                        // CPU Setup Skills: fire at round start, mirroring the player's
+                        // tile-exchange UI below (executeCpuTileExchange handles MP/sound)
+                        const cpuSkills = CharacterData.find(c => c.id === this.cpu.id).skills || [];
+                        const cpuSetupSkill = cpuSkills.find(id => id === 'PAINT_TILE' || id === 'EXCHANGE_TILE');
+                        if (BattleConfig.RULES.SKILLS_ENABLED && cpuSetupSkill) {
+                            this.executeCpuTileExchange(cpuSetupSkill);
+                        }
+
                         // Skill Check: Setup Skills (Exchange Tile / Paint Tile)
                         const p1Skills = CharacterData.find(c => c.id === this.p1.id).skills;
                         if (BattleConfig.RULES.SKILLS_ENABLED && (p1Skills.includes('EXCHANGE_TILE') || p1Skills.includes('PAINT_TILE'))) {
-                            this.currentState = this.STATE_TILE_EXCHANGE;
-                            this.exchangeIndices = []; // Reset selection
-                            this.hoverIndex = 0; // Fix: Initialize cursor focus
-                            this.timer = 0;
+                            this.enterTileExchangeState();
                         } else {
                             // Fix: Go to Wait State to show Draw Button
                             this.currentState = this.STATE_WAIT_FOR_DRAW;
@@ -1694,13 +1561,9 @@ const BattleEngine = {
                         this.events.push({ type: 'DAMAGE', target: this.pendingDamage.target, amount: this.pendingDamage.amount });
 
                         // Apply actual HP change
-                        if (this.pendingDamage.target === 'P1') {
-                            this.p1.hp = Math.max(0, this.p1.hp - this.pendingDamage.amount);
-                            this.p1Character.setState('shocked');
-                        } else {
-                            this.cpu.hp = Math.max(0, this.cpu.hp - this.pendingDamage.amount);
-                            this.cpuCharacter.setState('shocked');
-                        }
+                        const victim = this.getPlayer(this.pendingDamage.target);
+                        victim.hp = Math.max(0, victim.hp - this.pendingDamage.amount);
+                        this.setExpression(this.pendingDamage.target, 'shocked');
                     }
                 }
 
@@ -1944,8 +1807,7 @@ const BattleEngine = {
         this.discards.push(discarded);
 
         // Reset Expressions
-        this.p1Character.setState('idle');
-        this.cpuCharacter.setState('idle');
+        this.setExpressions('idle', 'idle');
         this.selectedActionIndex = 0; // Reset index for safety
 
         let hasAction = false;
@@ -2038,58 +1900,17 @@ const BattleEngine = {
             // Core Validation
             if (!this.canUseSkill(skillId, 'CPU', true)) continue;
 
-            let score = 0;
-            let threshold = 0.6; // Base threshold to activate
+            const entry = SkillRegistry[skillId];
+            if (!entry || !entry.aiScore) continue;
 
-            const isTenpai = this.checkTenpai(this.cpu.hand, this.cpu.id);
-            const isPlayerRiichi = this.p1.isRiichi;
-            const turn = this.turnCount;
-
-            switch (skillId) {
-                case 'RECOVERY':
-                    // Base: Inverse of HP% logic
-                    // If HP is low, score goes up.
-                    // Modifiers: Defense Profile
-                    {
-                        const hpPct = this.cpu.hp / this.cpu.maxHp;
-                        if (hpPct < 0.6) score += 0.5; // Base need
-                        if (hpPct < 0.3) score += 0.5; // Critical need
-                        score += cpuProfile.defense * 0.4;
-                        if (turn > 10) score += 0.2; // Late game safety
-                    }
-                    break;
-
-                case 'TIGER_STRIKE':
-                case 'SPIRIT_RIICHI':
-                case 'CRITICAL':
-                    // Aggressive Skills
-                    if (isTenpai) score += 0.8; // High priority if Tenpai
-                    if (turn > 15) score += 0.3; // Desperation
-                    score += cpuProfile.aggression * 0.5;
-                    break;
-
-                case 'HELL_PILE':
-                case 'DISCARD_GUARD':
-                case 'WATER_MIRROR':
-                    // Defensive Skills
-                    if (isPlayerRiichi) score += 1.0; // Immediate reaction
-                    if (this.cpu.hp < 3000) score += 0.4;
-                    score += cpuProfile.defense * 0.5;
-                    break;
-
-                case 'EXCHANGE_TILE':
-                case 'PAINT_TILE':
-                    // Setup Skills
-                    if (this.currentState === this.STATE_WAIT_FOR_DRAW && this.cpu.mp >= skill.cost * 3) {
-                        const badIndices = this.getAiBadTileIndices(this.cpu.hand);
-                        if (badIndices.length >= 2) {
-                            score += 0.5;
-                            score += (badIndices.length * 0.1); // More bad tiles = higher score
-                            score += cpuProfile.speed * 0.5; // Speedsters prefer optimal hands
-                        }
-                    }
-                    break;
-            }
+            const threshold = 0.6; // Base threshold to activate
+            const ctx = {
+                isTenpai: this.checkTenpai(this.cpu.hand, this.cpu.id),
+                isPlayerRiichi: this.p1.isRiichi,
+                turn: this.turnCount,
+                profile: cpuProfile
+            };
+            const score = entry.aiScore(this, ctx);
 
             // Difficulty 2 (Hard) = Less random, more optimal.
             // Difficulty 0 (Easy) = Random checks.
@@ -2121,8 +1942,7 @@ const BattleEngine = {
         this.sortHand(this.p1.hand); // Sort remaining hand after discard to keep it organized for next turn
 
         // Reset Expressions
-        this.p1Character.setState('idle');
-        this.cpuCharacter.setState('idle');
+        this.setExpressions('idle', 'idle');
 
         this.hoverIndex = -1;
 
@@ -2250,46 +2070,19 @@ const BattleEngine = {
 
     executeCpuPon: function (tile) {
         // Visuals (Immediate feedback)
-        this.p1Character.setState('shocked'); // P1 is shocked by CPU's Pon
-        this.cpuCharacter.setState('smile');
+        this.setExpressions('shocked', 'smile'); // P1 is shocked by CPU's Pon
         this.showPopup('PON', { blocking: true });
         this.triggerDialogue('PON', 'cpu');
         this.dialogueTriggeredThisTurn = true;
 
         this.currentState = this.STATE_FX_PLAYING;
         this.setTimeout(() => {
-            // Remove 2 matching tiles logic
-            let matches = [];
-            let keep = [];
+            if (!this.applyPon(this.cpu, tile)) return;
 
-            // Find matches first
-            this.cpu.hand.forEach(t => {
-                if (t.type === tile.type && t.color === tile.color && matches.length < 2) {
-                    matches.push(t);
-                } else {
-                    keep.push(t);
-                }
-            });
-
-            if (matches.length >= 2) {
-                this.cpu.hand = keep;
-
-                // Add Open Set
-                this.cpu.openSets.push({
-                    type: 'PON',
-                    tiles: [matches[0], matches[1], tile]
-                });
-
-                this.cpu.isMenzen = false;
-
-                // Take from discards
-                this.discards.pop();
-
-                // Setup Discard Phase
-                this.currentState = this.STATE_CPU_TURN;
-                this.timer = 30; // Short delay before discard
-                this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
-            }
+            // Setup Discard Phase
+            this.currentState = this.STATE_CPU_TURN;
+            this.timer = 30; // Short delay before discard
+            this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
         }, BattleConfig.SPEED.ACTION_WAIT);
     },
 
@@ -2459,52 +2252,26 @@ const BattleEngine = {
             }
             this.possibleActions = []; // Clear actions
         } else if (action.type === 'PON') {
-            // Move tiles from hand to openSets
-            const matchType = action.targetTile.type;
-            const matches = [];
-            const keep = [];
+            // Visuals (Immediate feedback) — checkPlayerActions guarantees the pair exists
+            this.setExpressions('smile', 'shocked');
+            this.showPopup('PON', { blocking: true });
+            this.triggerDialogue('PON', 'p1');
+            this.dialogueTriggeredThisTurn = true;
 
-            this.p1.hand.forEach(t => {
-                if (t.type === matchType && matches.length < 2) {
-                    matches.push(t);
-                } else {
-                    keep.push(t);
-                }
-            });
+            this.currentState = this.STATE_FX_PLAYING;
+            this.setTimeout(() => {
+                if (!this.applyPon(this.p1, action.targetTile)) return;
 
-            if (matches.length === 2) {
-                // Visuals (Immediate feedback)
-                this.p1Character.setState('smile');
-                this.cpuCharacter.setState('shocked');
-                this.showPopup('PON', { blocking: true });
-                this.triggerDialogue('PON', 'p1');
-                this.dialogueTriggeredThisTurn = true;
-
-                this.currentState = this.STATE_FX_PLAYING;
                 this.setTimeout(() => {
-                    this.p1.hand = keep;
-                    this.p1.openSets.push({
-                        type: 'PON',
-                        tiles: [matches[0], matches[1], action.targetTile]
-                    });
+                    this.triggerDialogue('PON_REPLY', 'cpu');
+                }, BattleConfig.DIALOGUE.replyDelay);
 
-                    // Remove from discards (physically taken)
-                    this.discards.pop();
-
-                    // Update Menzen Status
-                    this.p1.isMenzen = false;
-
-                    this.setTimeout(() => {
-                        this.triggerDialogue('PON_REPLY', 'cpu');
-                    }, BattleConfig.DIALOGUE.replyDelay);
-
-                    // Force Discard State (Turn continues but starts at discard phase)
-                    this.currentState = this.STATE_PLAYER_TURN;
-                    this.possibleActions = []; // Clear actions (e.g. Pon button)
-                    this.timer = 0;
-                    this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
-                }, BattleConfig.SPEED.ACTION_WAIT);
-            }
+                // Force Discard State (Turn continues but starts at discard phase)
+                this.currentState = this.STATE_PLAYER_TURN;
+                this.possibleActions = []; // Clear actions (e.g. Pon button)
+                this.timer = 0;
+                this.hoverIndex = this.p1.hand.length - 1; // Hover last tile
+            }, BattleConfig.SPEED.ACTION_WAIT);
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true; // Mark next discard
@@ -2525,7 +2292,7 @@ const BattleEngine = {
             this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
 
             // Expression: Smile (Will be reset on discard)
-            this.p1Character.setState('smile');
+            this.setExpression('P1', 'smile');
 
             // Logic:
             // Smart Auto-Select: Evaluate all valid discards and pick the best one.
@@ -2565,8 +2332,7 @@ const BattleEngine = {
         } else if (action.type === 'TSUMO') {
             const fullHand = this.getFullHand(this.p1);
             this.showPopup('TSUMO', { blocking: true });
-            this.p1Character.setState('smile');
-            this.cpuCharacter.setState('shocked');
+            this.setExpressions('smile', 'shocked');
 
             // Tsumo: Tile is already in hand
             this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id);
@@ -2607,8 +2373,7 @@ const BattleEngine = {
             // -------------------------------------
 
             this.showPopup('RON', { blocking: true });
-            this.p1Character.setState('smile');
-            this.cpuCharacter.setState('shocked');
+            this.setExpressions('smile', 'shocked');
 
             const fullHand = this.getFullHand(this.p1);
             const winningTile = this.discards[this.discards.length - 1];
@@ -2640,6 +2405,74 @@ const BattleEngine = {
             tiles = tiles.concat(set.tiles);
         });
         return tiles;
+    },
+
+    getPlayer: function (who) {
+        return who === 'P1' ? this.p1 : this.cpu;
+    },
+
+    getOpponent: function (who) {
+        return who === 'P1' ? this.cpu : this.p1;
+    },
+
+    opponentOf: function (who) {
+        return who === 'P1' ? 'CPU' : 'P1';
+    },
+
+    // Portrait expressions are view state owned by BattleScene — route changes
+    // through the events queue like SOUND/FX instead of touching the view directly.
+    setExpression: function (who, state) {
+        this.events.push({ type: 'EXPRESSION', who: who, state: state });
+    },
+
+    setExpressions: function (p1State, cpuState) {
+        this.setExpression('P1', p1State);
+        this.setExpression('CPU', cpuState);
+    },
+
+    // Remove two tiles matching the discard from `player`'s hand, meld them as an
+    // open PON set, and take the discard off the pile. Tile identity is by type
+    // (each type has a fixed color). Returns false if the hand has no pair.
+    applyPon: function (player, tile) {
+        const matches = [];
+        const keep = [];
+        player.hand.forEach(t => {
+            if (t.type === tile.type && matches.length < 2) {
+                matches.push(t);
+            } else {
+                keep.push(t);
+            }
+        });
+        if (matches.length < 2) return false;
+
+        player.hand = keep;
+        player.openSets.push({
+            type: 'PON',
+            tiles: [matches[0], matches[1], tile]
+        });
+        player.isMenzen = false;
+        this.discards.pop();
+        return true;
+    },
+
+    // Swap the tiles at `indices` out of `player`'s hand: removed tiles are
+    // reinserted into the deck at random positions, then the same number of
+    // fresh tiles is drawn and the hand re-sorted.
+    exchangeTiles: function (player, indices) {
+        const sortedIndices = [...indices].sort((a, b) => b - a);
+        const removedTiles = [];
+        sortedIndices.forEach(idx => {
+            removedTiles.push(player.hand.splice(idx, 1)[0]);
+        });
+
+        removedTiles.forEach(tile => {
+            const r = Math.floor(Math.random() * this.deck.length);
+            this.deck.splice(r, 0, tile);
+        });
+
+        const newTiles = this.drawTiles(removedTiles.length, player);
+        player.hand.push(...newTiles);
+        this.sortHand(player.hand);
     },
 
     confirmDraw: function () {
@@ -2799,7 +2632,7 @@ const BattleEngine = {
     triggerDialogue: function (key, owner) {
         if (!DialogueData || !DialogueData.BATTLE) return;
 
-        const charId = (owner === 'p1' || owner === 'P1') ? this.p1Character.id : this.cpuCharacter.id;
+        const charId = (owner === 'p1' || owner === 'P1') ? this.p1.id : this.cpu.id;
         const charData = DialogueData.BATTLE[charId];
         const usedData = charData || DialogueData.BATTLE.default;
         const usedId = charData ? charId : 'default';
@@ -2813,7 +2646,7 @@ const BattleEngine = {
         if (lines && lines.length > 0) {
             const text = lines[Math.floor(Math.random() * lines.length)];
             const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
-            BattleDialogue.show(text, who);
+            this.events.push({ type: 'DIALOGUE', text: text, who: who });
             this.dialogueTriggeredThisTurn = true;
         } else {
         }
@@ -2886,29 +2719,7 @@ const BattleEngine = {
 
         // Execute Exchange
         this.consumeMp('P1', totalCost);
-
-        // Remove tiles
-        // Sort indices descending to splice correctly
-        const sortedIndices = [...this.exchangeIndices].sort((a, b) => b - a);
-        const removedTiles = [];
-
-        sortedIndices.forEach(idx => {
-            const tile = this.p1.hand.splice(idx, 1)[0];
-            removedTiles.push(tile);
-        });
-
-        // Return to Deck (Random insert)
-        removedTiles.forEach(tile => {
-            const r = Math.floor(Math.random() * this.deck.length);
-            this.deck.splice(r, 0, tile);
-        });
-
-        // Draw New
-        const newTiles = this.drawTiles(count, this.p1);
-        this.p1.hand.push(...newTiles);
-
-        // Sort
-        this.sortHand(this.p1.hand);
+        this.exchangeTiles(this.p1, this.exchangeIndices);
 
         // Visuals
         this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
@@ -2979,7 +2790,7 @@ const BattleEngine = {
         });
 
         console.log(`[Cheat] Hand set to ${yakuName}. You can now declare TSUMO.`);
-        this.p1Character.setState('smile'); // Smile on cheat
+        this.setExpression('P1', 'smile'); // Smile on cheat
         this.checkSelfActions();
         if (this.possibleActions.length > 0) {
             this.currentState = this.STATE_ACTION_SELECT;
@@ -3029,25 +2840,8 @@ const BattleEngine = {
         const totalCost = count * skill.cost;
         this.consumeMp('CPU', totalCost);
 
-        // Remove tiles (Descending indices)
-        const exchangeIndices = badIndices.slice(0, count).sort((a, b) => b - a);
-        const removedTiles = [];
-        exchangeIndices.forEach(idx => {
-            removedTiles.push(this.cpu.hand.splice(idx, 1)[0]);
-        });
-
-        // Return to Deck
-        removedTiles.forEach(tile => {
-            const r = Math.floor(Math.random() * this.deck.length);
-            this.deck.splice(r, 0, tile);
-        });
-
-        // Draw New
-        const newTiles = this.drawTiles(count, this.cpu);
-        this.cpu.hand.push(...newTiles);
-
-        // Sort & Visuals
-        this.sortHand(this.cpu.hand);
+        // Exchange the worst tiles
+        this.exchangeTiles(this.cpu, badIndices.slice(0, count));
 
         // Audio Feedback (No visual popup as requested)
         this.events.push({ type: 'SOUND', id: 'audio/flip' });

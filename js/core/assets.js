@@ -31,8 +31,18 @@ const Assets = {
         this._audioUnlocked = true;
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume();
+        // Pre-warm BGM elements muted — an audible play() here would blast
+        // every track at once on the first user gesture.
         Object.values(this.audio).forEach(el => {
-            el.play().then(() => el.pause()).catch(() => {});
+            if (el === this.currentMusic) return;
+            el.muted = true;
+            el.play().then(() => {
+                el.muted = false;
+                // Skip the reset if this track became the active BGM meanwhile
+                if (el === this.currentMusic) return;
+                el.pause();
+                el.currentTime = 0;
+            }).catch(() => { el.muted = false; });
         });
     },
 

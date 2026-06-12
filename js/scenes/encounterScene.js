@@ -71,7 +71,6 @@ const EncounterScene = {
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.mode = data.mode || 'STORY';
         this.queue = data.queue || [];
-        this.queue = data.queue || [];
         this.state = 0;
 
         // CHALLENGER MODE STARTUP

@@ -3,84 +3,64 @@ const BattleScene = {
         QADebug.reset();
         BattleEngine.init(data, this);
         BattleRenderer.reset(); // Crucial for Layering Optimization
-        this.activeFX = [];
+        this.initPortraits();
         this.activeFX = [];
         this.confirmData = null; // Local Confirm State { msg, onYes, onNo, selected, timer }
         this._confirmLayout = null; // Cache layout
     },
 
-    // Helper to calculate dynamic layout
+    // Portraits are view objects: the scene owns them, the renderer draws them,
+    // and the engine requests expression changes via EXPRESSION events.
+    p1Character: null,
+    cpuCharacter: null,
+
+    initPortraits: function () {
+        const idMap = {
+            'ataho': 'ATA',
+            'rinxiang': 'RIN',
+            'smash': 'SMSH',
+            'petum': 'PET',
+            'fari': 'FARI',
+            'yuri': 'YURI',
+            'mayu': 'MAYU'
+        };
+
+        // Auto-Detection (Standard face folder only)
+        const getAnimConfig = (charData) => {
+            if (!charData) return null;
+            const prefix = idMap[charData.id] || charData.id.toUpperCase();
+            const base = `face/${prefix}_base.png`;
+            return Assets.get(base) ? { base: base } : null;
+        };
+
+        const p1Data = CharacterData.find(c => c.id === BattleEngine.p1.id);
+        const cpuData = CharacterData.find(c => c.id === BattleEngine.cpu.id);
+
+        this.p1Character = new PortraitCharacter(p1Data, {
+            ...BattleConfig.PORTRAIT.P1,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH,
+            isBattle: true
+        }, false);
+        this.p1Character.setAnimationConfig(getAnimConfig(p1Data));
+
+        this.cpuCharacter = new PortraitCharacter(cpuData, {
+            ...BattleConfig.PORTRAIT.CPU,
+            baseW: BattleConfig.PORTRAIT.baseW,
+            baseH: BattleConfig.PORTRAIT.baseH,
+            isBattle: true
+        }, true);
+        this.cpuCharacter.setAnimationConfig(getAnimConfig(cpuData));
+
+        this.p1Character.setState('idle');
+        this.cpuCharacter.setState('idle');
+    },
+
+    // Layout is recomputed only when the message changes (used every frame for hit detection)
     getConfirmLayout: function (msg) {
         if (this._confirmLayout && this._confirmLayout.msg === msg) return this._confirmLayout;
-
-        const conf = BattleConfig.CONFIRM || {
-            minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
-            font: '20px sans-serif', lineHeight: 28,
-            buttonHeight: 40, buttonWidth: 100, buttonGap: 40, buttonMarginTop: 30
-        };
-
-        const lines = msg.split('\\n');
-
-        // Measure Text Width (Approximate or use Canvas)
-        // Since we are in Logic/Scene, we can't easily access Canvas Context without passed arg.
-        // But we can estimate or lazy load in draw. 
-        // Best hack: Calculate in draw? But update needs it too.
-        // Solution: Use a temporary canvas or approximation. 
-        // 20px font => avg char width ~12px (CJK ~20px). 
-        // Let's assume CJK wide.
-        let maxLineWidth = 0;
-        lines.forEach(line => {
-            // Rough CJK estimation: 1 char = 1em. 
-            // Better: use simple length * fontSize. 
-            // canvas measureText is ideal. Let's create a temp ctx if needed or assume width.
-            // Since we need it for Hit detection in update(), we assume standard width.
-            const len = line.length;
-            // Count non-ascii vs ascii
-            let width = 0;
-            for (let i = 0; i < len; i++) {
-                const code = line.charCodeAt(i);
-                // Refined estimation for 16px font:
-                // CJK: ~16px, ASCII: ~9px
-                width += (code > 255) ? 16 : 9;
-            }
-            if (width > maxLineWidth) maxLineWidth = width;
-        });
-
-        const textW = maxLineWidth;
-        const textH = lines.length * conf.lineHeight;
-
-        const buttonAreaH = conf.buttonMarginTop + conf.buttonHeight;
-
-        // Calculate Box Size
-        let boxW = textW + (conf.padding.x * 2);
-        let boxH = textH + (conf.padding.y * 2) + buttonAreaH;
-
-        // Min Size
-        boxW = Math.max(boxW, conf.minWidth);
-        boxH = Math.max(boxH, conf.minHeight);
-
-        // Center X, Locked Y or Center Y
-        const boxX = (640 - boxW) / 2;
-        const boxY = (conf.y !== undefined) ? conf.y : (480 - boxH) / 2;
-
-        // Button Positions
-        const buttonY = boxY + boxH - conf.padding.y - conf.buttonHeight;
-        const totalBtnW = (conf.buttonWidth * 2) + conf.buttonGap;
-        const startBtnX = 320 - (totalBtnW / 2);
-
-        const yesBtn = { x: startBtnX, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
-        const noBtn = { x: startBtnX + conf.buttonWidth + conf.buttonGap, y: buttonY, w: conf.buttonWidth, h: conf.buttonHeight };
-
-        const layout = {
-            msg: msg,
-            box: { x: boxX, y: boxY, w: boxW, h: boxH },
-            text: { startY: boxY + conf.padding.y + (conf.lineHeight), lines: lines, lineHeight: conf.lineHeight },
-            yesBtn: yesBtn,
-            noBtn: noBtn
-        };
-
-        this._confirmLayout = layout;
-        return layout;
+        this._confirmLayout = UIHelpers.getConfirmLayout(msg);
+        return this._confirmLayout;
     },
 
     processEvents: function (engine) {
@@ -103,6 +83,19 @@ const BattleScene = {
                     } else if (evt.type === 'STOP_MUSIC') {
                         Assets.stopMusic();
                     }
+                    engine.events.splice(i, 1);
+                    continue;
+                }
+
+                if (evt.type === 'EXPRESSION') {
+                    const ch = evt.who === 'P1' ? this.p1Character : this.cpuCharacter;
+                    if (ch) ch.setState(evt.state);
+                    engine.events.splice(i, 1);
+                    continue;
+                }
+
+                if (evt.type === 'DIALOGUE') {
+                    BattleDialogue.show(evt.text, evt.who);
                     engine.events.splice(i, 1);
                     continue;
                 }
@@ -351,12 +344,13 @@ const BattleScene = {
         this.updateFX(dt);
         BattleDialogue.update(dt); // Update Dialogue Timers
 
+        // Portrait animations always run, even while a blocking FX pauses logic
+        if (this.p1Character) this.p1Character.update(dt);
+        if (this.cpuCharacter) this.cpuCharacter.update(dt);
+
         // Check Blocking Status
         const isBlocking = this.activeFX.some(fx => fx.blocking);
         if (isBlocking) {
-            // Even if blocking logic, visual animations (Characters) should continue
-            if (BattleEngine.p1Character) BattleEngine.p1Character.update(dt);
-            if (BattleEngine.cpuCharacter) BattleEngine.cpuCharacter.update(dt);
             return; // Pause Logic and Input
         }
 
@@ -631,43 +625,7 @@ const BattleScene = {
         if (!d) return;
 
         const layout = this.getConfirmLayout(d.msg);
-
-        ctx.save();
-
-        // Dimmer
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(0, 0, 640, 480);
-
-        // Dialog Box
-        Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
-
-        // Message Text
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
-        const conf = BattleConfig.CONFIRM || {}; // Fallback if undefined? Should be defined
-        ctx.font = conf.font || `20px ${fontName}`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic'; // Reset baseline
-
-        // Calculate Text Block Start Y to center securely
-        // Using layout line props
-        let currentY = layout.text.startY;
-
-        layout.text.lines.forEach((line, i) => {
-            ctx.fillText(line, 320, currentY + (i * layout.text.lineHeight));
-        });
-
-        // Buttons
-        const yes = layout.yesBtn;
-        const no = layout.noBtn;
-
-        const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
-        const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
-
-        Assets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, d.selected === 0, { noBorder: true });
-        Assets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, d.selected === 1, { noBorder: true });
-
-        ctx.restore();
+        UIHelpers.drawConfirmDialog(ctx, layout, d.selected);
     },
 
     handleTileExchangeInput: function (engine) {

@@ -74,8 +74,8 @@ const BattleRenderer = {
         ctx.drawImage(this.bgCanvas, 0, 0);
 
         // Portraits (Dynamic - animate)
-        if (state.p1Character) state.p1Character.draw(ctx);
-        if (state.cpuCharacter) state.cpuCharacter.draw(ctx);
+        if (BattleScene.p1Character) BattleScene.p1Character.draw(ctx);
+        if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.draw(ctx);
 
         // Draw Static FG (UI BG + Names)
         ctx.drawImage(this.fgCanvas, 0, 0);
@@ -251,8 +251,6 @@ const BattleRenderer = {
 
         // Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
-        // Bars
-        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
 
         // MP Bar with Preview Cost support
         let p1PreviewCost = 0;
@@ -362,16 +360,16 @@ const BattleRenderer = {
         ctx.textBaseline = 'alphabetic'; // Explicitly reset baseline prevents jitter
 
         // Draw P1 Name
-        if (state.p1Character && state.p1Character.data) {
-            const name = state.p1Character.data.name;
+        if (state.p1 && state.p1.name) {
+            const name = state.p1.name;
             ctx.textAlign = conf.P1.align || 'left';
             ctx.strokeText(name, conf.P1.x, conf.P1.y);
             ctx.fillText(name, conf.P1.x, conf.P1.y);
         }
 
         // Draw CPU Name
-        if (state.cpuCharacter && state.cpuCharacter.data) {
-            const name = state.cpuCharacter.data.name;
+        if (state.cpu && state.cpu.name) {
+            const name = state.cpu.name;
             ctx.textAlign = conf.CPU.align || 'right';
             ctx.strokeText(name, conf.CPU.x, conf.CPU.y);
             ctx.fillText(name, conf.CPU.x, conf.CPU.y);
@@ -1183,8 +1181,8 @@ const BattleRenderer = {
             // Title with Template Support
             let title = typeConf.title;
             let winnerName = "";
-            if (state.matchWinner === 'P1' && state.p1Character && state.p1Character.data) winnerName = state.p1Character.data.name;
-            else if (state.matchWinner === 'CPU' && state.cpuCharacter && state.cpuCharacter.data) winnerName = state.cpuCharacter.data.name;
+            if (state.matchWinner === 'P1') winnerName = state.p1.name || "";
+            else if (state.matchWinner === 'CPU') winnerName = state.cpu.name || "";
 
             if (winnerName) title = title.replace("{winner}", winnerName);
 
@@ -1417,46 +1415,6 @@ const BattleRenderer = {
         return -1;
     },
 
-    getMenuItemAt: function (x, y, menuItems) {
-        // Use logic matching drawBattleMenu
-        const conf = BattleConfig.BATTLE_MENU;
-        const xPos = conf.x;
-        const yPos = conf.y;
-        const w = conf.w;
-        const h = conf.h;
-
-        const startX = xPos + conf.padding;
-        const startY = yPos + conf.padding + 7;
-
-        // Use Fixed Line Height
-        const lineHeight = conf.fixedLineHeight || 28;
-
-        if (x < startX || x > startX + w - (conf.padding * 2)) return -1;
-
-        // Iteration Check
-        let currentY = startY;
-        const getItemHeight = (item) => {
-            if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
-            return lineHeight;
-        };
-
-        for (let i = 0; i < menuItems.length; i++) {
-            const item = menuItems[i];
-            const itemH = getItemHeight(item);
-
-            // Check Y bounds for this item
-            if (y >= currentY && y < currentY + itemH) {
-                // Return index ONLY if it's not a separator
-                if (item.type === 'SEPARATOR') return -1;
-                return i;
-            }
-
-            currentY += itemH;
-        }
-
-        return -1;
-    },
-
     getHandTileAt: function (x, y, player, groupSize) {
         // Reuse getVisualMetrics
         const handSize = player.hand.length;
@@ -1611,7 +1569,7 @@ const BattleRenderer = {
 
     drawMpPreview: function (ctx, state, count) {
         // Need Cost. Let's assume 6 for now or try to fetch.
-        const charId = state.p1Character ? state.p1Character.id : 'smash';
+        const charId = state.p1.id || 'smash';
         const costPerTile = (charId === 'mayu') ? 4 : 6;
         const totalCost = count * costPerTile;
 
