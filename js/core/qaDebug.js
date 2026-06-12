@@ -158,3 +158,66 @@ const QADebug = (() => {
 
     return { sync, reset };
 })();
+
+/**
+ * DebugCheats — console-only cheats (mutating, unlike QADebug above).
+ * Usage from devtools during a battle:
+ *   DebugCheats.testLastChance() — Petum skills + tenpai hand + turn 20
+ *   DebugCheats.debugWin()       — set hand to IP_E_DAM, then declare Tsumo
+ */
+const DebugCheats = {
+    testLastChance: function () {
+        const e = BattleEngine;
+
+        // Force Petum's skills onto P1 and jump to the last turn
+        e.p1.skills = ['LAST_CHANCE', 'CRITICAL'];
+        e.p1.mp = 100;
+        e.turnCount = 20;
+
+        const createTile = (id) => {
+            const data = PaiData.TYPES.find(t => t.id === id);
+            return { type: data.id, color: data.color, img: data.img };
+        };
+
+        // Tenpai hand (11) + 1 trash tile to discard
+        const newHand = [];
+        for (let i = 0; i < 3; i++) newHand.push(createTile('ataho'));
+        for (let i = 0; i < 3; i++) newHand.push(createTile('smash'));
+        for (let i = 0; i < 3; i++) newHand.push(createTile('rin'));
+        for (let i = 0; i < 2; i++) newHand.push(createTile('fari'));
+        newHand.push(createTile('punch'));
+
+        e.p1.hand = newHand;
+        e.sortHand(e.p1.hand);
+        e.currentState = e.STATE_PLAYER_TURN;
+    },
+
+    debugWin: function () {
+        const e = BattleEngine;
+        const yakuName = 'IP_E_DAM';
+
+        // 9 Atahos + 3 Punches
+        const template = [
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
+            { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }
+        ];
+
+        e.p1.hand = template.map(t => {
+            const data = PaiData.TYPES.find(p => p.id === t.id);
+            return { type: t.id, color: t.color, img: data ? data.img : "" };
+        });
+
+        console.log(`[Cheat] Hand set to ${yakuName}. You can now declare TSUMO.`);
+        e.setExpression('P1', 'smile');
+        e.checkSelfActions();
+        if (e.possibleActions.length > 0) {
+            e.currentState = e.STATE_ACTION_SELECT;
+            e.selectedActionIndex = 0;
+        }
+    }
+};
+
+// Console shorthand (kept from the old BattleEngine global)
+window.debugWin = () => DebugCheats.debugWin();

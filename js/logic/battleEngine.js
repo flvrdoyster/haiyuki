@@ -237,55 +237,6 @@ const BattleEngine = {
         });
     },
 
-    applyDoraBomb: function (attacker, who) {
-        // Validation
-        const skillId = 'DORA_BOMB';
-        const skill = SkillData[skillId];
-
-        // Check if Character has skill (Simplified check against ID or Skills array)
-        if (!attacker.id || attacker.id !== 'rinxiang') return; // Specific to Rinxiang for now or check skills list
-        // Better: Check known skills from CharacterData? 
-        // Actually, we should check logic:
-
-        if (attacker.mp < skill.cost) return;
-
-        // Logic: Find most frequent tile in hand
-        const hand = this.getFullHand(attacker);
-        const counts = {};
-        hand.forEach(tile => {
-            const key = tile.type + '_' + tile.color;
-            if (!counts[key]) counts[key] = { count: 0, tile: tile };
-            counts[key].count++;
-        });
-
-        // Sort by Count Descending
-        const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
-
-        if (sorted.length === 0) return;
-
-        // Execute
-        this.consumeMp(who, skill.cost);
-
-        // Set Ura Doras
-        for (let i = 0; i < this.uraDoras.length; i++) {
-            // Use best tile. If multiple Ura Doras, use best then second best? 
-            const targetTile = sorted[0].tile;
-
-            // If we have enough unique tiles, maybe spread? 
-
-            this.uraDoras[i] = {
-                type: targetTile.type,
-                color: targetTile.color,
-                img: targetTile.img
-            };
-        }
-
-        // Visuals
-        this.showPopup('SKILL', { text: skill.name, blocking: false });
-        this.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
-        this.events.push({ type: 'SOUND', id: 'audio/quake' }); // Quake SFX
-    },
-
     startWinSequence: function (type, who, score) {
         this.events.push({ type: 'STOP_MUSIC' });
 
@@ -298,7 +249,7 @@ const BattleEngine = {
 
         // DORA_BOMB Logic (CPU Auto-Use)
         if (who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
-            this.applyDoraBomb(attacker, who);
+            SkillFlows.applyDoraBomb(this, attacker, who);
         }
 
         // Attack Up (CRITICAL)
@@ -351,7 +302,7 @@ const BattleEngine = {
                                 '도라폭진을 사용하시겠습니까?',
                                 () => {
                                     // YES
-                                    this.applyDoraBomb(attacker, who);
+                                    SkillFlows.applyDoraBomb(this, attacker, who);
                                     // Resume Sequence
                                     this.sequencing.active = true;
                                 },
@@ -1103,204 +1054,15 @@ const BattleEngine = {
         this.startWinSequence('RON', 'CPU', score);
     },
 
-    activateSuperIaido: function (who) {
-        // Remove dangerous discard from table
-        const badTile = this.discards.pop();
-
-        // Play FX (Cut animation)
-        this.playFX('fx/slash_lr', 320, 240, { scale: 2.0, life: 30 });
-        this.events.push({ type: 'SOUND', id: 'audio/sword_draw' });
-
-
-        // Trigger Dialogue
-        const dialKey = 'SKILL_DEFENSE';
-        const dialOwner = who === 'P1' ? 'p1' : 'cpu';
-        this.triggerDialogue(dialKey, dialOwner);
-
-        // Flow Logic
-        // The discard is gone. The turn effectively ends without a tile on the table.
-        // It becomes the OTHER player's turn.
-        // If P1 used it (on P1's discard), it's now CPU's turn.
-        // If CPU used it (on CPU's discard), it's now P1's turn.
-
-        const isP1TurnNow = (who === 'CPU'); // If CPU used skill, it was CPU's turn, now it's P1's.
-
-        if (isP1TurnNow) {
-            this.currentState = this.STATE_PLAYER_TURN;
-            this.playerDraw(); // Start P1 turn
-        } else {
-            this.currentState = this.STATE_CPU_TURN;
-            this.timer = 0; // Will trigger cpuDraw
-        }
-    },
-
-    activateRonTileExchange: function (who) {
-        // Remove dangerous discard
-        const badTile = this.discards.pop();
-
-        // Return to hand
-        const hand = this.getPlayer(who).hand;
-        badTile.owner = who === 'P1' ? 'p1' : 'cpu'; // Reset owner just in case
-        delete badTile.isRiichi; // Clear Riichi mark if it was one
-        hand.push(badTile);
-
-        // Sort hand
-        this.sortHand(hand);
-
-
-        // Play FX
-        this.showPopup('SKILL', { text: '론 패 교환', blocking: false });
-        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-
-        // Flow Logic
-        // The turn REWINDS to the Discard Phase of the SAME player.
-        if (who === 'P1') {
-            this.currentState = this.STATE_PLAYER_TURN;
-            // Highlight the SPECIFIC returned tile
-            const returnedIndex = this.p1.hand.indexOf(badTile);
-            this.hoverIndex = returnedIndex !== -1 ? returnedIndex : this.p1.hand.length - 1;
-
-            this.p1.declaringRiichi = false; // Reset Riichi declaration status if active
-            // Note: If player WAS in Riichi committed state... wait. 
-            // Skill condition says "Cannot use if in Riichi". So this is fine. 
-            // Only declaringRiichi might be true if they JUST declared.
-        } else {
-            this.currentState = this.STATE_CPU_TURN;
-            this.cpu.needsToDiscard = true; // Ensure they discard immediately
-            this.timer = 0;
-            this.cpu.declaringRiichi = false;
-        }
-    },
-
+    // Thin wrappers — implementations live in skillRegistry.js (SkillFlows).
+    // Kept on the engine because internal flows and the Playwright tests call them.
     activateLastChance: function (who) {
-        const skillId = 'LAST_CHANCE';
-        const skill = SkillData[skillId];
-        this.consumeMp(who, skill.cost);
-        this.showPopup('SKILL', { text: skill.name, blocking: false });
-        this.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
-
-        // Logic: 50% Chance to Find Winning Tile
-        // In real MJ, this would search the wall. Here we simulate.
-        const player = this.getPlayer(who);
-        const hand = this.getFullHand(player);
-
-        let winningTiles = [];
-        PaiData.TYPES.forEach(type => {
-            const testHand = [...hand, { type: type.id, color: type.color, img: type.img }];
-            if (YakuLogic.checkYaku(testHand, player.id)) {
-                winningTiles.push(type);
-            }
-        });
-
-        if (winningTiles.length === 0) {
-            console.error("Critical: Last Chance used but no winning tiles pattern found?");
-            this.showPopup('MISS', { blocking: false });
-            this.sequencing.active = true;
-            return;
-        }
-
-        // Logic: Roulette of Actual REMAINING Deck
-        // The user clarified only the physical tiles in the Wall count.
-        // We just pick one random tile from `this.deck`.
-
-        if (this.deck.length === 0) {
-            this.showPopup('MISS', { blocking: false });
-            this.sequencing.active = true;
-            return;
-        }
-
-        // --- NEW LOGIC: Enter Roulette State for Animation ---
-        this.currentState = this.STATE_ROULETTE;
-        this.rouletteTimer = 0;
-        this.rouletteIndex = 0;
-        this.rouletteTileType = PaiData.TYPES[0].id; // Start with first type
-
-        this.rouletteFinished = false;
-        this.rouletteFinishTimer = 0;
-        this.showLastChanceResult = false;
-
-    },
-
-    updateRoulette: function (dt = 1.0) {
-        if (this.rouletteFinished) {
-            this.rouletteFinishTimer += dt;
-            if (this.rouletteFinishTimer > 60) { // 1 second delay
-                this.resolveRouletteResult();
-            }
-            return;
-        }
-
-        const cycleInterval = 4;
-        const prevRoulette = Math.floor(this.rouletteTimer / cycleInterval);
-        this.rouletteTimer += dt;
-        const currentRoulette = Math.floor(this.rouletteTimer / cycleInterval);
-
-        // Cycle Image (Every 4 frames = Fast)
-        // If dt is large, increment index multiple times
-        if (currentRoulette > prevRoulette) {
-            const skip = currentRoulette - prevRoulette;
-            this.rouletteIndex = (this.rouletteIndex + skip) % PaiData.TYPES.length;
-            this.rouletteTileType = PaiData.TYPES[this.rouletteIndex].id;
-        }
-
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
-            this.finishRoulette();
-        }
-    },
-
-    finishRoulette: function () {
-
-        // Draw One from Deck (Random Index)
-        const randIdx = Math.floor(Math.random() * this.deck.length);
-        const resultTile = this.deck[randIdx];
-
-        // Update Visual to show FINAL tile (Stop spinning)
-        this.rouletteTileType = resultTile.type;
-        this.rouletteFinished = true;
-        this.rouletteFinishTimer = 0;
-        this.rouletteResultTile = resultTile;
-
-        // Play Selection Sound
-        this.events.push({ type: 'SOUND', id: 'audio/system_enter' });
+        SkillFlows.activateLastChance(this, who);
     },
 
     resolveRouletteResult: function () {
-        const resultTile = this.rouletteResultTile;
-        if (!resultTile) return;
-
-        const who = 'P1';
-        const player = this.p1;
-        const hand = this.getFullHand(player);
-
-
-        // Check Win
-        const winTile = { type: resultTile.type, color: resultTile.color, img: resultTile.img };
-        const testHand = [...hand, winTile];
-        const winYaku = YakuLogic.checkYaku(testHand, player.id);
-
-        if (winYaku) {
-            this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-
-            player.hand.push(winTile);
-            this.winningYaku = winYaku;
-            const score = this.calculateScore(winYaku.score, player.isMenzen, player, this.cpu);
-
-            this.sequencing.active = false; // Stop Nagari sequence completely
-            this.pendingDamage = { target: 'CPU', amount: score };
-            this.startWinSequence('TSUMO', 'P1', score);
-        } else {
-            this.showPopup('MISS', { blocking: false });
-
-            // Show Result Persistently until next round/action changes screen significantly
-            this.showLastChanceResult = true;
-
-            // Resume Nagari Sequence
-            this.sequencing.active = true;
-            this.currentState = this.STATE_FX_PLAYING;
-        }
+        SkillFlows.resolveRouletteResult(this);
     },
-
-
 
     generateDeck: function () {
         const deck = [];
@@ -1472,7 +1234,7 @@ const BattleEngine = {
         // State Machine
         switch (this.currentState) {
             case this.STATE_ROULETTE:
-                this.updateRoulette(dt);
+                SkillFlows.updateRoulette(this, dt);
                 break;
 
             case this.STATE_INIT:
@@ -1483,7 +1245,7 @@ const BattleEngine = {
                         const cpuSkills = CharacterData.find(c => c.id === this.cpu.id).skills || [];
                         const cpuSetupSkill = cpuSkills.find(id => id === 'PAINT_TILE' || id === 'EXCHANGE_TILE');
                         if (BattleConfig.RULES.SKILLS_ENABLED && cpuSetupSkill) {
-                            this.executeCpuTileExchange(cpuSetupSkill);
+                            SkillFlows.executeCpuTileExchange(this, cpuSetupSkill);
                         }
 
                         // Skill Check: Setup Skills (Exchange Tile / Paint Tile)
@@ -1987,9 +1749,9 @@ const BattleEngine = {
                         // YES: Cancel Ron
                         if (this.useSkill(reactiveSkillId, 'P1', true)) { // isInternal = true
                             if (reactiveSkillId === 'SUPER_IAI') {
-                                this.activateSuperIaido('P1');
+                                SkillFlows.activateSuperIaido(this, 'P1');
                             } else if (reactiveSkillId === 'EXCHANGE_RON') {
-                                this.activateRonTileExchange('P1');
+                                SkillFlows.activateRonTileExchange(this, 'P1');
                             }
                         } else {
                             // Skill failed (e.g. limit reached), allow Ron
@@ -2360,9 +2122,9 @@ const BattleEngine = {
                     if (this.cpu.hp < 8000 || Math.random() < 0.8) {
                         if (this.useSkill(reactiveSkillId, 'CPU', true)) { // isInternal = true
                             if (reactiveSkillId === 'SUPER_IAI') {
-                                this.activateSuperIaido('CPU');
+                                SkillFlows.activateSuperIaido(this, 'CPU');
                             } else if (reactiveSkillId === 'EXCHANGE_RON') {
-                                this.activateRonTileExchange('CPU');
+                                SkillFlows.activateRonTileExchange(this, 'CPU');
                             }
                             return; // Stop Ron execution
                         }
@@ -2482,37 +2244,9 @@ const BattleEngine = {
 
 
 
+    // Thin wrapper — implementation lives in yakuLogic.js (pure function).
     checkTenpai: function (hand, returnDetails) {
-        // Hand should be 11 tiles.
-        // We try adding every possible tile (13 types).
-        // If any addition results in a Win (Yaku), then we are Tenpai.
-        const potentialYakus = new Set();
-        let isTenpai = false;
-
-        for (const type of PaiData.TYPES) {
-            // Create a temp tile
-            const tile = { type: type.id, color: type.color, img: type.img };
-
-            // Add to hand -> 12 tiles
-            const tempHand = [...hand, tile];
-
-            // Check Win
-            const win = YakuLogic.checkYaku(tempHand);
-            if (win) {
-                isTenpai = true;
-                if (returnDetails) {
-                    potentialYakus.add(win.yaku[0]);
-                } else {
-                    return true; // Return early if we don't need details
-                }
-            }
-        }
-
-        if (returnDetails && isTenpai) {
-            return Array.from(potentialYakus);
-        }
-
-        return isTenpai;
+        return YakuLogic.checkTenpai(hand, returnDetails);
     },
 
     updateBattleMusic: function () {
@@ -2536,98 +2270,18 @@ const BattleEngine = {
         }
     },
 
-    // --- Bonus Logic ---
+    // --- Bonus Logic (implementations in yakuLogic.js) ---
     calculateBonuses: function (hand, winType, isRiichi) {
-        let totalBonus = 0;
-        let details = []; // Array of { name, score }
-
-        // Tenho (Heavenly Hand)
-        // 1st Turn & Tsumo
-        if (this.turnCount <= 1 && winType === 'TSUMO') {
-            const s = 800;
-            totalBonus += s;
-            details.push({ name: '텐호 보너스', score: s });
-        }
-
-        // 2 & 3. Haitei / Houtei (Last Turn)
-        if (this.turnCount >= 20) {
-            if (winType === 'TSUMO') {
-                const s = 800;
-                totalBonus += s;
-                details.push({ name: '해저 보너스', score: s });
-            } else if (winType === 'RON') {
-                const s = 800;
-                totalBonus += s;
-                details.push({ name: '하저 보너스', score: s });
-            }
-        }
-
-        // Dora
-        // Check visible Doras
-        let doraCount = 0;
-        this.doras.forEach(dora => {
-            hand.forEach(tile => {
-                if (tile.type === dora.type && tile.color === dora.color) {
-                    doraCount++;
-                }
-            });
+        return YakuLogic.calculateBonuses(hand, winType, isRiichi, {
+            turnCount: this.turnCount,
+            doras: this.doras,
+            uraDoras: this.uraDoras
         });
-
-        // Check Ura Dora (Hidden) - Only if Riichi?
-        if (isRiichi) { // Use passed argument
-            // Ura Doras are pre-generated in startRound. Just use them.
-            this.uraDoras.forEach(dora => {
-                hand.forEach(tile => {
-                    if (tile.type === dora.type && tile.color === dora.color) {
-                        doraCount++;
-                    }
-                });
-            });
-        }
-
-        if (doraCount > 0) {
-            const s = 400 * doraCount;
-            totalBonus += s;
-            details.push({ name: `도라 보너스 x${doraCount}`, score: s });
-        }
-
-        return { score: totalBonus, details: details, names: details.map(d => d.name) }; // Keep names key in case of legacy usage?
     },
 
     getRiichiScore: function (discardIdx) {
-        // Simulate Discard
-        const tempHand = [...this.p1.hand];
-        tempHand.splice(discardIdx, 1);
-
-        let maxScore = 0;
-        let totalScore = 0;
-        let waitCount = 0; // Number of unique tile types that win
-
-        // Iterate ALL possible tiles to see if they complete the hand
-        PaiData.TYPES.forEach(type => {
-            // Add theoretical tile
-            const testHand = [...tempHand, { type: type.id, color: type.color, img: type.img }];
-
-            // Check Yaku (Win Condition?)
-            // We use checkYaku directly. 
-            // Note: checkYaku determines score based on completed hand.
-            const result = YakuLogic.checkYaku(testHand, this.p1.id);
-            if (result) {
-                waitCount++;
-                if (result.score > maxScore) maxScore = result.score;
-                totalScore += result.score;
-            }
-        });
-
-        return {
-            maxScore: maxScore,
-            avgScore: waitCount > 0 ? (totalScore / waitCount) : 0,
-            waitCount: waitCount
-        };
+        return YakuLogic.getRiichiScore(this.p1.hand, this.p1.id, discardIdx);
     },
-
-
-
 
     triggerDialogue: function (key, owner) {
         if (!DialogueData || !DialogueData.BATTLE) return;
@@ -2735,121 +2389,6 @@ const BattleEngine = {
 
     // ----------------------------------------------------------------
     // ----------------------------------------------------------------
-    testLastChance: function () {
-
-        // Force Character to Petum (P1)
-        // We can't easily swap the whole character object structure if it wasn't init, 
-        this.p1.skills = ['LAST_CHANCE', 'CRITICAL']; // Give Petum's skills
-        this.p1.mp = 100;
-
-        // Set Turn Count to 20 (Last Turn)
-        this.turnCount = 20;
-
-        // Construct Tenpai Hand
-        // Goal: 11 Tiles (Tenpai) + 1 Tile to Discard = 12 Tiles.
-        // Current Hand: Above + 1 Punch (to discard).
-
-        const createTile = (id) => {
-            const data = PaiData.TYPES.find(t => t.id === id);
-            return { type: data.id, color: data.color, img: data.img };
-        };
-
-        const newHand = [];
-        for (let i = 0; i < 3; i++) newHand.push(createTile('ataho'));
-        for (let i = 0; i < 3; i++) newHand.push(createTile('smash'));
-        for (let i = 0; i < 3; i++) newHand.push(createTile('rin'));
-        for (let i = 0; i < 2; i++) newHand.push(createTile('fari'));
-        newHand.push(createTile('punch')); // Trash tile to discard
-
-        this.p1.hand = newHand;
-
-        // Update UI
-        this.sortHand(this.p1.hand);
-
-        // Set State to Player Turn
-        this.currentState = this.STATE_PLAYER_TURN;
-
-    },
-
-    /**
-     * Debug: Set hand to 'IP_E_DAM' Yaku without auto-win
-     */
-    debugWin: function () {
-        const yakuName = 'IP_E_DAM';
-        // 9 Atahos + 3 Punches
-        const template = [
-            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
-            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
-            { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
-            { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }, { id: 'punch', color: 'red' }
-        ];
-
-        this.p1.hand = template.map(t => {
-            const data = PaiData.TYPES.find(p => p.id === t.id);
-            return { type: t.id, color: t.color, img: data ? data.img : "" };
-        });
-
-        console.log(`[Cheat] Hand set to ${yakuName}. You can now declare TSUMO.`);
-        this.setExpression('P1', 'smile'); // Smile on cheat
-        this.checkSelfActions();
-        if (this.possibleActions.length > 0) {
-            this.currentState = this.STATE_ACTION_SELECT;
-            this.selectedActionIndex = 0; // Important: Reset index for new actions
-        }
-    },
-
-    // ----------------------------------------------------------------
-    // AI Utility Methods
-    // ----------------------------------------------------------------
-
-    /**
-     * Identifies indices of tiles in hand that are not part of any set (Triplet/Pair).
-     * Used by AI to decide which tiles to discard or exchange.
-     */
-    getAiBadTileIndices: function (hand) {
-        const analysis = YakuLogic.analyzeHand(hand);
-        const counts = analysis.counts;
-        const badIndices = [];
-
-        hand.forEach((tile, index) => {
-            const key = `${tile.type}_${tile.color}`;
-            const c = counts[key] ? counts[key].count : 0;
-            if (c < 2) {
-                badIndices.push(index);
-            }
-        });
-
-        // If no bad tiles (all pairs/triplets), return empty
-        return badIndices;
-    },
-
-    /**
-     * Automates tile exchange for CPU AI.
-     */
-    executeCpuTileExchange: function (skillId) {
-        const skill = SkillData[skillId];
-        if (!skill) return;
-
-        const badIndices = this.getAiBadTileIndices(this.cpu.hand);
-        if (badIndices.length === 0) return;
-
-        // Decision: Exchange up to 3 worst tiles if MP allows
-        const count = Math.min(badIndices.length, 3, Math.floor(this.cpu.mp / skill.cost));
-        if (count === 0) return;
-
-        const totalCost = count * skill.cost;
-        this.consumeMp('CPU', totalCost);
-
-        // Exchange the worst tiles
-        this.exchangeTiles(this.cpu, badIndices.slice(0, count));
-
-        // Audio Feedback (No visual popup as requested)
-        this.events.push({ type: 'SOUND', id: 'audio/flip' });
-        this.triggerDialogue(skillId, 'cpu');
-
-        // Small delay to let the sound play and allow player to realize something happened
-        this.timer = -30;
-    },
     performAutoTurn: function () {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
             return;
@@ -2922,4 +2461,3 @@ const BattleEngine = {
 
 // Global Exposure
 window.BattleEngine = BattleEngine;
-window.debugWin = () => BattleEngine.debugWin();

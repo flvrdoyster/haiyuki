@@ -595,5 +595,120 @@ const YakuLogic = {
         // and they are checked separately before this fallback.
 
         return false;
+    },
+
+    // ----------------------------------------------------------------
+    // Hand evaluation helpers (pure functions, moved from BattleEngine)
+    // ----------------------------------------------------------------
+
+    /**
+     * Tenpai check: an 11-tile hand is tenpai if adding any single tile type
+     * completes a winning hand. Pass returnDetails=true to get the list of
+     * potential yaku names instead of a boolean.
+     */
+    checkTenpai: function (hand, returnDetails) {
+        const potentialYakus = new Set();
+        let isTenpai = false;
+
+        for (const type of PaiData.TYPES) {
+            const tile = { type: type.id, color: type.color, img: type.img };
+            const tempHand = [...hand, tile];
+
+            const win = this.checkYaku(tempHand);
+            if (win) {
+                isTenpai = true;
+                if (returnDetails) {
+                    potentialYakus.add(win.yaku[0]);
+                } else {
+                    return true; // Early exit when only a boolean is needed
+                }
+            }
+        }
+
+        if (returnDetails && isTenpai) {
+            return Array.from(potentialYakus);
+        }
+
+        return isTenpai;
+    },
+
+    /**
+     * Win bonuses (tenho / haitei / houtei / dora). Round state is passed in
+     * via ctx: { turnCount, doras, uraDoras }.
+     */
+    calculateBonuses: function (hand, winType, isRiichi, ctx) {
+        let totalBonus = 0;
+        const details = []; // Array of { name, score }
+
+        // Tenho (Heavenly Hand): 1st turn & Tsumo
+        if (ctx.turnCount <= 1 && winType === 'TSUMO') {
+            const s = 800;
+            totalBonus += s;
+            details.push({ name: '텐호 보너스', score: s });
+        }
+
+        // Haitei / Houtei (Last Turn)
+        if (ctx.turnCount >= 20) {
+            if (winType === 'TSUMO') {
+                const s = 800;
+                totalBonus += s;
+                details.push({ name: '해저 보너스', score: s });
+            } else if (winType === 'RON') {
+                const s = 800;
+                totalBonus += s;
+                details.push({ name: '하저 보너스', score: s });
+            }
+        }
+
+        // Dora (visible; ura-dora only counts with Riichi)
+        let doraCount = 0;
+        const countDoras = (doras) => {
+            doras.forEach(dora => {
+                hand.forEach(tile => {
+                    if (tile.type === dora.type && tile.color === dora.color) {
+                        doraCount++;
+                    }
+                });
+            });
+        };
+        countDoras(ctx.doras);
+        if (isRiichi) countDoras(ctx.uraDoras);
+
+        if (doraCount > 0) {
+            const s = 400 * doraCount;
+            totalBonus += s;
+            details.push({ name: `도라 보너스 x${doraCount}`, score: s });
+        }
+
+        return { score: totalBonus, details: details, names: details.map(d => d.name) };
+    },
+
+    /**
+     * Riichi preview: simulate discarding hand[discardIdx], then measure the
+     * best / average winning score and the number of winning tile types.
+     */
+    getRiichiScore: function (hand, charId, discardIdx) {
+        const tempHand = [...hand];
+        tempHand.splice(discardIdx, 1);
+
+        let maxScore = 0;
+        let totalScore = 0;
+        let waitCount = 0;
+
+        PaiData.TYPES.forEach(type => {
+            const testHand = [...tempHand, { type: type.id, color: type.color, img: type.img }];
+            const result = this.checkYaku(testHand, charId);
+            if (result) {
+                waitCount++;
+                if (result.score > maxScore) maxScore = result.score;
+                totalScore += result.score;
+            }
+        });
+
+        return {
+            maxScore: maxScore,
+            avgScore: waitCount > 0 ? (totalScore / waitCount) : 0,
+            waitCount: waitCount
+        };
     }
 };

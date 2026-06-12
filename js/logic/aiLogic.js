@@ -216,5 +216,24 @@ const AILogic = {
 
         // If already open, go for speed
         return Math.random() < profile.speed;
+    },
+
+    /**
+     * Indices of tiles that are not part of any set (triplet/pair).
+     * Used to decide which tiles to discard or exchange.
+     */
+    getBadTileIndices: function (hand) {
+        const counts = YakuLogic.analyzeHand(hand).counts;
+        const badIndices = [];
+
+        hand.forEach((tile, index) => {
+            const key = `${tile.type}_${tile.color}`;
+            const c = counts[key] ? counts[key].count : 0;
+            if (c < 2) {
+                badIndices.push(index);
+            }
+        });
+
+        return badIndices;
     }
 };

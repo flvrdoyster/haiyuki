@@ -204,6 +204,10 @@ const Assets = {
     loadedCount: 0,
 
     load: function (onComplete) {
+        if (window.location.protocol === 'file:') {
+            console.warn('[Assets] file:// 환경에서는 SFX(XHR + Web Audio) 로드가 차단되어 효과음이 재생되지 않습니다. 로컬 서버(npx serve 등)로 열어주세요.');
+        }
+
         if (this.toLoad.length === 0) {
             onComplete();
             return;
