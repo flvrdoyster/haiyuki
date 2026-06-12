@@ -222,9 +222,29 @@ const BattleEngine = {
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.roundHistory = []; // Initialize Round History
 
-
+        // Resolve CPU skill (0..1) from the player's difficulty band + tournament
+        // progress. Skill controls AI competence; aiProfile controls style.
+        this.cpuSkill = this.computeCpuSkill(
+            (Game.saveData && Game.saveData.difficulty) || 'normal',
+            this.defeatedOpponents.length
+        );
 
         this.startRound();
+    },
+
+    // Player difficulty picks a skill band; progression interpolates within it,
+    // so early opponents are gentle and the final boss reaches the band's ceiling.
+    DIFFICULTY_BANDS: {
+        easy: [0.10, 0.45],
+        normal: [0.30, 0.75],
+        hard: [0.55, 1.00]
+    },
+    TOURNAMENT_LENGTH: 5, // opponents before the final boss
+
+    computeCpuSkill: function (difficulty, defeatedCount) {
+        const band = this.DIFFICULTY_BANDS[difficulty] || this.DIFFICULTY_BANDS.normal;
+        const t = Math.max(0, Math.min(1, defeatedCount / this.TOURNAMENT_LENGTH));
+        return band[0] + (band[1] - band[0]) * t;
     },
 
     playFX: function (type, x, y, options = {}) {
@@ -1463,8 +1483,6 @@ const BattleEngine = {
         // Active Skill Check
         this.checkCpuActiveSkills(); // AI decides to use skills
 
-        const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
-
         // Check Tsumo
         if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
             this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
@@ -1493,7 +1511,7 @@ const BattleEngine = {
                 }
             }
 
-            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, BattleConfig.RULES.AI_DIFFICULTY, this.cpu.aiProfile)) {
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile)) {
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard
 
@@ -1542,8 +1560,7 @@ const BattleEngine = {
                 doras: this.doras, // Pass Doras for AI
                 turnCount: this.turnCount
             };
-            const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
-            const discardIdx = AILogic.decideDiscard(this.cpu.hand, difficulty, this.cpu.aiProfile, context);
+            const discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
             this.discardTileCPU(discardIdx);
         }
     },
@@ -1778,9 +1795,8 @@ const BattleEngine = {
 
         // Require at least 3 tiles in hand to Pon (need 1 tile left to discard)
         if (pairCount >= 2 && !this.cpu.isRiichi && this.cpu.hand.length >= 3) {
-            const difficulty = BattleConfig.RULES.AI_DIFFICULTY;
             const context = { isMenzen: this.cpu.isMenzen, turnCount: this.turnCount };
-            if (AILogic.shouldPon(this.cpu.hand, discardedTile, difficulty, this.cpu.aiProfile, context)) {
+            if (AILogic.shouldPon(this.cpu.hand, discardedTile, this.cpuSkill, this.cpu.aiProfile, context)) {
                 this.executeCpuPon(discardedTile);
                 return true;
             }
@@ -2432,13 +2448,13 @@ const BattleEngine = {
         }
 
         try {
-            // Delegate to AI Logic
-            // Use 'NORMAL' difficulty as standard auto-play
+            // Delegate to AI Logic. Player autopilot plays competently and
+            // independently of the CPU difficulty setting.
             const context = {
                 discards: this.discards,
                 opponentRiichi: this.cpu.isRiichi // Auto-play defends against CPU Riichi
             };
-            const discardIdx = AILogic.decideDiscard(this.p1.hand, BattleConfig.RULES.AI_DIFFICULTY, null, context);
+            const discardIdx = AILogic.decideDiscard(this.p1.hand, 0.7, null, context);
 
             if (typeof discardIdx !== 'number' || discardIdx < 0) {
                 console.error("AILogic returned invalid index:", discardIdx);

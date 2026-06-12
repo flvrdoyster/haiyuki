@@ -23,14 +23,9 @@ const BattleConfig = {
         NAGARI_DAMAGE: 1000,
         SKILLS_ENABLED: true,
 
-        // AI Difficulty Settings
-        // 0: EASY   - Discard: Random from Top 4 (Frequent mistakes)
-        //             Action: 50% chance to miss Riichi/Pon opportunities
-        // 1: NORMAL - Discard: Weighted Random from Top 3 (Standard personality behavior)
-        //             Action: Standard profile chance
-        // 2: HARD   - Discard: Always Top 1 (Optimal play)
-        //             Action: Standard profile chance (Optimal)
-        AI_DIFFICULTY: 2
+        // AI competence is no longer a fixed bucket here. It is a continuous
+        // skill (0..1) computed per battle from the player's difficulty band ×
+        // tournament progress — see BattleEngine.computeCpuSkill / AILogic.
     },
     SPEED: {
         RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi

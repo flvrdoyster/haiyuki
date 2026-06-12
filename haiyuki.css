@@ -120,6 +120,21 @@ a:hover {
     filter: brightness(1.2);
 }
 
+/* Difficulty cycles through 3 text states, so it uses a bordered label
+   instead of the on/off image used by the toggle buttons. */
+.difficulty-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-family: 'KoddiUDOnGothic', sans-serif;
+    font-size: 17px;
+    color: rgba(255, 255, 255, 1);
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+
 #game-container {
     /* Layout */
     flex-shrink: 0;

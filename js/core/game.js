@@ -43,6 +43,24 @@ const Game = {
             };
         }
 
+        const difficultyBtn = document.getElementById('difficulty-btn');
+        if (difficultyBtn) {
+            const order = ['easy', 'normal', 'hard'];
+            const labels = { easy: '쉬움', normal: '보통', hard: '어려움' };
+            const render = () => {
+                difficultyBtn.textContent = labels[this.saveData.difficulty] || labels.normal;
+            };
+            difficultyBtn.onclick = () => {
+                const cur = order.indexOf(this.saveData.difficulty);
+                this.saveData.difficulty = order[(cur + 1) % order.length] || 'normal';
+                this.save();
+                render();
+                difficultyBtn.blur();
+                console.log(`[Config] Difficulty: ${this.saveData.difficulty}`);
+            };
+            render();
+        }
+
         setTimeout(() => {
             if (muteBtn) {
                 muteBtn.classList.remove('toggle-on', 'toggle-off');
@@ -135,7 +153,8 @@ const Game = {
     },
 
     saveData: {
-        unlocked: []
+        unlocked: [],
+        difficulty: 'normal'
     },
 
     load: function () {
@@ -146,14 +165,15 @@ const Game = {
                 // Minimal schema check so a corrupted save can't poison game state
                 if (parsed && Array.isArray(parsed.unlocked)) {
                     this.saveData = parsed;
+                    if (!this.saveData.difficulty) this.saveData.difficulty = 'normal';
                     console.log("Save data loaded:", this.saveData);
                 } else {
                     console.error("Invalid save data shape, resetting.");
-                    this.saveData = { unlocked: [] };
+                    this.saveData = { unlocked: [], difficulty: 'normal' };
                 }
             } catch (e) {
                 console.error("Failed to parse save data, resetting:", e);
-                this.saveData = { unlocked: [] };
+                this.saveData = { unlocked: [], difficulty: 'normal' };
             }
         }
     },

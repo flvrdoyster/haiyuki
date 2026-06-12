@@ -1,99 +1,67 @@
 const AILogic = {
-    DIFFICULTY: {
-        EASY: 0,
-        NORMAL: 1,
-        HARD: 2
-    },
+    DEFAULT_PROFILE: { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3, greed: 0.3 },
 
-    // Main decision function for Discard
-    decideDiscard: function (hand, difficulty, profile, context) {
-        // Default profile if missing
-        if (!profile) profile = { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3, greed: 0.3 };
+    // Reward for a discard that leaves the hand one tile from winning (tenpai).
+    TENPAI_BONUS: 300,
 
-        // Extract Context
+    /**
+     * Choose which tile to discard.
+     * @param {number} skill 0..1 continuous AI competence. Controls mistake rate,
+     *        defense/dora awareness, and how much the tenpai lookahead is trusted.
+     *        Character STYLE comes from `profile` (orthogonal to skill).
+     */
+    decideDiscard: function (hand, skill, profile, context) {
+        if (!profile) profile = this.DEFAULT_PROFILE;
+        if (skill == null) skill = 0.5;
+
         const discards = context ? context.discards : [];
         const opponentRiichi = context ? context.opponentRiichi : false;
         const doras = context ? context.doras : [];
 
-        // Candidates for discard
-        let candidates = [];
+        // Strategic awareness scales with skill (weak AI is "blind")
+        const defenseAwareness = skill;       // 0 = ignores opponent threats entirely
+        const doraAwareness = skill * skill;   // ramps in later than defense
 
-        // Difficulty Modifiers (Strategic Blindness)
-        let defenseModifier = 1.0;
-        let doraModifier = 1.0;
-
-        if (difficulty === this.DIFFICULTY.EASY) {
-            defenseModifier = 0.0; // Completely ignore opponent threats
-            doraModifier = 0.0;    // Ignore Dora value (treat as normal)
-        } else if (difficulty === this.DIFFICULTY.NORMAL) {
-            defenseModifier = 0.5; // Partial awareness
-            doraModifier = 1.0;
-        } else {
-            defenseModifier = 1.0; // Full awareness
-            doraModifier = 1.0;
-        }
-
-        // Evaluate each potential discard
+        const candidates = [];
         for (let i = 0; i < hand.length; i++) {
             const tile = hand[i];
-
-            // Simulate Discard
             const remainingHand = [...hand];
             remainingHand.splice(i, 1);
 
-            // Calculate Potential of Remaining Hand
-            // We want to MAXIMIZE the potential of what's left.
-            // Pass modifiers to calculation if needed, or apply here.
-            // Currently calculateHandPotential uses hardcoded weights, let's inject modifier there or wrap it.
-            // Actually, let's keep calc pure and apply modifiers to the *result* or *inputs*.
+            // Base: maximize the potential of what's LEFT after discarding.
+            let score = this.calculateHandPotential(remainingHand, profile, doras, doraAwareness);
 
-            // Dora Check locally to apply modifier? 
-            // calculateHandPotential handles Dora. We should pass the modifier.
-            const potential = this.calculateHandPotential(remainingHand, profile, doras, doraModifier);
-            let score = potential;
-
-            // Defense Logic (If Opponent Riichi)
-            // If Riichi, we prioritise SAFETY over potential.
-            if (opponentRiichi && defenseModifier > 0) {
-                const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
-                const defenseFactor = profile.defense * 200 * defenseModifier; // Strong weight * difficulty
-
-                if (isSafe) {
-                    score += defenseFactor; // Good to discard (Safe)
-                } else {
-                    // Penalty logic if needed
+            // Tenpai lookahead — the key skill signal. A skilled AI strongly avoids
+            // breaking a winning wait; a weak AI doesn't even notice. Only valid on a
+            // full concealed hand (11 tiles); skip after a Pon shortens the hand.
+            if (skill > 0.05 && remainingHand.length === 11) {
+                if (YakuLogic.checkTenpai(remainingHand)) {
+                    score += this.TENPAI_BONUS * skill;
                 }
             }
 
-            // Synergies with already discarded tiles? (Genbutsu logic is above)
-            // If we have 3, and we discard 1, we are left with Pair.
-            // If we have 1, and discard 1, we are left with 0. 
-            // Potential calc handles this.
+            // Defense: when the opponent has declared Riichi, prefer genbutsu (a tile
+            // already in the discards is guaranteed safe in this set-based ruleset).
+            if (opponentRiichi && defenseAwareness > 0) {
+                const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
+                if (isSafe) score += profile.defense * 200 * defenseAwareness;
+            }
 
-            candidates.push({ index: i, score: score, tile: tile });
+            candidates.push({ index: i, score: score });
         }
 
-        // Sort by score descending (Higher score = Better to discard)
-        // Because Score = Potential of Remaining Hand. 
-        // We want to keep the best hand, implies we discard the tile that leaves the best hand.
+        // Higher score = better hand left behind = better tile to discard.
         candidates.sort((a, b) => b.score - a.score);
 
-        if (candidates.length > 0) {
+        // Mistakes: with probability (1-skill)*0.6 pick a sub-optimal tile. The lower
+        // the skill, the deeper into the ranked list the mistake can reach.
+        const mistakeChance = (1 - skill) * 0.6;
+        if (candidates.length > 1 && Math.random() < mistakeChance) {
+            const depth = Math.min(candidates.length - 1, 1 + Math.floor((1 - skill) * 3));
+            const pick = 1 + Math.floor(Math.random() * depth);
+            return candidates[pick].index;
         }
-
-        // Difficulty Logic - Selection
-        if (difficulty === this.DIFFICULTY.EASY) {
-            // Random top 3 (Mistakes)
-            const range = Math.min(candidates.length, 3);
-            const r = Math.floor(Math.random() * range);
-            return candidates[r].index;
-        } else if (difficulty === this.DIFFICULTY.NORMAL) {
-            // Weighted top 2
-            return candidates[Math.random() < 0.7 ? 0 : 1].index;
-        } else {
-            // Hard: Optimal
-            return candidates[0].index;
-        }
+        return candidates[0].index;
     },
 
     calculateHandPotential: function (hand, profile, doras, doraModifier = 1.0) {
@@ -161,60 +129,50 @@ const AILogic = {
         return score;
     },
 
-    shouldRiichi: function (hand, difficulty, profile) {
-        if (!profile) profile = { aggression: 0.5 };
+    shouldRiichi: function (hand, skill, profile) {
+        if (!profile) profile = this.DEFAULT_PROFILE;
+        if (skill == null) skill = 0.5;
 
-        // Aggression check
-        // Higher aggression = More likely to Riichi instantly
-        // Lower aggression = Might stay silent (Dama) to surprise? (Not implemented yet, just chance to NOT do it if < threshold?)
-        // For now: 
-        // If Aggression > 0.3, do it. 
-        // If Aggression is low, maybe 30% chance to skip?
+        // Weak AI sometimes misses the Riichi chance entirely.
+        // skill 0 → 40% chance to declare, skill 1 → always.
+        if (Math.random() > (0.4 + 0.6 * skill)) return false;
 
-        // Difficulty Effect: Easy AI might miss the chance to Riichi
-        if (difficulty === this.DIFFICULTY.EASY && Math.random() < 0.5) return false;
+        // Very passive personalities may stay quiet (Dama) regardless of skill.
+        if (profile.aggression < 0.3 && Math.random() < 0.4) return false;
 
-        if (profile.aggression < 0.3) {
-            return Math.random() < 0.5; // 50% chance to skip Riichi if very passive
-        }
         return true;
     },
 
-    shouldRon: function (hand, discardedTile, difficulty, profile) {
+    shouldRon: function (hand, discardedTile, skill, profile) {
         // Always Ron if possible, winning is paramount.
         return true;
     },
 
-    shouldTsumo: function (hand, difficulty, profile) {
+    shouldTsumo: function (hand, skill, profile) {
         // Always Tsumo if possible
         return true;
     },
 
-    shouldPon: function (hand, tile, difficulty, profile, context) {
-        if (!profile) profile = { speed: 0.5 };
+    shouldPon: function (hand, tile, skill, profile, context) {
+        if (!profile) profile = this.DEFAULT_PROFILE;
+        if (skill == null) skill = 0.5;
 
-        // Context check
         const isMenzen = context ? context.isMenzen : true;
         const turnCount = context ? context.turnCount : 0;
 
-        // STRATEGY: FAVOR RIICHI
-        // If hand is locked (Menzen), avoid opening it unless desperate.
-
+        // STRATEGY: closed hands aim for Riichi, so avoid opening unless desperate.
         if (isMenzen) {
-            // Early game: Strict Menzen (Riichi aim)
-            // Late game (Turn > 14): Desperation (Pon to finish)
             if (turnCount < 14) {
-                // Very low chance to break Menzen early
-                // Only aggressive/hasty profiles might do it
-                // Reduced from raw speed to speed * 0.1
-                return Math.random() < (profile.speed * 0.1);
-            } else {
-                // Late game desperation
-                return Math.random() < profile.speed;
+                // Disciplined (high-skill) AI keeps the hand closed; a weak AI pons
+                // impulsively and throws away its Riichi potential.
+                const impulse = profile.speed * 0.1 + (1 - skill) * 0.2;
+                return Math.random() < impulse;
             }
+            // Late game: pon to finish in time
+            return Math.random() < profile.speed;
         }
 
-        // If already open, go for speed
+        // Already open — go for speed
         return Math.random() < profile.speed;
     },
 

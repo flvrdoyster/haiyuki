@@ -122,7 +122,7 @@ const TitleScene = {
         if (isOverYes) {
             if (Input.hasMouseMoved()) this.confirmSelected = 0;
             if (Input.isMouseJustPressed()) {
-                Game.saveData = { unlocked: [], clearedOpponents: [] };
+                Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
                 Game.continueCount = 0;
                 Game.save();
                 Assets.playSound('audio/riichi');
@@ -145,7 +145,7 @@ const TitleScene = {
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
             if (this.confirmSelected === 0) {
-                Game.saveData = { unlocked: [], clearedOpponents: [] };
+                Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
                 Game.continueCount = 0;
                 Game.save();
                 Assets.playSound('audio/riichi');
