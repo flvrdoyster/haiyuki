@@ -45,14 +45,18 @@ const Game = {
 
         const difficultyBtn = document.getElementById('difficulty-btn');
         if (difficultyBtn) {
-            const order = ['easy', 'normal', 'hard'];
-            const labels = { easy: '쉬움', normal: '보통', hard: '어려움' };
+            // 3-segment selector: image shows 쉬움/중간/어려움, highlighting the
+            // active one; clicking a segment picks that difficulty directly.
+            const segments = ['easy', 'normal', 'hard'];
+            const images = { easy: 'easy.png', normal: 'normal.png', hard: 'difficult.png' };
             const render = () => {
-                difficultyBtn.textContent = labels[this.saveData.difficulty] || labels.normal;
+                const key = images[this.saveData.difficulty] || images.normal;
+                difficultyBtn.style.backgroundImage = `url('assets/ui/${key}')`;
             };
-            difficultyBtn.onclick = () => {
-                const cur = order.indexOf(this.saveData.difficulty);
-                this.saveData.difficulty = order[(cur + 1) % order.length] || 'normal';
+            difficultyBtn.onclick = (e) => {
+                const rect = difficultyBtn.getBoundingClientRect();
+                const seg = Math.floor((e.clientX - rect.left) / (rect.width / 3));
+                this.saveData.difficulty = segments[Math.max(0, Math.min(2, seg))];
                 this.save();
                 render();
                 difficultyBtn.blur();

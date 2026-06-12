@@ -34,6 +34,7 @@ a:hover {
     /* Layout */
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 10px;
 
     /* Box Model */
@@ -46,7 +47,7 @@ a:hover {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 20px;
 
     /* Box Model */
@@ -62,6 +63,18 @@ a:hover {
     max-width: 100%;
     aspect-ratio: 640 / 480;
     height: auto;
+
+    /* Smoothly recenter when the yaku panel opens (see rule below) */
+    transition: transform 0.2s ease;
+}
+
+/* The yaku panel (380px) sits to the right of the 640px canvas. When it opens,
+   shift the play-area left by half the panel width so the canvas+panel pair is
+   centered as a unit. Only when the viewport can fit the 1020px combo. */
+@media (min-width: 1040px) {
+    #main-wrapper:has(#yaku-container:not(.hidden)) #play-area {
+        transform: translateX(-190px);
+    }
 }
 
 #game-column {
@@ -97,14 +110,15 @@ a:hover {
 
 .toolbar-btn {
     /* Box Model */
-    width: 80px;
-    height: 56px;
+    width: 50px;
+    height: 35px;
     border: none;
 
     /* Visual */
     background-color: transparent;
     background-position: center;
     background-repeat: no-repeat;
+    background-size: contain;
     cursor: pointer;
 }
 
@@ -120,19 +134,10 @@ a:hover {
     filter: brightness(1.2);
 }
 
-/* Difficulty cycles through 3 text states, so it uses a bordered label
-   instead of the on/off image used by the toggle buttons. */
+/* Difficulty is a 3-segment image (쉬움/중간/어려움) that swaps to highlight
+   the current selection. Wider than the 80px on/off toggles. */
 .difficulty-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    font-family: 'KoddiUDOnGothic', sans-serif;
-    font-size: 17px;
-    color: rgba(255, 255, 255, 1);
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    border-radius: 4px;
+    width: 75px;
 }
 
 #game-container {
@@ -277,12 +282,6 @@ hr {
     /* Shrink Toolbar */
     .toolbar-label {
         font-size: 16px;
-    }
-
-    .toolbar-btn {
-        width: 50px;
-        height: 35px;
-        background-size: contain;
     }
 
     .toolbar-group {
