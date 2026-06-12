@@ -31,18 +31,19 @@ const Assets = {
         this._audioUnlocked = true;
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume();
-        // Pre-warm BGM elements muted — an audible play() here would blast
-        // every track at once on the first user gesture.
+        // iOS needs a play() inside a user gesture to unlock each BGM element for
+        // later programmatic playback. We do that play→pause but keep every element
+        // MUTED the whole time and never unmute here — so nothing is audible. The
+        // element that actually becomes the BGM is unmuted by playMusic().
         Object.values(this.audio).forEach(el => {
             if (el === this.currentMusic) return;
             el.muted = true;
-            el.play().then(() => {
-                el.muted = false;
-                // Skip the reset if this track became the active BGM meanwhile
-                if (el === this.currentMusic) return;
-                el.pause();
-                el.currentTime = 0;
-            }).catch(() => { el.muted = false; });
+            const p = el.play();
+            if (p && p.then) {
+                p.then(() => { el.pause(); el.currentTime = 0; }).catch(() => { });
+            } else {
+                try { el.pause(); } catch (_) { }
+            }
         });
     },
 
@@ -339,6 +340,7 @@ const Assets = {
         audio.currentTime = 0;
         audio.loop = loop;
         audio.volume = 0.5;
+        audio.muted = false; // undo the muted state left by _unlockAudio
         this.currentMusic = audio;
 
         // even when called outside a direct user-gesture callback (e.g. scene transitions)
