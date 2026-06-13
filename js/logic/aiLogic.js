@@ -20,7 +20,7 @@ const AILogic = {
 
         // Strategic awareness scales with skill (weak AI is "blind")
         const defenseAwareness = skill;       // 0 = ignores opponent threats entirely
-        const doraAwareness = skill * skill;   // ramps in later than defense
+        const doraAwareness = skill;
 
         const candidates = [];
         for (let i = 0; i < hand.length; i++) {
@@ -160,13 +160,11 @@ const AILogic = {
         const isMenzen = context ? context.isMenzen : true;
         const turnCount = context ? context.turnCount : 0;
 
-        // STRATEGY: closed hands aim for Riichi, so avoid opening unless desperate.
+        // STRATEGY: closed hands aim for Riichi, so avoid opening unless
+        // desperate. Pon eagerness is personality (profile.speed), not skill.
         if (isMenzen) {
             if (turnCount < 14) {
-                // Disciplined (high-skill) AI keeps the hand closed; a weak AI pons
-                // impulsively and throws away its Riichi potential.
-                const impulse = profile.speed * 0.1 + (1 - skill) * 0.2;
-                return Math.random() < impulse;
+                return Math.random() < (profile.speed * 0.1);
             }
             // Late game: pon to finish in time
             return Math.random() < profile.speed;

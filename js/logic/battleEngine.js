@@ -241,6 +241,10 @@ const BattleEngine = {
             this.defeatedOpponents.length
         );
 
+        // Easy-mode luck smoothing for the PLAYER's draws (see drawTiles).
+        this.drawAssistChance = (data.difficulty === 'easy')
+            ? BattleConfig.RULES.DRAW_ASSIST.chance : 0;
+
         this.startRound();
     },
 
@@ -683,6 +687,11 @@ const BattleEngine = {
     },
 
     drawTiles: function (count, who) {
+        // Skill buffs (guaranteed win / curse) manipulate the deck below and
+        // must win over the easy-mode assist, so remember if any is active.
+        const buffActive = who && who.buffs &&
+            (who.buffs.guaranteedWin || who.buffs.curseDraw > 0);
+
         // Skill Logic: Deck Manipulation (Only for single draws)
         if (who && count === 1 && this.deck.length > 0) {
             // Guaranteed Win (Tiger Strike / Spirit Riichi)
@@ -724,6 +733,29 @@ const BattleEngine = {
                     }
                 }
                 who.buffs.curseDraw--; // Decrement duration (turns)
+            }
+        }
+
+        // Easy-mode draw assist: peek the top few tiles and surface the one
+        // that builds the highest-scoring hand (tall stacks / color / win tile).
+        // Player single draws only — the CPU never gets rigged draws.
+        if (!buffActive && who === this.p1 && count === 1 &&
+            this.drawAssistChance > 0 && this.deck.length >= 2 &&
+            Math.random() < this.drawAssistChance) {
+            const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
+            const fullHand = this.getFullHand(who);
+            let bestOffset = 0;
+            let bestScore = -Infinity;
+            for (let i = 0; i < peek; i++) {
+                const tile = this.deck[this.deck.length - 1 - i];
+                const score = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand);
+                if (score > bestScore) { bestScore = score; bestOffset = i; }
+            }
+            if (bestOffset > 0) {
+                // Move the chosen tile to the top (pop position) — pure reorder,
+                // deck composition is untouched.
+                const picked = this.deck.splice(this.deck.length - 1 - bestOffset, 1)[0];
+                this.deck.push(picked);
             }
         }
 

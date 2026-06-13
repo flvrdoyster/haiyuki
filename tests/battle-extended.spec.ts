@@ -6,6 +6,7 @@
  * C-3. 멀티 라운드 불변성 — 라운드 카운터 단조 증가, 라운드 간 HP 감소 방향 확인
  * C-4. SPIRIT_RIICHI 중복 방지 — spiritTimer > 0 이면 canUseSkill = false (Fix 검증)
  * C-5. LAST_CHANCE 룰렛  — 이기는/지는 패 결과, activateLastChance → STATE_ROULETTE
+ * C-7. 쉬움 드로우 어시스트 — 플레이어 전용 덱 상단 재배열, 높은 패 지향, 구성비 보존
  */
 
 import { test, expect } from '@playwright/test';
@@ -639,5 +640,158 @@ test.describe('C-6. Yaku 우선순위 검증 (중첩 역 최고점 보장)', () 
             ...rep('smash', 'blue', 4),
         ];
         expect(await checkYakuScore(page, hand)).toBe(5600);
+    });
+});
+
+// ============================================================================
+// C-7. 쉬움 난이도 드로우 어시스트 (플레이어 전용 럭 스무딩)
+//
+//    BattleEngine.drawTiles: drawAssistChance > 0 인 플레이어 단일 드로우에서
+//    덱 상단 peek 후 YakuLogic.rateTileForHand 최고점 패를 surface.
+//    - 덱 구성비는 보존 (재배열만)
+//    - CPU 드로우에는 절대 적용 안 됨
+//    - normal/hard 에서는 chance = 0
+// ============================================================================
+
+test.describe('C-7. 쉬움 드로우 어시스트', () => {
+
+    test('rateTileForHand: 쌓는 패 > 새 패, 승리 완성패가 최우선', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const Y = (0, eval)('YakuLogic');
+            const mk = (t: string, c: string) => ({ type: t, color: c, img: '' });
+            // 손패: ataho 3장 + smash 1장 + 기타 (fullHand 없음 → 빌딩 티어)
+            const hand = [mk('ataho','red'), mk('ataho','red'), mk('ataho','red'),
+                          mk('smash','blue'), mk('rin','red'), mk('fari','yellow')];
+            const stack4th = Y.rateTileForHand(hand, mk('ataho','red'), 'ataho', null);
+            const pair2nd  = Y.rateTileForHand(hand, mk('smash','blue'), 'ataho', null);
+            const fresh    = Y.rateTileForHand(hand, mk('wand','yellow'), 'ataho', null);
+
+            // 승리 완성: 11장 텐파이 풀핸드 + 완성패 → 티어1 (100000 + 실제 역 점수)
+            const tenpai = [
+                ...Array(3).fill(mk('ataho','red')),
+                ...Array(3).fill(mk('smash','blue')),
+                ...Array(3).fill(mk('rin','red')),
+                ...Array(2).fill(mk('fari','yellow'))
+            ];
+            const winScore = Y.rateTileForHand(tenpai, mk('fari','yellow'), 'ataho', tenpai);
+            return { stack4th, pair2nd, fresh, winScore };
+        });
+        expect(r.stack4th).toBeGreaterThan(r.pair2nd);   // 4번째 장 > 2번째 장 (제곱 가중)
+        expect(r.pair2nd).toBeGreaterThan(r.fresh);
+        expect(r.winScore).toBeGreaterThan(100000);      // 완성패 = 티어1 (역 점수 가산)
+    });
+
+    test('rateTileForHand: 실제 역 테이블 기반 — 텐파이로 가는 패 > 빌딩 패, 높은 역 완성 우선', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const Y = (0, eval)('YakuLogic');
+            const mk = (t: string, c: string) => ({ type: t, color: c, img: '' });
+
+            const PD = (0, eval)('PaiData');
+            const tileOf = (i: number) => ({ type: PD.TYPES[i].id, color: PD.TYPES[i].color, img: '' });
+
+            // 손패 11장: ataho 7 + punch 3 + rin 1
+            const hand = [
+                ...Array(7).fill(mk('ataho','red')),
+                ...Array(3).fill(mk('punch','red')),
+                mk('rin','red')
+            ];
+            // 후보 A: 8번째 ataho → 한 장 버리면 높은 역 텐파이 → 티어2 이상
+            const towardYaku = Y.rateTileForHand(hand, mk('ataho','red'), 'ataho', hand);
+
+            // 티어3 검증: 11종 전부 다른 단패 → 버림+츠모로도 페어 하나가 한계,
+            // 어떤 역 지평에도 들 수 없음 (구조적으로 보장)
+            const scattered = Array.from({ length: 11 }, (_, i) => tileOf(i));
+            const buildingOnly = Y.rateTileForHand(scattered, tileOf(11), 'ataho', scattered);
+
+            // 티어1 역 점수 서열: 같은 즉시 완성이라도 높은 역이 더 높게 평가되는지
+            // 9 ataho + 2 punch (11장) → punch 완성 = 일이담(9+3)
+            const ipEDamHand = [...Array(9).fill(mk('ataho','red')), ...Array(2).fill(mk('punch','red'))];
+            const winHigh = Y.rateTileForHand(ipEDamHand, mk('punch','red'), 'ataho', ipEDamHand);
+            // 3/3/3/2 (11장) → fari 완성 = 삼도립(2400)
+            const samDoRip = [
+                ...Array(3).fill(mk('ataho','red')), ...Array(3).fill(mk('smash','blue')),
+                ...Array(3).fill(mk('rin','red')), ...Array(2).fill(mk('fari','yellow'))
+            ];
+            const winLow = Y.rateTileForHand(samDoRip, mk('fari','yellow'), 'ataho', samDoRip);
+
+            return { towardYaku, buildingOnly, winHigh, winLow };
+        });
+        expect(r.towardYaku).toBeGreaterThan(10000);       // 티어2 진입 (실제 역으로 가는 길)
+        expect(r.buildingOnly).toBeLessThan(10000);        // 티어3 (역 지평 밖)
+        expect(r.winHigh).toBeGreaterThan(r.winLow);       // 높은 역 완성 > 낮은 역 완성
+    });
+
+    test('어시스트 발동 시 덱 상단에서 쌓는 패를 집고, 덱 구성비는 보존된다', async ({ page }) => {
+        await startBattle(page, { playerIndex: 0, cpuIndex: 1, autoTest: false });
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine;
+            const mk = (t: string, c: string) => ({ type: t, color: c, img: '' });
+
+            e.drawAssistChance = 1.0; // 강제 발동
+            e.p1.buffs = {};
+            e.p1.openSets = [];
+            e.p1.hand = [mk('ataho','red'), mk('ataho','red'), mk('rin','red')];
+
+            // 덱 상단(끝) 3장 구성: [쌓는 패(ataho)] 가 3번째, 위 2장은 잡패
+            e.deck.push(mk('ataho','red')); // offset 2
+            e.deck.push(mk('wand','yellow')); // offset 1
+            e.deck.push(mk('sword','blue')); // offset 0 (top)
+
+            const countTiles = (arr: any[]) => {
+                const m: Record<string, number> = {};
+                arr.forEach(t => { m[t.type] = (m[t.type] || 0) + 1; });
+                return m;
+            };
+            const before = countTiles([...e.deck, ...e.p1.hand]);
+            const deckLenBefore = e.deck.length;
+
+            const drawn = e.drawTiles(1, e.p1);
+            e.p1.hand.push(...drawn);
+
+            const after = countTiles([...e.deck, ...e.p1.hand]);
+            return {
+                drawnType: drawn[0].type,
+                deckDelta: deckLenBefore - e.deck.length,
+                composition: JSON.stringify(before) === JSON.stringify(after)
+            };
+        });
+        expect(r.drawnType).toBe('ataho');  // 잡패 2장을 제치고 쌓는 패 선택
+        expect(r.deckDelta).toBe(1);        // 정확히 1장만 소모
+        expect(r.composition).toBe(true);   // 덱+손패 구성비 보존 (재배열만)
+    });
+
+    test('CPU 드로우에는 어시스트가 적용되지 않는다', async ({ page }) => {
+        await startBattle(page, { playerIndex: 0, cpuIndex: 1, autoTest: false });
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine;
+            const mk = (t: string, c: string) => ({ type: t, color: c, img: '' });
+
+            e.drawAssistChance = 1.0;
+            e.cpu.buffs = {};
+            e.cpu.hand = [mk('ataho','red'), mk('ataho','red')];
+
+            e.deck.push(mk('ataho','red'));  // CPU 에게 유리한 패가 아래
+            e.deck.push(mk('wand','yellow')); // 잡패가 top
+            const drawn = e.drawTiles(1, e.cpu);
+            return { drawnType: drawn[0].type };
+        });
+        expect(r.drawnType).toBe('wand'); // 그냥 top 을 집음 (재배열 없음)
+    });
+
+    test('난이도별 발동 확률: easy > 0, normal/hard = 0', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const g = (0, eval)('Game');
+            const bs = (0, eval)('BattleScene');
+            const e = (window as any).BattleEngine;
+            const probe = (d: string) => {
+                g.saveData.difficulty = d;
+                g.changeScene(bs, { playerIndex: 0, cpuIndex: 1 });
+                return e.drawAssistChance;
+            };
+            return { easy: probe('easy'), normal: probe('normal'), hard: probe('hard') };
+        });
+        expect(r.easy).toBeGreaterThan(0);
+        expect(r.normal).toBe(0);
+        expect(r.hard).toBe(0);
     });
 });

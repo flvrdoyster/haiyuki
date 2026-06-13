@@ -710,5 +710,58 @@ const YakuLogic = {
             avgScore: waitCount > 0 ? (totalScore / waitCount) : 0,
             waitCount: waitCount
         };
+    },
+
+    /**
+     * Rate how much a candidate tile improves a hand, judged against the REAL
+     * yaku table (checkYaku) — not just mechanical stacking. Used by the
+     * easy-mode draw assist. Three tiers:
+     *   1. completes a yaku NOW            → 100000 + actual yaku score
+     *   2. reaches tenpai after a discard  → 10000 + best reachable yaku score
+     *      (simulates every distinct discard × every completion tile, so a tile
+     *       leading toward a 9600-point hand beats one leading toward 2400)
+     *   3. otherwise (early game)          → stack-building heuristic fallback
+     * @param {Array} hand      concealed hand tiles (discard candidates)
+     * @param {Object} tile     candidate tile {type, color}
+     * @param {string} charId   for character-specific yaku
+     * @param {Array} fullHand  hand + open-set tiles (yaku checks need 11)
+     */
+    rateTileForHand: function (hand, tile, charId, fullHand) {
+        // Tier 3 value doubles as a fractional tie-breaker inside tiers 1–2
+        const sameType = hand.filter(t => t.type === tile.type).length;
+        const sameColor = hand.filter(t => t.color === tile.color).length;
+        const building = (sameType * sameType * 10) + sameColor;
+
+        if (fullHand && fullHand.length === 11) {
+            const fullPlus = [...fullHand, tile];
+
+            // Tier 1: this tile completes a winning hand — rank by the yaku score
+            const win = this.checkYaku(fullPlus, charId);
+            if (win) return 100000 + win.score;
+
+            // Tier 2: after keeping this tile and discarding one (concealed tiles
+            // or the tile itself), can some draw complete a yaku? Rank by the
+            // best yaku score reachable across all discard choices.
+            let best = 0;
+            const tried = new Set();
+            for (const d of [...hand, tile]) {
+                const key = d.type + '_' + d.color;
+                if (tried.has(key)) continue;
+                tried.add(key);
+
+                const kept = [...fullPlus];
+                kept.splice(kept.findIndex(x => x.type === d.type && x.color === d.color), 1);
+
+                for (const t of PaiData.TYPES) {
+                    const w = this.checkYaku([...kept, { type: t.id, color: t.color, img: t.img }], charId);
+                    if (w && w.score > best) best = w.score;
+                }
+            }
+            if (best > 0) return 10000 + best + building / 1000;
+        }
+
+        // Tier 3: too far from any yaku to measure — build tall stacks
+        // (quadratic on stack height) with color concentration as tie-break.
+        return building;
     }
 };
