@@ -34,8 +34,10 @@ const BattleConfig = {
         // tournament progress — see BattleEngine.computeCpuSkill / AILogic.
     },
     SPEED: {
-        RIICHI_AUTO_DISCARD: 30, // Frames to wait before auto-discarding in Riichi
-        CPU_THINK_TIME: 15,      // CPU decision delay (Lower = Faster)
+        // Hold the drawn tile before auto-discarding in Riichi.
+        // ~50 ticks ≈ 0.85s @60fps — slow enough to clearly register each draw.
+        RIICHI_AUTO_DISCARD: 50,
+        CPU_THINK_TIME: 8,       // CPU decision delay (Lower = Faster)
         ACTION_WAIT: 30,        // Wait time after Pon/Ron (ticks)
         WIN_WAIT: 80            // Wait before revealing hand on win (ticks)
     },

@@ -262,7 +262,7 @@ const SkillFlows = {
         engine.triggerDialogue(skillId, 'cpu');
 
         // Small delay so the player notices something happened
-        engine.timer = -30;
+        engine.timer = -15;
     }
 };
 

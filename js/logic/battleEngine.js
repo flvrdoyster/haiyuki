@@ -778,7 +778,6 @@ const BattleEngine = {
             this.lastState = this.currentState;
         }
         this.stateTimer += dt;
-        this.timer += dt;
 
         // Update Dialogue (Always run)
 
@@ -800,13 +799,13 @@ const BattleEngine = {
         }
 
         // AUTO TEST LOGIC
-        if (this.isAutoTest() && this.currentState === this.STATE_PLAYER_TURN && this.timer > 5) {
+        if (this.isAutoTest() && this.currentState === this.STATE_PLAYER_TURN && this.timer > 3) {
             this.performAutoTurn();
             return;
         }
 
         // AUTO TEST MENU HANDLING (Skip Action Select)
-        if (this.isAutoTest() && this.currentState === this.STATE_ACTION_SELECT && this.timer > 5) {
+        if (this.isAutoTest() && this.currentState === this.STATE_ACTION_SELECT && this.timer > 3) {
             // Priority: TSUMO > RIICHI > PASS
             const tsumo = this.possibleActions.find(a => a.type === 'TSUMO');
             if (tsumo) {
@@ -851,8 +850,8 @@ const BattleEngine = {
         ];
 
         if (!endStates.includes(this.currentState) && this.currentState !== this.STATE_INIT) {
-            const prevCheck = Math.floor((this.timer - dt) / 30);
-            const currentCheck = Math.floor(this.timer / 30);
+            const prevCheck = Math.floor((this.timer - dt) / 15);
+            const currentCheck = Math.floor(this.timer / 15);
             if (currentCheck > prevCheck) {
                 this.checkRoundEnd();
             }
@@ -865,7 +864,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_INIT:
-                if (this.timer > (this.isAutoTest() ? 10 : 60)) { // Speed up init
+                if (this.timer > (this.isAutoTest() ? 5 : 30)) { // Speed up init
                     if (this.turnCount === 1) {
                         // CPU Setup Skills: fire at round start, mirroring the player's
                         // tile-exchange UI below (executeCpuTileExchange handles MP/sound)
@@ -897,7 +896,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
-                if ((window.Input && Input.isMouseJustPressed() && this.timer > 15) || (this.isAutoTest() && this.timer > 5)) {
+                if ((window.Input && Input.isMouseJustPressed() && this.timer > 8) || (this.isAutoTest() && this.timer > 3)) {
                     this.confirmDraw();
                 }
                 break;
@@ -915,7 +914,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer > (this.isAutoTest() ? 5 : BattleConfig.SPEED.CPU_THINK_TIME)) { // Use config for CPU speed
+                if (this.timer > (this.isAutoTest() ? 3 : BattleConfig.SPEED.CPU_THINK_TIME)) { // Use config for CPU speed
                     this.cpuDraw();
                 }
                 break;
@@ -956,7 +955,7 @@ const BattleEngine = {
                     }
                 }
 
-                if (this.timer > (this.isAutoTest() ? 10 : 60)) { // Speed up damage anim
+                if (this.timer > (this.isAutoTest() ? 5 : 30)) { // Speed up damage anim
                     this.pendingDamage = null;
                     if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
                         this.currentState = this.STATE_MATCH_OVER;
@@ -1472,7 +1471,7 @@ const BattleEngine = {
 
             // Setup Discard Phase
             this.currentState = this.STATE_CPU_TURN;
-            this.timer = 30; // Short delay before discard
+            this.timer = 15; // Short delay before discard
             this.cpu.needsToDiscard = true; // Fix: Prevent Drawing on next turn
         }, BattleConfig.SPEED.ACTION_WAIT);
     },
