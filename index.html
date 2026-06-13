@@ -44,26 +44,24 @@
     <!-- End Google Tag Manager (noscript) -->
     <div id="main-wrapper">
         <div id="toolbar-row">
-            <div class="toolbar-group">
-                <span class="toolbar-label">소리</span>
-                <button id="mute-btn" class="toolbar-btn toggle-off"></button>
+            <!-- System controls pinned to the edges (mute left, fullscreen right),
+                 like the gensei-pc98 emulator. Game options sit centered between. -->
+            <button id="mute-btn" class="toolbar-icon-btn" title="소리"><svg viewBox="0 0 49.13 70.14" height="22"><path fill="currentColor" d="M7.43,68.29c-2.31-1.26-4.13-3.01-5.45-5.25s-1.98-4.77-1.98-7.58.65-5.41,1.96-7.62c1.3-2.21,3.12-3.93,5.45-5.14,2.33-1.22,4.96-1.82,7.89-1.82s5.45.59,7.73,1.76l-.09-42.63h26.19v14.77h-18.72v40.69c0,2.81-.65,5.34-1.96,7.58-1.3,2.24-3.1,3.99-5.38,5.25s-4.88,1.87-7.78,1.85c-2.93.03-5.55-.59-7.87-1.85Z"/></svg></button>
+            <div class="toolbar-center">
+                <div class="toolbar-group">
+                    <span class="toolbar-label">난이도</span>
+                    <button id="difficulty-btn" class="toolbar-btn difficulty-btn"></button>
+                </div>
+                <div class="toolbar-group">
+                    <span class="toolbar-label">비기</span>
+                    <button id="skills-btn" class="toolbar-btn toggle-off"></button>
+                </div>
+                <div class="toolbar-group">
+                    <span class="toolbar-label">역 일람</span>
+                    <button id="yaku-btn" class="toolbar-btn toggle-off"></button>
+                </div>
             </div>
-            <div class="toolbar-group">
-                <span class="toolbar-label">비기</span>
-                <button id="skills-btn" class="toolbar-btn toggle-off"></button>
-            </div>
-            <div class="toolbar-group">
-                <span class="toolbar-label">역 일람</span>
-                <button id="yaku-btn" class="toolbar-btn toggle-off"></button>
-            </div>
-            <div class="toolbar-group">
-                <span class="toolbar-label">전체 화면</span>
-                <button id="fullscreen-btn" class="toolbar-btn toggle-off"></button>
-            </div>
-            <div class="toolbar-group">
-                <span class="toolbar-label">난이도</span>
-                <button id="difficulty-btn" class="toolbar-btn difficulty-btn"></button>
-            </div>
+            <button id="fullscreen-btn" class="toolbar-icon-btn" title="전체 화면"><svg viewBox="0 0 59.13 59.13" height="22"><path fill="currentColor" d="M0,22.05V3.69C0,1.62,1.62,0,3.69,0h18.36v4.5H6.75c-1.17,0-1.98.81-1.98,1.98v15.57H0ZM0,37.08h4.77v15.57c0,1.17.81,1.98,1.98,1.98h15.3v4.5H3.69c-2.07,0-3.69-1.62-3.69-3.69v-18.36ZM59.13,22.05h-4.77V6.48c0-1.17-.81-1.98-1.98-1.98h-15.3V0h18.36c2.07,0,3.69,1.62,3.69,3.69v18.36ZM59.13,37.08v18.36c0,2.07-1.62,3.69-3.69,3.69h-18.36v-4.5h15.3c1.17,0,1.98-.81,1.98-1.98v-15.57h4.77Z"/></svg></button>
         </div>
         <div id="play-area">
             <div id="game-container">

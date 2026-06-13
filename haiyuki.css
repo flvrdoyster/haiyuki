@@ -9,6 +9,12 @@ body {
     align-items: flex-start;
     min-height: 100vh;
 
+    /* The yaku panel pops in instantly (display) while #play-area slides left
+       over 0.2s, so its right edge transiently overflows the viewport — without
+       this, a horizontal scrollbar flickers in and out. `clip` (not `hidden`)
+       avoids creating a scroll container, leaving vertical scrolling intact. */
+    overflow-x: clip;
+
     /* Box Model */
     margin: 0;
     padding: 20px;
@@ -43,15 +49,42 @@ a:hover {
 }
 
 #toolbar-row {
+    /* 3-column grid: mute pinned left, game options centered, fullscreen pinned
+       right — mirrors the gensei-pc98 emulator top-bar. Width is capped to the
+       640px canvas so the edge icons line up with the canvas, not the viewport. */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+
+    /* Box Model */
+    width: 640px;
+    max-width: 100%;
+
+    /* Shift in lockstep with #play-area when the yaku panel opens (see below) */
+    transition: transform 0.2s ease;
+}
+
+#mute-btn {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.toolbar-center {
+    grid-column: 2;
+    justify-self: center;
+
     /* Layout */
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
     gap: 20px;
+}
 
-    /* Box Model */
-    width: 100%;
+#fullscreen-btn {
+    grid-column: 3;
+    justify-self: end;
 }
 
 #play-area {
@@ -70,9 +103,12 @@ a:hover {
 
 /* The yaku panel (380px) sits to the right of the 640px canvas. When it opens,
    shift the play-area left by half the panel width so the canvas+panel pair is
-   centered as a unit. Only when the viewport can fit the 1020px combo. */
+   centered as a unit. The toolbar shifts by the same amount so its edge icons
+   stay aligned with the canvas, not the viewport. Only when the viewport can
+   fit the 1020px combo. */
 @media (min-width: 1040px) {
-    #main-wrapper:has(#yaku-container:not(.hidden)) #play-area {
+    #main-wrapper:has(#yaku-container:not(.hidden)) #play-area,
+    #main-wrapper:has(#yaku-container:not(.hidden)) #toolbar-row {
         transform: translateX(-190px);
     }
 }
@@ -134,10 +170,46 @@ a:hover {
     filter: brightness(1.2);
 }
 
+/* Mute & fullscreen use inline-SVG icon buttons (gray, hover lightens) instead
+   of the on/off image toggles — matches the gensei-pc98 emulator's .btn-icon. */
+.toolbar-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 35px;
+    padding: 4px 8px;
+    border: none;
+    background: none;
+    color: rgba(119, 119, 119, 1);
+    cursor: pointer;
+}
+
+.toolbar-icon-btn svg {
+    display: block;
+    height: 22px;
+    width: auto;
+}
+
+.toolbar-icon-btn:hover {
+    color: rgba(204, 204, 204, 1);
+}
+
 /* Difficulty is a 3-segment image (쉬움/중간/어려움) that swaps to highlight
    the current selection. Wider than the 80px on/off toggles. */
 .difficulty-btn {
     width: 75px;
+}
+
+.difficulty-easy {
+    background-image: url('assets/ui/easy.png');
+}
+
+.difficulty-normal {
+    background-image: url('assets/ui/normal.png');
+}
+
+.difficulty-hard {
+    background-image: url('assets/ui/difficult.png');
 }
 
 #game-container {

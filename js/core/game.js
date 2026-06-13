@@ -20,13 +20,19 @@ const Game = {
         Input.init(this.canvas);
 
         const muteBtn = document.getElementById('mute-btn');
+        // Speaker icons (note ↔ note-with-slash), swapped on toggle like the
+        // gensei-pc98 emulator's mute button.
+        const SVG_SOUND_ON = '<svg viewBox="0 0 49.13 70.14" height="22"><path fill="currentColor" d="M7.43,68.29c-2.31-1.26-4.13-3.01-5.45-5.25s-1.98-4.77-1.98-7.58.65-5.41,1.96-7.62c1.3-2.21,3.12-3.93,5.45-5.14,2.33-1.22,4.96-1.82,7.89-1.82s5.45.59,7.73,1.76l-.09-42.63h26.19v14.77h-18.72v40.69c0,2.81-.65,5.34-1.96,7.58-1.3,2.24-3.1,3.99-5.38,5.25s-4.88,1.87-7.78,1.85c-2.93.03-5.55-.59-7.87-1.85Z"/></svg>';
+        const SVG_SOUND_OFF = '<svg viewBox="0 0 56.02 70.14" height="22"><rect fill="currentColor" x="26.51" y="-3.04" width="3" height="76.23" transform="translate(-16.59 30.08) rotate(-45)"/><polygon fill="currentColor" points="33.86 35.68 33.86 14.77 52.58 14.77 52.58 0 26.38 0 26.44 28.27 33.86 35.68"/><path fill="currentColor" d="M26.47,42.63c-2.29-1.17-4.86-1.76-7.73-1.76s-5.56.61-7.89,1.82c-2.33,1.22-4.15,2.93-5.45,5.14-1.3,2.21-1.96,4.75-1.96,7.62s.66,5.34,1.98,7.58,3.13,3.99,5.45,5.25c2.31,1.26,4.94,1.87,7.87,1.85,2.9.03,5.49-.59,7.78-1.85s4.08-3.01,5.38-5.25c1.3-2.24,1.96-4.77,1.96-7.58v-9.12l-7.39-7.39v3.68Z"/></svg>';
+        const renderMuteIcon = (isMuted) => {
+            if (muteBtn) muteBtn.innerHTML = isMuted ? SVG_SOUND_OFF : SVG_SOUND_ON;
+        };
         if (muteBtn) {
             muteBtn.onclick = () => {
-                const isMuted = Assets.toggleMute();
-                muteBtn.classList.remove('toggle-on', 'toggle-off');
-                muteBtn.classList.add(isMuted ? 'toggle-off' : 'toggle-on');
+                renderMuteIcon(Assets.toggleMute());
                 muteBtn.blur();
             };
+            renderMuteIcon(Assets.muted);
         }
 
         const skillsBtn = document.getElementById('skills-btn');
@@ -48,10 +54,10 @@ const Game = {
             // 3-segment selector: image shows 쉬움/중간/어려움, highlighting the
             // active one; clicking a segment picks that difficulty directly.
             const segments = ['easy', 'normal', 'hard'];
-            const images = { easy: 'easy.png', normal: 'normal.png', hard: 'difficult.png' };
             const render = () => {
-                const key = images[this.saveData.difficulty] || images.normal;
-                difficultyBtn.style.backgroundImage = `url('assets/ui/${key}')`;
+                const key = segments.includes(this.saveData.difficulty) ? this.saveData.difficulty : 'normal';
+                difficultyBtn.classList.remove('difficulty-easy', 'difficulty-normal', 'difficulty-hard');
+                difficultyBtn.classList.add(`difficulty-${key}`);
             };
             difficultyBtn.onclick = (e) => {
                 const rect = difficultyBtn.getBoundingClientRect();
@@ -66,10 +72,7 @@ const Game = {
         }
 
         setTimeout(() => {
-            if (muteBtn) {
-                muteBtn.classList.remove('toggle-on', 'toggle-off');
-                muteBtn.classList.add(Assets.muted ? 'toggle-off' : 'toggle-on');
-            }
+            renderMuteIcon(Assets.muted);
             if (skillsBtn) {
                 const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
                 skillsBtn.classList.remove('toggle-on', 'toggle-off');
@@ -122,13 +125,9 @@ const Game = {
                         requestMethod.call(element).catch(err => {
                             console.log(`Native fullscreen failed: ${err.message}`);
                             gameContainer.classList.toggle('pseudo-fullscreen');
-                            fullscreenBtn.classList.toggle('toggle-on');
-                            fullscreenBtn.classList.toggle('toggle-off');
                         });
                     } else {
                         gameContainer.classList.toggle('pseudo-fullscreen');
-                        fullscreenBtn.classList.toggle('toggle-on');
-                        fullscreenBtn.classList.toggle('toggle-off');
                     }
                 } else {
                     const exitMethod = document.exitFullscreen ||
@@ -143,11 +142,6 @@ const Game = {
                 fullscreenBtn.blur();
             };
 
-            document.addEventListener('fullscreenchange', () => {
-                const isFullscreen = !!document.fullscreenElement;
-                fullscreenBtn.classList.remove('toggle-on', 'toggle-off');
-                fullscreenBtn.classList.add(isFullscreen ? 'toggle-on' : 'toggle-off');
-            });
         }
 
         console.log('Starting LoadingScene...');
