@@ -436,6 +436,10 @@ const CharacterSelectScene = {
         // Draw Icons (positions from the shared getIconRect helper, so the hidden
         // Mayu lands in its below-VS slot while the base 6 stay in the centered row).
         this.characters.forEach((char, index) => {
+            // 숨겨진 캐릭터(눈썹개): 평소엔 빈자리. 커서/마우스 호버가 그 슬롯(=playerIndex)에
+            // 닿았을 때만 얼굴(select_MAYU)을 드러낸다.
+            if (char.hidden && index !== this.playerIndex) return;
+
             const r = this.getIconRect(index);
 
             // Dim if already selected by Player (during CPU phase/Ready)

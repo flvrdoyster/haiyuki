@@ -146,7 +146,7 @@ const CharacterData = [
     },
     // Hidden / Bosses
     {
-        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/CHRSELMAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: -24,
+        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: -24,
         aiProfile: { type: 'GOD', aggression: 0.9, speed: 0.9, defense: 0.9, colorBias: 0.5 },
     }
 ];
