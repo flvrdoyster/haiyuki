@@ -276,7 +276,12 @@ const YakuLogic = {
         // So: Has a 6-stack AND total color count is 12.
 
         const totalColorCount = piles.reduce((sum, c) => c.tile.color === color ? sum + c.count : sum, 0);
-        return totalColorCount === 12;
+        if (totalColorCount === 12) {
+            // Return the color so resolveYakuName can pick 순 적/청/황일색
+            // (this is a color-variant yaku, like CHO_IL_SAEK).
+            return { match: true, meta: { color } };
+        }
+        return false;
     },
 
     // --- 4 Piece ---
@@ -305,9 +310,9 @@ const YakuLogic = {
         });
     },
     isJaYuBakAePyeongDeung(a) {
-        // 3 colors x 4
-        // Need to find 3 sets of 4 that have different colors
-        const fours = Object.values(a.counts).filter(c => c.count >= 4);
+        // 3색(빨강/파랑/노랑) × 4장씩. 보라색은 해당하지 않음(역 설명 명시).
+        const VALID_COLORS = ['red', 'blue', 'yellow'];
+        const fours = Object.values(a.counts).filter(c => c.count >= 4 && VALID_COLORS.includes(c.tile.color));
         const colors = new Set(fours.map(c => c.tile.color));
         return colors.size >= 3;
     },

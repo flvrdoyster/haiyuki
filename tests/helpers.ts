@@ -154,10 +154,11 @@ export async function installMonitor(page: Page) {
                     return { rule: 'PON_DISABLES_RON', msg: `openSets=${h.p1.openSets.length} but canRon=true (state=${h.state.name})` };
             },
             // §1 – Turn limit is 20 (active-play states only).
-            // turn=21 appears briefly in FX_PLAYING/NAGARI because PASS increments
-            // turnCount before checkRoundEnd fires NAGARI — no actual play occurs at 21.
+            // turn=21 appears briefly in FX_PLAYING/NAGARI because the post-discard
+            // reaction advance increments turnCount before checkRoundEnd fires NAGARI
+            // — no actual play occurs at 21.
             h => {
-                const ACTIVE = ['PLAYER_TURN', 'ACTION_SELECT', 'WAIT_FOR_DRAW', 'CPU_TURN'];
+                const ACTIVE = ['PLAYER_TURN', 'WAIT_FOR_DRAW', 'CPU_TURN'];
                 if (ACTIVE.includes(h.state.name) && h.state.turn > 20)
                     return { rule: 'TURN_EXCEEDS_20', msg: `turn=${h.state.turn} (state=${h.state.name})` };
             },
@@ -188,24 +189,18 @@ export async function installMonitor(page: Page) {
 
 /**
  * Supplementary auto-driver that covers the cases Game.isAutoTest does NOT handle:
- *   - PASS reaction after CPU discards (PON / RON prompts the player)
  *   - WIN / LOSE / NAGARI result screen advancement
  *   - MATCH_OVER advancement
  *
- * Game.isAutoTest already handles PLAYER_TURN (performAutoTurn) and
- * ACTION_SELECT for TSUMO / RIICHI / PASS_SELF.
+ * Game.isAutoTest already handles PLAYER_TURN (performAutoTurn — declares tsumo,
+ * auto-riichi, or discards) and WAIT_FOR_DRAW (auto-confirmDraw, which also forgoes
+ * any pending PON). There is no forced ACTION_SELECT modal anymore.
  */
 export async function installAutoDriver(page: Page) {
     await page.evaluate(() => {
         (window as any).__qa_autodriver__ = setInterval(() => {
             const e = (window as any).BattleEngine;
             if (!e || e.currentState === undefined) return;
-
-            // PASS on any reaction the player didn't auto-handle (PON / RON after CPU discard)
-            if (e.currentState === e.STATE_ACTION_SELECT && e.timer > 3) {
-                const pass = e.possibleActions.find((a: any) => a.type === 'PASS');
-                if (pass) { e.executeAction(pass); return; }
-            }
 
             // Advance WIN / LOSE result screen (stateTimer guard matches engine's 160-frame delay)
             if ((e.currentState === e.STATE_WIN || e.currentState === e.STATE_LOSE) &&

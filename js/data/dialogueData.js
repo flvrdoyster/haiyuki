@@ -416,7 +416,7 @@ const DialogueData = {
             WIN: ["아직 자네에게 질 수는 없지."],
             RANDOM: ["이건 필요 없는 패로구먼.", "이걸 기다리고 있었다네.", "흠."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
-            WORRY_RON: ["이거 위험한가?"],
+            WORRY_RON: ["이거 위험한가?", "이건 넘어가겠지."],
             // Skills
             TIGER_STRIKE: ["맹호일발권!\n이걸로 나의 승리라네."],
             HELL_PILE: ["그렇게 승리를 서두르면 안 되지.\n자네에겐 지옥 쌓기일세."]
@@ -430,7 +430,7 @@ const DialogueData = {
             WIN: ["후훗, 미안하지만 내가 이겨야겠어."],
             RANDOM: ["이런 건 필요없어.", "좋았어, 운이 좀 따르는걸.", "과연."],
             COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
-            WORRY_RON: ["이거... 설마..."],
+            WORRY_RON: ["이거... 설마...", "설마 이런 패를 원할 리 없겠지."],
             // Skills
             WATER_MIRROR: ["수경!"],
             DORA_BOMB: ["받아랏, 도라폭진!"]
@@ -444,7 +444,7 @@ const DialogueData = {
             WIN: ["절호조!(철 지난 유행어)"],
             RANDOM: ["에~엣취!!", "오옷! 럭키~!!", "이건 필요 없겠는데..."],
             COUNTER_RIICHI: ["후우~ 겨우 다 모았네..."],
-            WORRY_RON: ["이거 위험하겠는데..."],
+            WORRY_RON: ["이거 위험하겠는데...", "뭔가 수상한데..."],
             // Skills
             EXCHANGE_TILE: [],
             EXCHANGE_RON: ["설마 이걸로 론을 노린 건 아니겠지?"]
@@ -458,7 +458,7 @@ const DialogueData = {
             WIN: ["전략의 차이군요."],
             RANDOM: ["하아.", "흠.", "과연."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요."],
+            WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요.", "이걸로 될까요?"],
             // Skills
             CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프실 겁니다만 참아 주시죠."],
             LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
@@ -472,7 +472,7 @@ const DialogueData = {
             WIN: ["어머나, 운이 좋았네요."],
             RANDOM: ["유감이지만,\n이건 필요 없겠어요.", "좋은 패가 들어왔네요.", "에잇."],
             COUNTER_RIICHI: ["우후훗, 지고 있을 순 없죠."],
-            WORRY_RON: ["이건... 위험할까요?"],
+            WORRY_RON: ["이건... 위험할까요?", "이거, 넘어가겠지요?"],
             // Skills
             RECOVERY: ["상처를 회복하겠어요."],
             DISCARD_GUARD: ["버린 패 방어에요.\n가져가면 안 돼요."]
@@ -486,7 +486,7 @@ const DialogueData = {
             WIN: ["미안하구만!!"],
             RANDOM: ["뭐야...", "훗...", "이런이런..."],
             COUNTER_RIICHI: ["나도 질 수 없지."],
-            WORRY_RON: ["이건 어떠냐!!"],
+            WORRY_RON: ["이건 어떠냐!!", "이건 괜찮겠지."],
             // Skills
             SUPER_IAI: ["어이쿠, 나도 모르게 손이 미끄러졌네.\n미안, 미안."],
             SPIRIT_RIICHI: ["금방 끝내서 편하게 해줄게."]
@@ -494,13 +494,13 @@ const DialogueData = {
         // Mayu
         mayu: {
             PON: ["멍!!"],
-            PON_REPLY: [],
-            RIICHI: [],
-            RIICHI_REPLY: [],
-            WIN: [],
-            RANDOM: [],
-            COUNTER_RIICHI: [],
-            WORRY_RON: [],
+            PON_REPLY: ["캬잉"],
+            RIICHI: ["멍!!"],
+            RIICHI_REPLY: ["캬잉"],
+            WIN: ["멍~~!!"],
+            RANDOM: ["멍!"],
+            COUNTER_RIICHI: ["멍!"],
+            WORRY_RON: ["캬잉", "멍!"],
             // Skills
             PAINT_TILE: []
         }

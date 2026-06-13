@@ -269,7 +269,10 @@ const SkillFlows = {
 const SkillRegistry = {
     // ----- ATAHO -----
     TIGER_STRIKE: {
-        canUse: (engine) => engine.turnCount < 20,
+        // "리치를 걸 수 있을 때 사용하면 다음 쯔모로 반드시 난다" — only usable when
+        // Riichi is declarable (closed hand, tenpai-reachable). After Pon the hand
+        // is open → not usable.
+        canUse: (engine, who) => engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.guaranteedWin = true; // Next Draw = Win
         },
@@ -339,17 +342,13 @@ const SkillRegistry = {
 
     // ----- YURI -----
     SPIRIT_RIICHI: {
-        canUse: (engine, who, user) => {
-            if (engine.turnCount > 16) return false;
-            if (user.buffs && user.buffs.spiritTimer > 0) return false;
-            // Must be able to reach Tenpai by discarding one tile
-            for (let i = 0; i < user.hand.length; i++) {
-                const tempHand = [...user.hand];
-                tempHand.splice(i, 1);
-                if (engine.checkTenpai(tempHand)) return true;
-            }
-            return false;
-        },
+        // "리치 가능 시 사용하면 5턴 후 쯔모로 반드시 난다. 16턴 이후 불가" — like
+        // TIGER_STRIKE, only usable when Riichi is declarable (closed hand, etc.),
+        // with a tighter turn limit and no active spirit timer.
+        canUse: (engine, who, user) =>
+            engine.turnCount <= 16 &&
+            !(user.buffs && user.buffs.spiritTimer > 0) &&
+            engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.spiritTimer = 5; // 5 Turns countdown
         },

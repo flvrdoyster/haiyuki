@@ -423,8 +423,6 @@ const BattleScene = {
 
         if (engine.currentState === engine.STATE_BATTLE_MENU) {
             this.handleBattleMenuInput(engine);
-        } else if (engine.currentState === engine.STATE_ACTION_SELECT) {
-            this.handleActionSelectInput(engine);
         } else if (engine.currentState === engine.STATE_PLAYER_TURN) {
             this.handlePlayerTurnInput(engine);
         } else if (engine.currentState === engine.STATE_TILE_EXCHANGE) {
@@ -435,6 +433,9 @@ const BattleScene = {
             // Check Hover
             engine.drawButtonHover = BattleRenderer.checkDrawButton(Input.mouseX, Input.mouseY);
 
+            // The draw button just draws (continue playing). A win, when available,
+            // is opt-in via the menu (아가리) — drawing forgoes it, letting the
+            // player keep aiming for a higher hand.
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER)) {
                 engine.confirmDraw();
             } else if (Input.isMouseJustPressed()) {
@@ -484,41 +485,20 @@ const BattleScene = {
         }
     },
 
-    handleActionSelectInput: function (engine) {
-        // Keyboard
-        const actions = engine.possibleActions;
-        if (Input.isJustPressed(Input.LEFT)) {
-            engine.selectedActionIndex--;
-            if (engine.selectedActionIndex < 0) engine.selectedActionIndex = actions.length - 1;
-        } else if (Input.isJustPressed(Input.RIGHT)) {
-            engine.selectedActionIndex++;
-            if (engine.selectedActionIndex >= actions.length) engine.selectedActionIndex = 0;
-        }
-
-        // Mouse Hover using Renderer Helper
-        // Mouse Click
-        const hovered = BattleRenderer.getActionAt(Input.mouseX, Input.mouseY, actions);
-        if (hovered !== -1 && Input.hasMouseMoved()) {
-            engine.selectedActionIndex = hovered;
-        }
-
-        if (Input.isMouseJustPressed()) {
-            if (hovered !== -1) {
-                engine.selectedActionIndex = hovered;
-                engine.executeAction(actions[hovered]);
-                return;
-            }
-        }
-
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
-            engine.executeAction(actions[engine.selectedActionIndex]);
-        }
-    },
-
     handlePlayerTurnInput: function (engine) {
         // Riichi Locked Input: Allow manual discard ONLY when declaring Riichi
         // If Riichi is active AND NOT declaring, input is blocked (Auto Mode)
         if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
+
+        // "날 수 있어!" button (same UI as the draw button). When a win is available,
+        // clicking it opens the battle menu so the player can pick 아가리 — it does
+        // NOT auto-win, so they may instead close the menu and keep playing.
+        const canWin = BattleRenderer.canWinNow(engine);
+        engine.winButtonHover = canWin && BattleRenderer.checkWinButton(Input.mouseX, Input.mouseY);
+        if (canWin && Input.isMouseJustPressed() && engine.winButtonHover) {
+            BattleMenuSystem.toggle();
+            return;
+        }
 
         // Mouse Interaction
         const groupSize = engine.lastDrawGroupSize || 0;

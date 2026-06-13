@@ -11,6 +11,23 @@ const BattleMenuSystem = {
 
     constructMenu: function () {
         this.menuItems = [];
+
+        // Declaration commands (아가리/펑/리치) — original-game style fixed commands.
+        // Always listed and greyed when not currently available (like skills), rather
+        // than a forced popup. 아가리 = win = TSUMO (RON is riichi-auto, so it never
+        // surfaces here). The bound action comes from the engine's possibleActions;
+        // when absent the item is disabled and selecting it does nothing.
+        const pa = this.engine.possibleActions || [];
+        const findAction = type => pa.find(a => a.type === type) || null;
+        [
+            { id: 'TSUMO', label: '아가리' },
+            { id: 'PON', label: '펑' },
+            { id: 'RIICHI', label: '리치' }
+        ].forEach(decl => {
+            const action = findAction(decl.id);
+            this.menuItems.push({ id: decl.id, label: decl.label, type: 'ACTION', action: action, disabled: !action });
+        });
+
         const layout = BattleConfig.BATTLE_MENU.layout;
 
         const p1Data = CharacterData.find(c => c.index === this.engine.playerIndex) || CharacterData[this.engine.playerIndex];
@@ -72,29 +89,6 @@ const BattleMenuSystem = {
             } else {
                 window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
             }
-        } else if (selectedId === 'AUTO') {
-            if (this.lastStateBeforeMenu === this.engine.STATE_PLAYER_TURN) {
-                this.toggle();
-                this.engine.performAutoTurn();
-                return;
-            }
-        } else if (selectedId === 'RESTART') {
-            if (this.engine.scene && this.engine.scene.showConfirm) {
-                this.engine.scene.showConfirm(
-                    '정말로 이 라운드를 다시 시작할까요?',
-                    () => {
-                        this.toggle();
-                        this.engine.startRound();
-                    },
-                    () => {
-                        this.toggle();
-                    }
-                );
-            } else {
-                this.toggle();
-                this.engine.startRound();
-            }
-            return;
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
                 return;
@@ -102,6 +96,15 @@ const BattleMenuSystem = {
 
             this.toggle();
             this.engine.useSkill(selectedId);
+            return;
+        } else if (selectedItem.type === 'ACTION') {
+            // Declaration (아가리/펑/리치) chosen from the menu → run its effect.
+            // Greyed (unavailable) commands do nothing, same as disabled skills.
+            if (selectedItem.disabled || !selectedItem.action) {
+                return;
+            }
+            this.toggle();
+            this.engine.executeAction(selectedItem.action);
             return;
         }
 

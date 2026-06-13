@@ -151,8 +151,6 @@ const BattleEngine = {
 
     // Action Logic
     possibleActions: [], // { type: 'PON', tile: ... }
-    actionTimer: 0,
-    selectedActionIndex: 0,
 
     dialogueTriggeredThisTurn: false,
     roundSkillUsage: { p1: {}, cpu: {} },
@@ -364,6 +362,10 @@ const BattleEngine = {
         this.turnCount = 1;
         this.winningYaku = null;
         this.discards = [];
+        // Clear any leftover action window (e.g. a riichi RON from the prior round)
+        // so it can't leak into the new deal — possibleActions now persists across
+        // state transitions (no forced modal clears it).
+        this.possibleActions = [];
         this.currentState = this.STATE_INIT;
         this.timer = 0; // Reset timer for clean start
         this.stateTimer = 0;
@@ -565,9 +567,8 @@ const BattleEngine = {
         this.triggerDialogue(skillId, dialOwner);
 
         // Refresh actions (some skills might change possible actions, e.g. Spirit Riichi)
-        if (who === 'P1' && (this.currentState === this.STATE_PLAYER_TURN || this.currentState === this.STATE_ACTION_SELECT)) {
+        if (who === 'P1' && this.currentState === this.STATE_PLAYER_TURN) {
             this.checkSelfActions();
-            this.selectedActionIndex = 0; // Reset index when actions refresh
         }
 
         return true;
@@ -801,7 +802,6 @@ const BattleEngine = {
             this.STATE_DEALING,
             this.STATE_WAIT_FOR_DRAW,
             this.STATE_PLAYER_TURN,
-            this.STATE_ACTION_SELECT,
             this.STATE_BATTLE_MENU,
             this.STATE_CPU_TURN,
             this.STATE_ROULETTE
@@ -811,30 +811,11 @@ const BattleEngine = {
             this.updateBattleMusic();
         }
 
-        // AUTO TEST LOGIC
+        // AUTO TEST LOGIC — own-turn tsumo/riichi/pon are all handled inside
+        // performAutoTurn / the draw window now (no forced ACTION_SELECT modal).
         if (this.isAutoTest() && this.currentState === this.STATE_PLAYER_TURN && this.timer > 3) {
             this.performAutoTurn();
             return;
-        }
-
-        // AUTO TEST MENU HANDLING (Skip Action Select)
-        if (this.isAutoTest() && this.currentState === this.STATE_ACTION_SELECT && this.timer > 3) {
-            // Priority: TSUMO > RIICHI > PASS
-            const tsumo = this.possibleActions.find(a => a.type === 'TSUMO');
-            if (tsumo) {
-                this.executeAction(tsumo);
-                return;
-            }
-            const riichi = this.possibleActions.find(a => a.type === 'RIICHI');
-            if (riichi) {
-                this.executeAction(riichi);
-                return;
-            }
-            const pass = this.possibleActions.find(a => a.type === 'PASS_SELF');
-            if (pass) {
-                this.executeAction(pass);
-                return;
-            }
         }
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
@@ -915,11 +896,6 @@ const BattleEngine = {
                 break;
 
             case this.STATE_PLAYER_TURN:
-                break;
-
-            case this.STATE_ACTION_SELECT:
-                if (this.actionTimer > 0) this.actionTimer -= dt;
-
                 break;
 
             case this.STATE_FX_PLAYING:
@@ -1059,27 +1035,24 @@ const BattleEngine = {
         }
 
 
-        // CHECK SELF ACTIONS (Riichi, Tsumo)
-        if (this.checkSelfActions()) {
-            // Riichi Auto-Win (Tsumo)
-            if (this.p1.isRiichi) {
-                const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
-                if (tsumoAction) {
-                    this.executeAction(tsumoAction);
-                    return;
-                }
+        // CHECK SELF ACTIONS (Riichi, Tsumo) — populates possibleActions for the menu.
+        if (this.checkSelfActions() && this.p1.isRiichi) {
+            // Riichi Auto-Win (Tsumo): riichi is committed, so the win fires
+            // automatically with no menu/choice.
+            const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
+            if (tsumoAction) {
+                this.executeAction(tsumoAction);
+                return;
             }
-
-            this.currentState = this.STATE_ACTION_SELECT;
-            this.actionTimer = 0;
-            this.selectedActionIndex = 0;
-        } else {
-            // No actions
-            // Normal turn (Riichi Auto-Discard handled by Update Loop)
-            this.currentState = this.STATE_PLAYER_TURN;
-            this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
-            this.timer = 0;
         }
+
+        // No forced modal. Stay in the normal turn; if possibleActions holds a
+        // TSUMO/RIICHI, the battle menu (아가리/리치) and the "날 수 있어!" hint
+        // surface it. Discarding declines (discardTile clears possibleActions).
+        // When there are no actions, possibleActions is already empty.
+        this.currentState = this.STATE_PLAYER_TURN;
+        this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
+        this.timer = 0;
     },
 
     cpuDraw: function () {
@@ -1206,45 +1179,36 @@ const BattleEngine = {
 
         // Reset Expressions
         this.setExpressions('idle', 'idle');
-        this.selectedActionIndex = 0; // Reset index for safety
 
-        let hasAction = false;
-        // Check if Player can Ron
-        // AUTO LOSE MODE: Player Cannot Ron
-        if (this.checkPlayerActions(discarded)) {
-            // Riichi Auto-Win (Ron)
-            if (this.p1.isRiichi) {
-                const ronAction = this.possibleActions.find(a => a.type === 'RON');
-                if (ronAction) {
-                    this.executeAction(ronAction);
-                    return;
-                }
-            } else {
-                // Normal user interaction or other logic
-                this.currentState = this.STATE_ACTION_SELECT;
-                this.actionTimer = 0;
-                this.selectedActionIndex = 0;
-                hasAction = true;
+        // checkPlayerActions populates possibleActions (PON, and RON when riichi).
+        // Ron is riichi-only and auto-fires (riichi is committed). PON (non-riichi)
+        // is NOT forced into a modal — possibleActions persists into the draw window
+        // below so the battle menu can offer 펑; drawing forgoes it.
+        if (this.checkPlayerActions(discarded) && this.p1.isRiichi) {
+            const ronAction = this.possibleActions.find(a => a.type === 'RON');
+            if (ronAction) {
+                this.executeAction(ronAction);
+                return;
             }
         }
 
-        if (!hasAction) {
-            this.turnCount++;
-            this.checkRoundEnd();
-            if (this.currentState === this.STATE_NAGARI ||
-                this.currentState === this.STATE_MATCH_OVER ||
-                this.currentState === this.STATE_FX_PLAYING ||
-                this.turnCount > 20) return; // Transitioned to End State or Limit Reached
+        // Advance to the player's draw turn. possibleActions (PON) is intentionally
+        // kept so the menu can surface it during WAIT_FOR_DRAW.
+        this.turnCount++;
+        this.checkRoundEnd();
+        if (this.currentState === this.STATE_NAGARI ||
+            this.currentState === this.STATE_MATCH_OVER ||
+            this.currentState === this.STATE_FX_PLAYING ||
+            this.turnCount > 20) return; // Transitioned to End State or Limit Reached
 
-            // Check Riichi Auto Draw
-            if (this.p1.isRiichi) {
-                this.currentState = this.STATE_PLAYER_TURN; // Will trigger logic? No, PLAYER_TURN just waits.
-                // We need to CALL playerDraw explicitly or setup state such that it draws.
-                this.playerDraw();
-            } else {
-                this.currentState = this.STATE_WAIT_FOR_DRAW;
-                this.timer = 0;
-            }
+        // Check Riichi Auto Draw
+        if (this.p1.isRiichi) {
+            this.currentState = this.STATE_PLAYER_TURN; // Will trigger logic? No, PLAYER_TURN just waits.
+            // We need to CALL playerDraw explicitly or setup state such that it draws.
+            this.playerDraw();
+        } else {
+            this.currentState = this.STATE_WAIT_FOR_DRAW;
+            this.timer = 0;
         }
     },
     sortHand: function (hand) {
@@ -1332,6 +1296,9 @@ const BattleEngine = {
             return;
         }
 
+        // Discarding declines any pending own-turn win/riichi offer (no forced modal).
+        this.possibleActions = [];
+
         this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1'; // Mark owner
@@ -1382,7 +1349,9 @@ const BattleEngine = {
                 return s && s.type === 'REACTIVE' && (id === 'EXCHANGE_RON' || id === 'SUPER_IAI');
             }) : null;
 
-            if (reactiveSkillId) {
+            // "내가 리치를 걸고 있을 때는 사용할 수 없다" — counter unavailable while
+            // P1 is in Riichi (mirrors the CPU guard above).
+            if (reactiveSkillId && !this.p1.isRiichi) {
                 const canAfford = this.checkSkillCost(SkillData[reactiveSkillId]);
 
                 if (canAfford) {
@@ -1519,12 +1488,7 @@ const BattleEngine = {
             this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
-        // Pass
-        if (this.possibleActions.length > 0) {
-            this.possibleActions.push({ type: 'PASS', label: '패스' });
-            return true;
-        }
-        return false;
+        return this.possibleActions.length > 0;
     },
 
     checkSelfActions: function () {
@@ -1615,9 +1579,6 @@ const BattleEngine = {
         }
 
         if (this.possibleActions.length > 0) {
-            if (!(this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0))) {
-                this.possibleActions.push({ type: 'PASS_SELF', label: '패스' }); // Pass on declaring actions
-            }
             // Allow actions to be cached
             this._cachedSelfActionsKey = currentHandKey;
             this._cachedSelfActions = [...this.possibleActions];
@@ -1636,25 +1597,10 @@ const BattleEngine = {
 
     executeAction: function (action) {
         if (!action) return;
-        if (action.type === 'PASS' || action.type === 'PASS_SELF') {
-            // Pass logic
-            if (action.type === 'PASS_SELF') {
-                this.currentState = this.STATE_PLAYER_TURN;
-            } else if (action.type === 'PASS') {
-                this.turnCount++;
-                this.checkRoundEnd();
-                if (this.currentState !== this.STATE_ACTION_SELECT) return;
-
-                // Check Riichi Auto Draw
-                if (this.p1.isRiichi) {
-                    this.playerDraw();
-                } else {
-                    this.currentState = this.STATE_WAIT_FOR_DRAW; // Manual Draw
-                    this.timer = 0;
-                }
-            }
-            this.possibleActions = []; // Clear actions
-        } else if (action.type === 'PON') {
+        // Declining (펑/아가리/리치 passing) is no longer an explicit action — the
+        // player simply draws or discards, which clears possibleActions. So only the
+        // affirmative actions (PON/RON/TSUMO/RIICHI) reach here.
+        if (action.type === 'PON') {
             // Visuals (Immediate feedback) — checkPlayerActions guarantees the pair exists
             this.setExpressions('smile', 'shocked');
             this.showPopup('PON', { blocking: true });
@@ -1812,6 +1758,22 @@ const BattleEngine = {
 
     getPlayer: function (who) {
         return who === 'P1' ? this.p1 : this.cpu;
+    },
+
+    // Can `who` declare Riichi right now? Closed hand, not already riichi, in
+    // time, and able to reach tenpai by discarding one tile. (Pon opens the
+    // hand → false.) Mirrors the RIICHI eligibility in checkSelfActions/cpuDraw.
+    canDeclareRiichi: function (who) {
+        const p = this.getPlayer(who);
+        if (p.isRiichi || p.openSets.length !== 0 || this.turnCount >= 20 || p.hand.length < 2) {
+            return false;
+        }
+        for (let i = 0; i < p.hand.length; i++) {
+            const tempHand = [...p.hand];
+            tempHand.splice(i, 1);
+            if (this.checkTenpai(tempHand)) return true;
+        }
+        return false;
     },
 
     getOpponent: function (who) {
@@ -2032,6 +1994,15 @@ const BattleEngine = {
     // ----------------------------------------------------------------
     performAutoTurn: function () {
         if (this.currentState !== this.STATE_PLAYER_TURN) {
+            return;
+        }
+
+        // Declare an available win (non-riichi tsumo). Previously the forced
+        // ACTION_SELECT modal's auto-test handler did this; now tsumo lives in the
+        // normal turn, so the auto driver declares it here.
+        const tsumoAction = (this.possibleActions || []).find(a => a.type === 'TSUMO');
+        if (tsumoAction) {
+            this.executeAction(tsumoAction);
             return;
         }
 

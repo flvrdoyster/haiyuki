@@ -225,8 +225,11 @@ const DebugCheats = {
         e.setExpression('P1', 'smile');
         e.checkSelfActions();
         if (e.possibleActions.length > 0) {
-            e.currentState = e.STATE_ACTION_SELECT;
-            e.selectedActionIndex = 0;
+            // No forced modal: stay in the normal turn so the "날 수 있어!" hint and
+            // the battle menu (아가리) surface the win. Drawing/discarding declines it.
+            e.currentState = e.STATE_PLAYER_TURN;
+            e.hoverIndex = e.p1.hand.length - 1;
+            e.timer = 0;
         }
     }
 };

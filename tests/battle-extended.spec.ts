@@ -58,6 +58,53 @@ test.describe('C-1. Yaku 단위 검증', () => {
         expect(result!.score).toBe(2400);
     });
 
+    // 회귀: SUN_IL_SAEK은 색 변형 역명({red,blue,yellow}, default 없음)이라 isSunIlSaek가
+    // meta.color를 줘야 resolveYakuName이 한글 역명을 고른다. 예전엔 bare boolean을
+    // 반환해 매치 결과/라운드 기록에 원시 키 'SUN_IL_SAEK'가 그대로 떴다.
+    test('SUN_IL_SAEK: 색 변형 역명이 원시 키가 아닌 한글로 해석된다 (순 적/청/황일색)', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            // 12 red, 6+3+3 더미 → 순일색 성립
+            const hand = [
+                ...Array(6).fill(null).map(() => mk('ataho', 'red')),
+                ...Array(3).fill(null).map(() => mk('punch', 'red')),
+                ...Array(3).fill(null).map(() => mk('sword', 'red')),
+            ];
+            const m = yl.isSunIlSaek(yl.analyzeHand(hand));
+            return {
+                meta: m && m.match ? m.meta : null,
+                red: yl.resolveYakuName('SUN_IL_SAEK', { color: 'red' }, 0),
+                blue: yl.resolveYakuName('SUN_IL_SAEK', { color: 'blue' }, 0),
+                yellow: yl.resolveYakuName('SUN_IL_SAEK', { color: 'yellow' }, 0),
+            };
+        });
+        expect(r.meta, 'isSunIlSaek must supply meta.color').toEqual({ color: 'red' });
+        expect(r.red).toBe('순 적일색');
+        expect(r.blue).toBe('순 청일색');
+        expect(r.yellow).toBe('순 황일색');
+    });
+
+    // 회귀: 자유 박애 평등은 빨/파/노 3색 × 4장씩이고 보라색은 제외. 예전엔 보라를
+    // 안 걸러서 빨4+노4+보라4 같은 손도 "3색"으로 통과했다.
+    test('JAYU_BAKAE_PYEONGDEUNG: 빨/파/노 3색×4 성립, 보라색 포함은 불성립', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            const four = (id: string, color: string) => Array(4).fill(null).map(() => mk(id, color));
+            const valid = [...four('ataho', 'red'), ...four('pet', 'blue'), ...four('rin', 'yellow')];
+            const withPurple = [...four('ataho', 'red'), ...four('rin', 'yellow'), ...four('mayu_purple', 'purple')];
+            return {
+                valid: yl.isJaYuBakAePyeongDeung(yl.analyzeHand(valid)),
+                withPurple: yl.isJaYuBakAePyeongDeung(yl.analyzeHand(withPurple)),
+                validTop: (yl.checkYaku(valid, 0) || {}).yaku,
+            };
+        });
+        expect(r.valid, '빨/파/노 3색×4').toBe(true);
+        expect(r.withPurple, '보라색 포함은 불성립').toBe(false);
+        expect(r.validTop).toEqual(['자유 박애 평등']);
+    });
+
     test('JANG_GI: 동색 캐릭터+무기 트리플렛 포함 4세트 → 점수 2800', async ({ page }) => {
         const result = await page.evaluate(() => {
             const yl = (0, eval)('YakuLogic');
@@ -793,5 +840,213 @@ test.describe('C-7. 쉬움 드로우 어시스트', () => {
         expect(r.easy).toBeGreaterThan(0);
         expect(r.normal).toBe(0);
         expect(r.hard).toBe(0);
+    });
+});
+
+// ============================================================================
+// C-8. "리치 가능 시" 전용 스킬은 펑 후(오픈 핸드)에 사용 불가해야 한다
+//
+//    desc 대조 감사로 발견(2026-06-13): TIGER_STRIKE/SPIRIT_RIICHI 는
+//    "리치를 걸 수 있을 때"만 쓸 수 있으나, 멘젠 체크가 없어 펑 후에도 활성화됐음.
+//    이제 engine.canDeclareRiichi(who) 로 게이팅.
+// ============================================================================
+
+test.describe('C-8. 리치 전용 스킬 멘젠 게이팅', () => {
+
+    const setupRiichiReadyHand = (page: import('@playwright/test').Page, charId: string) =>
+        page.evaluate((cid) => {
+            const CD = (0, eval)('CharacterData');
+            const g = (0, eval)('Game');
+            const a = (0, eval)('Assets');
+            const bc = (0, eval)('BattleConfig');
+            const bs = (0, eval)('BattleScene');
+            const e = (window as any).BattleEngine;
+            a.setMute(true);
+            bc.RULES.SKILLS_ENABLED = true;
+            g.changeScene(bs, { playerIndex: CD.findIndex((c: any) => c.id === cid), cpuIndex: 1 });
+            e.turnCount = 5; e.p1.mp = 100; e.p1.isRiichi = false;
+            const mk = (id: string) => { const d = (0, eval)('PaiData').TYPES.find((t: any) => t.id === id); return { type: d.id, color: d.color, img: d.img }; };
+            // 한 장(punch) 버리면 텐파이(3 ataho,3 smash,3 rin,2 fari) 인 12장
+            const tenpaiHand = [...Array(3).fill(mk('ataho')), ...Array(3).fill(mk('smash')),
+                                ...Array(3).fill(mk('rin')), ...Array(2).fill(mk('fari')), mk('punch')];
+            e.p1.hand = tenpaiHand;
+            return mk;
+        }, charId);
+
+    for (const skillId of ['TIGER_STRIKE', 'SPIRIT_RIICHI']) {
+        const charId = skillId === 'TIGER_STRIKE' ? 'ataho' : 'yuri';
+        test(`${skillId}: 멘젠 텐파이 → 사용 가능, 펑 후 → 불가`, async ({ page }) => {
+            await setupRiichiReadyHand(page, charId);
+            const r = await page.evaluate((sid) => {
+                const e = (window as any).BattleEngine;
+                const mk = (id: string) => { const d = (0, eval)('PaiData').TYPES.find((t: any) => t.id === id); return { type: d.id, color: d.color, img: d.img }; };
+                e.p1.openSets = [];
+                const menzen = e.canUseSkill(sid, 'P1');
+                // 펑으로 손패 오픈
+                e.p1.openSets = [{ type: 'PON', tiles: [mk('punch'), mk('punch'), mk('punch')] }];
+                const afterPon = e.canUseSkill(sid, 'P1');
+                return { menzen, afterPon };
+            }, skillId);
+            expect(r.menzen, '멘젠 텐파이에서 사용 가능').toBe(true);
+            expect(r.afterPon, '펑 후 사용 불가').toBe(false);
+        });
+    }
+});
+
+// ============================================================================
+// C-9. 전 스킬 효과(execute) 검증 — desc 대조 전수 (2026-06-13 감사)
+//
+//    canUse(언제 쓸 수 있나)뿐 아니라 execute(실제 효과)가 desc대로 동작하는지
+//    13개 스킬 전부를 실제 발동시켜 확인. 일회성 수동 검증을 자동화로 고정.
+// ============================================================================
+
+test.describe('C-9. 전 스킬 효과 전수 검증', () => {
+
+    // 전투 진입 + 스킬 활성 + 헬퍼(mk/tenpai/reset)를 페이지에 심는다
+    async function setupSkillHarness(page: import('@playwright/test').Page) {
+        await startBattle(page, { playerIndex: 0, cpuIndex: 1, autoTest: false });
+        await page.evaluate(() => {
+            const e = (window as any).BattleEngine;
+            (0, eval)('BattleConfig').RULES.SKILLS_ENABLED = true;
+            const mk = (id: string) => { const d = (0, eval)('PaiData').TYPES.find((t: any) => t.id === id); return { type: d.id, color: d.color, img: d.img }; };
+            (window as any).__mk = mk;
+            (window as any).__tenpai = () => [...Array(3).fill(mk('ataho')), ...Array(3).fill(mk('smash')), ...Array(3).fill(mk('rin')), ...Array(2).fill(mk('fari'))];
+            (window as any).__reset = () => {
+                e.p1.buffs = {}; e.cpu.buffs = {}; e.p1.openSets = []; e.cpu.openSets = [];
+                e.p1.isRiichi = false; e.cpu.isRiichi = false; e.p1.mp = 100; e.cpu.mp = 100;
+                e.turnCount = 5; e.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
+            };
+        });
+    }
+
+    test('버프형: TIGER_STRIKE / SPIRIT_RIICHI / CRITICAL / WATER_MIRROR / RECOVERY / DISCARD_GUARD / HELL_PILE', async ({ page }) => {
+        await setupSkillHarness(page);
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine, mk = (window as any).__mk, tenpai = (window as any).__tenpai, reset = (window as any).__reset;
+            const SR = (0, eval)('SkillRegistry'), SF = (0, eval)('SkillFlows'), Y = (0, eval)('YakuLogic'), BS = (0, eval)('BattleSequencer');
+            const out: any = {};
+
+            // TIGER_STRIKE: guaranteedWin → 드로우가 완성패 (버프는 드로우 시 소비되므로
+            // 드로우 전에 캡처)
+            reset(); e.p1.hand = tenpai(); SR.TIGER_STRIKE.execute(e, 'P1', e.p1);
+            const tigerBuff = e.p1.buffs.guaranteedWin === true;
+            e.deck.push(mk('punch')); e.deck.push(mk('punch'));
+            const drawn = e.drawTiles(1, e.p1);
+            out.tiger = tigerBuff &&
+                (!!Y.checkYaku([...e.p1.hand, drawn[0]], e.p1.id) || !!Y.checkYaku([...tenpai(), drawn[0]], e.p1.id));
+
+            // SPIRIT_RIICHI: timer 5 → 5턴 후 보장승
+            reset(); SR.SPIRIT_RIICHI.execute(e, 'P1', e.p1);
+            const t5 = e.p1.buffs.spiritTimer === 5;
+            for (let i = 0; i < 5; i++) e.manageBuffs(e.p1);
+            out.spirit = t5 && e.p1.buffs.guaranteedWin === true;
+
+            // CRITICAL: 가해 ×1.25, 소비
+            reset(); e.p1.hand = tenpai().concat(mk('fari')); e.winningYaku = Y.checkYaku(e.p1.hand, e.p1.id);
+            SR.CRITICAL.execute(e, 'P1', e.p1);
+            const cBase = e.calculateScore(e.winningYaku.score, e.p1.isMenzen, e.p1, e.cpu);
+            BS.startWinSequence(e, 'TSUMO', 'P1', cBase);
+            out.critical = e.pendingDamage.amount >= Math.floor(cBase * 1.25) - 1 && !e.p1.buffs.attackUp;
+
+            // WATER_MIRROR: 피격 ×0.75, 소비
+            reset(); e.cpu.hand = tenpai().concat(mk('fari')); e.winningYaku = Y.checkYaku(e.cpu.hand, e.cpu.id);
+            SR.WATER_MIRROR.execute(e, 'P1', e.p1);
+            const wBase = e.calculateScore(e.winningYaku.score, e.cpu.isMenzen, e.cpu, e.p1);
+            BS.startWinSequence(e, 'TSUMO', 'CPU', wBase);
+            out.waterMirror = e.pendingDamage.amount <= Math.floor(wBase * 0.75) + 1 && !e.p1.buffs.defenseUp;
+
+            // RECOVERY: +3000, 상한 캡, 만피 불가
+            reset(); e.p1.maxHp = 10000; e.p1.hp = 5000; SR.RECOVERY.execute(e, 'P1', e.p1);
+            const healed = e.p1.hp === 8000; e.p1.hp = 9000; SR.RECOVERY.execute(e, 'P1', e.p1);
+            out.recovery = healed && e.p1.hp === 10000 && SR.RECOVERY.canUse(e, 'P1', { hp: 10000, maxHp: 10000 }) === false;
+
+            // DISCARD_GUARD: 5턴, CPU 반응 차단, 감소
+            reset(); SR.DISCARD_GUARD.execute(e, 'P1', e.p1); e.p1.hand = tenpai();
+            const blocked = e.checkCpuActions(mk('ataho')) === false;
+            e.manageBuffs(e.p1);
+            out.discardGuard = blocked && e.p1.buffs.discardGuard === 4;
+
+            // HELL_PILE: 상대 curseDraw 3 → 드로우 시 감소
+            reset(); SR.HELL_PILE.execute(e, 'P1', e.p1, e.cpu);
+            const c3 = e.cpu.buffs.curseDraw === 3; e.cpu.hand = [mk('ataho'), mk('ataho')]; e.deck.push(mk('ataho'));
+            e.drawTiles(1, e.cpu);
+            out.hellPile = c3 && e.cpu.buffs.curseDraw === 2;
+
+            return out;
+        });
+        expect(r.tiger, 'TIGER_STRIKE').toBe(true);
+        expect(r.spirit, 'SPIRIT_RIICHI').toBe(true);
+        expect(r.critical, 'CRITICAL').toBe(true);
+        expect(r.waterMirror, 'WATER_MIRROR').toBe(true);
+        expect(r.recovery, 'RECOVERY').toBe(true);
+        expect(r.discardGuard, 'DISCARD_GUARD').toBe(true);
+        expect(r.hellPile, 'HELL_PILE').toBe(true);
+    });
+
+    test('DORA_BOMB: 우라도라를 손패 최다 패로 교체', async ({ page }) => {
+        await setupSkillHarness(page);
+        const ok = await page.evaluate(() => {
+            const e = (window as any).BattleEngine, mk = (window as any).__mk, reset = (window as any).__reset;
+            const SF = (0, eval)('SkillFlows');
+            reset(); e.p1.id = 'rinxiang';
+            e.p1.hand = [...Array(6).fill(mk('ataho')), ...Array(3).fill(mk('punch'))];
+            e.uraDoras = [mk('yuri'), mk('pet')];
+            SF.applyDoraBomb(e, e.p1, 'P1');
+            const res = e.uraDoras.every((d: any) => d.type === 'ataho');
+            e.p1.id = 'ataho';
+            return res;
+        });
+        expect(ok).toBe(true);
+    });
+
+    test('반응형 론 카운터: EXCHANGE_RON(되돌림) / SUPER_IAI(제거+턴넘김)', async ({ page }) => {
+        await setupSkillHarness(page);
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine, mk = (window as any).__mk, reset = (window as any).__reset;
+            const SF = (0, eval)('SkillFlows');
+            const out: any = {};
+
+            reset(); e.p1.hand = [mk('smash'), mk('rin')];
+            const bad = mk('punch'); bad.owner = 'p1'; e.discards = [mk('ataho'), bad];
+            const dB = e.discards.length, hB = e.p1.hand.length;
+            SF.activateRonTileExchange(e, 'P1');
+            out.exchangeRon = e.discards.length === dB - 1 && e.p1.hand.length === hB + 1 && e.currentState === e.STATE_PLAYER_TURN;
+
+            reset(); e.discards = [mk('ataho'), mk('punch')];
+            const dB2 = e.discards.length;
+            SF.activateSuperIaido(e, 'P1');
+            out.superIai = e.discards.length === dB2 - 1 && e.currentState === e.STATE_CPU_TURN;
+
+            return out;
+        });
+        expect(r.exchangeRon, 'EXCHANGE_RON').toBe(true);
+        expect(r.superIai, 'SUPER_IAI').toBe(true);
+    });
+
+    test('autoFlow: EXCHANGE_TILE / PAINT_TILE(CPU 라운드시작 교환) / LAST_CHANCE(룰렛)', async ({ page }) => {
+        await setupSkillHarness(page);
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine, mk = (window as any).__mk, tenpai = (window as any).__tenpai, reset = (window as any).__reset;
+            const SF = (0, eval)('SkillFlows');
+            const out: any = {};
+            const junkHand = () => [mk('ataho'), mk('ataho'), mk('smash'), mk('punch'), mk('sword'), mk('wand'), mk('yuri'), mk('pet'), mk('rin'), mk('fari'), mk('mayu_red')];
+
+            for (const sid of ['EXCHANGE_TILE', 'PAINT_TILE']) {
+                reset(); e.cpu.hand = junkHand(); e.deck = Array.from({ length: 30 }, () => mk('ataho'));
+                const mpB = e.cpu.mp;
+                SF.executeCpuTileExchange(e, sid);
+                out[sid] = e.cpu.mp < mpB && e.cpu.hand.length === 11;
+            }
+
+            reset(); e.p1.hand = tenpai(); e.p1.skills = ['LAST_CHANCE', 'CRITICAL']; e.p1.mp = 100; e.turnCount = 20;
+            e.deck = [mk('fari'), mk('punch'), mk('sword')];
+            e.activateLastChance('P1');
+            out.lastChance = e.currentState === e.STATE_ROULETTE;
+
+            return out;
+        });
+        expect(r.EXCHANGE_TILE, 'EXCHANGE_TILE').toBe(true);
+        expect(r.PAINT_TILE, 'PAINT_TILE').toBe(true);
+        expect(r.lastChance, 'LAST_CHANCE').toBe(true);
     });
 });

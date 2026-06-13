@@ -6,6 +6,12 @@ const FONTS = {
     bold: '"KoddiUDOnGothic"'
 };
 
+// Shared footprint for the draw button ("패 가져오기") and the win button
+// ("날 수 있어!"). Flush to the canvas right edge (x + w = 640), like the battle
+// menu. They never render at once (draw = WAIT_FOR_DRAW, win = PLAYER_TURN), so
+// they take turns occupying this exact spot. Move them together by editing here.
+const ACTION_BUTTON_BOX = { x: 540, y: 400, w: 100, h: 36 };
+
 const BattleConfig = {
     // ----------------------------------------------------------------
     // Core Settings
@@ -205,35 +211,19 @@ const BattleConfig = {
     // ----------------------------------------------------------------
     // Menus & Interaction
     // ----------------------------------------------------------------
-    ACTION: {
-        // Menu Layout
-        y: 320,
-        btnWidth: 80,
-        btnHeight: 32,
-        gap: 4,
-        padding: 2, // New: Frame padding
-        dimmer: 'rgba(0, 0, 0, 0.5)', // New: Dimmer color
-
-        // Fonts
-        buttonFont: `bold 16px ${FONTS.bold}`,
-        helpFont: `bold 16px ${FONTS.bold}`,
-
-        // Colors (Match Battle Menu)
-        cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
-        textDefault: 'rgba(255, 255, 255, 1)',
-        textSelected: 'rgba(255, 255, 0, 1)',
-        stroke: 'rgba(255, 255, 255, 1)',
-        border: 'rgba(255, 255, 255, 1)',
-
-        // Colors
-        colors: {
-        }
+    // "날 수 있어!" 버튼 (원본의 あがれるよ). 패 가져오기 버튼과 동일한 UI·위치.
+    // 누른다고 바로 나는 게 아니라 배틀 메뉴가 열려서 아가리를 고를 수 있고, 그냥
+    // 닫고 더 높은 역을 노릴 수도 있음. 드로우 창과는 상태가 달라(쯔모는 PLAYER_TURN)
+    // 패 가져오기 버튼과 같은 자리에 떠도 겹치지 않음.
+    WIN_HINT: {
+        ...ACTION_BUTTON_BOX,
+        text: "날 수 있어!",
+        font: `bold 16px ${FONTS.bold}`,
+        cursor: 'rgba(255, 105, 180, 0.5)'
     },
+
     DRAW_BUTTON: {
-        x: 500,
-        y: 400,
-        w: 100,
-        h: 36,
+        ...ACTION_BUTTON_BOX,
         text: "패 가져오기",
         font: `bold 16px ${FONTS.bold}`,
         dimmer: 'rgba(0, 0, 0, 0.5)',
@@ -257,10 +247,10 @@ const BattleConfig = {
         separatorHeight: 8, // Height for separator items
         cursorYOffset: -6,
 
-        // Menu Layout Definition
+        // Menu Layout Definition. The 아가리/펑/리치 declaration commands are
+        // prepended dynamically in constructMenu(), so this layout is just the
+        // skills block and the yaku-list help below them.
         layout: [
-            { id: 'AUTO', label: '자동 선택' },
-            { id: 'RESTART', label: '다시 시작' },
             { type: 'SEPARATOR' },
             { id: 'SKILLS_PLACEHOLDER' }, // Insert Skills Here
             { type: 'SEPARATOR' },

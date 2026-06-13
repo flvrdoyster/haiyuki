@@ -280,9 +280,7 @@ const BattleRenderer = {
 
 
         // Overlays / UI
-        if (state.currentState === state.STATE_ACTION_SELECT) {
-            this.drawActionMenu(ctx, state);
-        } else if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI || state.currentState === state.STATE_MATCH_OVER) {
+        if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI || state.currentState === state.STATE_MATCH_OVER) {
             // Draw Result uses state variables
             this.drawResult(ctx, state);
         }
@@ -290,6 +288,12 @@ const BattleRenderer = {
         // Battle Menu
         if (state.currentState === state.STATE_BATTLE_MENU) {
             this.drawBattleMenu(ctx, state);
+        }
+
+        // Win-available indicator (separate from the draw button)
+        if (state.currentState === state.STATE_WAIT_FOR_DRAW ||
+            state.currentState === state.STATE_PLAYER_TURN) {
+            this.drawWinHint(ctx, state);
         }
 
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
@@ -905,64 +909,6 @@ const BattleRenderer = {
         ctx.restore();
     },
 
-    // Cached Action Menu Metrics
-    _actionMenuMetrics: {
-        totalW: 0,
-        startX: 0,
-        startY: 0,
-        frameX: 0,
-        frameY: 0,
-        frameW: 0,
-        frameH: 0
-    },
-
-    drawActionMenu: function (ctx, state) {
-        ctx.save(); // Prevent state leak (textBaseline)
-        const conf = BattleConfig.ACTION;
-        const actions = state.possibleActions;
-        const btnW = conf.btnWidth;
-        const btnH = conf.btnHeight;
-        const gap = conf.gap;
-        const padding = conf.padding || 20;
-
-        // Calculate Metrics (using cached object)
-        const m = this._actionMenuMetrics;
-        m.totalW = actions.length * btnW + (actions.length - 1) * gap;
-        m.startX = (640 - m.totalW) / 2;
-        m.startY = conf.y;
-        m.frameX = m.startX - padding;
-        m.frameY = m.startY - padding;
-        m.frameW = m.totalW + (padding * 2);
-        m.frameH = btnH + (padding * 2);
-
-        Assets.drawUIFrame(ctx, m.frameX, m.frameY, m.frameW, m.frameH);
-
-        // Inner Dimmer
-        const border = 4;
-        ctx.fillStyle = conf.dimmer || 'rgba(0,0,0,0.5)';
-        ctx.fillRect(m.frameX + border, m.frameY + border, m.frameW - (border * 2), m.frameH - (border * 2));
-
-
-        actions.forEach((act, i) => {
-            const x = m.startX + i * (btnW + gap);
-            const isSelected = (i === state.selectedActionIndex);
-
-            // Selection Cursor (Pink Bar) - Only draw if selected
-            if (isSelected) {
-                ctx.fillStyle = conf.cursor;
-                ctx.fillRect(x, m.startY, btnW, btnH);
-            }
-
-            // Text Color
-            ctx.fillStyle = isSelected ? conf.textSelected : conf.textDefault;
-            ctx.font = conf.buttonFont;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle'; // Fix vertical alignment
-            ctx.fillText(act.label, x + btnW / 2, m.startY + btnH / 2);
-        });
-        ctx.restore();
-    },
-
     drawResult: function (ctx, state) {
         const conf = BattleConfig.RESULT;
 
@@ -1275,24 +1221,35 @@ const BattleRenderer = {
         }
     },
 
+    // Menu layout metrics. Height is dynamic (grows with item count) and the menu
+    // is bottom-anchored at conf.y + conf.h, so the always-listed declaration
+    // commands (아가리/펑/리치) push the window UP rather than off the canvas bottom.
+    _menuMetrics: function (menuItems) {
+        const conf = BattleConfig.BATTLE_MENU;
+        const lineHeight = conf.fixedLineHeight || 28;
+        const topOffset = conf.padding + 7;
+        let contentH = 0;
+        menuItems.forEach(item => {
+            contentH += (item.type === 'SEPARATOR') ? (conf.separatorHeight || 4) : lineHeight;
+        });
+        const h = topOffset + contentH + conf.padding;
+        const y = (conf.y + conf.h) - h; // keep the bottom edge fixed; grow upward
+        return { x: conf.x, y, w: conf.w, h, startX: conf.x + conf.padding, startY: y + topOffset, lineHeight };
+    },
+
     drawBattleMenu: function (ctx, state) {
         const conf = BattleConfig.BATTLE_MENU;
-
-        // Use configured dimensions
-        const x = conf.x;
-        const y = conf.y;
-        const w = conf.w;
-        const h = conf.h;
+        const m = this._menuMetrics(BattleMenuSystem.menuItems);
+        const x = m.x, y = m.y, w = m.w, h = m.h;
 
         // Draw Window using Assets helper
         Assets.drawWindow(ctx, x, y, w, h);
 
-        const startX = x + conf.padding;
-        const startY = y + conf.padding + 7;
-        const innerH = h - (conf.padding * 2);
+        const startX = m.startX;
+        const startY = m.startY;
 
         // Use Fixed Line Height
-        const lineHeight = conf.fixedLineHeight || 28;
+        const lineHeight = m.lineHeight;
 
         ctx.font = conf.font;
         ctx.textAlign = "left";
@@ -1340,8 +1297,7 @@ const BattleRenderer = {
 
             // Handle Objects vs Strings (Transition Support)
             const label = item.label || item;
-            const isAuto = (item.id === 'AUTO') || (item === '자동 선택');
-            const isDisabled = item.disabled || (isAuto && state.lastStateBeforeMenu !== state.STATE_PLAYER_TURN);
+            const isDisabled = item.disabled;
 
             ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
 
@@ -1360,6 +1316,31 @@ const BattleRenderer = {
      * Centralizes coordinate logic so Scene doesn't need to know layout details.
      */
 
+    // True when the player can CHOOSE to win right now. Only a non-riichi tsumo
+    // qualifies — ron requires riichi, and riichi auto-wins (no choice).
+    canWinNow: function (state) {
+        return (state.possibleActions || []).some(a => a.type === 'TSUMO');
+    },
+
+    // "날 수 있어!" button (원본의 あがれるよ). Same UI as the draw button. Clicking
+    // it opens the battle menu (where 아가리 is chosen) rather than auto-winning —
+    // so the player can also close the menu and keep playing for a higher hand.
+    drawWinHint: function (ctx, state) {
+        if (!this.canWinNow(state)) return;
+        const conf = BattleConfig.WIN_HINT;
+        const isHovered = state ? state.winButtonHover : false;
+        Assets.drawButton(ctx, conf.x, conf.y, conf.w, conf.h, conf.text, isHovered, {
+            font: conf.font,
+            cursorColor: conf.cursor
+        });
+    },
+
+    checkWinButton: function (x, y) {
+        const conf = BattleConfig.WIN_HINT;
+        return x >= conf.x && x <= conf.x + conf.w &&
+               y >= conf.y && y <= conf.y + conf.h;
+    },
+
     drawDrawButton: function (ctx, state) {
         const conf = BattleConfig.DRAW_BUTTON;
         const x = conf.x;
@@ -1367,7 +1348,6 @@ const BattleRenderer = {
         const w = conf.w;
         const h = conf.h;
 
-        // Draw Button using UI helper
         // Use state.drawButtonHover from BattleScene input
         const isHovered = state ? state.drawButtonHover : false;
 
@@ -1388,32 +1368,6 @@ const BattleRenderer = {
         return false;
     },
 
-
-    getActionAt: function (x, y, actions) {
-        const conf = BattleConfig.ACTION;
-        const btnW = conf.btnWidth;
-        const btnH = conf.btnHeight;
-        const gap = conf.gap;
-        const startY = conf.y;
-        const totalW = actions.length * btnW + (actions.length - 1) * gap;
-        const startX = (640 - totalW) / 2;
-
-        // Simple bounding box check
-        if (y < startY || y > startY + btnH) return -1;
-        if (x < startX || x > startX + totalW) return -1;
-
-        // Determine Index
-        const relativeX = x - startX;
-        const stride = btnW + gap;
-        const index = Math.floor(relativeX / stride);
-
-        // Check Gap (if click falls in gap, it's invalid)
-        const offsetInStride = relativeX % stride;
-        if (offsetInStride > btnW) return -1; // Clicked in gap
-
-        if (index >= 0 && index < actions.length) return index;
-        return -1;
-    },
 
     getHandTileAt: function (x, y, player, groupSize) {
         // Reuse getVisualMetrics
@@ -1447,17 +1401,15 @@ const BattleRenderer = {
     // Helper to check Menu Hit
     getMenuItemAt: function (mouseX, mouseY, menuItems) {
         const conf = BattleConfig.BATTLE_MENU;
-        const x = conf.x;
-        const y = conf.y;
-        const w = conf.w;
-        const h = conf.h;
-        const startX = x + conf.padding;
-        const startY = y + conf.padding + 7;
+        const m = this._menuMetrics(menuItems);
+        const x = m.x, y = m.y, w = m.w, h = m.h;
+        const startX = m.startX;
+        const startY = m.startY;
 
         // Window Bounds Check
         if (mouseX < x || mouseX > x + w || mouseY < y || mouseY > y + h) return -1;
 
-        const lineHeight = conf.fixedLineHeight || 28;
+        const lineHeight = m.lineHeight;
         const getItemHeight = (item) => {
             if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
             return lineHeight;
