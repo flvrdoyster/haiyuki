@@ -19,7 +19,11 @@ const SelectConfig = {
         y: 380,
         gap: 14,
         dimOpacity: 0.5,
-        cursorPath: 'face/select_cursor.png'
+        cursorPath: 'face/select_cursor.png',
+        // The hidden character (Mayu, unlocked after the true ending) sits in its
+        // own slot centered below the VS logo (VS_LOGO.y = 200), as in the original
+        // — not in the row with the base 6.
+        hiddenSlotY: 292
     }
 };
 
@@ -197,17 +201,26 @@ const CharacterSelectScene = {
                 this.updateCpuPortrait();
             }
 
-            // Player Selection
+            // Player Selection. The base 6 form the row (LEFT/RIGHT cycle within it).
+            // The hidden Mayu sits in the below-VS slot: UP jumps to it, DOWN (or
+            // LEFT/RIGHT) drops back to the remembered row position. Without an unlocked
+            // Mayu (hiddenIdx === -1) this reduces to the original LEFT/RIGHT cycle.
+            const hiddenIdx = this.characters.findIndex(c => c.hidden);
+            const rowCount = (hiddenIdx === -1) ? this.characters.length : hiddenIdx;
+            const onHidden = (this.playerIndex === hiddenIdx);
+            const moveTo = (idx) => { this.playerIndex = idx; this.updateP1Portrait(); Assets.playSound('audio/tick'); };
+            const backToRow = () => moveTo((this._rowReturnIndex !== undefined && this._rowReturnIndex < rowCount) ? this._rowReturnIndex : 0);
+
             if (Input.isJustPressed(Input.LEFT)) {
-                this.playerIndex--;
-                if (this.playerIndex < 0) this.playerIndex = this.characters.length - 1;
-                this.updateP1Portrait();
-                Assets.playSound('audio/tick');
+                if (onHidden) backToRow();
+                else moveTo((this.playerIndex - 1 + rowCount) % rowCount);
             } else if (Input.isJustPressed(Input.RIGHT)) {
-                this.playerIndex++;
-                if (this.playerIndex >= this.characters.length) this.playerIndex = 0;
-                this.updateP1Portrait();
-                Assets.playSound('audio/tick');
+                if (onHidden) backToRow();
+                else moveTo((this.playerIndex + 1) % rowCount);
+            } else if (Input.isJustPressed(Input.UP)) {
+                if (hiddenIdx !== -1 && !onHidden) { this._rowReturnIndex = this.playerIndex; moveTo(hiddenIdx); }
+            } else if (Input.isJustPressed(Input.DOWN)) {
+                if (onHidden) backToRow();
             }
 
             if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
@@ -420,25 +433,10 @@ const CharacterSelectScene = {
 
         ctx.restore();
 
-        // Draw Icon Row (Using Individual Icons)
-        const iconY = SelectConfig.ICON_ROW.y;
-        const gap = SelectConfig.ICON_ROW.gap;
-
-        // Calculate total width
-        // Assume all icons have same width? Or check first one?
-        // Let's assume standard width from first char
-        const firstIcon = Assets.get(this.characters[0].selectIcon);
-        const iconW = firstIcon ? firstIcon.width : 40; // Fallback
-        const iconH = firstIcon ? firstIcon.height : 40;
-
-        const totalW = (iconW * this.characters.length) + (gap * (this.characters.length - 1));
-        const startX = (640 - totalW) / 2;
-
-        const hoveredIndex = this.getHoveredCharacterIndex();
-
+        // Draw Icons (positions from the shared getIconRect helper, so the hidden
+        // Mayu lands in its below-VS slot while the base 6 stay in the centered row).
         this.characters.forEach((char, index) => {
-            const x = startX + index * (iconW + gap);
-            const y = iconY;
+            const r = this.getIconRect(index);
 
             // Dim if already selected by Player (during CPU phase/Ready)
             const isPlayerSelected = (this.currentState >= this.STATE_CPU_SELECT && index === this.playerIndex);
@@ -447,16 +445,11 @@ const CharacterSelectScene = {
             if (isPlayerSelected) {
                 ctx.globalAlpha = SelectConfig.ICON_ROW.dimOpacity;
             }
-
-            // Draw Icon
             const iconImg = Assets.get(char.selectIcon);
             if (iconImg) {
-                ctx.drawImage(iconImg, x, y);
+                ctx.drawImage(iconImg, r.x, r.y);
             }
-
             ctx.restore();
-
-
         });
 
         // Draw Cursors
@@ -466,43 +459,53 @@ const CharacterSelectScene = {
             const cursorH = cursorImg.height;
 
             // Player Cursor (Green) - Frame 0
-            const pX = startX + this.playerIndex * (iconW + gap);
-            const pY = iconY;
-            const cX = pX + (iconW - cursorW) / 2;
-            const cY = pY + (iconH - cursorH) / 2;
-
-            Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cX, cY, 0, cursorW, cursorH);
+            const pr = this.getIconRect(this.playerIndex);
+            Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+                pr.x + (pr.w - cursorW) / 2, pr.y + (pr.h - cursorH) / 2, 0, cursorW, cursorH);
 
             // CPU Cursor (Red) - Frame 1
             if (this.currentState >= this.STATE_CPU_SELECT) {
-                const cpuX = startX + this.cpuIndex * (iconW + gap);
-                const cpuCX = cpuX + (iconW - cursorW) / 2;
-                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath, cpuCX, cY, 1, cursorW, cursorH);
+                const cr = this.getIconRect(this.cpuIndex);
+                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+                    cr.x + (cr.w - cursorW) / 2, cr.y + (cr.h - cursorH) / 2, 1, cursorW, cursorH);
             }
         }
     },
 
-    getHoveredCharacterIndex: function () {
+    // Position+size of a character's select icon. Non-hidden characters form the
+    // centered row (ICON_ROW.y). The hidden character (Mayu) gets its own slot
+    // centered below the VS logo (ICON_ROW.hiddenSlotY).
+    getIconRect: function (index) {
         const firstIcon = Assets.get(this.characters[0].selectIcon);
-        if (!firstIcon) return -1;
-
-        const iconW = firstIcon.width;
-        const iconH = firstIcon.height;
+        const iconW = firstIcon ? firstIcon.width : 40;
+        const iconH = firstIcon ? firstIcon.height : 40;
         const gap = SelectConfig.ICON_ROW.gap;
-        const totalW = (iconW * this.characters.length) + (gap * (this.characters.length - 1));
+        const char = this.characters[index];
+
+        if (char && char.hidden) {
+            // Mayu uses its own (differently-sized) select icon — center on that.
+            const ownIcon = Assets.get(char.selectIcon);
+            const w = ownIcon ? ownIcon.width : iconW;
+            const h = ownIcon ? ownIcon.height : iconH;
+            return { x: Math.round((640 - w) / 2), y: SelectConfig.ICON_ROW.hiddenSlotY, w, h };
+        }
+
+        const rowChars = this.characters.filter(c => !c.hidden);
+        const rowIndex = rowChars.indexOf(char);
+        const totalW = (iconW * rowChars.length) + (gap * (rowChars.length - 1));
         const startX = (640 - totalW) / 2;
-        const startY = SelectConfig.ICON_ROW.y;
+        return { x: Math.round(startX + rowIndex * (iconW + gap)), y: SelectConfig.ICON_ROW.y, w: iconW, h: iconH };
+    },
+
+    getHoveredCharacterIndex: function () {
+        if (!Assets.get(this.characters[0].selectIcon)) return -1;
 
         const mx = Input.mouseX;
         const my = Input.mouseY;
-
-        // Check bounds
-        if (my >= startY && my <= startY + iconH) {
-            for (let i = 0; i < this.characters.length; i++) {
-                const x = startX + i * (iconW + gap);
-                if (mx >= x && mx <= x + iconW) {
-                    return i;
-                }
+        for (let i = 0; i < this.characters.length; i++) {
+            const r = this.getIconRect(i);
+            if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+                return i;
             }
         }
         return -1;

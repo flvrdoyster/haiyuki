@@ -105,6 +105,95 @@ test.describe('C-1. Yaku 단위 검증', () => {
         expect(r.validTop).toEqual(['자유 박애 평등']);
     });
 
+    // 회귀: 순일색/초일색은 빨/파/노 단색만 — 보라 단색은 불성립.
+    // 예전엔 색을 안 가려 12장 전부 보라인 손도 매칭 후보에 올랐다(실제론 보라 9장뿐이라
+    // 도달 불가 + IP_E_DAM이 더 높아 표시도 안 됐지만, 규칙 정합성 차원에서 수정).
+    test('SUN_IL_SAEK/CHO_IL_SAEK: 보라 단색은 일색류 불성립(빨/파/노만)', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            const rep = (id: string, color: string, n: number) => Array(n).fill(null).map(() => mk(id, color));
+            const A = (h: any) => yl.analyzeHand(h);
+            const purple12 = [...rep('mayu_purple', 'purple', 6), ...rep('mayu_purple', 'purple', 3), ...rep('mayu_purple', 'purple', 3)];
+            const redSun = [...rep('ataho', 'red', 6), ...rep('punch', 'red', 3), ...rep('sword', 'red', 3)];
+            const redCho = [...rep('ataho', 'red', 4), ...rep('punch', 'red', 4), ...rep('sword', 'red', 4)];
+            return {
+                sunPurple: yl.isSunIlSaek(A(purple12)),
+                choPurple: yl.isChoIlSaek(A(purple12)),
+                sunRed: !!(yl.isSunIlSaek(A(redSun)) || {}).match,
+                choRed: !!(yl.isChoIlSaek(A(redCho)) || {}).match,
+            };
+        });
+        expect(r.sunPurple, '순일색: 보라 불성립').toBe(false);
+        expect(r.choPurple, '초일색: 보라 불성립').toBe(false);
+        expect(r.sunRed, '순일색: 빨강 성립').toBe(true);
+        expect(r.choRed, '초일색: 빨강 성립').toBe(true);
+    });
+
+    // 회귀: 순일색은 [6,3,3](2종×3 + 1종×6, 타입 기반). 초일색은 "같은 색 4개씩 3벌"
+    // (세트 기반 — 8+4·12단일 OK, 6+6는 4벌 안 됨 ✗). 보라는 둘 다 제외.
+    test('SUN_IL_SAEK/CHO_IL_SAEK: 구조 검증 (순일색=타입 [6,3,3] / 초일색=세트 4×3벌)', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            const rep = (id: string, color: string, n: number) => Array(n).fill(null).map(() => mk(id, color));
+            const A = (h: any) => yl.analyzeHand(h);
+            const B = (x: any) => !!(x && x.match);
+            return {
+                sun633: B(yl.isSunIlSaek(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 3), ...rep('sword', 'red', 3)]))),
+                sun651: B(yl.isSunIlSaek(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 5), ...rep('sword', 'red', 1)]))),
+                sun66: B(yl.isSunIlSaek(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 6)]))),
+                sun444: B(yl.isSunIlSaek(A([...rep('ataho', 'red', 4), ...rep('punch', 'red', 4), ...rep('sword', 'red', 4)]))),
+                cho444: B(yl.isChoIlSaek(A([...rep('ataho', 'red', 4), ...rep('punch', 'red', 4), ...rep('sword', 'red', 4)]))),
+                cho84: B(yl.isChoIlSaek(A([...rep('ataho', 'red', 8), ...rep('punch', 'red', 4)]))),
+                cho66: B(yl.isChoIlSaek(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 6)]))),
+                cho633: B(yl.isChoIlSaek(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 3), ...rep('sword', 'red', 3)]))),
+            };
+        });
+        expect(r.sun633, '순일색 [6,3,3] 성립').toBe(true);
+        expect(r.sun651, '순일색 [6,5,1] 불성립').toBe(false);
+        expect(r.sun66, '순일색 [6,6] 불성립').toBe(false);
+        expect(r.sun444, '순일색 [4,4,4]는 순일색 아님(초일색)').toBe(false);
+        expect(r.cho444, '초일색 [4,4,4] 성립').toBe(true);
+        expect(r.cho84, '초일색 [8,4] 성립(세트 기반 3벌)').toBe(true);
+        expect(r.cho66, '초일색 [6,6] 불성립(4벌 안 됨)').toBe(false);
+        expect(r.cho633, '초일색 [6,3,3] 불성립(순일색)').toBe(false);
+    });
+
+    // 회귀: "N종류(타입)" 요구 역은 같은 타입을 여러 세트 쌓아도 종류 수를 부풀리면 안 된다.
+    // 콤비/크로스(캐릭터 2종류), 스페셜(4종류), 변태개(여성 3종류).
+    test('종류 기반 역: 같은 타입 더미로 종류 수를 부풀리면 불성립', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            const rep = (id: string, color: string, n: number) => Array(n).fill(null).map(() => mk(id, color));
+            const A = (h: any) => yl.analyzeHand(h);
+            const B = (x: any) => !!(x === true || (x && x.match));
+            return {
+                // COMBINATION: 같은 색 캐릭터 2종류 + 무기. 1종류(ataho×6)는 불성립.
+                comboValid: B(yl.isCombination(A([...rep('ataho', 'red', 3), ...rep('rin', 'red', 3), ...rep('sword', 'red', 3), ...rep('smash', 'blue', 3)]))),
+                combo1Type: B(yl.isCombination(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 3), ...rep('smash', 'blue', 3)]))),
+                // CROSS: 같은 색 캐릭터 2종류 + 무기 ×4. 1캐릭터종류는 불성립.
+                crossValid: B(yl.isCrossCombination(A([...rep('ataho', 'red', 4), ...rep('rin', 'red', 4), ...rep('sword', 'red', 4)]))),
+                cross1Type: B(yl.isCrossCombination(A([...rep('ataho', 'red', 8), ...rep('sword', 'red', 4)]))),
+                // SPECIAL: 같은 색 4종류 ×3. 3종류(6+3+3=순일색)는 불성립.
+                specialValid: B(yl.isSpecialCombination(A([...rep('ataho', 'red', 3), ...rep('rin', 'red', 3), ...rep('sword', 'red', 3), ...rep('wand', 'red', 3)]))),
+                special3Type: B(yl.isSpecialCombination(A([...rep('ataho', 'red', 6), ...rep('punch', 'red', 3), ...rep('sword', 'red', 3)]))),
+                // BYEON: 스마슈 + 여성 3종류. 여성 2종류는 불성립.
+                byeonValid: B(yl.isByeonTaeGae(A([...rep('smash', 'blue', 3), ...rep('rin', 'yellow', 3), ...rep('yuri', 'blue', 3), ...rep('fari', 'red', 3)]))),
+                byeon2Type: B(yl.isByeonTaeGae(A([...rep('smash', 'blue', 3), ...rep('rin', 'yellow', 6), ...rep('yuri', 'blue', 3)]))),
+            };
+        });
+        expect(r.comboValid, 'COMBINATION 정상(캐릭터 2종)').toBe(true);
+        expect(r.combo1Type, 'COMBINATION 캐릭터 1종(6장) 불성립').toBe(false);
+        expect(r.crossValid, 'CROSS 정상(캐릭터 2종)').toBe(true);
+        expect(r.cross1Type, 'CROSS 캐릭터 1종(8장) 불성립').toBe(false);
+        expect(r.specialValid, 'SPECIAL 정상(4종)').toBe(true);
+        expect(r.special3Type, 'SPECIAL 3종(6+3+3) 불성립').toBe(false);
+        expect(r.byeonValid, 'BYEON 정상(여성 3종)').toBe(true);
+        expect(r.byeon2Type, 'BYEON 여성 2종 불성립').toBe(false);
+    });
+
     test('JANG_GI: 동색 캐릭터+무기 트리플렛 포함 4세트 → 점수 2800', async ({ page }) => {
         const result = await page.evaluate(() => {
             const yl = (0, eval)('YakuLogic');

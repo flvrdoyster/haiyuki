@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>환세패유기 · 역 판정 테스터 (QA)</title>
+    <style>
+        :root {
+            --bg: #1e1e24;
+            --panel: #2a2a33;
+            --line: #44444f;
+            --text: #eee;
+            --dim: #999;
+            --ok: #4caf50;
+            --okbg: rgba(76, 175, 80, 0.16);
+            --no: #555;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'KoddiUDOnGothic', system-ui, sans-serif;
+            line-height: 1.5;
+        }
+
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        .sub { color: var(--dim); font-size: 13px; margin-bottom: 16px; }
+
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .left { flex: 1 1 360px; min-width: 320px; }
+        .right { flex: 2 1 480px; min-width: 360px; }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .card h2 { font-size: 14px; margin: 0 0 10px; color: var(--dim); font-weight: 700; }
+
+        /* Palette */
+        .color-group { margin-bottom: 10px; }
+        .color-label { font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+        .tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tile-btn {
+            display: flex; flex-direction: column; align-items: center;
+            width: 56px; padding: 4px; cursor: pointer;
+            background: #333; border: 1px solid var(--line); border-radius: 6px;
+            color: var(--text); font-size: 11px;
+        }
+        .tile-btn:hover { background: #3d3d48; border-color: #6a6a7a; }
+        .tile-btn img { width: 36px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+        .tile-btn .nm { margin-top: 2px; text-align: center; line-height: 1.1; }
+
+        /* Hand */
+        .hand { display: flex; flex-wrap: wrap; gap: 5px; min-height: 56px; }
+        .hand .tile-btn { width: 48px; }
+        .hand .tile-btn img { width: 30px; height: 40px; }
+        .hand-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .count { font-size: 13px; }
+        .count.bad { color: #e57373; }
+        .count.good { color: var(--ok); }
+        button.action {
+            background: #3a3a45; color: var(--text); border: 1px solid var(--line);
+            border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px;
+        }
+        button.action:hover { background: #45454f; }
+
+        /* Result headline */
+        .winner {
+            background: var(--okbg); border: 1px solid var(--ok); border-radius: 8px;
+            padding: 12px 14px; margin-bottom: 16px;
+        }
+        .winner .yk { font-size: 22px; font-weight: 700; }
+        .winner .sc { font-size: 15px; color: #cfe8d0; }
+        .winner.none { background: rgba(229,115,115,.12); border-color: #e57373; }
+        .winner.none .yk { font-size: 16px; color: #e57373; }
+        .penalty { font-size: 12px; color: var(--dim); margin-top: 4px; }
+
+        /* Yaku table */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        th { color: var(--dim); font-weight: 700; font-size: 12px; }
+        tr.match { background: var(--okbg); }
+        td.st { width: 30px; text-align: center; font-weight: 700; }
+        tr.match td.st { color: var(--ok); }
+        tr:not(.match) td.st { color: var(--no); }
+        td.nm { white-space: nowrap; }
+        td.sc { white-space: nowrap; color: var(--dim); }
+        td.rule { color: var(--dim); font-size: 12px; }
+        tr.match td.rule { color: var(--text); }
+        td.fn { font-family: ui-monospace, monospace; font-size: 11px; color: #7a9cc6; white-space: nowrap; }
+        .hint { font-size: 12px; color: var(--dim); margin-top: 8px; }
+    </style>
+    <link rel="stylesheet" href="../fonts.css">
+</head>
+
+<body>
+    <h1>역 판정 테스터 <span style="color:var(--dim);font-size:13px;">QA</span></h1>
+    <div class="sub">패를 클릭해 손패(12장)를 구성하면, 모든 역의 <b>매뉴얼 규칙 ↔ 현재 판정</b>을 나란히 보여줍니다.
+        성립한 역은 초록색. 최종 역은 점수가 가장 높은 성립 역입니다. (실제 게임의 13종 패 — 색은 타입별 고정)</div>
+
+    <div class="layout">
+        <div class="left">
+            <div class="card">
+                <h2>패 팔레트 (클릭 → 손패 추가)</h2>
+                <div id="palette"></div>
+            </div>
+            <div class="card">
+                <div class="hand-meta">
+                    <span class="count" id="count">손패 0 / 12</span>
+                    <span>
+                        <button class="action" id="dealRandom">랜덤 12장</button>
+                        <button class="action" id="clear">비우기</button>
+                    </span>
+                </div>
+                <div class="hand" id="hand"></div>
+                <div class="hint">손패의 패를 클릭하면 제거됩니다.</div>
+            </div>
+        </div>
+        <div class="right">
+            <div class="winner" id="winner"><div class="yk">손패를 12장 만들어 주세요</div></div>
+            <div class="card">
+                <h2>전체 역 — 매뉴얼 규칙 ↔ 판정 (점수 높은 순)</h2>
+                <table>
+                    <thead>
+                        <tr><th></th><th>역</th><th>점수</th><th>매뉴얼 규칙</th><th>함수</th></tr>
+                    </thead>
+                    <tbody id="yakuRows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game logic (color is fixed per tile type) -->
+    <script src="js/data/paiData.js"></script>
+    <script src="js/data/battleConfig.js"></script>
+    <script src="js/logic/yakuLogic.js"></script>
+    <script>
+        // Yaku table: manual rule (verbatim from manual) + the is* function name.
+        // Ordered high→low score to mirror checkYaku (which returns the highest).
+        const YAKU = [
+            { fn: 'isIpEDam', name: '입에 담을 수도 없는 기술', score: 12800, rule: '뭐든지 1종류의 패를 9개 (+ 아무거나 3개씩 1벌)' },
+            { fn: 'isBiOUi', name: '비오의', score: 12800, rule: '같은 색의 캐릭터 패 8개 + 무기 패 4개' },
+            { fn: 'isOUi', name: '오의', score: 9600, rule: '같은 색의 캐릭터패와 무기패를 6장씩' },
+            { fn: 'isJinMayu', name: '진 눈썹개', score: 9600, rule: '빨·노·파의 눈썹개패를 4장씩' },
+            { fn: 'isCrossCombination', name: '크로스 콤비네이션', score: 9600, rule: '같은 색의 캐릭터패 2종류와 무기패를 4장씩' },
+            { fn: 'isMaGuTtaeRiGi', name: '마구 때리기', score: 9600, rule: '무기패를 4개씩 3벌' },
+            { fn: 'isPalBoChae', name: '팔보채', score: 8800, rule: '뭐든지 1종류의 패를 8개 (+ 아무거나 4개씩 1벌)' },
+            { fn: 'isSpecialCombination', name: '스페셜 콤비네이션', score: 8000, rule: '같은 색으로 4종류를 3개씩' },
+            { fn: 'isChoIlSaek', name: '초 일색', score: 8000, rule: '같은 색의 패를 4개씩 (3벌)' },
+            { fn: 'isPoMulJang', name: '포물장', score: 7200, rule: '포물장 3인(화린·스마슈·유리)을 4개씩' },
+            { fn: 'isChwiHoJeon', name: '취호전', score: 7200, rule: '취호전 3인(아타호·린샹·스마슈)을 4개씩' },
+            { fn: 'isNamTang', name: '남탕', score: 7200, rule: '남성 캐릭터패 3종류를 4개씩' },
+            { fn: 'isYeoTang', name: '여탕', score: 7200, rule: '여성 캐릭터패 3종류를 4개씩' },
+            { fn: 'isJuHo', name: '주호', score: 7200, rule: '아타호와 페톰을 6개씩' },
+            { fn: 'isChoMayu', name: '초 눈썹개', score: 6400, rule: '눈썹개패를 3장씩 4색' },
+            { fn: 'isByeonTaeGae', name: '변태개', score: 6400, rule: '스마슈와 여성 캐릭터패 3종류를 3개씩' },
+            { fn: 'isJaYuBakAePyeongDeung', name: '자유 박애 평등', score: 6400, rule: '3색(빨·파·노)의 패를 4장씩 (보라 제외)' },
+            { fn: 'isSunIlSaek', name: '순 일색', score: 6400, rule: '같은 색만으로 2종류를 3개씩, 다른 1종류는 6개' },
+            { fn: 'isPilSalGi', name: '필살기', score: 5600, rule: '같은 색의 캐릭터 1종류와 무기를 4개씩 (+ 아무거나 4개씩 1벌)' },
+            { fn: 'isYukBeopJeonSeo', name: '육법전서', score: 5600, rule: '2종류의 패를 6개씩' },
+            { fn: 'isMayu', name: '눈썹개', score: 4800, rule: '빨·노·파의 눈썹개패를 3개씩 (+ 아무거나 3개씩 1벌)' },
+            { fn: 'isIlSaek', name: '일색', score: 4800, rule: '같은 색의 패로 3종류를 3개씩 + 보라 눈썹개 3개' },
+            { fn: 'isDoubleCombination', name: '더블 콤비네이션', score: 4800, rule: '캐릭터패와 무기패를 3개씩, 2색' },
+            { fn: 'isCombination', name: '콤비네이션', score: 4000, rule: '같은 색의 캐릭터패 2종류와 무기패를 3개씩 (+ 아무거나 3개씩 1벌)' },
+            { fn: 'isSaekHanaSsik', name: '색 하나씩', score: 3200, rule: '4색의 패를 각각 3개씩' },
+            { fn: 'isSaCheonYoRi', name: '사천요리', score: 3200, rule: '뭐든지 4개씩 (3벌)' },
+            { fn: 'isJangGi', name: '장기', score: 2800, rule: '같은 색의 캐릭터 1종류와 무기를 3개씩 (+ 아무거나 3개씩 2벌)' },
+            { fn: 'isSamDoRip', name: '삼도립', score: 2400, rule: '뭐든지 3개씩 4벌' },
+            { fn: 'isAllStars', name: '올스타즈', score: 2400, rule: '눈썹개 외 모든 캐릭터패를 2개씩' },
+            { fn: 'isSamYeonGyeok', name: '삼연격', score: 2000, rule: '캐릭터패와 무기패를 2개씩, 3색' },
+        ];
+
+        const COLOR_LABEL = { red: '🔴 빨강', blue: '🔵 파랑', yellow: '🟡 노랑', purple: '🟣 보라' };
+        const COLOR_ORDER = ['red', 'blue', 'yellow', 'purple'];
+
+        let hand = []; // array of tile type ids
+
+        // ---- Palette ----
+        const palette = document.getElementById('palette');
+        COLOR_ORDER.forEach(col => {
+            const types = PaiData.TYPES.filter(t => t.color === col);
+            const grp = document.createElement('div');
+            grp.className = 'color-group';
+            grp.innerHTML = `<div class="color-label">${COLOR_LABEL[col]}</div>`;
+            const row = document.createElement('div');
+            row.className = 'tiles';
+            types.forEach(t => {
+                const b = document.createElement('div');
+                b.className = 'tile-btn';
+                b.innerHTML = `<img src="${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
+                b.onclick = () => { if (hand.length < 12) { hand.push(t.id); render(); } };
+                row.appendChild(b);
+            });
+            grp.appendChild(row);
+            palette.appendChild(grp);
+        });
+
+        document.getElementById('clear').onclick = () => { hand = []; render(); };
+        document.getElementById('dealRandom').onclick = () => {
+            hand = [];
+            const ids = PaiData.TYPES.map(t => t.id);
+            // respect 9 copies max per type
+            const used = {};
+            while (hand.length < 12) {
+                const id = ids[Math.floor(Math.random() * ids.length)];
+                used[id] = (used[id] || 0);
+                if (used[id] < 9) { used[id]++; hand.push(id); }
+            }
+            render();
+        };
+
+        function tileById(id) { return PaiData.TYPES.find(t => t.id === id); }
+
+        function buildHand() {
+            return hand.map(id => { const t = tileById(id); return { type: t.id, color: t.color, img: t.img }; });
+        }
+
+        function render() {
+            // hand display
+            const handEl = document.getElementById('hand');
+            handEl.innerHTML = '';
+            // sort for readability: by color order then type
+            const sorted = [...hand].sort((a, b) => {
+                const ta = tileById(a), tb = tileById(b);
+                return COLOR_ORDER.indexOf(ta.color) - COLOR_ORDER.indexOf(tb.color) || ta.id.localeCompare(tb.id);
+            });
+            sorted.forEach((id) => {
+                const t = tileById(id);
+                const b = document.createElement('div');
+                b.className = 'tile-btn';
+                b.title = '클릭하면 제거';
+                b.innerHTML = `<img src="${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
+                b.onclick = () => { const i = hand.indexOf(id); if (i >= 0) { hand.splice(i, 1); render(); } };
+                handEl.appendChild(b);
+            });
+            const cnt = document.getElementById('count');
+            cnt.textContent = `손패 ${hand.length} / 12`;
+            cnt.className = 'count ' + (hand.length === 12 ? 'good' : 'bad');
+
+            // analysis
+            const tiles = buildHand();
+            const a = YakuLogic.analyzeHand(tiles);
+
+            // per-yaku results
+            const tbody = document.getElementById('yakuRows');
+            tbody.innerHTML = '';
+            YAKU.forEach(y => {
+                let res = false, meta = null;
+                try {
+                    const out = YakuLogic[y.fn](a);
+                    if (out === true) res = true;
+                    else if (out && out.match) { res = true; meta = out.meta; }
+                } catch (e) { res = false; }
+                const tr = document.createElement('tr');
+                if (res) tr.className = 'match';
+                const metaStr = meta && meta.color ? ` <span style="color:var(--dim)">(${meta.color})</span>` : '';
+                tr.innerHTML =
+                    `<td class="st">${res ? '✔' : '·'}</td>` +
+                    `<td class="nm">${y.name}${metaStr}</td>` +
+                    `<td class="sc">${y.score}</td>` +
+                    `<td class="rule">${y.rule}</td>` +
+                    `<td class="fn">${y.fn}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            // winner (checkYaku requires exactly 12)
+            const w = document.getElementById('winner');
+            if (hand.length !== 12) {
+                w.className = 'winner none';
+                w.innerHTML = `<div class="yk">손패를 12장 만들어 주세요 (${hand.length}/12)</div>`;
+                return;
+            }
+            const result = YakuLogic.checkYaku(tiles, null);
+            if (!result) {
+                w.className = 'winner none';
+                w.innerHTML = `<div class="yk">역 없음 — 화료 불가</div>
+                    <div class="penalty">12장이지만 어떤 역도 성립하지 않습니다.</div>`;
+            } else {
+                w.className = 'winner';
+                const open = Math.round(result.score * 0.75);
+                w.innerHTML =
+                    `<div class="yk">${result.yaku[0]}</div>` +
+                    `<div class="sc">기본 ${result.score}점</div>` +
+                    `<div class="penalty">오픈 핸드(펑 후) 75% → ${open}점 · 내부키: ${result.yaku[0]}</div>`;
+            }
+        }
+
+        render();
+    </script>
+</body>
+
+</html>

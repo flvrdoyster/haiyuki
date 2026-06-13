@@ -245,41 +245,23 @@ const YakuLogic = {
         return false;
     },
     isSunIlSaek(a) {
-        // Same Color: 6, 3, 3
-        const piles = Object.values(a.counts);
-        const c6 = piles.find(c => c.count >= 6);
-        if (!c6) return false;
-
-        const color = c6.tile.color;
-        // Remaining tiles must form at least 2 sets of 3 of the same color
-        let remainingSets = 0;
-        piles.forEach(c => {
-            if (c.tile.color !== color) return;
-            // If it's the 6-stack, we use the excess? No, rule is "6, 3, 3".
-            // If we have 12 Atahos -> one pile of 12.
-            // 12 = 6 (Head) + 3 + 3. Should pass.
-            // Logic: Count total sets in this color. Must be >= 4 sets (6 counts as 2, + 1 + 1).
-            // Actually "6, 3, 3" implies 3 sets if 6 is treated as one unit?
-            // Usually 6-piece yaku means 6 is one unit.
-            // So we need 1 unit of 6, and 2 units of 3.
-            // Total tiles = 12.
-            // Let's simplified: Total tiles of this color == 12?
-            // And contain at least one block of 6?
-            // If I have 4,4,4 red -> 12 red. But no 6. Fail.
-            // If I have 6,3,3 red -> 12 red. Pass.
-            // If I have 12 red -> 12 red. Pass (contains 6).
+        // 순일색(매뉴얼): "같은 색만으로 2종류를 3개씩, 다른 1종류는 6개" →
+        // 한 색(빨/파/노)의 패가 정확히 3종류이고 종류별 개수가 [6,3,3], 합 12.
+        // 보라는 제외(보라 섞임은 일색 IL_SAEK).
+        // 종류별 개수를 색별로 모은다.
+        const byColor = {};
+        Object.values(a.counts).forEach(c => {
+            if (c.tile.color === 'purple') return;
+            (byColor[c.tile.color] = byColor[c.tile.color] || []).push(c.count);
         });
-
-        // Strict Check: One pile >= 6. Total tiles in this color == 12.
-        // Also need to ensure we have enough "structures".
-        // The only case 12 tiles fail is 4+4+4.
-        // So: Has a 6-stack AND total color count is 12.
-
-        const totalColorCount = piles.reduce((sum, c) => c.tile.color === color ? sum + c.count : sum, 0);
-        if (totalColorCount === 12) {
-            // Return the color so resolveYakuName can pick 순 적/청/황일색
-            // (this is a color-variant yaku, like CHO_IL_SAEK).
-            return { match: true, meta: { color } };
+        for (const color in byColor) {
+            const counts = byColor[color].slice().sort((x, y) => y - x); // 내림차순
+            const total = counts.reduce((s, n) => s + n, 0);
+            if (total === 12 && counts.length === 3 &&
+                counts[0] === 6 && counts[1] === 3 && counts[2] === 3) {
+                // 색을 넘겨 resolveYakuName이 순 적/청/황일색을 고르게 함.
+                return { match: true, meta: { color } };
+            }
         }
         return false;
     },
@@ -353,19 +335,15 @@ const YakuLogic = {
     isPoMulJang(a) { return this.checkTypeGroup(a, ['fari', 'smash', 'yuri'], 4); },
 
     isChoIlSaek(a) {
-        // Same Color x 4, 3 sets
-        // Check total sets
+        // 초일색(매뉴얼): "같은 색의 패를 4개씩 모은다" — 사천요리(뭐든 4개씩)의 같은색판.
+        // 종류 제한 없는 세트 기반: 한 색(빨/파/노)만으로 4개씩 3벌(=12장). 8+4·12단일도 성립.
+        // 보라는 제외(보라 단색 일색류는 명명 없음).
         if (!this.checkCounts(a, 4, 3)) return false;
-
         const colorMap = {};
         Object.values(a.counts).forEach(c => {
-            if (c.count >= 4) {
-                const numSets = Math.floor(c.count / 4);
-                if (!colorMap[c.tile.color]) colorMap[c.tile.color] = 0;
-                colorMap[c.tile.color] += numSets;
-            }
+            if (c.tile.color === 'purple' || c.count < 4) return;
+            colorMap[c.tile.color] = (colorMap[c.tile.color] || 0) + Math.floor(c.count / 4);
         });
-
         const matchedColor = Object.keys(colorMap).find(color => colorMap[color] >= 3);
         if (matchedColor) {
             return { match: true, meta: { color: matchedColor } };
@@ -381,25 +359,19 @@ const YakuLogic = {
         return hasRed && hasYel && hasBlu;
     },
     isCrossCombination(a) {
-        // Same Color: 2 Chars + 1 Wep x 4
+        // 크로스 콤비네이션: 같은 색 캐릭터 2종류 + 무기 1종류를 4장씩(=3세트, 12장).
+        // "2종류"는 서로 다른 캐릭터 타입 2개 — 같은 캐릭터 8장은 1종류로만 센다.
         if (!this.checkCounts(a, 4, 3)) return false;
 
-        const byColor = { red: [], blue: [], yellow: [], purple: [] };
+        const byColor = {}; // color -> {chars:Set, weps:Set}
         Object.values(a.counts).forEach(c => {
-            const numSets = Math.floor(c.count / 4);
-            for (let k = 0; k < numSets; k++) byColor[c.tile.color].push(c.tile.type);
+            if (c.count < 4) return;
+            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            const e = byColor[c.tile.color] = byColor[c.tile.color] || { chars: new Set(), weps: new Set() };
+            if (cat === 'character') e.chars.add(c.tile.type);
+            else if (cat === 'weapon') e.weps.add(c.tile.type);
         });
-
-        return Object.values(byColor).some(types => {
-            if (types.length < 3) return false;
-            let chars = 0, weps = 0;
-            types.forEach(tid => {
-                const t = PaiData.TYPES.find(x => x.id === tid);
-                if (t.category === 'character') chars++;
-                if (t.category === 'weapon') weps++;
-            });
-            return chars >= 2 && weps >= 1;
-        });
+        return Object.values(byColor).some(e => e.chars.size >= 2 && e.weps.size >= 1);
     },
     isMaGuTtaeRiGi(a) {
         // 3 Weapons x 4
@@ -442,39 +414,19 @@ const YakuLogic = {
         return colors.has('red') && colors.has('blue') && colors.has('yellow') && colors.has('purple');
     },
     isCombination(a) {
-        // Same Color: 2 Chars + 1 Wep (3 each) + 1 Any
-        const threes = Object.values(a.counts).filter(c => c.count >= 3);
-        // BUG FIX: Check total sets instead of unique types
-        if (!this.checkCounts(a, 3, 4)) return false;
+        // 콤비네이션: 같은 색 캐릭터 2종류 + 무기 1종류를 3개씩(=3세트) + 아무거나 3개씩 1벌.
+        // "2종류"는 서로 다른 캐릭터 타입 2개 — 같은 캐릭터를 6장 쌓은 건 1종류로만 센다.
+        if (!this.checkCounts(a, 3, 4)) return false; // 총 4세트
 
-        const byColor = { red: [], blue: [], yellow: [], purple: [] };
-        // Note: If c.count >= 6, it counts as 1 type here, but distinct sets.
-        // Rule: "2 Chars + 1 Wep".
-        // If we have 6 Yuris -> 2 Chars?
-        // Current logic: pushes 'yuri' once.
-        // We should push it multiple times if count >= 6?
-        // Logic below iterates types.
-        // If 6 Yuris counts as 2 Chars, we need to handle it.
-        // But usually "Combination" implies distinct types or sets?
-        // Assume strict: "2 sets of characters". 6 Yuris = 2 sets.
-        // Let's explode the counts back into sets for verification.
-
+        const byColor = {}; // color -> {chars:Set, weps:Set}
         Object.values(a.counts).forEach(c => {
-            const numSets = Math.floor(c.count / 3);
-            for (let k = 0; k < numSets; k++) {
-                byColor[c.tile.color].push(c.tile.type);
-            }
+            if (c.count < 3) return;
+            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            const e = byColor[c.tile.color] = byColor[c.tile.color] || { chars: new Set(), weps: new Set() };
+            if (cat === 'character') e.chars.add(c.tile.type);
+            else if (cat === 'weapon') e.weps.add(c.tile.type);
         });
-
-        return Object.values(byColor).some(types => {
-            let chars = 0, weps = 0;
-            types.forEach(tid => {
-                const t = PaiData.TYPES.find(x => x.id === tid);
-                if (t.category === 'character') chars++;
-                if (t.category === 'weapon') weps++;
-            });
-            return chars >= 2 && weps >= 1;
-        });
+        return Object.values(byColor).some(e => e.chars.size >= 2 && e.weps.size >= 1);
     },
     isIlSaek(a) {
         // Same Color 3 types x 3 + Purple Mayu x 3
@@ -509,11 +461,13 @@ const YakuLogic = {
         return pairs.length >= 2;
     },
     isMayu(a) {
-        // Red/Yel/Blu Mayu 3 each (+ 1 any)
+        // 눈썹개: 빨/노/파 눈썹개 3개씩 + 아무거나 3개씩 1벌(= 총 4세트).
+        // 세트 수는 floor(count/3) 합으로 센다 — 눈썹개를 6장 쌓은 것(2세트)도 한 세트는
+        // 필수, 한 세트는 "아무거나"로 인정.
         const hasRed = Object.values(a.counts).some(c => c.tile.type === 'mayu_red' && c.count >= 3);
         const hasYel = Object.values(a.counts).some(c => c.tile.type === 'mayu_yellow' && c.count >= 3);
         const hasBlu = Object.values(a.counts).some(c => c.tile.type === 'mayu_blue' && c.count >= 3);
-        const totalSets = Object.values(a.counts).filter(c => c.count >= 3).length;
+        const totalSets = Object.values(a.counts).reduce((s, c) => s + Math.floor(c.count / 3), 0);
 
         return hasRed && hasYel && hasBlu && totalSets >= 4;
     },
@@ -526,31 +480,30 @@ const YakuLogic = {
         return hasRed && hasYel && hasBlu && hasPur;
     },
     isByeonTaeGae(a) {
-        // Smash x 3 + 3 Females x 3
+        // 변태개: 스마슈 + 여성 캐릭터 3종류를 3개씩. 서로 다른 여성 3타입 필요 —
+        // 한 여성을 6장 쌓아도 1종류로만 센다(여성은 rin/yuri/fari 3종뿐 → 전부 필요).
         const smash = Object.values(a.counts).find(c => c.tile.type === 'smash' && c.count >= 3);
         if (!smash) return false;
 
-        let femaleSets = 0;
+        const femaleTypes = new Set();
         Object.values(a.counts).forEach(c => {
+            if (c.count < 3) return;
             const t = PaiData.TYPES.find(x => x.id === c.tile.type);
-            if (c.count >= 3 && t.category === 'character' && t.gender === 'female') {
-                femaleSets += Math.floor(c.count / 3);
-            }
+            if (t.category === 'character' && t.gender === 'female') femaleTypes.add(c.tile.type);
         });
-
-        return femaleSets >= 3;
+        return femaleTypes.size >= 3;
     },
     isSpecialCombination(a) {
-        // Same Color: 4 types x 3
+        // 스페셜 콤비네이션: 같은 색으로 4종류를 3개씩(=4세트, 12장). 서로 다른 4타입 필요
+        // — 같은 타입을 6장 쌓아도 1종류로만 센다.
         if (!this.checkCounts(a, 3, 4)) return false;
 
-        const byColor = {};
+        const byColor = {}; // color -> Set(types)
         Object.values(a.counts).forEach(c => {
-            const numSets = Math.floor(c.count / 3);
-            if (!byColor[c.tile.color]) byColor[c.tile.color] = 0;
-            byColor[c.tile.color] += numSets;
+            if (c.count < 3) return;
+            (byColor[c.tile.color] = byColor[c.tile.color] || new Set()).add(c.tile.type);
         });
-        return Object.values(byColor).some(cnt => cnt >= 4);
+        return Object.values(byColor).some(types => types.size >= 4);
     },
 
     // --- 2 Piece ---
