@@ -208,38 +208,38 @@ const DialogueData = {
 
     // Ataho vs Mayu
     "ataho_mayu": [
-        { speaker: "ataho", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // Rinxiang vs Mayu
     "rinxiang_mayu": [
-        { speaker: "rinxiang", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // Fari vs Mayu
     "fari_mayu": [
-        { speaker: "fari", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // Petum vs Mayu
     "petum_mayu": [
-        { speaker: "petum", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // Smash vs Mayu
     "smash_mayu": [
-        { speaker: "smash", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // Yuri vs Mayu
     "yuri_mayu": [
-        { speaker: "yuri", text: "...", speakerState: 'silence', listenerState: '' },
-        { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' }
+        { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
+        { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
     // ----------------------------------------------------------------
@@ -332,9 +332,14 @@ const DialogueData = {
         { speaker: "yuri", text: "당연하잖아!\n나는 여자라고~!!", speakerState: '', listenerState: '' }
     ],
 
-    // Normal Mayu Endings (Placeholder: Add here if needed for Normal Endings vs Mayu)
-    // Currently relying on defaults or empty (removed as per user request), 
-    // but if we had them, they would go here.
+    // Mayu vs Yuri (Ending)
+    "mayu_yuri_ending": [
+        { speaker: "mayu", text: "머~엉!!\n(그~럼, 이제부터가 즐길 거리다멍)", speakerState: 'smile', listenerState: 'shocked' },
+        { speaker: "yuri", text: "무… 무슨 짓이냐, 눈썹개!\n그런 무서운 얼굴 하지 마…\n농담은 그만둬…", speakerState: 'shocked', listenerState: 'smile' },
+        { speaker: "mayu", text: "멍머~엉!\n(농담이 아니다멍)", speakerState: 'smile', listenerState: 'shocked' },
+        { speaker: "yuri", text: "그런 짓을 당하면,\n마을에 못 놀러 가게 되잖아!!\n그… 그만둬~!", speakerState: 'shocked', listenerState: 'smile' },
+    ],
+
 
     // ----------------------------------------------------------------
     // True Ending Dialogues (Post-Battle)
