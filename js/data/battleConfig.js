@@ -446,15 +446,15 @@ const BattleConfig = {
         CHWI_HO_JEON: '취호전',
         PO_MUL_JANG: '포물장',
         JAYU_BAKAE_PYEONGDEUNG: '자유 박애 평등',
+        // 캐릭터 변형 역명 — 키는 타일 id(rin/pet 주의). 역에 들어간 캐릭터 패로 정해짐.
         PIL_SAL_GI: {
             default: '필살기',
             ataho: '맹호난무',
-            rinxiang: '유미쌍조',
+            rin: '유미쌍조',
             fari: '뇌격의 주문',
             smash: '백인일섬',
-            petum: '대폭염의 주문',
-            yuri: '선풍거합베기',
-            mayu: '필살기'
+            pet: '대폭염의 주문',
+            yuri: '선풍거합베기'
         },
         SA_CHEON_YO_RI: '사천요리',
 
@@ -474,12 +474,11 @@ const BattleConfig = {
         JANG_GI: {
             default: '장기',
             ataho: '호격권',
-            rinxiang: '선열각',
+            rin: '선열각',
             fari: '빙인의 주문',
             smash: '쾌진격',
-            petum: '폭염의 주문',
-            yuri: '진공거합베기',
-            mayu: '장기'
+            pet: '폭염의 주문',
+            yuri: '진공거합베기'
         },
         SAM_DO_RIP: '삼도립',
         ALL_STARS: '올스타즈',

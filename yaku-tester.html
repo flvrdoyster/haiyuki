@@ -91,6 +91,7 @@
         .yk-st { font-weight: 700; color: var(--no); width: 12px; }
         .yk-item.match .yk-st { color: var(--ok); }
         .yk-name { font-weight: 700; }
+        .yk-base { color: var(--dim); font-weight: 400; font-size: 12px; }
         .yk-score { color: var(--dim); font-size: 12px; }
         .yk-fn { font-family: ui-monospace, monospace; font-size: 11px; color: #7a9cc6; margin-left: auto; }
         .yk-rule { color: var(--dim); font-size: 12px; margin-top: 2px; }
@@ -172,6 +173,19 @@
             { fn: 'isAllStars', name: '올스타즈', score: 2400, rule: '눈썹개 외 모든 캐릭터패를 2개씩' },
             { fn: 'isSamYeonGyeok', name: '삼연격', score: 2000, rule: '캐릭터패와 무기패를 2개씩, 3색' },
         ];
+
+        // fn → 내부 역 키 (resolveYakuName으로 색·캐릭터 변형 실제 이름을 뽑기 위함)
+        const KEY_OF = {
+            isIpEDam: 'IP_E_DAM', isBiOUi: 'BI_O_UI', isOUi: 'O_UI', isJinMayu: 'JIN_MAYU',
+            isCrossCombination: 'CROSS_COMBINATION', isMaGuTtaeRiGi: 'MAGU_DDAERIGI', isPalBoChae: 'PAL_BO_CHAE',
+            isSpecialCombination: 'SPECIAL_COMBINATION', isChoIlSaek: 'CHO_IL_SAEK', isPoMulJang: 'PO_MUL_JANG',
+            isChwiHoJeon: 'CHWI_HO_JEON', isNamTang: 'NAM_TANG', isYeoTang: 'YEO_TANG', isJuHo: 'JU_HO',
+            isChoMayu: 'CHO_MAYU', isByeonTaeGae: 'BYEON_TAE_GAE', isJaYuBakAePyeongDeung: 'JAYU_BAKAE_PYEONGDEUNG',
+            isSunIlSaek: 'SUN_IL_SAEK', isPilSalGi: 'PIL_SAL_GI', isYukBeopJeonSeo: 'YUK_BEOP_JEON_SEO',
+            isMayu: 'MAYU', isIlSaek: 'IL_SAEK', isDoubleCombination: 'DOUBLE_COMBINATION', isCombination: 'COMBINATION',
+            isSaekHanaSsik: 'SAEK_HANA_SSIK', isSaCheonYoRi: 'SA_CHEON_YO_RI', isJangGi: 'JANG_GI',
+            isSamDoRip: 'SAM_DO_RIP', isAllStars: 'ALL_STARS', isSamYeonGyeok: 'SAM_YEON_GYEOK'
+        };
 
         const COLOR_LABEL = { red: '🔴 빨강', blue: '🔵 파랑', yellow: '🟡 노랑', purple: '🟣 보라' };
         const COLOR_ORDER = ['red', 'blue', 'yellow', 'purple'];
@@ -264,13 +278,20 @@
                     if (out === true) res = true;
                     else if (out && out.match) { res = true; meta = out.meta; }
                 } catch (e) { res = false; }
+                // 성립 시 실제 해석된 이름(색·캐릭터 변형) 표시. 기본명과 다르면 기본명도 병기.
+                let nameHtml = y.name;
+                if (res) {
+                    const resolved = YakuLogic.resolveYakuName(KEY_OF[y.fn], meta, null);
+                    nameHtml = (resolved && resolved !== y.name)
+                        ? `${resolved} <span class="yk-base">(${y.name})</span>`
+                        : (resolved || y.name);
+                }
                 const item = document.createElement('div');
                 item.className = 'yk-item' + (res ? ' match' : '');
-                const metaStr = meta && meta.color ? ` <span style="color:var(--dim)">(${meta.color})</span>` : '';
                 item.innerHTML =
                     `<div class="yk-head">` +
                     `<span class="yk-st">${res ? '✔' : '·'}</span>` +
-                    `<span class="yk-name">${y.name}${metaStr}</span>` +
+                    `<span class="yk-name">${nameHtml}</span>` +
                     `<span class="yk-score">${y.score}점</span>` +
                     `<span class="yk-fn">${y.fn}</span>` +
                     `</div>` +

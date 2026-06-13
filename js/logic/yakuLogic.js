@@ -128,14 +128,20 @@ const YakuLogic = {
         if (!config) return key; // Fallback to key
         if (typeof config === 'string') return config; // Simple string
 
-        // Check Character Specific
-        if (charId && config[charId]) {
-            return config[charId];
+        // 캐릭터 변형(필살기·장기): 역을 이룬 캐릭터 패의 종류로 정해진다 — meta.char.
+        // (config 키는 타일 id: ataho/rin/smash/yuri/pet/fari)
+        if (meta && meta.char && config[meta.char]) {
+            return config[meta.char];
         }
 
-        // Check Color/Variant Specific
+        // 색 변형(일색류): meta.color
         if (meta && meta.color && config[meta.color]) {
             return config[meta.color];
+        }
+
+        // (구) 플레이 캐릭터 fallback — 캐릭터 변형 역명은 위 meta.char가 우선.
+        if (charId && config[charId]) {
+            return config[charId];
         }
 
         // Fallback
@@ -269,27 +275,24 @@ const YakuLogic = {
     // --- 4 Piece ---
     isSaCheonYoRi(a) { return this.checkCounts(a, 4, 3); },
     isPilSalGi(a) {
-        // Same Color Char 4, Wep 4. (+ Any 4) => Total 3 sets of 4.
+        // 필살기: 같은 색 캐릭터 1종 + 무기를 4개씩 (+ 아무거나 4개씩 1벌). 역명은 그 색에서
+        // 무기와 짝지은 캐릭터 패의 종류로 정해진다(맹호난무·유미쌍조… meta.char).
         if (!this.checkCounts(a, 4, 3)) return false;
 
-        // Iterate Colors
-        const byColor = { red: [], blue: [], yellow: [], purple: [] };
+        const byColor = {};
         Object.values(a.counts).forEach(c => {
             const numSets = Math.floor(c.count / 4);
-            for (let k = 0; k < numSets; k++) byColor[c.tile.color].push(c.tile.type);
+            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            for (let k = 0; k < numSets; k++) (byColor[c.tile.color] = byColor[c.tile.color] || []).push({ id: c.tile.type, cat });
         });
 
-        return Object.values(byColor).some(types => {
-            // Need Char >= 1, Wep >= 1 within this color's 4-sets
-            if (types.length < 2) return false; // Optimization
-            let chars = 0, weps = 0;
-            types.forEach(tid => {
-                const t = PaiData.TYPES.find(x => x.id === tid);
-                if (t.category === 'character') chars++;
-                if (t.category === 'weapon') weps++;
-            });
-            return chars >= 1 && weps >= 1;
-        });
+        for (const color in byColor) {
+            const sets = byColor[color];
+            const charSet = sets.find(s => s.cat === 'character');
+            const hasWep = sets.some(s => s.cat === 'weapon');
+            if (charSet && hasWep) return { match: true, meta: { char: charSet.id } };
+        }
+        return false;
     },
     isJaYuBakAePyeongDeung(a) {
         // 3색(빨강/파랑/노랑) × 4장씩. 보라색은 해당하지 않음(역 설명 명시).
@@ -390,19 +393,18 @@ const YakuLogic = {
     // --- 3 Piece ---
     isSamDoRip(a) { return this.checkCounts(a, 3, 4); },
     isJangGi(a) {
-        // Same Color Char+Wep x 3 + 2 Any sets
-        // Total 4 sets of 3.
+        // 장기: 같은 색 캐릭터 1종 + 무기를 3개씩 (+ 아무거나 3개씩 2벌). 역명은 무기와 짝지은
+        // 캐릭터 패의 종류로 정해진다(호격권·선열각… meta.char).
         const threes = Object.values(a.counts).filter(c => c.count >= 3);
         if (!this.checkCounts(a, 3, 4)) return false;
 
-        // Find Char & Wep pair of same color
         for (let i = 0; i < threes.length; i++) {
             for (let j = i + 1; j < threes.length; j++) {
                 if (threes[i].tile.color !== threes[j].tile.color) continue;
                 const t1 = PaiData.TYPES.find(t => t.id === threes[i].tile.type);
                 const t2 = PaiData.TYPES.find(t => t.id === threes[j].tile.type);
-                if ((t1.category === 'character' && t2.category === 'weapon') ||
-                    (t1.category === 'weapon' && t2.category === 'character')) return true;
+                if (t1.category === 'character' && t2.category === 'weapon') return { match: true, meta: { char: threes[i].tile.type } };
+                if (t1.category === 'weapon' && t2.category === 'character') return { match: true, meta: { char: threes[j].tile.type } };
             }
         }
         return false;

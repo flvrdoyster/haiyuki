@@ -194,6 +194,35 @@ test.describe('C-1. Yaku 단위 검증', () => {
         expect(r.byeon2Type, 'BYEON 여성 2종 불성립').toBe(false);
     });
 
+    // 회귀: 캐릭터 변형 역명(필살기/장기)은 "플레이 캐릭터"가 아니라 "역을 이룬 캐릭터 패"로
+    // 정해진다 — is*가 meta.char를 주고 resolveYakuName이 그걸 우선한다.
+    test('PIL_SAL_GI/JANG_GI: 역명은 들어간 캐릭터 패로 결정(플레이어 무관)', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const yl = (0, eval)('YakuLogic');
+            const mk = (type: string, color: string) => ({ type, color, img: '' });
+            const rep = (id: string, color: string, n: number) => Array(n).fill(null).map(() => mk(id, color));
+            const nm = (h: any, charId: any) => { const x = yl.checkYaku(h, charId); return x ? x.yaku[0] : null; };
+            // 필살기: 같은 색 캐릭터+무기 ×4 + 아무거나 ×4
+            const pil = (charTile: string) => [...rep(charTile, 'red', 4), ...rep('punch', 'red', 4), ...rep('sword', 'blue', 4)];
+            // 장기: 같은 색 캐릭터+무기 ×3 + 2 아무거나
+            const jang = (charTile: string, charColor: string, wep: string) =>
+                [...rep(charTile, charColor, 3), ...rep(wep, charColor, 3), ...rep('smash', 'blue', 3), ...rep('mayu_red', 'red', 3)];
+            return {
+                pilAtaho: nm(pil('ataho'), null),
+                pilRin: nm(pil('rin'), null),
+                jangAtaho: nm(jang('ataho', 'red', 'punch'), null),
+                jangPet: nm(jang('pet', 'yellow', 'wand'), null),
+                // 플레이어 charId를 유리로 줘도 타일(아타호) 기준 → 맹호난무
+                pilAtaho_playerYuri: nm(pil('ataho'), 'yuri'),
+            };
+        });
+        expect(r.pilAtaho, '필살기 아타호 패 → 맹호난무').toBe('맹호난무');
+        expect(r.pilRin, '필살기 린샹 패 → 유미쌍조').toBe('유미쌍조');
+        expect(r.jangAtaho, '장기 아타호 패 → 호격권').toBe('호격권');
+        expect(r.jangPet, '장기 페톰 패 → 폭염의 주문').toBe('폭염의 주문');
+        expect(r.pilAtaho_playerYuri, '플레이어 유리여도 타일 기준 → 맹호난무').toBe('맹호난무');
+    });
+
     test('JANG_GI: 동색 캐릭터+무기 트리플렛 포함 4세트 → 점수 2800', async ({ page }) => {
         const result = await page.evaluate(() => {
             const yl = (0, eval)('YakuLogic');
