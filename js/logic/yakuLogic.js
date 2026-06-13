@@ -726,7 +726,14 @@ const YakuLogic = {
      * @param {string} charId   for character-specific yaku
      * @param {Array} fullHand  hand + open-set tiles (yaku checks need 11)
      */
-    rateTileForHand: function (hand, tile, charId, fullHand) {
+    rateTileForHand: function (hand, tile, charId, fullHand, out) {
+        // out (optional): filled with { tier, yaku, score } describing WHY the tile
+        // rated as it did — lets the draw assist report what yaku it's steering
+        // toward. Numeric return is unchanged; callers can ignore `out`.
+        const report = (tier, yaku, score) => {
+            if (out) { out.tier = tier; out.yaku = yaku || null; out.score = score || 0; }
+        };
+
         // Tier 3 value doubles as a fractional tie-breaker inside tiers 1–2
         const sameType = hand.filter(t => t.type === tile.type).length;
         const sameColor = hand.filter(t => t.color === tile.color).length;
@@ -737,12 +744,16 @@ const YakuLogic = {
 
             // Tier 1: this tile completes a winning hand — rank by the yaku score
             const win = this.checkYaku(fullPlus, charId);
-            if (win) return 100000 + win.score;
+            if (win) {
+                report('complete', win.yaku && win.yaku[0], win.score);
+                return 100000 + win.score;
+            }
 
             // Tier 2: after keeping this tile and discarding one (concealed tiles
             // or the tile itself), can some draw complete a yaku? Rank by the
             // best yaku score reachable across all discard choices.
             let best = 0;
+            let bestYaku = null;
             const tried = new Set();
             for (const d of [...hand, tile]) {
                 const key = d.type + '_' + d.color;
@@ -754,14 +765,18 @@ const YakuLogic = {
 
                 for (const t of PaiData.TYPES) {
                     const w = this.checkYaku([...kept, { type: t.id, color: t.color, img: t.img }], charId);
-                    if (w && w.score > best) best = w.score;
+                    if (w && w.score > best) { best = w.score; bestYaku = w.yaku && w.yaku[0]; }
                 }
             }
-            if (best > 0) return 10000 + best + building / 1000;
+            if (best > 0) {
+                report('tenpai', bestYaku, best);
+                return 10000 + best + building / 1000;
+            }
         }
 
         // Tier 3: too far from any yaku to measure — build tall stacks
         // (quadratic on stack height) with color concentration as tie-break.
+        report('building', null, building);
         return building;
     }
 };

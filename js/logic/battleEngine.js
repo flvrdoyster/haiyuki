@@ -244,6 +244,7 @@ const BattleEngine = {
         // Easy-mode luck smoothing for the PLAYER's draws (see drawTiles).
         this.drawAssistChance = (data.difficulty === 'easy')
             ? BattleConfig.RULES.DRAW_ASSIST.chance : 0;
+        this.lastDrawAssist = null; // inspection: last assisted draw's target
 
         this.startRound();
     },
@@ -746,11 +747,23 @@ const BattleEngine = {
             const fullHand = this.getFullHand(who);
             let bestOffset = 0;
             let bestScore = -Infinity;
+            const bestDetail = {};
             for (let i = 0; i < peek; i++) {
                 const tile = this.deck[this.deck.length - 1 - i];
-                const score = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand);
-                if (score > bestScore) { bestScore = score; bestOffset = i; }
+                const detail = {};
+                const score = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, detail);
+                if (score > bestScore) { bestScore = score; bestOffset = i; Object.assign(bestDetail, detail); }
             }
+            // Record what the assist surfaced so it can be inspected
+            // (BattleEngine.lastDrawAssist / QADebug). tier: complete|tenpai|building.
+            const chosen = this.deck[this.deck.length - 1 - bestOffset];
+            this.lastDrawAssist = {
+                turn: this.turnCount,
+                tile: chosen ? chosen.type : null,
+                tier: bestDetail.tier || null,
+                yaku: bestDetail.yaku || null,
+                reordered: bestOffset > 0
+            };
             if (bestOffset > 0) {
                 // Move the chosen tile to the top (pop position) — pure reorder,
                 // deck composition is untouched.

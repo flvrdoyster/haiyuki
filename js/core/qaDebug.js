@@ -148,6 +148,18 @@ const QADebug = (() => {
             winningYaku: engine.winningYaku
                 ? Object.freeze({ name: engine.winningYaku.name, score: engine.winningYaku.score })
                 : null,
+
+            // ── Easy-mode draw assist: what the last player draw steered toward
+            //    (null if assist off / hasn't fired). tier: complete|tenpai|building
+            drawAssist: engine.lastDrawAssist
+                ? Object.freeze({
+                    turn: engine.lastDrawAssist.turn,
+                    tile: engine.lastDrawAssist.tile,
+                    tier: engine.lastDrawAssist.tier,
+                    yaku: engine.lastDrawAssist.yaku,
+                    reordered: engine.lastDrawAssist.reordered
+                })
+                : null,
         });
     }
 
