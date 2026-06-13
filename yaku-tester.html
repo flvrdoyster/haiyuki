@@ -195,7 +195,7 @@
             types.forEach(t => {
                 const b = document.createElement('div');
                 b.className = 'tile-btn';
-                b.innerHTML = `<img src="${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
+                b.innerHTML = `<img src="assets/${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
                 b.onclick = () => { if (hand.length < 12) { hand.push(t.id); render(); } };
                 row.appendChild(b);
             });
@@ -237,7 +237,7 @@
                 const b = document.createElement('div');
                 b.className = 'tile-btn';
                 b.title = '클릭하면 제거';
-                b.innerHTML = `<img src="${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
+                b.innerHTML = `<img src="assets/${t.img}" alt="${t.name}"><span class="nm">${t.name}</span>`;
                 b.onclick = () => { const i = hand.indexOf(id); if (i >= 0) { hand.splice(i, 1); render(); } };
                 handEl.appendChild(b);
             });
