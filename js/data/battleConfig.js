@@ -435,7 +435,7 @@ const BattleConfig = {
 
         JIN_MAYU: '진 눈썹개',
         CROSS_COMBINATION: '크로스 콤비네이션',
-        MAGU_DDAERIGI: '마구 때리기',
+        MAGU_DDAERIGI: '일제공격',
         CHO_IL_SAEK: {
             red: '초 적일색',
             blue: '초 청일색',
