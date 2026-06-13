@@ -1672,6 +1672,11 @@ const BattleEngine = {
         // defense: Likelihood to use Defense skills
         // speed: Likelihood to use Setup/Cycle skills
 
+        // cpuSkill governs how reliably the CPU acts on a warranted skill — its
+        // skill-use FREQUENCY. A weak CPU often lets a good chance slip; a strong
+        // one takes it almost every time. (Timing quality still comes from aiScore.)
+        const skillUseChance = 0.3 + 0.7 * this.cpuSkill;
+
         for (const skillId of skills) {
             const skill = SkillData[skillId];
             if (!skill) continue;
@@ -1682,7 +1687,7 @@ const BattleEngine = {
             const entry = SkillRegistry[skillId];
             if (!entry || !entry.aiScore) continue;
 
-            const threshold = 0.6; // Base threshold to activate
+            const threshold = 0.6; // Base desirability threshold (good timing)
             const ctx = {
                 isTenpai: this.checkTenpai(this.cpu.hand, this.cpu.id),
                 isPlayerRiichi: this.p1.isRiichi,
@@ -1690,14 +1695,15 @@ const BattleEngine = {
                 profile: cpuProfile
             };
             const score = entry.aiScore(this, ctx);
-
-            // Difficulty 2 (Hard) = Less random, more optimal.
-            // Difficulty 0 (Easy) = Random checks.
             const randomFactor = Math.random() * 0.2; // 0.0 ~ 0.2 fluctuation
 
+            // First skill whose timing is warranted: decide (once per turn) whether
+            // to actually pull the trigger, gated by skill-use frequency.
             if (score + randomFactor > threshold) {
-                this.useSkill(skillId, 'CPU');
-                return; // One skill per turn
+                if (Math.random() < skillUseChance) {
+                    this.useSkill(skillId, 'CPU');
+                }
+                return;
             }
         }
     },

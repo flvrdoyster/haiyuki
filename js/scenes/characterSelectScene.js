@@ -123,66 +123,64 @@ const CharacterSelectScene = {
         }
     },
 
-    selectNextOpponent: function () {
-        // Filter available opponents
-        const available = [];
-        for (let i = 0; i < CharacterData.length; i++) {
-            // Ignore hidden chars (Mayu) for now
-            if (CharacterData[i].hidden) continue;
-
-            if (i !== this.playerIndex && !this.defeatedOpponents.includes(i)) {
-                available.push(i);
-            }
+    // ── Opponent selection ──────────────────────────────────────────────
+    // A character is a valid regular opponent iff it is NOT the player, NOT
+    // already defeated, and NOT hidden. Mayu (hidden) appears only as the
+    // true-ending boss (see EndingScene) — never as a tournament opponent.
+    // Both the auto-progression (selectNextOpponent) and the first-match
+    // roulette go through this, so they can't diverge.
+    getAvailableOpponents: function () {
+        const out = [];
+        for (let i = 0; i < this.characters.length; i++) {
+            if (i === this.playerIndex) continue;
+            if (this.defeatedOpponents.includes(i)) continue;
+            if (this.characters[i].hidden) continue;
+            out.push(i);
         }
+        return out;
+    },
 
-        if (available.length > 0) {
-            // Check if my rival is in the available list.
-            const myChar = this.characters[this.playerIndex];
-            const rivalId = myChar.rival;
+    // Pick the next opponent index, saving the player's rival for last.
+    // Returns null when no valid opponents remain (→ ending).
+    chooseOpponentIndex: function () {
+        const available = this.getAvailableOpponents();
+        if (available.length === 0) return null;
 
-            // Find rival index (using original CharacterData)
-            const rivalIndex = CharacterData.findIndex(c => c.id === rivalId);
+        const rivalId = this.characters[this.playerIndex].rival;
+        const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
 
-            let candidates = available;
-
-            if (available.length > 1 && rivalIndex !== -1) {
-                // Filter out rival from candidates
-                candidates = available.filter(idx => idx !== rivalIndex);
-                console.log(`Excluding Rival (Index ${rivalIndex}) from selection. Candidates left: ${candidates.length}`);
-            }
-
-            // Fallback if candidates became empty (shouldn't happen if logic is correct, but just in case)
+        let candidates = available;
+        if (available.length > 1 && rivalIndex !== -1) {
+            candidates = available.filter(idx => idx !== rivalIndex);
             if (candidates.length === 0) candidates = available;
-
-            // Randomly pick one
-            const rand = Math.floor(Math.random() * candidates.length);
-            this.cpuIndex = candidates[rand];
-            this.updateCpuPortrait(); // Update Visual
-            console.log(`Auto - selected CPU: ${this.cpuIndex} (Rival: ${rivalId} / Index: ${rivalIndex})`);
-
-            // Transition to Encounter
-            Game.changeScene(EncounterScene, {
-                playerIndex: this.playerIndex,
-                cpuIndex: this.cpuIndex,
-                defeatedOpponents: this.defeatedOpponents
-            });
-        } else {
-            // No opponents left -> Tournament Win
-            // Trigger Ending Dialogue (Story Mode)
-            console.log("TRIGGER ENDING DIALOGUE");
-
-            // Determine Rival Index from ID
-            const myChar = this.characters[this.playerIndex];
-            const rivalId = myChar.rival;
-            let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
-            if (rivalIndex === -1) rivalIndex = 0; // Safeguard
-
-            Game.changeScene(EncounterScene, {
-                playerIndex: this.playerIndex,
-                cpuIndex: rivalIndex,
-                mode: 'ENDING'
-            });
         }
+        return candidates[Math.floor(Math.random() * candidates.length)];
+    },
+
+    // No opponents left → transition into the character ending dialogue.
+    goToEnding: function () {
+        const rivalId = this.characters[this.playerIndex].rival;
+        let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
+        if (rivalIndex === -1) rivalIndex = 0; // Safeguard
+        console.log("All opponents defeated → ending dialogue");
+        Game.changeScene(EncounterScene, {
+            playerIndex: this.playerIndex,
+            cpuIndex: rivalIndex,
+            mode: 'ENDING'
+        });
+    },
+
+    selectNextOpponent: function () {
+        const idx = this.chooseOpponentIndex();
+        if (idx === null) { this.goToEnding(); return; }
+
+        this.cpuIndex = idx;
+        this.updateCpuPortrait();
+        Game.changeScene(EncounterScene, {
+            playerIndex: this.playerIndex,
+            cpuIndex: this.cpuIndex,
+            defeatedOpponents: this.defeatedOpponents
+        });
     },
 
     update: function (dt = 1.0) {
@@ -303,59 +301,30 @@ const CharacterSelectScene = {
                     // Calculate how many indices to skip if dt was large
                     const skipCount = currentSpin - prevSpin;
 
-                    // Instead of random, let's just cycle through characters for a consistent 'spin' feel
-                    // but we can shuffle the array or use a random seed if we want "random"
-                    // To keep it simple and random-looking:
+                    // Cycle through the roster for a 'spin' feel, but skip the player
+                    // and hidden chars (Mayu) so the roulette only flashes valid opponents.
                     let nextIndex = (this.cpuIndex + skipCount) % this.characters.length;
-                    if (nextIndex === this.playerIndex) nextIndex = (nextIndex + 1) % this.characters.length;
+                    let guard = 0;
+                    while ((nextIndex === this.playerIndex || this.characters[nextIndex].hidden) &&
+                        guard++ < this.characters.length) {
+                        nextIndex = (nextIndex + 1) % this.characters.length;
+                    }
 
                     this.cpuIndex = nextIndex;
                     this.updateCpuPortrait();
                 }
 
                 if (this.cpuTimer > this.cpuSelectDuration) {
-                    // Force selection to be a valid candidate (respecting Rival logic)
-                    // Logic similar to selectNextOpponent
-                    const available = [];
-                    for (let i = 0; i < this.characters.length; i++) {
-                        if (i !== this.playerIndex && !this.defeatedOpponents.includes(i)) {
-                            available.push(i);
-                        }
-                    }
-
-                    const myChar = this.characters[this.playerIndex];
-                    const rivalId = myChar.rival;
-                    const rivalIndex = this.characters.findIndex(c => c.id === rivalId);
-
-                    // Filter out rival from candidates
-                    let candidates = available;
-                    if (available.length > 1 && rivalIndex !== -1) {
-                        candidates = available.filter(idx => idx !== rivalIndex);
-                        console.log(`Excluding Rival (Index ${rivalIndex}) from Roulette. Candidates left: ${candidates.length}`);
-                    }
-                    if (candidates.length === 0) candidates = available;
-
-                    // Fix: If still empty (e.g. all defeated but loop restart issue), or naturally empty in Roulette mode
-                    if (candidates.length === 0) {
-                        console.log("Roulette determined No Opponents -> Trigger Ending");
-                        // Reuse Ending Logic
-                        const myChar = this.characters[this.playerIndex];
-                        const rivalId = myChar.rival;
-                        let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
-                        if (rivalIndex === -1) rivalIndex = 0; // Safeguard
-
-                        Game.changeScene(EncounterScene, {
-                            playerIndex: this.playerIndex,
-                            cpuIndex: rivalIndex,
-                            mode: 'ENDING'
-                        });
+                    // Same selection rule as auto-progression (excludes hidden Mayu).
+                    const idx = this.chooseOpponentIndex();
+                    if (idx === null) {
+                        console.log("Roulette: no opponents left → ending");
+                        this.goToEnding();
                         return;
                     }
 
-                    const rand = Math.floor(Math.random() * candidates.length);
-                    this.cpuIndex = candidates[rand];
+                    this.cpuIndex = idx;
                     this.updateCpuPortrait();
-
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
                     console.log(`Ready: P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
