@@ -1,12 +1,64 @@
 const BattleScene = {
     init: function (data) {
         QADebug.reset();
+        // Difficulty preference is meta-game state (Game.saveData) — inject it
+        // here so the rules engine never reads save data itself.
+        data = data || {};
+        if (!data.difficulty) {
+            data.difficulty = (Game.saveData && Game.saveData.difficulty) || 'normal';
+        }
         BattleEngine.init(data, this);
         BattleRenderer.reset(); // Crucial for Layering Optimization
         this.initPortraits();
         this.activeFX = [];
         this.confirmData = null; // Local Confirm State { msg, onYes, onNo, selected, timer }
         this._confirmLayout = null; // Cache layout
+    },
+
+    // Match settled — meta-game policy: where to go next, unlocks/save, continue
+    // count. Owned by the scene so the rules engine stays navigation-free.
+    proceedFromMatchOver: function () {
+        const e = BattleEngine;
+
+        if (e.matchWinner === 'P1') {
+            // Record the win (engine state carries tournament progress)
+            e.defeatedOpponents = [...e.defeatedOpponents, e.cpuIndex];
+
+            // True-ending boss beaten? (Mayu is the hidden roster entry)
+            const mayuIndex = CharacterData.findIndex(c => c.id === 'mayu');
+            if (e.cpuIndex === mayuIndex) {
+                if (!Game.saveData.unlocked.includes('mayu')) {
+                    Game.saveData.unlocked.push('mayu');
+                    Game.save();
+                }
+
+                Game.isAutoTest = false; // Stop Auto Test
+                Game.changeScene(EncounterScene, {
+                    playerIndex: e.playerIndex,
+                    cpuIndex: e.cpuIndex,
+                    mode: 'TRUE_ENDING_CLEAR',
+                    defeatedOpponents: [] // Reset
+                });
+                return;
+            }
+
+            // Proceed to next match
+            Assets.stopMusic();
+            Game.changeScene(CharacterSelectScene, {
+                mode: 'NEXT_MATCH',
+                playerIndex: e.playerIndex,
+                defeatedOpponents: e.defeatedOpponents
+            });
+        } else {
+            // Game Over → Continue Screen
+            Game.continueCount++;
+            Game.changeScene(ContinueScene, {
+                playerIndex: e.playerIndex,
+                cpuIndex: e.cpuIndex,
+                defeatedOpponents: e.defeatedOpponents,
+                isNextRound: false // Fresh rematch if continued
+            });
+        }
     },
 
     // Portraits are view objects: the scene owns them, the renderer draws them,

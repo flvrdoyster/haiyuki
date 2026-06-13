@@ -88,6 +88,18 @@ const BattleEngine = {
 
     sequencing: { active: false, steps: [], currentStep: 0, timer: 0 },
 
+    // ── Game-harness seam ─────────────────────────────────────────────────
+    // The ONLY place the rules engine touches the Game global: test/automation
+    // flags. They can be toggled mid-battle, so they are read live (not
+    // snapshotted at init). Everything else comes in through init(data).
+    isAutoTest: function () {
+        return typeof Game !== 'undefined' && !!Game.isAutoTest;
+    },
+
+    isAutoLoseMode: function () {
+        return this.isAutoTest() && !!(Game.autoTestOptions && Game.autoTestOptions.loseMode);
+    },
+
     showPopup: function (type, options = {}) {
         // Debounce: Prevent same popup within 10 frames (Fixes double trigger issues)
         // Using totalTicks instead of timer because timer resets frequently
@@ -181,7 +193,7 @@ const BattleEngine = {
         BattleMenuSystem.init(this);
 
 
-        if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
+        if (this.isAutoLoseMode()) {
             this.p1.hp = 1000;
             this.p1.maxHp = 1000;
             this.cpu.hp = 99999;
@@ -225,7 +237,7 @@ const BattleEngine = {
         // Resolve CPU skill (0..1) from the player's difficulty band + tournament
         // progress. Skill controls AI competence; aiProfile controls style.
         this.cpuSkill = this.computeCpuSkill(
-            (Game.saveData && Game.saveData.difficulty) || 'normal',
+            data.difficulty || 'normal',
             this.defeatedOpponents.length
         );
 
@@ -257,169 +269,7 @@ const BattleEngine = {
         });
     },
 
-    startWinSequence: function (type, who, score) {
-        this.events.push({ type: 'STOP_MUSIC' });
-
-        // Calculate Skill Modified Score
-        let finalScore = score;
-        const attacker = this.getPlayer(who);
-        const defender = this.getOpponent(who);
-        const activeBuffs = [];
-        const isRiichi = (who === 'P1') ? this.p1.isRiichi : this.cpu.isRiichi;
-
-        // DORA_BOMB Logic (CPU Auto-Use)
-        if (who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
-            SkillFlows.applyDoraBomb(this, attacker, who);
-        }
-
-        // Attack Up (CRITICAL)
-        if (attacker.buffs && attacker.buffs.attackUp) {
-            finalScore = Math.floor(finalScore * 1.25);
-            attacker.buffs.attackUp = false; // Consume Buff;
-            activeBuffs.push('CRITICAL');
-        }
-
-        // Defense Up (WATER MIRROR) on Defender
-        if (defender.buffs && defender.buffs.defenseUp) {
-            finalScore = Math.floor(finalScore * 0.75);
-            defender.buffs.defenseUp = false; // Consume Buff
-            activeBuffs.push('WATER_MIRROR');
-        }
-
-        // Prepare Data
-        this.pendingDamage = { target: who === 'P1' ? 'CPU' : 'P1', amount: finalScore };
-
-        const winner = who === 'P1' ? 'p1' : 'cpu';
-        const loser = who === 'P1' ? 'cpu' : 'p1';
-
-        // Visuals & Dialogue (Immediate)
-        this.setExpression(who, 'smile');
-        this.setExpression(this.opponentOf(who), 'shocked');
-        this.triggerDialogue('WIN', winner);
-        this.triggerDialogue('LOSE', loser);
-
-        // Build Sequence (FX -> Result Screen)
-        this.currentState = this.STATE_FX_PLAYING;
-
-        const steps = [
-            { type: 'WAIT', duration: BattleConfig.SPEED.WIN_WAIT },
-            { type: 'REVEAL_HAND' }
-        ];
-
-        // Insert DORA_BOMB Confirmation Step (Player only)
-        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && isRiichi && attacker.id === 'rinxiang') {
-            const skillId = 'DORA_BOMB';
-            const skill = SkillData[skillId];
-            if (skill && attacker.mp >= skill.cost) {
-                steps.push({
-                    type: 'CALLBACK',
-                    callback: () => {
-                        if (this.scene && this.scene.showConfirm) {
-                            // Pause Sequence (Visuals pause on current frame)
-                            this.sequencing.active = false;
-
-                            this.scene.showConfirm(
-                                '도라폭진을 사용하시겠습니까?',
-                                () => {
-                                    // YES
-                                    SkillFlows.applyDoraBomb(this, attacker, who);
-                                    // Resume Sequence
-                                    this.sequencing.active = true;
-                                },
-                                () => {
-                                    // NO
-                                    // Resume Sequence
-                                    this.sequencing.active = true;
-                                }
-                            );
-                        }
-                    }
-                });
-            }
-        }
-
-        // Reveal Ura Dora if Riichi
-        if ((who === 'P1' && this.p1.isRiichi) || (who === 'CPU' && this.cpu.isRiichi)) {
-            steps.push({ type: 'REVEAL_URA' });
-        }
-
-        // Add Win/Lose Sound to Sequence
-        if (who === 'P1') {
-            const sound = BattleConfig.RESULT.TYPES.WIN.sound;
-            if (sound) steps.push({ type: 'SOUND', id: sound });
-        } else {
-            const sound = BattleConfig.RESULT.TYPES.LOSE.sound;
-            if (sound) steps.push({ type: 'SOUND', id: sound });
-        }
-
-        // Calculate Bonuses & Final Result Logic
-        if (this.winningYaku) {
-            this.winningYaku.score = score; // Use Base Score for Yaku display
-        }
-
-        // Note: Bonuses calculated LATER in sequence execution? 
-        // No, calculateBonuses reads current state (this.uraDoras). 
-        // Since sequence executes over time, logic used to be pre-calculated here.
-        // FIX: Move bonus calculation to the STATE transition or a LATE CALLBACK step.
-        // However, resultInfo is needed for STATE_WIN/LOSE which is the last step.
-
-        // Let's use a Callback Step before STATE transition to finalize score calculation.
-        steps.push({ type: 'WAIT_FX' }); // Wait for any FX (e.g. Ron/Tsumo animations)
-        steps.push({
-            type: 'CALLBACK',
-            callback: () => {
-                // Re-calculate score/bonuses here because Ura Dora might have changed
-                const winnerHand = (who === 'P1') ? this.getFullHand(this.p1) : this.getFullHand(this.cpu);
-                // isRiichi is still valid from closure
-
-                const bonusResult = this.calculateBonuses(winnerHand, type, isRiichi);
-                let totalScore = finalScore + bonusResult.score;
-
-                // Ensure final score is rounded to nearest 10 (Rule: Handle single digits)
-                totalScore = Math.round(totalScore / 10) * 10;
-
-                if (this.pendingDamage) {
-                    this.pendingDamage.amount = totalScore;
-                }
-
-                // Update History
-                const resultData = {
-                    round: this.currentRound,
-                    result: (who === 'P1') ? '승' : '패',
-                    yaku: (this.winningYaku && this.winningYaku.yaku && this.winningYaku.yaku.length > 0) ? this.winningYaku.yaku[0] : type
-                };
-                this.roundHistory.push(resultData);
-
-                // Update Result Info
-                this.resultInfo = {
-                    type: (who === 'P1') ? 'WIN' : 'LOSE',
-                    baseScore: score,
-                    score: totalScore,
-                    finalDamage: totalScore,
-                    yakuName: this.winningYaku ? this.winningYaku.yaku[0] : '',
-                    yakuScore: this.winningYaku ? this.winningYaku.score : 0,
-                    bonuses: bonusResult.details,
-                    bonusScore: bonusResult.score,
-                    activeBuffs: activeBuffs
-                };
-
-                // Update the STATE step's score if needed (though state usually reads resultInfo)
-            }
-        });
-
-        // Final Step: Transition to STATE_WIN/LOSE
-        // Note: Score argument passed to State might be stale if calculated early.
-        // But the State usually relies on resultInfo. Let's pass 0 or updated score via closure if possible?
-        steps.push({ type: 'STATE', state: (who === 'P1' ? this.STATE_WIN : this.STATE_LOSE) });
-
-        this.sequencing = {
-            active: true,
-            timer: 0,
-            currentStep: 0,
-            steps: steps
-
-        };
-    },
+    // Win / Nagari shows and the sequence runner live in battleSequencer.js.
 
     calculateTenpaiDamage: function (p1Tenpai, cpuTenpai) {
         // Fallback checks
@@ -445,240 +295,6 @@ const BattleEngine = {
 
         return { msg: damageMsg, damage: damage };
     },
-
-
-
-    startNagariSequence: function () {
-        this.currentState = this.STATE_FX_PLAYING;
-        this.events.push({ type: 'STOP_MUSIC' });
-
-        // Tenpai checks
-        const p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
-        const cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
-
-        // Determine Damage
-        // Determine Damage
-        const damageResult = this.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
-        const damageMsg = damageResult.msg;
-        const damage = damageResult.damage;
-
-        const p1Tx = p1Tenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
-        const cpuTx = cpuTenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
-
-        // Expressions
-        this.setExpression('P1', p1Tenpai ? 'smile' : 'shocked');
-
-        this.setExpression('CPU', cpuTenpai ? 'smile' : 'shocked');
-
-        // Create result object
-        const resultData = {
-            round: this.currentRound,
-            result: '무승부', // Draw
-            yaku: '-'
-        };
-        this.roundHistory.push(resultData);
-
-        // Visual Sequence
-        // "Nagari" Text
-        // Show Hands (Reveal CPU)
-        // Show Tenpai/Noten status
-        // Apply Damage Animation
-        // Next Round
-
-        // Setup sequence steps
-        const p1X = 150; const p1Y = 300;
-        const cpuX = 490; const cpuY = 300;
-
-        const p1Fx = p1Tenpai ? 'fx/tenpai' : 'fx/noten'; // We don't have these images yet. 
-        // as `STATE_NAGARI` transitions to `drawResult` which can show the message.
-
-        // Logic for Tenpai/Noten
-        const steps = [
-            // SKILL: LAST_CHANCE (Before Nagari Finalizes)
-            {
-                type: 'CALLBACK', callback: () => {
-                    const skillId = 'LAST_CHANCE';
-                    const player = this.p1;
-                    // Check if Player has skill & is Tenpai
-                    if (BattleConfig.RULES.SKILLS_ENABLED && p1Tenpai && player.skills && player.skills.includes(skillId)) {
-                        const skill = SkillData[skillId];
-                        if (this.checkSkillCost(skill, 'P1')) {
-                            // Pause Sequence handling manually if we show confirmation
-                            this.sequencing.active = false;
-
-                            if (this.scene && this.scene.showConfirm) {
-                                this.scene.showConfirm(
-                                    (BattleConfig.MESSAGES && BattleConfig.MESSAGES.SKILL_CONFIRM && BattleConfig.MESSAGES.SKILL_CONFIRM[skillId]) ?
-                                        BattleConfig.MESSAGES.SKILL_CONFIRM[skillId](skill.cost) : skill.name,
-                                    () => {
-                                        // YES
-                                        this.activateLastChance('P1');
-                                        // activateLastChance handles sequencing state
-                                    },
-                                    () => {
-                                        // NO
-                                        this.sequencing.active = true; // Resume
-                                    }
-                                );
-                            } else {
-                                this.sequencing.active = true; // Safety
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                type: 'CALLBACK', callback: () => {
-                    // Only continue if not interrupted by Win
-                    if (this.currentState === this.STATE_FX_PLAYING) {
-                        this.showPopup('NAGARI', { blocking: true });
-                        const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
-                        if (sound) this.events.push({ type: 'SOUND', id: sound });
-                    }
-                }
-            },
-            { type: 'WAIT', duration: 30 },
-            { type: 'REVEAL_HAND' },
-            { type: 'WAIT', duration: 30 },
-            {
-                type: 'STATE',
-                state: this.STATE_NAGARI,
-                score: damage
-            }
-        ];
-
-        this.sequencing = {
-            active: true,
-            timer: 0,
-            currentStep: 0,
-            steps: steps
-        };
-
-        this.resultInfo = {
-            type: 'NAGARI',
-            damageMsg: damageMsg,
-            score: damage,
-            bonuses: [
-                { name: this.p1.name || '플레이어', score: p1Tx },
-                { name: this.cpu.name || '상대', score: cpuTx }
-            ],
-            p1Status: p1Tx,
-            cpuStatus: cpuTx
-        };
-    },
-
-    // Sequence step handlers. Each handler advances `this.sequencing` itself:
-    // most call _advanceSequence(); WAIT/WAIT_FX stay on the step until their
-    // condition is met; STATE/STATE_NAGARI end the sequence.
-    sequenceStepHandlers: {
-        WAIT: function (step, dt) {
-            this.sequencing.timer += dt;
-            if (this.sequencing.timer >= step.duration) {
-                this.sequencing.timer = 0;
-                this._advanceSequence();
-            }
-        },
-        WAIT_FX: function () {
-            if (this.scene && this.scene.activeFX && this.scene.activeFX.length > 0) {
-                return; // Wait
-            }
-            this._advanceSequence();
-        },
-        FX: function (step) {
-            this.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom, popupType: step.popupType, blocking: step.blocking });
-            this._advanceSequence();
-        },
-        FX_PARALLEL: function (step) {
-            step.items.forEach(item => {
-                this.playFX(item.asset, item.x, item.y, { scale: item.scale, slideFrom: item.slideFrom });
-            });
-            this._advanceSequence();
-        },
-        REVEAL_HAND: function () {
-            this.cpu.isRevealed = true;
-            this.sortHand(this.cpu.hand); // Sort for display
-            this._advanceSequence();
-        },
-        REVEAL_URA: function () {
-            this.uraDoraRevealed = true;
-            this._advanceSequence();
-        },
-        STATE: function (step) {
-            this.currentState = step.state;
-            this.sequencing.active = false;
-        },
-        MUSIC: function (step) {
-            this.events.push({ type: 'MUSIC', id: step.id, loop: step.loop });
-            this._advanceSequence();
-        },
-        SOUND: function (step) {
-            this.events.push({ type: 'SOUND', id: step.id });
-            this._advanceSequence();
-        },
-        CALLBACK: function (step) {
-            const prevSeq = this.sequencing;
-            if (step.callback) step.callback();
-
-            // Only advance if the callback didn't replace the whole sequence
-            if (this.sequencing === prevSeq) {
-                this._advanceSequence();
-            }
-        },
-        STATE_NAGARI: function () {
-            // FIX: Must set state to NAGARI to allow input (Next Round)
-            this.currentState = this.STATE_NAGARI;
-            this.calculateTenpaiDamage(true); // skipFX = true
-            this.sequencing.active = false;
-        },
-        DEAL: function (step) {
-            const newP1 = this.drawTiles(step.count);
-            const newCpu = this.drawTiles(step.count);
-            this.p1.hand = this.p1.hand.concat(newP1);
-            this.cpu.hand = this.cpu.hand.concat(newCpu);
-
-            if (step.sound) {
-                this.events.push({ type: 'SOUND', id: step.sound });
-            }
-            this._advanceSequence();
-        },
-        FLIP_HAND: function (step) {
-            // Reveal player hand (was face down during deal)
-            this.p1.isFaceDown = false;
-            this.sortHand(this.p1.hand); // Sort immediately on reveal
-            if (step.sound) {
-                this.events.push({ type: 'SOUND', id: step.sound });
-            }
-            this._advanceSequence();
-        }
-    },
-
-    _advanceSequence: function () {
-        this.sequencing.currentStep++;
-    },
-
-    updateSequence: function (dt = 1.0) {
-        if (!this.sequencing.active) return;
-
-        const step = this.sequencing.steps[this.sequencing.currentStep];
-        if (!step) {
-            this.sequencing.active = false;
-            return;
-        }
-
-        const handler = this.sequenceStepHandlers[step.type];
-        if (handler) {
-            handler.call(this, step, dt);
-        } else {
-            // Unknown step types used to hang the sequence forever — warn and skip instead
-            console.warn(`Unknown sequence step type: ${step.type}`);
-            this._advanceSequence();
-        }
-    },
-
-
-
-
-
 
 
 
@@ -724,53 +340,12 @@ const BattleEngine = {
         }
     },
 
+    // The match result is settled — hand off to the presenter. What happens next
+    // (scene navigation, unlocks/save, continue count) is meta-game policy and
+    // lives in BattleScene.proceedFromMatchOver, not in the rules engine.
     proceedFromMatchOver: function () {
-        const winner = this.matchWinner;
-
-        if (winner === 'P1') {
-            // Add current CPU to defeated list
-            this.defeatedOpponents.push(this.cpuIndex);
-
-            // SPECIAL: If we just beat Mayu (True Ending Boss)
-            // Check if CPU was Mayu
-            const mayuInfo = CharacterData.find(c => c.id === 'mayu');
-            const isTrueEnding = mayuInfo && (this.cpuIndex === mayuInfo.index || this.cpuIndex === 6); // 6 is Mayu index
-            if (isTrueEnding) {
-                // Unlock Mayu
-                if (!Game.saveData.unlocked.includes('mayu')) {
-                    Game.saveData.unlocked.push('mayu');
-                    Game.save();
-                }
-
-                Game.isAutoTest = false; // Stop Auto Test
-                // Transition to Post-Victory Dialogue
-                Game.changeScene(EncounterScene, {
-                    playerIndex: this.playerIndex,
-                    cpuIndex: this.cpuIndex,
-                    mode: 'TRUE_ENDING_CLEAR',
-                    defeatedOpponents: [] // Reset
-                });
-                return;
-            }
-
-            // Proceed to next match
-            Assets.stopMusic();
-            Game.changeScene(CharacterSelectScene, {
-                mode: 'NEXT_MATCH',
-                playerIndex: this.playerIndex,
-                defeatedOpponents: this.defeatedOpponents
-            });
-        } else {
-            // Game Over -> Continue Screen
-            // Update Global Continue Count
-            Game.continueCount++;
-
-            Game.changeScene(ContinueScene, {
-                playerIndex: this.playerIndex,
-                cpuIndex: this.cpuIndex,
-                defeatedOpponents: this.defeatedOpponents,
-                isNextRound: false // Fresh rematch if continued
-            });
+        if (this.scene && this.scene.proceedFromMatchOver) {
+            this.scene.proceedFromMatchOver();
         }
     },
 
@@ -877,7 +452,7 @@ const BattleEngine = {
 
 
         // Auto-Lose Mode Check (Re-apply effectively)
-        if (Game.isAutoTest && Game.autoTestOptions && Game.autoTestOptions.loseMode) {
+        if (this.isAutoLoseMode()) {
             this.p1.hp = 1;      // Instant Death next hit
             this.p1.maxHp = 1;
             this.cpu.hp = 99999;
@@ -1071,7 +646,7 @@ const BattleEngine = {
         this.winningYaku = win;
         const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
         this.pendingDamage = { target: 'P1', amount: score };
-        this.startWinSequence('RON', 'CPU', score);
+        BattleSequencer.startWinSequence(this, 'RON', 'CPU', score);
     },
 
     // Thin wrappers — implementations live in skillRegistry.js (SkillFlows).
@@ -1193,13 +768,13 @@ const BattleEngine = {
         }
 
         // AUTO TEST LOGIC
-        if (Game.isAutoTest && this.currentState === this.STATE_PLAYER_TURN && this.timer > 5) {
+        if (this.isAutoTest() && this.currentState === this.STATE_PLAYER_TURN && this.timer > 5) {
             this.performAutoTurn();
             return;
         }
 
         // AUTO TEST MENU HANDLING (Skip Action Select)
-        if (Game.isAutoTest && this.currentState === this.STATE_ACTION_SELECT && this.timer > 5) {
+        if (this.isAutoTest() && this.currentState === this.STATE_ACTION_SELECT && this.timer > 5) {
             // Priority: TSUMO > RIICHI > PASS
             const tsumo = this.possibleActions.find(a => a.type === 'TSUMO');
             if (tsumo) {
@@ -1220,14 +795,14 @@ const BattleEngine = {
 
         // RIICHI AUTO-PLAY LOGIC (Normal Game)
         // Only if NOT declaring Riichi (User Manual Discard)
-        if (!Game.isAutoTest && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DISCARD) {
+        if (!this.isAutoTest() && this.p1.isRiichi && !this.p1.declaringRiichi && this.currentState === this.STATE_PLAYER_TURN && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DISCARD) {
             this.discardTile(this.p1.hand.length - 1);
             return;
         }
 
         // Update Sequencing
         if (this.sequencing.active) {
-            this.updateSequence(dt);
+            BattleSequencer.update(this, dt);
             return; // Block other logic
         }
 
@@ -1258,7 +833,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_INIT:
-                if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up init
+                if (this.timer > (this.isAutoTest() ? 10 : 60)) { // Speed up init
                     if (this.turnCount === 1) {
                         // CPU Setup Skills: fire at round start, mirroring the player's
                         // tile-exchange UI below (executeCpuTileExchange handles MP/sound)
@@ -1290,7 +865,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
-                if ((window.Input && Input.isMouseJustPressed() && this.timer > 15) || (Game.isAutoTest && this.timer > 5)) {
+                if ((window.Input && Input.isMouseJustPressed() && this.timer > 15) || (this.isAutoTest() && this.timer > 5)) {
                     this.confirmDraw();
                 }
                 break;
@@ -1308,7 +883,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_CPU_TURN:
-                if (this.timer > (Game.isAutoTest ? 5 : BattleConfig.SPEED.CPU_THINK_TIME)) { // Use config for CPU speed
+                if (this.timer > (this.isAutoTest() ? 5 : BattleConfig.SPEED.CPU_THINK_TIME)) { // Use config for CPU speed
                     this.cpuDraw();
                 }
                 break;
@@ -1349,7 +924,7 @@ const BattleEngine = {
                     }
                 }
 
-                if (this.timer > (Game.isAutoTest ? 10 : 60)) { // Speed up damage anim
+                if (this.timer > (this.isAutoTest() ? 10 : 60)) { // Speed up damage anim
                     this.pendingDamage = null;
                     if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
                         this.currentState = this.STATE_MATCH_OVER;
@@ -1377,14 +952,14 @@ const BattleEngine = {
 
         // Deck Exhaustion
         if (this.deck.length === 0) {
-            this.startNagariSequence();
+            BattleSequencer.startNagariSequence(this);
             return;
         }
 
         // Turn Limit
         // Check if we are STARTING turn 21
         if (this.turnCount > 20) {
-            this.startNagariSequence();
+            BattleSequencer.startNagariSequence(this);
             return;
         }
     },
@@ -1490,7 +1065,7 @@ const BattleEngine = {
                 this.showPopup('TSUMO', { blocking: true });
                 const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
                 this.pendingDamage = { target: 'P1', amount: score };
-                this.startWinSequence('TSUMO', 'CPU', score);
+                BattleSequencer.startWinSequence(this, 'TSUMO', 'CPU', score);
                 return;
             }
         }
@@ -1592,7 +1167,7 @@ const BattleEngine = {
         let hasAction = false;
         // Check if Player can Ron
         // AUTO LOSE MODE: Player Cannot Ron
-        if (!Game.isAutoLose && this.checkPlayerActions(discarded)) {
+        if (this.checkPlayerActions(discarded)) {
             // Riichi Auto-Win (Ron)
             if (this.p1.isRiichi) {
                 const ronAction = this.possibleActions.find(a => a.type === 'RON');
@@ -2124,7 +1699,7 @@ const BattleEngine = {
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen, this.p1, this.cpu);
                 this.pendingDamage = { target: 'CPU', amount: score };
-                this.startWinSequence('TSUMO', 'P1', score);
+                BattleSequencer.startWinSequence(this, 'TSUMO', 'P1', score);
             } else {
                 console.error("CRITICAL: TSUMO allowed but checkYaku failed during execution!");
                 // Fail safely (do not win)
@@ -2167,7 +1742,7 @@ const BattleEngine = {
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen, this.p1, this.cpu);
                 this.pendingDamage = { target: 'CPU', amount: score };
-                this.startWinSequence('RON', 'P1', score);
+                BattleSequencer.startWinSequence(this, 'RON', 'P1', score);
             } else {
                 console.error("CRITICAL: RON allowed but checkYaku failed during execution!");
                 // Fail safely (do not win)

@@ -229,7 +229,7 @@ const SkillFlows = {
 
             engine.sequencing.active = false; // Stop Nagari sequence completely
             engine.pendingDamage = { target: 'CPU', amount: score };
-            engine.startWinSequence('TSUMO', 'P1', score);
+            BattleSequencer.startWinSequence(engine, 'TSUMO', 'P1', score);
         } else {
             engine.showPopup('MISS', { blocking: false });
 
