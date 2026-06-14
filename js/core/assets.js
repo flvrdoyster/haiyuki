@@ -94,6 +94,7 @@ const Assets = {
 
         // Character Select Assets
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
+        'bg/MAYUBAK.png', // Hidden boss (Mayu) intrusion monologue background
         'bg/OVERBAK.png',
         'bg/GAMEBG.png',
 

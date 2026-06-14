@@ -24,27 +24,15 @@ const EncounterLayout = {
     }
 };
 
+// Hidden-boss intrusion monologue: tiled MAYUBAK background + the masked Mayu
+// silhouette drawn centered (no name/VS — the "HERE COMES" text is flashed over
+// the ending illustration in EndingScene; the "???" name shows in battle).
 const ChallengerConfig = {
     UNKNOWN: {
-        BG: 'bg/CHRBAK.png',
-        VS_LOGO: { path: 'ui/vs.png', y: 200 },
-        PORTRAIT: {
-            P1: { x: 0, y: 65, w: 280, h: 304 },
-            CPU: {
-                x: 720, y: -15, w: 280, h: 304,
-                align: 'right',
-                scale: 1.5         // Scale up Unknown Mayu
-            }
-        },
-        NAME: {
-            TEXT: "???",
-            x: 620, // Right aligned padding
-            y: 345,  // 65 (Portrait Y) + 280 (Offset from SelectConfig)
-            font: `bold 32px ${FONTS.bold}, sans-serif`,
-            strokeWidth: 4
-        },
-        headerText1: "HERE COMES",
-        headerText2: "A NEW CHALLENGER"
+        BG: 'bg/MAYUBAK.png',
+        SILHOUETTE: 'face/MAYU_unknown.png',  // 280×256
+        scale: 1.0,
+        y: 80                                 // fills MAYUBAK's dark band, above the dialogue box
     }
 };
 
@@ -73,15 +61,10 @@ const EncounterScene = {
         this.queue = data.queue || [];
         this.state = 0;
 
-        // CHALLENGER MODE STARTUP
-        if (this.mode === 'CHALLENGER') {
-            this.state = -1; // Special State for Here Comes Intro
-            Assets.stopMusic(); // Challenger effect usually has own sound or silence? Assuming silence/effect.
-            // Or play alarm?
-            // Existing logic had stopMusic in init.
-        } else {
-            this.state = 0;
-        }
+        // CHALLENGER uses the normal dialogue flow (state 0): the masked Mayu
+        // delivers her monologue, then advances to battle. The "HERE COMES A NEW
+        // CHALLENGER" flash happens earlier, over the ending illustration.
+        this.state = 0;
 
         this.currentLineIndex = 0;
 
@@ -150,7 +133,7 @@ const EncounterScene = {
                 battleOffsetX: 0,
                 battleOffsetY: 0
             };
-            this.cpuPortrait = new PortraitCharacter(cpuDataUnknown, ChallengerConfig.UNKNOWN.PORTRAIT.CPU, true);
+            this.cpuPortrait = new PortraitCharacter(cpuDataUnknown, EncounterLayout.PORTRAIT.CPU, true);
 
         } else {
             this.p1Portrait = new PortraitCharacter(p1, EncounterLayout.PORTRAIT.P1, false);
@@ -186,20 +169,6 @@ const EncounterScene = {
         // Update Portraits
         if (this.p1Portrait) this.p1Portrait.update(dt);
         if (this.cpuPortrait) this.cpuPortrait.update(dt);
-
-        // -- STATE CHALLENGER INTRO --
-        if (this.state === -1) {
-            // Hold ~3s or Input to skip
-            if (this.textTimer > 180 || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
-                // Transition to Battle directly (Skip Dialogue)
-                Game.changeScene(BattleScene, {
-                    playerIndex: this.playerIndex,
-                    cpuIndex: this.cpuIndex,
-                    defeatedOpponents: this.defeatedOpponents
-                });
-            }
-            return;
-        }
 
         // Simple input to advance text OR Auto Test
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
@@ -253,8 +222,8 @@ const EncounterScene = {
 
     draw: function (ctx) {
 
-        if (this.state === -1) {
-            this.drawChallenger(ctx);
+        if (this.mode === 'CHALLENGER') {
+            this.drawChallengerMonologue(ctx);
             return;
         }
 
@@ -454,65 +423,53 @@ const EncounterScene = {
         }
     },
 
-    drawChallenger: function (ctx) {
-        const w = 640;
-        const h = 480;
+    // Hidden-boss intrusion monologue (SS2): tiled MAYUBAK + masked Mayu
+    // silhouette centered + the boss's {player}_mayu dialogue. No name/VS.
+    drawChallengerMonologue: function (ctx) {
+        const w = 640, h = 480;
 
-        // Background
+        // Tiled background
         const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
         if (bg) {
-            const pattern = ctx.createPattern(bg, 'repeat');
-            ctx.fillStyle = pattern;
+            ctx.fillStyle = ctx.createPattern(bg, 'repeat');
             ctx.fillRect(0, 0, w, h);
         } else {
-            ctx.fillStyle = 'rgba(34, 34, 34, 1)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
             ctx.fillRect(0, 0, w, h);
         }
 
-        // Portraits
-        if (this.p1Portrait) this.p1Portrait.draw(ctx);
-        if (this.cpuPortrait) this.cpuPortrait.draw(ctx);
-
-        // VS Logo
-        const vs = Assets.get(ChallengerConfig.UNKNOWN.VS_LOGO.path);
-        if (vs) {
-            ctx.drawImage(vs, (w - vs.width) / 2, ChallengerConfig.UNKNOWN.VS_LOGO.y);
+        // Masked silhouette, centered
+        const sil = Assets.get(ChallengerConfig.UNKNOWN.SILHOUETTE);
+        if (sil) {
+            const s = ChallengerConfig.UNKNOWN.scale;
+            const sw = sil.width * s, sh = sil.height * s;
+            ctx.drawImage(sil, (w - sw) / 2, ChallengerConfig.UNKNOWN.y, sw, sh);
         }
 
-        // Name "???"
-        ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
-        ctx.lineWidth = ChallengerConfig.UNKNOWN.NAME.strokeWidth;
-        ctx.font = ChallengerConfig.UNKNOWN.NAME.font;
-        ctx.textAlign = 'right';
+        // Dialogue box + text (centered tail up to the silhouette)
+        const currentLine = this.dialogueSequence[this.currentLineIndex] || {};
+        const box = Assets.get('ui/long_bubble.png');
+        const tail = Assets.get('ui/long_bubble_tail.png');
+        if (box) {
+            const scale = box.width > w ? w / box.width : 1;
+            const dw = box.width * scale, dh = box.height * scale;
+            const bx = (w - dw) / 2;
+            const by = h - dh - EncounterLayout.DIALOGUE.marginBottom;
+            ctx.drawImage(box, bx, by, dw, dh);
+            if (tail) ctx.drawImage(tail, bx + dw / 2 - tail.width / 2, by + EncounterLayout.DIALOGUE.tailYOffset);
 
-        const nameText = ChallengerConfig.UNKNOWN.NAME.TEXT;
-        const nameX = ChallengerConfig.UNKNOWN.NAME.x;
-        const nameY = ChallengerConfig.UNKNOWN.NAME.y;
-
-        ctx.strokeText(nameText, nameX, nameY);
-        ctx.fillText(nameText, nameX, nameY);
-        ctx.restore();
-
-        // Text
-        const line1 = ChallengerConfig.UNKNOWN.headerText1;
-        const line2 = ChallengerConfig.UNKNOWN.headerText2;
-
-        const calcWidth = (str) => {
-            let w = 0;
-            for (let char of str) {
-                w += (char === ' ') ? 16 : 32;
+            if (currentLine.text) {
+                ctx.save();
+                ctx.font = EncounterLayout.DIALOGUE.text.font;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                const lines = currentLine.text.split('\n');
+                const lh = EncounterLayout.DIALOGUE.text.lineHeight;
+                let sy = by + dh / 2 - (lines.length * lh) / 2 + lh * 0.7 + EncounterLayout.DIALOGUE.text.baselineCorrection;
+                lines.forEach((line, i) => ctx.fillText(line, bx + EncounterLayout.DIALOGUE.text.xPadding, sy + i * lh));
+                ctx.restore();
             }
-            return w;
-        };
-
-        const x1 = (w - calcWidth(line1)) / 2;
-        const x2 = (w - calcWidth(line2)) / 2;
-
-        const textOption = { color: 'yellow', spaceWidth: 16 };
-
-        Assets.drawAlphabet(ctx, line1, x1, 20, textOption);
-        Assets.drawAlphabet(ctx, line2, x2, 52, textOption);
+        }
     }
 };

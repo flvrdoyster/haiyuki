@@ -75,7 +75,15 @@ const BattleRenderer = {
 
         // Portraits (Dynamic - animate)
         if (BattleScene.p1Character) BattleScene.p1Character.draw(ctx);
-        if (BattleScene.cpuCharacter) BattleScene.cpuCharacter.draw(ctx);
+        if (BattleScene.cpuMasked) {
+            // Hidden boss: draw the MAYU_unknown silhouette directly (original
+            // image as-is, positioned via BattleConfig.MASKED_BOSS).
+            const sil = Assets.get('face/MAYU_unknown.png');
+            const m = BattleConfig.MASKED_BOSS;
+            if (sil && m) ctx.drawImage(sil, m.x, m.y, sil.width * m.scale, sil.height * m.scale);
+        } else if (BattleScene.cpuCharacter) {
+            BattleScene.cpuCharacter.draw(ctx);
+        }
 
         // Draw Static FG (UI BG + Names)
         ctx.drawImage(this.fgCanvas, 0, 0);
@@ -373,12 +381,19 @@ const BattleRenderer = {
 
         // Draw CPU Name
         if (state.cpu && state.cpu.name) {
-            const name = state.cpu.name;
+            const name = BattleRenderer.maskedCpuName(state);
             ctx.textAlign = conf.CPU.align || 'right';
             ctx.strokeText(name, conf.CPU.x, conf.CPU.y);
             ctx.fillText(name, conf.CPU.x, conf.CPU.y);
         }
         ctx.restore();
+    },
+
+    // Non-player Mayu fights masked (hidden-boss intrusion): show "???" in place
+    // of her real name. s is the engine (or any object with .cpu/.p1).
+    maskedCpuName: function (s) {
+        if (s && s.cpu && s.cpu.id === 'mayu' && s.p1 && s.p1.id !== 'mayu') return '???';
+        return (s && s.cpu && s.cpu.name) ? s.cpu.name : '';
     },
 
     /**
@@ -437,7 +452,7 @@ const BattleRenderer = {
             if (indicators.length > 0) {
                 ctx.save();
                 ctx.font = nameConf.font;
-                const nameWidth = ctx.measureText(cpu.name || "").width;
+                const nameWidth = ctx.measureText(BattleRenderer.maskedCpuName(engine)).width;
                 ctx.restore();
 
                 const text = indicators.join(' ');
@@ -1128,7 +1143,7 @@ const BattleRenderer = {
             let title = typeConf.title;
             let winnerName = "";
             if (state.matchWinner === 'P1') winnerName = state.p1.name || "";
-            else if (state.matchWinner === 'CPU') winnerName = state.cpu.name || "";
+            else if (state.matchWinner === 'CPU') winnerName = BattleRenderer.maskedCpuName(state);
 
             if (winnerName) title = title.replace("{winner}", winnerName);
 

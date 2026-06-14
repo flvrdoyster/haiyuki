@@ -65,6 +65,7 @@ const BattleScene = {
     // and the engine requests expression changes via EXPRESSION events.
     p1Character: null,
     cpuCharacter: null,
+    cpuMasked: false,
 
     initPortraits: function () {
         const idMap = {
@@ -95,6 +96,12 @@ const BattleScene = {
             isBattle: true
         }, false);
         this.p1Character.setAnimationConfig(getAnimConfig(p1Data));
+
+        // Hidden boss: a non-player Mayu fights masked. The silhouette is drawn
+        // directly by BattleRenderer (MAYU_unknown.png, BattleConfig.MASKED_BOSS),
+        // NOT this portrait — cpuCharacter is kept only for the event system.
+        // Game logic still uses BattleEngine.cpu.id ('mayu'); name → "???".
+        this.cpuMasked = (cpuData && cpuData.id === 'mayu' && (!p1Data || p1Data.id !== 'mayu'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
             ...BattleConfig.PORTRAIT.CPU,

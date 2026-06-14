@@ -249,6 +249,14 @@ const CharacterSelectScene = {
             }
         } else if (this.currentState === this.STATE_CPU_SELECT) {
 
+            // Debug (window.challengerTest()): skip the tournament and jump
+            // straight to the ending sequence (ending dialogue → illustration →
+            // hidden-boss intrusion) so the Mayu intrusion can be tested directly.
+            if (this.mode !== 'NEXT_MATCH' && DebugCheats.forceChallenger) {
+                this.goToEnding();
+                return;
+            }
+
             this.cpuTimer += dt;
             // Spin effect: change index every few frames based on absolute time
             const spinInterval = 5;

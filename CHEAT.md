@@ -1,117 +1,69 @@
 # Debug / Cheat Sheet
 
-Run these commands in the browser console (F12).
+Run these in the browser console (F12). Every cheat is a **bare function**, all
+defined in `js/core/debug.js`. Just type the function name and call it.
 
-## Save Data Management
+## On-screen Debug Overlay (`?debug`)
 
-### Unlock All Characters (Clear Save)
-**Prerequisite**: Anytime.
-Unlocks 'mayu' and marks game as cleared.
-```javascript
-Game.saveData.unlocked.push('mayu');
-Game.save();
-location.reload();
+Add `?debug` to the URL → a fixed strip at the top mirrors every `console.*` log
+**and uncaught errors** (for debugging on a phone where devtools isn't available).
+Close it with the ✕ button. Without `?debug` the overlay does nothing.
+
+```
+http://localhost:3000/haiyuki_web/?debug
 ```
 
-### Reset Save Data
-**Prerequisite**: Anytime.
-Wipes all progress.
+The game emits structured event logs you can watch there (or in devtools):
+`[Draw]` · `[Discard]` · `[Pon]` · `[Exchange]` · `[Skill]` · `[Round]` (win/nagari:
+yaku · damage) · `[Damage]` (HP) · `[Match]` (winner · HP).
+
+## State Snapshot (read-only)
+
+`window.__haiyuki__` is a deeply-frozen snapshot of the current game state
+(`state`, `p1`/`cpu` hp/mp/hand/tenpai, `actions`, `board`, `winningYaku`). It never
+mutates the game — used by the Playwright tests.
+
 ```javascript
-Game.saveData = { unlocked: [], clearedOpponents: [] };
-Game.continueCount = 0;
-Game.save();
-location.reload();
+window.__haiyuki__
+window.__haiyuki__.p1.isTenpai
+window.__haiyuki__.actions.canRon
 ```
 
-## Scene Navigation
+## Cheats
 
-### Jump to Credits (Normal)
-**Prerequisite**: Anytime.
+All are bare functions — call from the console anytime unless noted.
+
+### Save data
 ```javascript
-Game.changeScene(CreditsScene, { endingType: 'NORMAL' });
+unlockMayu()   // unlock the hidden boss (Mayu) as a selectable character + reload
+resetSave()    // wipe all progress + reload
 ```
 
-### Jump to Credits (True)
-**Prerequisite**: Anytime.
+### Scene navigation
 ```javascript
-Game.changeScene(CreditsScene, { endingType: 'TRUE' });
+toCredits('NORMAL')   // 'NORMAL' | 'TRUE'
+toCharSelect()
+toBattle(0, 1)        // (playerIndex, cpuIndex) — default Ataho vs Rinxiang
 ```
 
-### Jump to Character Select
-**Prerequisite**: Anytime.
+### Hidden boss (Mayu) intrusion
 ```javascript
-Game.changeScene(CharacterSelectScene);
+challengerTest()    // arm the FULL sequence, then pick any non-Mayu character:
+                    //   char-select confirm → ending dialogue → "HERE COMES A NEW
+                    //   CHALLENGER" flash → masked monologue → ??? masked battle.
+                    //   Forces the condition regardless of clear/unlock (save untouched).
 ```
 
-### Trigger Mayu Intrusion (Challenge)
-**Prerequisite**: Anytime.
-Triggers the "A NEW CHALLENGER" sequence with Mayu (눈썹개).
+### Auto-test (Prerequisite: in `BattleScene`)
 ```javascript
-Game.triggerMayu();
+autoTest()    // AI vs AI at 10× speed
+autoLose()    // auto-play with P1 HP = 1 (quick Game Over)
+stopAuto()
 ```
 
-### Jump to Battle (Test)
-**Prerequisite**: Anytime.
-Starts a battle between P1 (Ataho) and CPU (Rinxiang).
+### Battle (Prerequisite: in `BattleScene`, during your turn)
 ```javascript
-Game.changeScene(BattleScene, { playerIndex: 0, cpuIndex: 1 });
-```
-
-## Auto-Test Mode
-
-### Start Auto-Play (Fast Forward)
-**Prerequisite**: Must be in `BattleScene`.
-Let the AI play against itself at 10x speed.
-```javascript
-Game.startAutoTest();
-```
-
-### Start Auto-Lose Test
-**Prerequisite**: Must be in `BattleScene`.
-Starts auto-play with P1 HP set to 1, facilitating a quick Game Over.
-```javascript
-Game.startAutoLoseTest();
-```
-
-### Stop Auto-Play
-**Prerequisite**: Must be in `BattleScene`.
-```javascript
-Game.stopAutoTest();
-```
-
-## Character Select Debug
-
-### Enable Manual CPU Select
-**Prerequisite**: In `CharacterSelectScene`.
-Allows you to select the CPU opponent manually (P2 controls).
-```javascript
-CharacterSelectScene.isDebug = true;
-```
-
-### Skip Dialogue (Direct to Battle)
-**Prerequisite**: In `CharacterSelectScene`.
-When enabled in Character Select, choosing characters skips the Encounter dialogue and goes straight to Battle.
-```javascript
-CharacterSelectScene.debugSkipDialogue = true;
-```
-
-## Battle Logic Debug
-
-### Test Last Chance (Roulette)
-**Prerequisite**: Must be in `BattleScene`.
-Injects Petum's skills and MP to P1 (regardless of selected character), forces Turn 20, and sets a Tenpai hand.
-1. Run command during player turn.
-2. Discard the 'Punch' tile.
-3. Nagari Trigger -> Last Chance Prompt.
-```javascript
-BattleEngine.testLastChance();
-```
-
-### Instant Tsumo Setup (Win Cheat)
-**Prerequisite**: Must be in `BattleScene`.
-Sets your hand to "입에 담을 수도 없는 엄청난 기술" (IP_E_DAM).
-1. Run command during your turn.
-2. Declare **TSUMO** immediately from the menu.
-```javascript
-debugWin();
+lastChance()  // inject Petum's skills + Tenpai hand + Turn 20, then discard 'Punch'
+              //   → Nagari → Last Chance prompt
+win()         // set hand to IP_E_DAM ("입에 담을 수도 없는 엄청난 기술"), then declare TSUMO
 ```

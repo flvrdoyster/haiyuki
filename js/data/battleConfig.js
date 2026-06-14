@@ -59,6 +59,9 @@ const BattleConfig = {
         baseW: 264,
         baseH: 280
     },
+    // Hidden-boss masked silhouette in battle — MAYU_unknown.png (280×256) drawn
+    // directly by BattleRenderer (bypasses the portrait auto-slice). Tune x/y/scale.
+    MASKED_BOSS: { x: 400, y: 80, scale: 1.0 },
     ANIMATION: {
         BLINK_SPEED: 4,       // Frames per blink frame
         TALK_SPEED: 10,        // Frames per mouth frame

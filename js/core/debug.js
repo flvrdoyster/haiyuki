@@ -2,8 +2,8 @@
  * debug.js — consolidated debug / QA module (console & test only; no on-screen UI).
  *
  *   QADebug     — read-only state snapshot → window.__haiyuki__ (Playwright reads this).
- *   DebugCheats — mutating console cheats: debugWin() · testLastChance() · triggerMayu()
- *                 (shorthands: window.debugWin, window.triggerMayu).
+ *   DebugCheats — mutating cheats, exposed as bare console functions (win(),
+ *                 challengerTest(), autoTest(), lastChance(), …). See CHEAT.md.
  *
  * Nothing runs unless called: QADebug.sync() from battleScene each frame; cheats from devtools.
  */
@@ -182,13 +182,15 @@ const QADebug = (() => {
 })();
 
 /**
- * DebugCheats — console-only cheats (mutating, unlike QADebug above).
- * Usage from devtools:
- *   DebugCheats.testLastChance() — Petum skills + tenpai hand + turn 20
- *   DebugCheats.debugWin()       — set hand to IP_E_DAM, then declare Tsumo
- *   DebugCheats.triggerMayu()    — force the Mayu hidden-boss intrusion
+ * DebugCheats — cheat implementations + the forceChallenger flag (mutating,
+ * unlike QADebug above). Exposed to the console as bare functions further down
+ * — win(), lastChance(), challengerTest(), etc. See CHEAT.md.
  */
 const DebugCheats = {
+    // Flag: when true, character-select confirm jumps straight to the ending →
+    // hidden-boss intrusion (arm with window.challengerTest()).
+    forceChallenger: false,
+
     testLastChance: function () {
         const e = BattleEngine;
 
@@ -242,24 +244,29 @@ const DebugCheats = {
             e.hoverIndex = e.p1.hand.length - 1;
             e.timer = 0;
         }
-    },
-
-    // Force the Mayu hidden-boss intrusion (moved here from Game core).
-    triggerMayu: function () {
-        console.log("!!! Debug: Triggering Mayu Intrusion !!!");
-        const scene = Game.currentScene;
-        Game.changeScene(EncounterScene, {
-            playerIndex: scene && scene.playerIndex !== undefined ? scene.playerIndex : 0,
-            cpuIndex: 6,
-            mode: 'CHALLENGER',
-            defeatedOpponents: scene && scene.defeatedOpponents ? scene.defeatedOpponents : []
-        });
     }
 };
 
-// Console shorthands (kept from the old BattleEngine/Game globals)
-window.debugWin = () => DebugCheats.debugWin();
-window.triggerMayu = () => DebugCheats.triggerMayu();
+// ── Console cheats — all bare functions, one consistent form (see CHEAT.md) ──
+// Save
+window.unlockMayu   = () => { Game.saveData.unlocked.push('mayu'); Game.save(); location.reload(); };
+window.resetSave    = () => { Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: (Game.saveData && Game.saveData.difficulty) || 'normal' }; Game.continueCount = 0; Game.save(); location.reload(); };
+// Scene navigation
+window.toCredits    = (type = 'NORMAL') => Game.changeScene(CreditsScene, { endingType: type });
+window.toCharSelect = () => Game.changeScene(CharacterSelectScene);
+window.toBattle     = (p1 = 0, cpu = 1) => Game.changeScene(BattleScene, { playerIndex: p1, cpuIndex: cpu });
+// Hidden boss (Mayu) — arm the full intrusion sequence from character select
+window.challengerTest = () => {
+    DebugCheats.forceChallenger = true;
+    console.log('[Cheat] Challenger armed — pick a character to jump to the ending.');
+};
+// Auto-test
+window.autoTest     = () => Game.startAutoTest();
+window.autoLose     = () => Game.startAutoLoseTest();
+window.stopAuto     = () => Game.stopAutoTest();
+// Battle
+window.lastChance   = () => DebugCheats.testLastChance();
+window.win          = () => DebugCheats.debugWin();
 
 /**
  * DebugOverlay — on-screen console for devtools-less debugging (mobile).
