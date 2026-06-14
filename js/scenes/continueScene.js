@@ -47,7 +47,6 @@ const ContinueScene = {
         this.timer = 0;
         this.pointerTimer = 0;
 
-        console.log("Continue Scene Init", this.data);
         Assets.playMusic('audio/bgm_inn', false); // Play Inn BGM once
     },
 
@@ -96,7 +95,6 @@ const ContinueScene = {
     },
 
     retry: function () {
-        console.log("Continue: YES");
         // Pass data back to BattleScene
         // Ensure HP reset flag is set (BattleEngine sets isNextRound: false usually)
         this.data.isNextRound = false;
@@ -109,7 +107,6 @@ const ContinueScene = {
     },
 
     giveUp: function () {
-        console.log("Continue: NO");
 
         // Special Case: If giving up against Mayu (True Boss), show Normal Credits
         const cpuData = CharacterData[this.data.cpuIndex];

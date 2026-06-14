@@ -122,11 +122,7 @@ const TitleScene = {
         if (isOverYes) {
             if (Input.hasMouseMoved()) this.confirmSelected = 0;
             if (Input.isMouseJustPressed()) {
-                Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
-                Game.continueCount = 0;
-                Game.save();
-                Assets.playSound('audio/riichi');
-                console.log("Save Data Reset");
+                this.resetSaveData();
                 this.confirmActive = false;
                 return;
             }
@@ -145,15 +141,20 @@ const TitleScene = {
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
             if (this.confirmSelected === 0) {
-                Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
-                Game.continueCount = 0;
-                Game.save();
-                Assets.playSound('audio/riichi');
-                console.log("Save Data Reset");
+                this.resetSaveData();
             }
             this.confirmActive = false;
         }
         // No separate cancel key — 방향키로 NO 선택 + Z(Space)로 닫는다(키맵 일치).
+    },
+
+    // Wipe progress — mouse-YES and keyboard-YES both route here (single source).
+    resetSaveData: function () {
+        Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
+        Game.continueCount = 0;
+        Game.save();
+        Assets.playSound('audio/riichi');
+        console.log("Save data reset");
     },
 
     draw: function (ctx) {

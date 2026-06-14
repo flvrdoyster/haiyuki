@@ -542,6 +542,8 @@ const BattleEngine = {
         // Process Effect
         this.processSkillEffect(skill, who, skillId);
 
+        console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
+
         // Record usage
         if (!entry.multiUse) {
             this.roundSkillUsage[who.toLowerCase()][skillId] = true;
@@ -1176,6 +1178,7 @@ const BattleEngine = {
         }
 
         this.discards.push(discarded);
+        console.log(`[Discard] CPU: ${discarded.color} ${discarded.type}${discarded.isRiichi ? ' [Riichi]' : ''}`);
 
         // Reset Expressions
         this.setExpressions('idle', 'idle');
@@ -1309,6 +1312,7 @@ const BattleEngine = {
             this.validRiichiDiscardIndices = null; // Reset Visuals
         }
         this.discards.push(discarded);
+        console.log(`[Discard] P1: ${discarded.color} ${discarded.type}${discarded.isRiichi ? ' [Riichi]' : ''}`);
 
         this.sortHand(this.p1.hand); // Sort remaining hand after discard to keep it organized for next turn
 

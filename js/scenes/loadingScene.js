@@ -7,7 +7,6 @@ const LoadingScene = {
         this.delayTimer = 0;
         
         Assets.load(() => {
-            console.log('Assets loaded.');
             this.isLoaded = true;
         });
     },
@@ -20,7 +19,6 @@ const LoadingScene = {
                 const mode = urlParams.get('mode');
 
                 if (mode === 'story' || mode === 'watch') {
-                    console.log("Direct access to Story/Watch Mode detected.");
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else {
                     Game.changeScene(TitleScene);

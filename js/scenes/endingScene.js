@@ -7,7 +7,6 @@ const EndingScene = {
     canSkip: false,
 
     init: function (data) {
-        console.log("Ending Scene Init");
         this.timer = 0;
         this.canSkip = false;
         this.playerIndex = data ? data.playerIndex : 0;
@@ -66,7 +65,7 @@ const EndingScene = {
             // Let's just center it visually.
             ctx.drawImage(img, (640 - w) / 2, (480 - h) / 2 - 20, w, h);
         } else {
-            console.log("Missing ending image: " + this.endingImageKey);
+            console.warn("Missing ending image: " + this.endingImageKey);
             ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.textAlign = 'center';
             ctx.fillText("ENDING (Image Missing)", 320, 240);
@@ -85,10 +84,7 @@ const EndingScene = {
     },
 
     checkTrueEnding: function () {
-        console.log(`Check True Ending. Continue Count: ${Game.continueCount}, Skip: ${this.skipTrueEnd}`);
-
         if (this.skipTrueEnd) {
-            console.log("Skipping True Ending Check (Watch Mode). Returning to Title.");
             Game.isAutoTest = false; // Stop Auto-Test
             Game.changeScene(TitleScene);
             return;
@@ -103,7 +99,6 @@ const EndingScene = {
         const playerIsMayu = CharacterData[this.playerIndex] && CharacterData[this.playerIndex].id === 'mayu';
 
         if (Game.continueCount === 0 && !isMayuUnlocked && !playerIsMayu) {
-            console.log("TRUE ENDING PATH TRIGGERED!");
             // Transition to Mayu Encounter
             // Transition to Mayu Encounter
             // Encounter Scene
@@ -129,7 +124,6 @@ const EndingScene = {
             }
 
         } else {
-            console.log("Normal Ending. Go to Credits.");
             Game.isAutoTest = false; // Stop Auto-Test
             Game.changeScene(CreditsScene, { endingType: 'NORMAL' });
         }

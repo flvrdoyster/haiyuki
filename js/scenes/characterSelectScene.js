@@ -168,7 +168,6 @@ const CharacterSelectScene = {
         const rivalId = this.characters[this.playerIndex].rival;
         let rivalIndex = this.characters.findIndex(c => c.id === rivalId);
         if (rivalIndex === -1) rivalIndex = 0; // Safeguard
-        console.log("All opponents defeated → ending dialogue");
         Game.changeScene(EncounterScene, {
             playerIndex: this.playerIndex,
             cpuIndex: rivalIndex,
@@ -270,7 +269,6 @@ const CharacterSelectScene = {
                     // Confirm CPU
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
-                    console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                 }
 
                 // Mouse Input (Debug Manual)
@@ -285,7 +283,6 @@ const CharacterSelectScene = {
                         if (this.cpuIndex === clickedIndex) {
                             this.currentState = this.STATE_READY;
                             this.readyTimer = 0;
-                            console.log(`Ready(Manual): P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                         }
                     }
                 }
@@ -325,7 +322,6 @@ const CharacterSelectScene = {
                     // stays the single selection rule (excludes hidden Mayu).
                     const idx = this.chooseOpponentIndex();
                     if (idx === null) {
-                        console.log("Roulette: no opponents left → ending");
                         this.goToEnding();
                         return;
                     }
@@ -334,7 +330,6 @@ const CharacterSelectScene = {
                     this.updateCpuPortrait();
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
-                    console.log(`Ready: P1(${this.characters[this.playerIndex].name}) vs CPU(${this.characters[this.cpuIndex].name})`);
                 }
             }
         } else if (this.currentState === this.STATE_READY) {
@@ -531,13 +526,11 @@ const CharacterSelectScene = {
                 queue.splice(idxInQueue, 1);
                 // Push to end
                 queue.push(rivalIndex);
-                console.log(`Watch Mode: Moved Rival(${rivalId}) to end of queue.`);
             }
         }
 
         if (queue.length > 0) {
             const firstCpu = queue.shift();
-            console.log(`Starting Watch Mode: P1(${this.playerIndex}) vs CPU(${firstCpu}).Remaining: ${queue.length} `);
             Game.changeScene(EncounterScene, {
                 playerIndex: this.playerIndex,
                 cpuIndex: firstCpu,

@@ -21,7 +21,6 @@ const CreditsScene = {
     init: function (params) {
         this.timer = 0;
         this.endingType = (params && params.endingType) ? params.endingType : 'NORMAL';
-        console.log(`Credits Scene Initialized. Type: ${this.endingType}`);
     },
 
     update: function (dt = 1.0) {

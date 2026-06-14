@@ -121,12 +121,9 @@ const EncounterScene = {
             key += "_true_ending";
         }
 
-        console.log(`Loading dialogue for: ${key}`);
-
         if (!DialogueData[key]) {
             // Try reverse key
             const reverseKey = `${cpu.id}_${p1.id}`;
-            console.log(`Key not found, trying reverse: ${reverseKey}`);
             if (DialogueData[reverseKey]) {
                 key = reverseKey;
             }
@@ -170,7 +167,6 @@ const EncounterScene = {
             const yuriPortrait = (p1.id === 'yuri') ? this.p1Portrait : this.cpuPortrait;
             // Only re-apply if auto-detect missed talk assets
             if (!yuriPortrait.animConfig || !yuriPortrait.animConfig.talk) {
-                console.log("Manual Override for Yuri Animation Config");
                 yuriPortrait.setAnimationConfig({
                     base: 'face/YURI_base.png',
                     blink: ['face/YURI_blink-2.png', 'face/YURI_blink-1.png'],
@@ -196,7 +192,6 @@ const EncounterScene = {
             // Hold ~3s or Input to skip
             if (this.textTimer > 180 || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
                 // Transition to Battle directly (Skip Dialogue)
-                console.log('Challenger Intro Finished. Go to battle.');
                 Game.changeScene(BattleScene, {
                     playerIndex: this.playerIndex,
                     cpuIndex: this.cpuIndex,
@@ -213,13 +208,10 @@ const EncounterScene = {
 
             this.currentLineIndex++;
             if (this.currentLineIndex >= this.dialogueSequence.length) {
-                console.log('Dialogue finished.');
-
                 if (this.mode === 'WATCH') {
                     // Watch Mode: Go to next character in queue
                     if (this.queue.length > 0) {
                         const nextCpu = this.queue.shift();
-                        console.log(`Next interaction: CPU(${nextCpu})`);
                         Game.changeScene(EncounterScene, {
                             playerIndex: this.playerIndex,
                             cpuIndex: nextCpu,
@@ -230,7 +222,6 @@ const EncounterScene = {
                         // End of watch list
                         // Trigger Rival Ending Dialogue
                         // Rival is the LAST one we just watched (this.cpuIndex).
-                        console.log("All conversations viewed. Triggering Ending Dialogue.");
                         Game.changeScene(EncounterScene, {
                             playerIndex: this.playerIndex,
                             cpuIndex: this.cpuIndex,
@@ -240,11 +231,9 @@ const EncounterScene = {
                     }
                 } else if (this.mode === 'TRUE_ENDING_CLEAR') {
                     // True Ending Clear -> Credits
-                    console.log('True Ending Dialogue finished. Go to Credits.');
                     Game.changeScene(CreditsScene, { endingType: 'TRUE' });
                 } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
                     // Ending Dialogue Finished -> Go to Ending Image
-                    console.log('Ending Dialogue finished. Go to Ending Scene.');
                     Game.changeScene(EndingScene, {
                         playerIndex: this.playerIndex,
                         cpuIndex: this.cpuIndex, // Pass CPU Index for checks
@@ -252,7 +241,6 @@ const EncounterScene = {
                     });
                 } else {
                     // Story/Normal Mode: Go to Battle
-                    console.log('Go to battle');
                     Game.changeScene(BattleScene, {
                         playerIndex: this.playerIndex,
                         cpuIndex: this.cpuIndex,

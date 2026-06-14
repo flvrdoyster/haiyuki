@@ -144,7 +144,6 @@ const Game = {
 
         }
 
-        console.log('Starting LoadingScene...');
         this.lastTime = performance.now();
         this.changeScene(LoadingScene);
         this.loop(this.lastTime);
