@@ -1078,7 +1078,9 @@ test.describe('C-9. 전 스킬 효과 전수 검증', () => {
             // TIGER_STRIKE: guaranteedWin → 드로우가 완성패 (버프는 드로우 시 소비되므로
             // 드로우 전에 캡처)
             reset(); e.p1.hand = tenpai(); SR.TIGER_STRIKE.execute(e, 'P1', e.p1);
-            const tigerBuff = e.p1.buffs.guaranteedWin === true;
+            // guaranteedWin + 손패 고정(리치): 텐파이 유지 강제 → 보장 승리패 확보
+            const tigerBuff = e.p1.buffs.guaranteedWin === true &&
+                e.p1.isRiichi === true && e.p1.declaringRiichi === true;
             e.deck.push(mk('punch')); e.deck.push(mk('punch'));
             const drawn = e.drawTiles(1, e.p1);
             out.tiger = tigerBuff &&
@@ -1090,19 +1092,23 @@ test.describe('C-9. 전 스킬 효과 전수 검증', () => {
             for (let i = 0; i < 5; i++) e.manageBuffs(e.p1);
             out.spirit = t5 && e.p1.buffs.guaranteedWin === true;
 
-            // CRITICAL: 가해 ×1.25, 소비
+            // CRITICAL: 가해 정확히 ×1.25 (이중 적용 ×1.5625가 아니어야 함), 소비.
+            // cBase는 버프 부여 '전'에 캡처한 무버프 기준값 → 실제 게임 흐름
+            // (calculateScore → startWinSequence)이 정확히 한 번만 ×1.25 해야 통과.
             reset(); e.p1.hand = tenpai().concat(mk('fari')); e.winningYaku = Y.checkYaku(e.p1.hand, e.p1.id);
-            SR.CRITICAL.execute(e, 'P1', e.p1);
             const cBase = e.calculateScore(e.winningYaku.score, e.p1.isMenzen, e.p1, e.cpu);
-            BS.startWinSequence(e, 'TSUMO', 'P1', cBase);
-            out.critical = e.pendingDamage.amount >= Math.floor(cBase * 1.25) - 1 && !e.p1.buffs.attackUp;
+            SR.CRITICAL.execute(e, 'P1', e.p1);
+            const cScored = e.calculateScore(e.winningYaku.score, e.p1.isMenzen, e.p1, e.cpu);
+            BS.startWinSequence(e, 'TSUMO', 'P1', cScored);
+            out.critical = e.pendingDamage.amount === Math.floor(cBase * 1.25) && !e.p1.buffs.attackUp;
 
-            // WATER_MIRROR: 피격 ×0.75, 소비
+            // WATER_MIRROR: 피격 정확히 ×0.75 (이중 적용 ×0.5625가 아니어야 함), 소비
             reset(); e.cpu.hand = tenpai().concat(mk('fari')); e.winningYaku = Y.checkYaku(e.cpu.hand, e.cpu.id);
-            SR.WATER_MIRROR.execute(e, 'P1', e.p1);
             const wBase = e.calculateScore(e.winningYaku.score, e.cpu.isMenzen, e.cpu, e.p1);
-            BS.startWinSequence(e, 'TSUMO', 'CPU', wBase);
-            out.waterMirror = e.pendingDamage.amount <= Math.floor(wBase * 0.75) + 1 && !e.p1.buffs.defenseUp;
+            SR.WATER_MIRROR.execute(e, 'P1', e.p1);
+            const wScored = e.calculateScore(e.winningYaku.score, e.cpu.isMenzen, e.cpu, e.p1);
+            BS.startWinSequence(e, 'TSUMO', 'CPU', wScored);
+            out.waterMirror = e.pendingDamage.amount === Math.floor(wBase * 0.75) && !e.p1.buffs.defenseUp;
 
             // RECOVERY: +3000, 상한 캡, 만피 불가
             reset(); e.p1.maxHp = 10000; e.p1.hp = 5000; SR.RECOVERY.execute(e, 'P1', e.p1);

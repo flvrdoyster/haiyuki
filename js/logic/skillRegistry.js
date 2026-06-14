@@ -275,6 +275,9 @@ const SkillRegistry = {
         canUse: (engine, who) => engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.guaranteedWin = true; // Next Draw = Win
+            // 손패 고정: 텐파이를 깨면 보장 승리패를 못 찾아 스킬이 낭비되므로,
+            // 정상 리치와 동일하게 텐파이 유지 패만 버릴 수 있게 한다.
+            engine.declareRiichiLock(who);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },
@@ -351,15 +354,8 @@ const SkillRegistry = {
             engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.spiritTimer = 5; // 5 Turns countdown
-
-            // 기합 리치 = 실제 리치 선언이기도 하다: 손패를 고정한다.
-            // (정상 RIICHI 액션과 동일 — isRiichi + 다음 타패가 리치패 +
-            //  타패는 텐파이를 유지하는 패로만 제한.)
-            user.isRiichi = true;
-            user.declaringRiichi = true;
-            if (who === 'P1') {
-                engine.validRiichiDiscardIndices = engine.getValidRiichiDiscards();
-            }
+            // 기합 리치 = 실제 리치 선언이기도 하다: 손패 고정.
+            engine.declareRiichiLock(who);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },

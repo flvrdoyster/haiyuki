@@ -73,14 +73,11 @@ const BattleEngine = {
             score = Math.floor(baseScore * 0.75);
         }
 
-        // Skill Modifiers
-        if (attacker && attacker.buffs && attacker.buffs.attackUp) {
-            score = Math.floor(score * 1.25); // Critical: +25%
-        }
-
-        if (defender && defender.buffs && defender.buffs.defenseUp) {
-            score = Math.floor(score * 0.75); // Water Mirror: -25%
-        }
+        // NOTE: CRITICAL(attackUp) / WATER_MIRROR(defenseUp) modifiers are applied
+        // (and consumed) once in BattleSequencer.startWinSequence, which is the
+        // single authoritative damage step. They were ALSO applied here, so every
+        // win path (calculateScore → startWinSequence) doubled them — CRITICAL
+        // became ×1.5625, 수경 became ×0.5625. Do not re-add them here.
 
         // Round to nearest 10
         return Math.round(score / 10) * 10;
@@ -1783,6 +1780,20 @@ const BattleEngine = {
             if (this.checkTenpai(tempHand)) return true;
         }
         return false;
+    },
+
+    // Skill-driven riichi lock (TIGER_STRIKE / SPIRIT_RIICHI): commit the hand so
+    // the player can't break tenpai before the guaranteed win — otherwise drawTiles
+    // can't find a winning tile and the skill is wasted. Same as the normal RIICHI
+    // action minus popup/FX. (validRiichiDiscardIndices is P1-only; the CPU AI
+    // handles its own riichi discard.)
+    declareRiichiLock: function (who) {
+        const p = this.getPlayer(who);
+        p.isRiichi = true;
+        p.declaringRiichi = true;
+        if (who === 'P1') {
+            this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
+        }
     },
 
     getOpponent: function (who) {
