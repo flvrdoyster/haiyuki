@@ -190,7 +190,7 @@ const SkillFlows = {
             engine.rouletteTileType = PaiData.TYPES[engine.rouletteIndex].id;
         }
 
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
             SkillFlows.finishRoulette(engine);
         }
     },

@@ -39,7 +39,7 @@ const EndingScene = {
         }
 
         if (this.canSkip) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.checkTrueEnding();
             }
         }
@@ -96,7 +96,13 @@ const EndingScene = {
 
         const isMayuUnlocked = Game.saveData && Game.saveData.unlocked && Game.saveData.unlocked.includes('mayu');
 
-        if (Game.continueCount === 0 && !isMayuUnlocked) {
+        // Playing AS Mayu must never route into the Mayu hidden-boss / true-ending
+        // path (you can't fight yourself). Normally implied by isMayuUnlocked being
+        // true while she's playable, but guard explicitly so a forced/debug run as
+        // Mayu still falls through to the normal credits.
+        const playerIsMayu = CharacterData[this.playerIndex] && CharacterData[this.playerIndex].id === 'mayu';
+
+        if (Game.continueCount === 0 && !isMayuUnlocked && !playerIsMayu) {
             console.log("TRUE ENDING PATH TRIGGERED!");
             // Transition to Mayu Encounter
             // Transition to Mayu Encounter

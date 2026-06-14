@@ -50,7 +50,7 @@ const TitleScene = {
         }
 
         if (this.currentState === this.STATE_PRESS_KEY) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.currentState = this.STATE_MODE_SELECT;
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
@@ -86,7 +86,7 @@ const TitleScene = {
                 this.menuIndex = (this.menuIndex + 1) % 3;
             }
 
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
                 if (this.menuIndex === 0) {
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
@@ -143,7 +143,7 @@ const TitleScene = {
             this.confirmSelected = (this.confirmSelected === 0) ? 1 : 0;
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
             if (this.confirmSelected === 0) {
                 Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
                 Game.continueCount = 0;

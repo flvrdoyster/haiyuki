@@ -29,7 +29,7 @@ const CreditsScene = {
         this.timer += dt;
 
         if (this.timer > CreditsConfig.EXIT_DELAY) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
                 Game.changeScene(TitleScene);
             }
         }

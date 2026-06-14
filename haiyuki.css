@@ -230,6 +230,17 @@ canvas {
 
     width: 100%;
     height: 100%;
+
+    /* Kill double-tap-to-zoom on the game surface (iOS Safari ignores
+       user-scalable=no but respects this). Pinch/scroll still work. */
+    touch-action: manipulation;
+}
+
+/* Same for tap targets outside the canvas (toolbar, footer links). The
+   virtual gamepad keeps its own touch-action: none (higher specificity). */
+button,
+a {
+    touch-action: manipulation;
 }
 
 #yaku-container {
@@ -354,4 +365,107 @@ hr {
     hr {
         margin: 10px 0;
     }
+}
+
+/* ----------------------------------------------------------------
+   Virtual Gamepad (mobile / touch only — toggled by js/core/gamepad.js)
+   Buttons dispatch keyboard events: D-pad → arrows, 확인 → Z, 메뉴 → Esc.
+   ---------------------------------------------------------------- */
+#virtual-gamepad {
+    display: none;
+}
+
+body.gamepad-on {
+    /* Make room so the fixed pad doesn't cover the canvas/footer */
+    padding-bottom: 180px;
+}
+
+body.gamepad-on #virtual-gamepad {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 18px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    z-index: 10000;
+}
+
+/* 키캡 공통 (프로스티드 글래스 — 에뮬레이터 페이지와 동일) */
+#virtual-gamepad button {
+    border-radius: 8px;
+    background: rgba(30, 30, 30, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(230, 230, 230, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'KoddiUDOnGothic', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    touch-action: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 3px 8px rgba(0, 0, 0, 0.35);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    transition: transform 0.05s, box-shadow 0.05s;
+}
+
+#virtual-gamepad button.active {
+    transform: translateY(3px);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* D-pad cross */
+.gamepad-dpad {
+    position: relative;
+    width: 140px;
+    height: 140px;
+}
+
+.gamepad-dpad button {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    /* 에뮬레이터는 전역 `button { padding:6px 14px }`를 게임패드가 상속받아
+       content box가 48→34px로 줄고 화살표(svg 50%)가 17px로 렌더됨. 패유기엔
+       전역 button 규칙이 없으므로 D-pad 버튼에만 동일 padding을 부여한다.
+       (액션 버튼은 .gamepad-buttons button의 `0 10px`를 따로 유지 — 같은
+       클래스 specificity라 충돌 없음.) */
+    padding: 6px 14px;
+}
+
+.dpad-up { top: 0; left: 46px; }
+.dpad-down { bottom: 0; left: 46px; }
+.dpad-left { top: 46px; left: 0; }
+.dpad-right { top: 46px; right: 0; }
+
+#virtual-gamepad button svg {
+    height: 50%;
+    width: auto;
+    pointer-events: none;
+}
+
+/* 확인/메뉴 글리프(ESC·Enter)는 가로로 길어 D-pad 화살표보다 작게 */
+#virtual-gamepad .gamepad-buttons button svg {
+    height: 30%;
+}
+
+/* Action buttons (에뮬레이터 페이지와 동일) */
+.gamepad-buttons {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.gamepad-buttons button {
+    min-width: 48px;
+    height: 48px;
+    padding: 0 10px;
 }

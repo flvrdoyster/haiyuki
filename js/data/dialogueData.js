@@ -334,10 +334,12 @@ const DialogueData = {
 
     // Mayu vs Yuri (Ending)
     "mayu_yuri_ending": [
-        { speaker: "mayu", text: "머~엉!!\n(그~럼, 이제부터가 즐길 거리다멍)", speakerState: 'smile', listenerState: 'shocked' },
-        { speaker: "yuri", text: "무… 무슨 짓이냐, 눈썹개!\n그런 무서운 얼굴 하지 마…\n농담은 그만둬…", speakerState: 'shocked', listenerState: 'smile' },
+        { speaker: "mayu", text: "머~엉!!\n(그~럼, 이제부터가 즐길 거리다멍)", speakerState: 'shocked', listenerState: '' },
+        { speaker: "yuri", text: "무… 무슨 짓을 할 셈이냐, 눈썹개!\n그런 무서운 얼굴을 하고서는…", speakerState: '', listenerState: 'shocked' },
+        { speaker: "yuri", text: "농담은 그만둬…", speakerState: 'shocked', listenerState: 'shocked' },
         { speaker: "mayu", text: "멍머~엉!\n(농담이 아니다멍)", speakerState: 'smile', listenerState: 'shocked' },
-        { speaker: "yuri", text: "그런 짓을 당하면,\n마을에 못 놀러 가게 되잖아!!\n그… 그만둬~!", speakerState: 'shocked', listenerState: 'smile' },
+        { speaker: "yuri", text: "그런 짓을 당하면,\n마을에 못 놀러 가게 되잖아!!", speakerState: 'shocked', listenerState: 'smile' },
+        { speaker: "yuri", text: "그… 그만둬~!", speakerState: 'shocked', listenerState: 'smile' },
     ],
 
 

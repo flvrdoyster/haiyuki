@@ -911,19 +911,19 @@ const BattleEngine = {
             case this.STATE_WIN:
             case this.STATE_LOSE:
                 // Block input during "Rolling" animation (140 frames)
-                if (this.stateTimer > 160 && (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER))) {
+                if (this.stateTimer > 160 && (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z))) {
                     this.confirmResult();
                 }
                 break;
 
             case this.STATE_NAGARI:
-                if (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+                if (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z)) {
                     this.confirmResult();
                 }
                 break;
 
             case this.STATE_MATCH_OVER:
-                if (this.stateTimer > 60 && (Input.isMouseDown || Input.isDown(Input.SPACE) || Input.isDown(Input.ENTER) || Input.isMouseJustPressed())) {
+                if (this.stateTimer > 60 && (Input.isMouseDown || Input.isDown(Input.SPACE) || Input.isDown(Input.Z) || Input.isMouseJustPressed())) {
                     this.proceedFromMatchOver();
                 }
                 break;

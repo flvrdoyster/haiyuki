@@ -194,7 +194,7 @@ const EncounterScene = {
         // -- STATE CHALLENGER INTRO --
         if (this.state === -1) {
             // Hold ~3s or Input to skip
-            if (this.textTimer > 180 || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+            if (this.textTimer > 180 || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
                 // Transition to Battle directly (Skip Dialogue)
                 console.log('Challenger Intro Finished. Go to battle.');
                 Game.changeScene(BattleScene, {
@@ -207,7 +207,7 @@ const EncounterScene = {
         }
 
         // Simple input to advance text OR Auto Test
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
 
             if (Game.isAutoTest) this.textTimer = 0;
 

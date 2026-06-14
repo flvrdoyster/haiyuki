@@ -35,3 +35,9 @@
 - **해결(2026-06-13):** `YakuLogic.isSunIlSaek`/`isChoIlSaek`에서 `color === 'purple'` 제외(빨/파/노 단색만 인정). 회귀 테스트(C-1 `SUN_IL_SAEK/CHO_IL_SAEK: 보라 단색…`) 추가.
 - **실효는 사실상 없음(규칙 정합성 보강):** 색을 안 가려 12장 전부 보라(mayu_purple)인 손도 순/초일색으로 *매칭 후보*엔 올랐던 잠재 버그. 단 (1) 보라는 1종 × `TILE_COUNT_PER_TYPE: 9`장이라 12장을 못 채워 **도달 불가**, (2) 설령 만들어도 12장 동일패는 `IP_E_DAM`(입에 담을 수도 없는 엄청난 기술, 12800)이 순일색(6400)보다 높아 그게 최상위로 표시됨 → 원시 키 노출도 실제론 안 일어남.
 - **주의(과거 오기 정정):** `IL_SAEK`(일색)은 "한 색 3세트 + 보라 눈썹개 3장"인 *섞인* 손이지 순수 보라가 아님 → 보라 단색은 일색도 아니다. 같은 버그 클래스: 자유 박애 평등 보라 제외, 순일색 meta.color 누락(둘 다 동일자 수정).
+
+## 7. 확인 다이얼로그 ESC 취소 죽은 코드 (`Input.ESCAPE` 미정의) — 낮음/정리성
+- **현재:** `battleScene.js:654`·`titleScene.js:157` 확인 다이얼로그 취소가 `Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)`인데, `input.js`엔 `Input.ESC`(='Escape')만 있고 **`Input.ESCAPE`는 미정의** → `isJustPressed(undefined)`는 항상 false라 ESC 분기가 죽어 있음. 실효: 다이얼로그가 **`X`로만 취소**(의도는 X 또는 ESC).
+- **심각도 낮음:** 두 다이얼로그 모두 **방향키로 YES/NO 토글 + `Z`로 확정** 구조이고 기본값이 NO라, 키보드(X 살아있음)·게임패드(방향키+확인) 양쪽 다 취소가 완전히 가능. ESC 단축키만 죽은 것 → 게임패드 패리티엔 영향 없음. 순수 죽은 코드 정리 건.
+- **고치려면:** `Input.ESCAPE`→`Input.ESC`만으론 부족 — ESC는 `battleScene.js:416` 전역 핸들러가 먼저 가로채 메뉴 토글로 빠짐. 패 교환 확정(전역 ESC가 `STATE_TILE_EXCHANGE` 건너뛰게 한 패턴)처럼, 다이얼로그가 떠 있을 땐 전역 ESC를 건너뛰고 다이얼로그가 직접 처리하도록 예외 필요.
+- **참고:** 발견 경위 — 입력 키를 Space/Z(확인)+ESC(메뉴)로 통일하며(전 씬 `Input.ENTER` 제거) 키 감사 중 발견.

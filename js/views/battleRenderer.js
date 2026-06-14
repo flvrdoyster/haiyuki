@@ -1497,10 +1497,11 @@ const BattleRenderer = {
         // confirmLayout uses: boxY + boxH - padding.y - btnH
         const btnY = y + h - conf.padding.y - btnH;
 
-        // Use Exchange Check
-        const lab = (conf.labelsExchange) ? conf.labelsExchange : { confirm: '교환', cancel: '패스' };
-
-        let label = (count === 0) ? `${lab.cancel} (ENTER)` : `${lab.confirm} (ENTER)`;
+        // Labels + key hint come from BattleConfig.CONFIRM.labelsExchange
+        // (single source for this UI text — see battleConfig.js).
+        const lab = conf.labelsExchange;
+        const keyHint = lab.key ? ` (${lab.key})` : '';
+        const label = (count === 0 ? lab.cancel : lab.confirm) + keyHint;
 
         // Hover handling
         const isHover = state.drawButtonHover;

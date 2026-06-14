@@ -35,10 +35,16 @@ test.describe('D. 게임 흐름 / 진행 검증', () => {
             const g = (0, eval)('Game');
             const e = (window as any).BattleEngine;
             const EncounterScene = (0, eval)('EncounterScene');
+            const CharacterSelectScene = (0, eval)('CharacterSelectScene');
 
             e.playerIndex = 0; e.cpuIndex = 1; e.matchWinner = 'P1';
             e.defeatedOpponents = [];
-            e.proceedFromMatchOver(); // → CharacterSelectScene(NEXT_MATCH) → selectNextOpponent → Encounter
+            e.proceedFromMatchOver(); // → CharacterSelectScene(NEXT_MATCH): 상대 룰렛 → READY → Encounter
+
+            // 다음 상대 선택은 이제 룰렛 애니메이션을 거쳐 비동기로 전환되므로 프레임을 진행시킨다.
+            for (let i = 0; i < 300 && g.currentScene === CharacterSelectScene; i++) {
+                g.currentScene.update(1);
+            }
 
             return {
                 isEncounter: g.currentScene === EncounterScene,
@@ -59,10 +65,16 @@ test.describe('D. 게임 흐름 / 진행 검증', () => {
             const g = (0, eval)('Game');
             const e = (window as any).BattleEngine;
             const EncounterScene = (0, eval)('EncounterScene');
+            const CharacterSelectScene = (0, eval)('CharacterSelectScene');
 
             e.playerIndex = 0; e.cpuIndex = 5; e.matchWinner = 'P1';
             e.defeatedOpponents = [1, 2, 3, 4]; // 5를 이기면 비히든 5명 전원 격파
             e.proceedFromMatchOver();
+
+            // 남은 상대 없음 → 룰렛 착지에서 goToEnding 으로 전환. 프레임을 진행시킨다.
+            for (let i = 0; i < 300 && g.currentScene === CharacterSelectScene; i++) {
+                g.currentScene.update(1);
+            }
 
             return { isEncounter: g.currentScene === EncounterScene, mode: EncounterScene.mode };
         });
@@ -121,6 +133,36 @@ test.describe('D. 게임 흐름 / 진행 검증', () => {
         expect(r.mode).toBe('TRUE_ENDING_CLEAR');
         expect(r.unlockedInMem).toBe(true);
         expect(r.unlockedPersisted).toBe(true);
+    });
+
+    test('마유로 플레이 시 히든 보스 난입(트루 엔딩) 분기로 가지 않는다', async ({ page }) => {
+        const r = await page.evaluate(() => {
+            const g = (0, eval)('Game');
+            const EndingScene = (0, eval)('EndingScene');
+            const EncounterScene = (0, eval)('EncounterScene');
+            const CreditsScene = (0, eval)('CreditsScene');
+            const CharacterData = (0, eval)('CharacterData');
+            const mayuIndex = CharacterData.findIndex((c: any) => c.id === 'mayu');
+
+            // 난입 조건을 일부러 충족(첫 클리어 + 마유 미해금)시켜도,
+            // 플레이어가 마유면 난입이 아니라 일반 크레딧으로 가야 한다.
+            g.continueCount = 0;
+            g.saveData = { unlocked: [], difficulty: 'normal' };
+
+            g.changeScene(EndingScene, { playerIndex: mayuIndex });
+            g.currentScene.checkTrueEnding();
+
+            return {
+                mayuIndexValid: mayuIndex >= 0,
+                isChallenger: g.currentScene === EncounterScene && EncounterScene.mode === 'CHALLENGER',
+                isCredits: g.currentScene === CreditsScene,
+                endingType: CreditsScene.endingType,
+            };
+        });
+        expect(r.mayuIndexValid).toBe(true);
+        expect(r.isChallenger).toBe(false); // 난입 안 함
+        expect(r.isCredits).toBe(true);
+        expect(r.endingType).toBe('NORMAL');
     });
 
     test('CreditsScene 가 TRUE / NORMAL 엔딩 타입으로 진입한다', async ({ page }) => {

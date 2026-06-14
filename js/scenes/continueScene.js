@@ -86,7 +86,7 @@ const ContinueScene = {
         }
 
         // Confirm
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed()) {
+        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
             if (this.selectedOption === 0) {
                 this.retry();
             } else {

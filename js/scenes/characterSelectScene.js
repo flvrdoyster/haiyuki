@@ -86,10 +86,12 @@ const CharacterSelectScene = {
         if (this.mode === 'NEXT_MATCH') {
             this.playerIndex = data.playerIndex;
             this.updateP1Portrait();
-            this.currentState = this.STATE_CPU_SELECT; // Skip player select
-
-            // Auto-select CPU
-            this.selectNextOpponent();
+            // Skip player select, then run the opponent roulette (same as the
+            // first match) instead of jumping straight to the encounter — so the
+            // spin + cursor blip play for every subsequent opponent too. The
+            // roulette landing (chooseOpponentIndex) still excludes beaten chars.
+            this.currentState = this.STATE_CPU_SELECT;
+            this.cpuTimer = 0;
         }
     },
 
@@ -131,8 +133,8 @@ const CharacterSelectScene = {
     // A character is a valid regular opponent iff it is NOT the player, NOT
     // already defeated, and NOT hidden. Mayu (hidden) appears only as the
     // true-ending boss (see EndingScene) — never as a tournament opponent.
-    // Both the auto-progression (selectNextOpponent) and the first-match
-    // roulette go through this, so they can't diverge.
+    // The opponent roulette's landing (chooseOpponentIndex) goes through this
+    // for the first match and every subsequent one, so they can't diverge.
     getAvailableOpponents: function () {
         const out = [];
         for (let i = 0; i < this.characters.length; i++) {
@@ -174,19 +176,6 @@ const CharacterSelectScene = {
         });
     },
 
-    selectNextOpponent: function () {
-        const idx = this.chooseOpponentIndex();
-        if (idx === null) { this.goToEnding(); return; }
-
-        this.cpuIndex = idx;
-        this.updateCpuPortrait();
-        Game.changeScene(EncounterScene, {
-            playerIndex: this.playerIndex,
-            cpuIndex: this.cpuIndex,
-            defeatedOpponents: this.defeatedOpponents
-        });
-    },
-
     update: function (dt = 1.0) {
         dt = dt || 1.0;
         // Update Animation States
@@ -223,7 +212,7 @@ const CharacterSelectScene = {
                 if (onHidden) backToRow();
             }
 
-            if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
+            if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
                 // Confirm Player
                 // Play sound
                 this.currentState = this.STATE_CPU_SELECT;
@@ -277,7 +266,7 @@ const CharacterSelectScene = {
                     this.updateCpuPortrait();
                 }
 
-                if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
+                if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
                     // Confirm CPU
                     this.currentState = this.STATE_READY;
                     this.readyTimer = 0;
@@ -325,10 +314,15 @@ const CharacterSelectScene = {
 
                     this.cpuIndex = nextIndex;
                     this.updateCpuPortrait();
+                    // Roulette cursor moved — same blip as the player's cursor move.
+                    Assets.playSound('audio/tick');
                 }
 
                 if (this.cpuTimer > this.cpuSelectDuration) {
-                    // Same selection rule as auto-progression (excludes hidden Mayu).
+                    // Roulette landed: pick the opponent and reveal it on the
+                    // READY/VS screen before the encounter. Same path for the
+                    // first match and every subsequent one — chooseOpponentIndex
+                    // stays the single selection rule (excludes hidden Mayu).
                     const idx = this.chooseOpponentIndex();
                     if (idx === null) {
                         console.log("Roulette: no opponents left → ending");

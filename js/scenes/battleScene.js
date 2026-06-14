@@ -417,8 +417,13 @@ const BattleScene = {
             // Block Menu during Riichi (Auto-discard)
             if (engine.p1 && engine.p1.isRiichi) return;
 
-            BattleMenuSystem.toggle();
-            return;
+            // No battle menu during tile-exchange setup — fall through so
+            // handleTileExchangeInput can use ESC as the exchange-confirm key
+            // (replaces Enter, per user request).
+            if (engine.currentState !== engine.STATE_TILE_EXCHANGE) {
+                BattleMenuSystem.toggle();
+                return;
+            }
         }
 
         if (engine.currentState === engine.STATE_BATTLE_MENU) {
@@ -436,7 +441,7 @@ const BattleScene = {
             // The draw button just draws (continue playing). A win, when available,
             // is opt-in via the menu (아가리) — drawing forgoes it, letting the
             // player keep aiming for a higher hand.
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER)) {
+            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z)) {
                 engine.confirmDraw();
             } else if (Input.isMouseJustPressed()) {
                 if (engine.drawButtonHover) {
@@ -448,8 +453,10 @@ const BattleScene = {
             engine.currentState === engine.STATE_NAGARI) {
 
             // Result Screen Input (Delayed 2s)
-            // engine.stateTimer ensures we wait before accepting input
-            if (engine.stateTimer > 120 && (Input.isDown(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isMouseJustPressed())) {
+            // engine.stateTimer ensures we wait before accepting input.
+            // Z/Space both require a fresh press (not isDown) so the winning/
+            // confirming keypress can't bleed through and skip the result.
+            if (engine.stateTimer > 120 && (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed())) {
                 engine.confirmResult();
             }
         }
@@ -480,7 +487,7 @@ const BattleScene = {
             }
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.SPACE)) {
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
             BattleMenuSystem.handleSelection();
         }
     },
@@ -637,7 +644,7 @@ const BattleScene = {
             // Optional: Play tick sound
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.ENTER)) {
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
             if (d.selected === 0) {
                 if (d.onYes) d.onYes();
             } else {
@@ -676,8 +683,8 @@ const BattleScene = {
             if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
         }
 
-        // Toggle Selection
-        if (Input.isJustPressed(Input.SPACE) || (Input.isMouseJustPressed() && hovered !== -1)) {
+        // Toggle Selection — Z(=Space) marks/unmarks a tile for exchange.
+        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || (Input.isMouseJustPressed() && hovered !== -1)) {
             if (engine.hoverIndex >= 0 && engine.hoverIndex < handSize) {
                 engine.toggleExchangeSelection(engine.hoverIndex);
             }
@@ -692,10 +699,12 @@ const BattleScene = {
             engine.drawButtonHover = isHoverButton; // Reuse this flag or new one? Reuse OK.
         }
 
-        if (Input.isJustPressed(Input.ENTER) || Input.isJustPressed(Input.Z) || (Input.isMouseJustPressed() && isHoverButton)) {
+        // Confirm with ESC only — Z is the select/deselect toggle above, so the
+        // exchange is committed with ESC (or clicking the confirm button). ESC
+        // reaches here because the global menu-toggle skips STATE_TILE_EXCHANGE.
+        if (Input.isJustPressed(Input.ESC) || (Input.isMouseJustPressed() && isHoverButton)) {
             engine.confirmTileExchange();
         }
-        // ESC Removed as per user request
     },
 
 };
