@@ -260,3 +260,137 @@ const DebugCheats = {
 // Console shorthands (kept from the old BattleEngine/Game globals)
 window.debugWin = () => DebugCheats.debugWin();
 window.triggerMayu = () => DebugCheats.triggerMayu();
+
+/**
+ * DebugOverlay — on-screen console for devtools-less debugging (mobile).
+ *
+ * Mirrors console.log/info/warn/error AND uncaught errors (window 'error' +
+ * 'unhandledrejection') into a fixed, scrollable panel — so you can read logs
+ * on a phone where devtools isn't available. Original console methods still
+ * fire (passthrough). Self-contained: builds its own DOM + styles, no edits to
+ * index.html or CSS.
+ *
+ * Shown only when the URL has ?debug (close with the ✕ button). When ?debug is
+ * absent this module does nothing — no console wrapping, no DOM. No game logic here.
+ */
+const DebugOverlay = (() => {
+    'use strict';
+
+    const MAX = 120;                       // ring-buffer line cap
+    const COLORS = { error: '#ff6b6b', warn: '#ffd166', info: '#8ec6ff', log: '#cfd2d6' };
+
+    let buffer = [];
+    let panel = null, logBody = null, visible = false, installed = false;
+
+    function autoShow() {
+        try { return new URLSearchParams(location.search).has('debug'); } catch (_) { return false; }
+    }
+
+    // Stringify console args without ever calling console.* (would re-enter).
+    function fmt(args) {
+        return Array.prototype.map.call(args, (a) => {
+            if (a instanceof Error) return a.message;
+            if (a && typeof a === 'object') { try { return JSON.stringify(a); } catch (_) { return String(a); } }
+            return String(a);
+        }).join(' ');
+    }
+
+    function mkBtn(label, onClick) {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.style.cssText = 'font:11px monospace;background:rgba(255,255,255,0.15);color:#fff;border:0;border-radius:3px;padding:2px 8px;margin-left:6px;cursor:pointer';
+        b.addEventListener('click', onClick);
+        return b;
+    }
+
+    function build() {
+        if (panel) return;
+        panel = document.createElement('div');
+        panel.id = 'debug-overlay';
+        panel.style.cssText = [
+            // Fixed-size strip pinned to the top — never grows with content, so it
+            // can't swallow the screen mid-play. logBody scrolls to show latest.
+            'position:fixed', 'top:0', 'left:0', 'right:0', 'height:150px',
+            'z-index:20000', 'display:none', 'flex-direction:column',
+            'font:11px/1.45 monospace', 'background:rgba(0,0,0,0.82)', 'color:#cfd2d6',
+            'border-bottom:1px solid rgba(255,255,255,0.25)', 'user-select:text', '-webkit-user-select:text'
+        ].join(';');
+
+        const bar = document.createElement('div');
+        bar.style.cssText = 'display:flex;align-items:center;padding:4px 8px;background:rgba(255,255,255,0.08);flex:0 0 auto';
+        const title = document.createElement('span');
+        title.textContent = 'DEBUG';
+        title.style.cssText = 'font-weight:700;letter-spacing:1px;flex:1';
+        bar.appendChild(title);
+        bar.appendChild(mkBtn('clear', () => { buffer = []; render(); }));
+        bar.appendChild(mkBtn('✕', toggle));
+
+        logBody = document.createElement('div');
+        logBody.style.cssText = 'overflow-y:auto;padding:4px 8px;flex:1 1 auto;white-space:pre-wrap;word-break:break-word';
+
+        panel.appendChild(bar);
+        panel.appendChild(logBody);
+        document.body.appendChild(panel);
+    }
+
+    function render() {
+        if (!logBody) return;
+        logBody.innerHTML = buffer.map((e) => {
+            const c = COLORS[e.level] || COLORS.log;
+            const t = e.text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            return '<div style="color:' + c + '">' + t + '</div>';
+        }).join('');
+        logBody.scrollTop = logBody.scrollHeight;
+    }
+
+    function push(level, text) {
+        buffer.push({ level, text });
+        if (buffer.length > MAX) buffer.shift();
+        if (visible) render();
+    }
+
+    function toggle() {
+        build();
+        visible = !visible;
+        panel.style.display = visible ? 'flex' : 'none';
+        if (visible) render();
+    }
+
+    // Wrap console.* (passthrough) + catch uncaught errors.
+    function hook() {
+        if (installed) return;
+        installed = true;
+        ['log', 'info', 'warn', 'error'].forEach((lvl) => {
+            const orig = console[lvl] ? console[lvl].bind(console) : function () {};
+            console[lvl] = function () {
+                orig.apply(null, arguments);
+                try { push(lvl, fmt(arguments)); } catch (_) { /* never break the app */ }
+            };
+        });
+        window.addEventListener('error', (e) => {
+            const at = e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '';
+            push('error', (e.message || 'Error') + at);
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            const r = e.reason;
+            push('error', 'Unhandled: ' + (r && r.message ? r.message : String(r)));
+        });
+    }
+
+    function init() {
+        if (!autoShow()) return;   // ?debug-only — zero overhead when absent
+        hook();
+        build();
+        visible = true;
+        panel.style.display = 'flex';
+        render();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    return { toggle, push };
+})();

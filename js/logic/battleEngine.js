@@ -324,6 +324,8 @@ const BattleEngine = {
         this.stateTimer = 0;
         this.matchWinner = winner; // Store for transition
 
+        console.log(`[Match] ${winner} wins — P1 HP ${this.p1.hp} / CPU HP ${this.cpu.hp}`);
+
         // Stop BGM
         this.events.push({ type: 'STOP_MUSIC' });
 
@@ -942,6 +944,7 @@ const BattleEngine = {
                         // Apply actual HP change
                         const victim = this.getPlayer(this.pendingDamage.target);
                         victim.hp = Math.max(0, victim.hp - this.pendingDamage.amount);
+                        console.log(`[Damage] ${this.pendingDamage.target} -${this.pendingDamage.amount} → HP ${victim.hp}`);
                         this.setExpression(this.pendingDamage.target, 'shocked');
                     }
                 }
@@ -1030,6 +1033,7 @@ const BattleEngine = {
             const drawnTile = t[0];
             this.events.push({ type: 'DRAW', player: 'P1' });
             this.p1.hand.push(drawnTile);
+            console.log(`[Draw] P1: ${drawnTile.color} ${drawnTile.type}`);
 
             // Grouping Logic Removed as per user request.
             // Just keep the new tile at the end.
@@ -1065,6 +1069,7 @@ const BattleEngine = {
             if (t.length > 0) {
                 this.events.push({ type: 'DRAW', player: 'CPU' });
                 this.cpu.hand.push(t[0]);
+                console.log(`[Draw] CPU: ${t[0].color} ${t[0].type}`);
             }
         }
 
@@ -1821,6 +1826,7 @@ const BattleEngine = {
         });
         player.isMenzen = false;
         this.discards.pop();
+        console.log(`[Pon] ${player === this.p1 ? 'P1' : 'CPU'}: ${tile.color} ${tile.type}`);
         return true;
     },
 
@@ -1842,6 +1848,7 @@ const BattleEngine = {
         const newTiles = this.drawTiles(removedTiles.length, player);
         player.hand.push(...newTiles);
         this.sortHand(player.hand);
+        console.log(`[Exchange] ${player === this.p1 ? 'P1' : 'CPU'}: ${removedTiles.length}장 — out [${removedTiles.map(t => t.type).join(',')}] in [${newTiles.map(t => t.type).join(',')}]`);
     },
 
     confirmDraw: function () {

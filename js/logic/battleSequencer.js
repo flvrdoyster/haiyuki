@@ -41,6 +41,10 @@ const BattleSequencer = {
         // Prepare Data
         engine.pendingDamage = { target: who === 'P1' ? 'CPU' : 'P1', amount: finalScore };
 
+        const wy = engine.winningYaku;
+        const yakuStr = (wy && (Array.isArray(wy.yaku) ? wy.yaku.join('+') : wy.name)) || '?';
+        console.log(`[Round] ${who} WIN — ${type} · ${yakuStr} · ${finalScore} dmg${activeBuffs.length ? ' [' + activeBuffs.join(',') + ']' : ''}`);
+
         const winner = who === 'P1' ? 'p1' : 'cpu';
         const loser = who === 'P1' ? 'cpu' : 'p1';
 
@@ -186,6 +190,8 @@ const BattleSequencer = {
         const damageResult = engine.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
         const damageMsg = damageResult.msg;
         const damage = damageResult.damage;
+
+        console.log(`[Round] NAGARI — P1 ${p1Tenpai ? '텐파이' : '노텐'} / CPU ${cpuTenpai ? '텐파이' : '노텐'} · ${damage} dmg`);
 
         const p1Tx = p1Tenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
         const cpuTx = cpuTenpai ? BattleConfig.STATUS_TEXTS.TENPAI : BattleConfig.STATUS_TEXTS.NOTEN;
