@@ -153,10 +153,7 @@ const TitleScene = {
             }
             this.confirmActive = false;
         }
-
-        if (Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)) {
-            this.confirmActive = false;
-        }
+        // No separate cancel key — 방향키로 NO 선택 + Z(Space)로 닫는다(키맵 일치).
     },
 
     draw: function (ctx) {

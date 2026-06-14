@@ -18,8 +18,6 @@ const Input = {
     UP: 'ArrowUp',
     DOWN: 'ArrowDown',
     Z: 'KeyZ',
-    X: 'KeyX',
-    ENTER: 'Enter',
     SPACE: 'Space',
     ESC: 'Escape',
     D: 'KeyD',

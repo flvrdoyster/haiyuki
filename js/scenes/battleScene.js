@@ -652,11 +652,9 @@ const BattleScene = {
             }
             this.confirmData = null;
         }
-
-        if (Input.isJustPressed(Input.X) || Input.isJustPressed(Input.ESCAPE)) {
-            if (d.onNo) d.onNo();
-            this.confirmData = null;
-        }
+        // Cancel = leave the selection on NO (default) and press Z/Space, or
+        // toggle to NO with the arrows. No separate cancel key (X/ESC) — the
+        // dialog is fully operable with 방향키 + Z(Space), matching the keymap.
     },
 
     drawConfirm: function (ctx) {
