@@ -556,6 +556,37 @@ test.describe('C-4. SPIRIT_RIICHI 중복 사용 방지', () => {
 
         expect(canUse, 'spiritTimer 없으면 사용 가능').toBe(true);
     });
+
+    test('SPIRIT_RIICHI 사용 시 실제 리치가 걸리고 타패가 텐파이 유지 패로 제한된다', async ({ page }) => {
+        await setupSpiritRiichiEnv(page);
+
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine;
+            e.p1.buffs = {};
+            e.currentState = e.STATE_PLAYER_TURN;
+            e._cachedSelfActionsKey = null; e._cachedSelfActions = null;
+            const used = e.useSkill('SPIRIT_RIICHI', 'P1');
+            const valid: number[] = Array.isArray(e.validRiichiDiscardIndices) ? e.validRiichiDiscardIndices : [];
+            const punchIdx = e.p1.hand.findIndex((t: any) => t.type === 'punch');
+            return {
+                used,
+                isRiichi: e.p1.isRiichi,
+                declaringRiichi: e.p1.declaringRiichi,
+                spiritTimer: e.p1.buffs.spiritTimer,
+                validCount: valid.length,
+                punchAllowed: valid.includes(punchIdx),  // 텐파이 유지 → 허용
+                atahoAllowed: valid.includes(0),          // ataho 버리면 텐파이 깨짐 → 불허
+            };
+        });
+
+        expect(r.used, '스킬 사용 성공').toBe(true);
+        expect(r.isRiichi, '실제 리치 선언됨').toBe(true);
+        expect(r.declaringRiichi, '다음 타패가 리치패').toBe(true);
+        expect(r.spiritTimer, '기합 타이머 5턴').toBe(5);
+        expect(r.validCount, '버릴 수 있는 패가 제한됨').toBeGreaterThan(0);
+        expect(r.punchAllowed, '텐파이 유지 패(punch)는 버릴 수 있음').toBe(true);
+        expect(r.atahoAllowed, '텐파이 깨는 패(ataho)는 못 버림').toBe(false);
+    });
 });
 
 // ============================================================================
