@@ -718,13 +718,17 @@ const BattleEngine = {
             // Curse Draw (Hell Pile)
             if (who.buffs && who.buffs.curseDraw > 0) {
                 // Simplistic: Ensure we don't give a winning tile if possible
-                // Simple implementation: Move top tile to bottom if it matches any tile in hand (set building).
-                // Try up to 3 times to find a 'bad' tile.
+                // Move the top tile to the bottom while it'd be useful to the
+                // victim. Yaku here are triplet/color based (no sequential runs),
+                // so "useful" = pairs with a held tile (same id) OR feeds a colour
+                // flush they're already concentrating (≥5 of that colour).
+                // Try up to 5 times to find a 'bad' tile.
 
                 let attempts = 0;
                 while (attempts < 5) {
                     const topTile = this.deck[this.deck.length - 1]; // Candidate
-                    const isUseful = who.hand.some(t => t.type === topTile.type || (t.color === topTile.color && Math.abs(t.type - topTile.type) <= 1));
+                    const sameColorCount = who.hand.filter(t => t.color === topTile.color).length;
+                    const isUseful = who.hand.some(t => t.type === topTile.type) || sameColorCount >= 5;
 
                     if (isUseful) {
                         // It's useful, bury it
@@ -1061,12 +1065,20 @@ const BattleEngine = {
     cpuDraw: function () {
         if (this.cpu.needsToDiscard) {
             this.cpu.needsToDiscard = false;
+            this.cpuDrawInfo = null; // Post-Pon: no fresh draw to react to
         } else {
+            // Snapshot the pre-draw concealed hand so the discard-time reaction
+            // can cheaply judge whether the drawn tile was useful (GOOD_DRAW) or
+            // junk (BAD_DRAW). No heavy yaku eval — just same-id/color counts.
+            const preHand = [...this.cpu.hand];
             const t = this.drawTiles(1, this.cpu);
             if (t.length > 0) {
                 this.events.push({ type: 'DRAW', player: 'CPU' });
                 this.cpu.hand.push(t[0]);
                 console.log(`[Draw] CPU: ${t[0].color} ${t[0].type}`);
+                this.cpuDrawInfo = { tile: t[0], preHand: preHand };
+            } else {
+                this.cpuDrawInfo = null;
             }
         }
 
@@ -1172,12 +1184,21 @@ const BattleEngine = {
 
         // Suppress random dialogue if CPU is Riichi (Silent Focus)
         if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !this.cpu.isRiichi) {
+            const CH = BattleConfig.DIALOGUE.CHANCE;
             if (this.p1.isRiichi) {
-                if (Math.random() < BattleConfig.DIALOGUE.CHANCE.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
+                if (Math.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
             } else {
-                if (Math.random() < BattleConfig.DIALOGUE.CHANCE.RANDOM) this.triggerDialogue('RANDOM', 'cpu');
+                // React to how good the freshly drawn tile was. classifyCpuDraw
+                // falls back to 'RANDOM' (neutral) when the tile is unremarkable
+                // or the character has no situational line.
+                const key = this.classifyCpuDraw();
+                const chance = key === 'GOOD_DRAW' ? CH.DRAW_GOOD
+                    : key === 'BAD_DRAW' ? CH.DRAW_BAD
+                        : CH.RANDOM;
+                if (Math.random() < chance) this.triggerDialogue(key, 'cpu', 'RANDOM');
             }
         }
+        this.cpuDrawInfo = null; // Consumed
 
         this.discards.push(discarded);
         console.log(`[Discard] CPU: ${discarded.color} ${discarded.type}${discarded.isRiichi ? ' [Riichi]' : ''}`);
@@ -1908,7 +1929,34 @@ const BattleEngine = {
         return YakuLogic.getRiichiScore(this.p1.hand, this.p1.id, discardIdx);
     },
 
-    triggerDialogue: function (key, owner) {
+    // Classify the CPU's freshly drawn tile (set in cpuDraw) into a dialogue
+    // pool: 'GOOD_DRAW' (useful), 'BAD_DRAW' (junk) or 'RANDOM' (unremarkable).
+    classifyCpuDraw: function () {
+        const info = this.cpuDrawInfo;
+        if (!info || !info.tile) return 'RANDOM';
+        const tile = info.tile;
+        const preHand = info.preHand || [];
+
+        // Cheap O(N) judgement — runs once per CPU discard, must NOT do heavy
+        // yaku/shanten recomputation (that path caused past slowdowns). Yaku here
+        // are triplet/color based (no runs), so a tile's worth ≈ how many it
+        // pairs with (same id) + its color concentration.
+        const sameType = preHand.filter(t => t.type === tile.type).length;
+        const sameColor = preHand.filter(t => t.color === tile.color).length;
+
+        // GOOD: completes a triplet (already held a pair)
+        if (sameType >= 2) return 'GOOD_DRAW';
+
+        // BAD: isolated junk — pairs with nothing and its color barely appears
+        if (sameType === 0 && sameColor <= 2) return 'BAD_DRAW';
+
+        return 'RANDOM';
+    },
+
+    // fallbackKey: if the character has no line for `key`, use this key on the
+    // SAME character first (e.g. GOOD_DRAW → that char's neutral RANDOM) before
+    // falling through to the global default pool.
+    triggerDialogue: function (key, owner, fallbackKey) {
         if (!DialogueData || !DialogueData.BATTLE) return;
 
         const charId = (owner === 'p1' || owner === 'P1') ? this.p1.id : this.cpu.id;
@@ -1918,6 +1966,9 @@ const BattleEngine = {
 
 
         let lines = usedData[key];
+        if ((!lines || lines.length === 0) && fallbackKey) {
+            lines = usedData[fallbackKey];
+        }
         if (!lines || lines.length === 0) {
             lines = DialogueData.BATTLE.default[key];
         }

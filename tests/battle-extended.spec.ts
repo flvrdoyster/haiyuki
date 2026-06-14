@@ -1204,4 +1204,50 @@ test.describe('C-9. 전 스킬 효과 전수 검증', () => {
         expect(r.PAINT_TILE, 'PAINT_TILE').toBe(true);
         expect(r.lastChance, 'LAST_CHANCE').toBe(true);
     });
+
+    test('상황별 대사: 좋은/나쁜 드로우 분류 + 빈 풀 중립 폴백', async ({ page }) => {
+        await setupSkillHarness(page);
+        const r = await page.evaluate(() => {
+            const e = (window as any).BattleEngine, mk = (window as any).__mk;
+            const out: any = {};
+
+            const classify = (cpuId: string, preHand: any[], tile: any) => {
+                e.cpu.id = cpuId;
+                e.cpuDrawInfo = { tile, preHand };
+                return e.classifyCpuDraw();
+            };
+
+            // GOOD: 같은 패 2장 보유 → 3장째 드로우(트리플 완성)
+            out.good = classify('ataho', [mk('ataho'), mk('ataho'), mk('smash')], mk('ataho')) === 'GOOD_DRAW';
+            // BAD: 같은 타입 0 + 같은 색 ≤2 (고립패)
+            out.bad = classify('ataho', [mk('ataho'), mk('smash')], mk('wand')) === 'BAD_DRAW';
+            // NEUTRAL: 같은 타입 0 이지만 같은 색 ≥3 (색은 모이는 중)
+            out.neutral = classify('ataho', [mk('ataho'), mk('rin'), mk('punch')], mk('mayu_red')) === 'RANDOM';
+
+            // 폴백 메커니즘 검증 — 실제 대사 내용(재분류로 바뀜)에 의존하지 않도록
+            // 임시 캐릭터를 주입해 triggerDialogue의 폴백만 격리 테스트한다.
+            const DD = (0, eval)('DialogueData');
+            const saved = DD.BATTLE.ataho;
+            e.cpu.id = 'ataho';
+            const sayWith = (charDef: any, key: string, fb: string) => {
+                DD.BATTLE.ataho = charDef;
+                const before = e.events.length;
+                e.triggerDialogue(key, 'cpu', fb);
+                const ev = e.events.slice(before).find((x: any) => x.type === 'DIALOGUE');
+                return ev ? ev.text : null;
+            };
+            // 빈 GOOD_DRAW → 같은 캐릭터 RANDOM(중립)으로 폴백
+            out.fallback = sayWith({ GOOD_DRAW: [], RANDOM: ['__FB__'] }, 'GOOD_DRAW', 'RANDOM') === '__FB__';
+            // 채워진 GOOD_DRAW → 폴백보다 전용 라인 우선
+            out.atahoGood = sayWith({ GOOD_DRAW: ['__GD__'], RANDOM: ['__FB__'] }, 'GOOD_DRAW', 'RANDOM') === '__GD__';
+            DD.BATTLE.ataho = saved; // restore
+
+            return out;
+        });
+        expect(r.good, 'GOOD_DRAW 분류').toBe(true);
+        expect(r.bad, 'BAD_DRAW 분류').toBe(true);
+        expect(r.neutral, 'RANDOM(중립) 분류').toBe(true);
+        expect(r.fallback, '빈 풀 → 중립 폴백').toBe(true);
+        expect(r.atahoGood, '아타호 GOOD_DRAW 전용 라인').toBe(true);
+    });
 });

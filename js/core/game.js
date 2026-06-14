@@ -182,6 +182,15 @@ const Game = {
 
     changeScene: function (scene, data) {
         this.currentScene = scene;
+
+        // 난이도는 BattleScene.init에서 1회만 적용되어 진행 중 매치엔 반영되지 않으므로,
+        // 전투 중에는 토글을 잠가 "바꿨는데 왜 안 변하지" 혼란을 막는다. 전투를 벗어나면
+        // 자동 해제. (다음 판 난이도 미리 변경은 전투 종료 후 가능.)
+        const diffBtn = document.getElementById('difficulty-btn');
+        if (diffBtn) {
+            diffBtn.disabled = (typeof BattleScene !== 'undefined' && scene === BattleScene);
+        }
+
         if (this.currentScene && this.currentScene.init) {
             this.currentScene.init(data);
         }

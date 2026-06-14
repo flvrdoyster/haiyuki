@@ -286,4 +286,20 @@ test.describe('D. 게임 흐름 / 진행 검증', () => {
         expect(r.asMayuOpponents).toBe(6);
         expect(r.asMayuExcludesSelf).toBe(true);
     });
+
+    // ── D-5. 전투 중 난이도 토글 잠금 ──────────────────────────────────────
+    test('전투 진입 시 난이도 토글이 잠기고, 전투를 벗어나면 해제된다', async ({ page }) => {
+        await startBattle(page, { playerIndex: 0, cpuIndex: 1, autoTest: false });
+        const r = await page.evaluate(() => {
+            const g = (0, eval)('Game');
+            const btn = document.getElementById('difficulty-btn') as HTMLButtonElement;
+            const lockedInBattle = btn.disabled;
+            // 전투 외 씬으로 전환 (실제 씬 init 부작용을 피하려고 더미 씬 사용)
+            g.changeScene({ init() { } });
+            const unlockedAfter = btn.disabled;
+            return { lockedInBattle, unlockedAfter };
+        });
+        expect(r.lockedInBattle, '전투 중 잠금').toBe(true);
+        expect(r.unlockedAfter, '전투 이탈 시 해제').toBe(false);
+    });
 });

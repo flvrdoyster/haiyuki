@@ -188,8 +188,10 @@ const BattleConfig = {
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
         CHANCE: {
-            RANDOM: 0.3,      // Chance for random dialogue (0.0 - 1.0)
-            WORRY_RON: 0.6    // Chance for worry dialogue when player is Riichi
+            RANDOM: 0.7,      // Neutral draw chatter (0.0 - 1.0)
+            WORRY_RON: 0.7,   // Chance for worry dialogue when player is Riichi
+            DRAW_GOOD: 0.7,   // Reaction when a useful tile is drawn (GOOD_DRAW)
+            DRAW_BAD: 0.7     // Reaction when a useless tile is drawn (BAD_DRAW)
         }
     },
     POPUP: {

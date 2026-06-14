@@ -170,6 +170,16 @@ a:hover {
     filter: brightness(1.2);
 }
 
+/* Disabled (e.g. difficulty locked during a battle): dimmed, no hover lift. */
+.toolbar-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.toolbar-btn:disabled:hover {
+    filter: none;
+}
+
 /* Mute & fullscreen use inline-SVG icon buttons (gray, hover lightens) instead
    of the on/off image toggles — matches the gensei-pc98 emulator's .btn-icon. */
 .toolbar-icon-btn {

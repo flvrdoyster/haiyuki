@@ -411,6 +411,8 @@ const DialogueData = {
             RIICHI_REPLY: [],
             WIN: [],
             RANDOM: [],
+            GOOD_DRAW: [],
+            BAD_DRAW: [],
             COUNTER_RIICHI: [],
             WORRY_RON: []
         },
@@ -421,7 +423,9 @@ const DialogueData = {
             RIICHI: ["그럼 가볼까."],
             RIICHI_REPLY: ["음, 제법이구먼."],
             WIN: ["아직 자네에게 질 수는 없지."],
-            RANDOM: ["이건 필요 없는 패로구먼.", "이걸 기다리고 있었다네.", "흠."],
+            RANDOM: ["흠."],
+            GOOD_DRAW: ["이걸 기다리고 있었다네."],
+            BAD_DRAW: ["이건 필요 없는 패로구먼."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
             WORRY_RON: ["이거 위험한가?", "이건 넘어가겠지."],
             // Skills
@@ -435,7 +439,9 @@ const DialogueData = {
             RIICHI: ["좋아, 승부야!!"],
             RIICHI_REPLY: ["제법 하는걸."],
             WIN: ["후훗, 미안하지만 내가 이겨야겠어."],
-            RANDOM: ["이런 건 필요없어.", "좋았어, 운이 좀 따르는걸.", "과연."],
+            RANDOM: ["과연."],
+            GOOD_DRAW: ["좋았어, 운이 좀 따르는걸."],
+            BAD_DRAW: ["이런 건 필요없어."],
             COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
             WORRY_RON: ["이거... 설마...", "설마 이런 패를 원할 리 없겠지."],
             // Skills
@@ -449,7 +455,9 @@ const DialogueData = {
             RIICHI: ["좋았어! 승부라고!!"],
             RIICHI_REPLY: ["꽤 하잖아?"],
             WIN: ["절호조!(철 지난 유행어)"],
-            RANDOM: ["에~엣취!!", "오옷! 럭키~!!", "이건 필요 없겠는데..."],
+            RANDOM: ["에~엣취!!"],
+            GOOD_DRAW: ["오옷! 럭키~!!"],
+            BAD_DRAW: ["이건 필요 없겠는데..."],
             COUNTER_RIICHI: ["후우~ 겨우 다 모았네..."],
             WORRY_RON: ["이거 위험하겠는데...", "뭔가 수상한데..."],
             // Skills
@@ -463,7 +471,9 @@ const DialogueData = {
             RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["의외로군요. 제법이지 않습니까."],
             WIN: ["전략의 차이군요."],
-            RANDOM: ["하아.", "흠.", "과연."],
+            RANDOM: ["흠."],
+            GOOD_DRAW: ["과연."],
+            BAD_DRAW: ["하아."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
             WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요.", "이걸로 될까요?"],
             // Skills
@@ -477,7 +487,9 @@ const DialogueData = {
             RIICHI: ["먼저 실례할게요."],
             RIICHI_REPLY: ["어머, 정말 강하시네요."],
             WIN: ["어머나, 운이 좋았네요."],
-            RANDOM: ["유감이지만,\n이건 필요 없겠어요.", "좋은 패가 들어왔네요.", "에잇."],
+            RANDOM: ["에잇."],
+            GOOD_DRAW: ["좋은 패가 들어왔네요."],
+            BAD_DRAW: ["유감이지만,\n이건 필요 없겠어요."],
             COUNTER_RIICHI: ["우후훗, 지고 있을 순 없죠."],
             WORRY_RON: ["이건... 위험할까요?", "이거, 넘어가겠지요?"],
             // Skills
@@ -491,7 +503,9 @@ const DialogueData = {
             RIICHI: ["먼저 실례~"],
             RIICHI_REPLY: ["빠르기도 하네..."],
             WIN: ["미안하구만!!"],
-            RANDOM: ["뭐야...", "훗...", "이런이런..."],
+            RANDOM: ["뭐야..."],
+            GOOD_DRAW: ["훗..."],
+            BAD_DRAW: ["이런이런..."],
             COUNTER_RIICHI: ["나도 질 수 없지."],
             WORRY_RON: ["이건 어떠냐!!", "이건 괜찮겠지."],
             // Skills
@@ -506,6 +520,8 @@ const DialogueData = {
             RIICHI_REPLY: ["캬잉"],
             WIN: ["멍~~!!"],
             RANDOM: ["멍!"],
+            GOOD_DRAW: ["멍!"],
+            BAD_DRAW: ["캬잉"],
             COUNTER_RIICHI: ["멍!"],
             WORRY_RON: ["캬잉", "멍!"],
             // Skills
