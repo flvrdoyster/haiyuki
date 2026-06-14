@@ -96,6 +96,7 @@ const Assets = {
         'bg/CHRBAK.png', // Keeping both if needed, or just new one
         'bg/MAYUBAK.png', // Hidden boss (Mayu) intrusion monologue background
         'bg/OVERBAK.png',
+        'bg/STAFFBAK.png', // Staff roll background (rock + 幻世牌遊記 watermark)
         'bg/GAMEBG.png',
 
         // FX
@@ -201,7 +202,8 @@ const Assets = {
         // Endings
         'ending/ending_ATA.png', 'ending/ending_FARI.png', 'ending/ending_MAYU.png',
         'ending/ending_RIN.png', 'ending/ending_SMSH.png', 'ending/ending_YURI.png',
-        'ending/theend.png'
+        'ending/theend.png',
+        'ending/staff.png' // Staff-roll image font atlas (16×8 grid, 40×64 cells)
     ],
     loadedCount: 0,
 
@@ -506,6 +508,47 @@ const Assets = {
 
             currentX += advance;
         }
+    },
+
+    // Staff-roll image font ('ending/staff.png'). Unlike drawAlphabet (Latin only),
+    // this atlas packs the exact glyphs the credits need — kanji, kana, Latin,
+    // digits, symbols and the Korean role labels — one cell each, in row-major
+    // order below. 16 columns × 8 rows, each cell 40×64 (RGBA, transparent gaps).
+    STAFF_FONT_ROWS: [
+        '幻世牌遊記STAFプランナーログ',
+        'マデザイサウド&エフェクトEX.',
+        'ュ南千晶さかや☆えびふらい八斎藤',
+        '桜河内揚羽ごん太のぞみどりゅう3',
+        '24不凡MO仁井谷ぶたっセニョル',
+        '北CPIL198ィレタスペシャ',
+        '환세패유기플래너디자이프로그머사',
+        '운드펙트스페셜땡렉터듀서팬맛굴'
+    ],
+    _staffFontMap: null,
+
+    _buildStaffFontMap: function () {
+        const map = {};
+        this.STAFF_FONT_ROWS.forEach((rowStr, row) => {
+            Array.from(rowStr).forEach((ch, col) => {
+                if (map[ch] === undefined) map[ch] = { col: col, row: row };
+            });
+        });
+        // Space renders as the blank tile at the far-right end of the atlas.
+        map[' '] = { col: 15, row: 7 };
+        this._staffFontMap = map;
+        return map;
+    },
+
+    // Single staff-roll glyph at top-left (x, y) — for the credit's per-tile
+    // animation (each character flies in / discards / falls independently).
+    drawStaffGlyph: function (ctx, ch, x, y, scale) {
+        const img = this.get('ending/staff.png');
+        if (!img) return;
+        const map = this._staffFontMap || this._buildStaffFontMap();
+        const cell = map[ch];
+        if (!cell) return;
+        const W = 40, H = 64;
+        ctx.drawImage(img, cell.col * W, cell.row * H, W, H, x, y, W * scale, H * scale);
     },
 
     /**
