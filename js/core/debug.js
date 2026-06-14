@@ -1,4 +1,14 @@
 /**
+ * debug.js — consolidated debug / QA module (console & test only; no on-screen UI).
+ *
+ *   QADebug     — read-only state snapshot → window.__haiyuki__ (Playwright reads this).
+ *   DebugCheats — mutating console cheats: debugWin() · testLastChance() · triggerMayu()
+ *                 (shorthands: window.debugWin, window.triggerMayu).
+ *
+ * Nothing runs unless called: QADebug.sync() from battleScene each frame; cheats from devtools.
+ */
+
+/**
  * QADebug — read-only game state export for testing & QA.
  *
  * Usage (browser console):
