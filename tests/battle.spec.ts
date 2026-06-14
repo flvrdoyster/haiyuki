@@ -3,7 +3,7 @@
  *
  * 검증 목적:
  *   - RULEBOOK.md 커스텀 룰이 실제 게임 플레이 흐름에서 지켜지는지 확인
- *   - window.__haiyuki__ (qaDebug.js) 를 통해 게임 상태를 읽기 전용으로 검증
+ *   - window.__haiyuki__ (debug.js) 를 통해 게임 상태를 읽기 전용으로 검증
  *
  * 테스트 분류:
  *   A. 불변성(Invariant) 테스트 — 자동 플레이 전체 매치 동안 룰 위반 감시

@@ -173,9 +173,10 @@ const QADebug = (() => {
 
 /**
  * DebugCheats — console-only cheats (mutating, unlike QADebug above).
- * Usage from devtools during a battle:
+ * Usage from devtools:
  *   DebugCheats.testLastChance() — Petum skills + tenpai hand + turn 20
  *   DebugCheats.debugWin()       — set hand to IP_E_DAM, then declare Tsumo
+ *   DebugCheats.triggerMayu()    — force the Mayu hidden-boss intrusion
  */
 const DebugCheats = {
     testLastChance: function () {
@@ -231,8 +232,21 @@ const DebugCheats = {
             e.hoverIndex = e.p1.hand.length - 1;
             e.timer = 0;
         }
+    },
+
+    // Force the Mayu hidden-boss intrusion (moved here from Game core).
+    triggerMayu: function () {
+        console.log("!!! Debug: Triggering Mayu Intrusion !!!");
+        const scene = Game.currentScene;
+        Game.changeScene(EncounterScene, {
+            playerIndex: scene && scene.playerIndex !== undefined ? scene.playerIndex : 0,
+            cpuIndex: 6,
+            mode: 'CHALLENGER',
+            defeatedOpponents: scene && scene.defeatedOpponents ? scene.defeatedOpponents : []
+        });
     }
 };
 
-// Console shorthand (kept from the old BattleEngine global)
+// Console shorthands (kept from the old BattleEngine/Game globals)
 window.debugWin = () => DebugCheats.debugWin();
+window.triggerMayu = () => DebugCheats.triggerMayu();

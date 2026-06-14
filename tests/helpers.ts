@@ -1,12 +1,12 @@
 /**
  * Playwright test helpers for 환세패유기 (Haiyuki).
  *
- * All game-state reads go through window.__haiyuki__ (qaDebug.js).
+ * All game-state reads go through window.__haiyuki__ (debug.js).
  * Game control calls use BattleEngine / Game globals exposed on window.
  */
 import type { Page } from '@playwright/test';
 
-// ── Snapshot types (mirror qaDebug.js) ───────────────────────────────────────
+// ── Snapshot types (mirror debug.js) ───────────────────────────────────────
 
 export interface Tile { type: string; color: string }
 export interface OpenSet { tiles: Tile[] }

@@ -20,7 +20,6 @@ const Input = {
     Z: 'KeyZ',
     SPACE: 'Space',
     ESC: 'Escape',
-    D: 'KeyD',
 
     init: function (canvas) {
         if (this.initialized) return;

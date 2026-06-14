@@ -204,13 +204,11 @@ const Game = {
 
     isAutoTest: false,
     autoTestOptions: {},
-    testLogs: [],
 
     startAutoTest: function (options = {}) {
         console.log("=== STARTING AUTO-TEST MODE ===");
         this.isAutoTest = true;
         this.autoTestOptions = options;
-        this.testLogs = [];
         if (!this.currentScene) this.init();
     },
 
@@ -221,19 +219,8 @@ const Game = {
 
     stopAutoTest: function () {
         console.log("=== STOPPING AUTO-TEST MODE ===");
-        console.log("Test Results:", this.testLogs);
         this.isAutoTest = false;
         this.autoTestOptions = {};
-    },
-
-    triggerMayu: function () {
-        console.log("!!! Debug: Triggering Mayu Intrusion !!!");
-        this.changeScene(EncounterScene, {
-            playerIndex: this.currentScene && this.currentScene.playerIndex !== undefined ? this.currentScene.playerIndex : 0,
-            cpuIndex: 6,
-            mode: 'CHALLENGER',
-            defeatedOpponents: this.currentScene && this.currentScene.defeatedOpponents ? this.currentScene.defeatedOpponents : []
-        });
     },
 
     lastTime: 0,

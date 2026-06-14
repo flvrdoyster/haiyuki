@@ -48,10 +48,6 @@ const CharacterSelectScene = {
     cpuTimer: 0,
     cpuSelectDuration: 60, // frames to spin
 
-    // Debug: Manually select CPU
-    isDebug: false, // Set to true to enable manual CPU selection
-    debugSkipDialogue: false, // Skip EncounterScene if true
-
     init: function (data) {
         // Refresh character list (Check for unlocks)
         this.characters = CharacterData.filter(c => {
@@ -253,101 +249,56 @@ const CharacterSelectScene = {
             }
         } else if (this.currentState === this.STATE_CPU_SELECT) {
 
-            if (this.isDebug) {
-                // Manual CPU Selection
-                if (Input.isJustPressed(Input.LEFT)) {
-                    this.cpuIndex--;
-                    if (this.cpuIndex < 0) this.cpuIndex = this.characters.length - 1;
-                    this.updateCpuPortrait();
-                } else if (Input.isJustPressed(Input.RIGHT)) {
-                    this.cpuIndex++;
-                    if (this.cpuIndex >= this.characters.length) this.cpuIndex = 0;
-                    this.updateCpuPortrait();
+            this.cpuTimer += dt;
+            // Spin effect: change index every few frames based on absolute time
+            const spinInterval = 5;
+            const prevSpin = Math.floor((this.cpuTimer - dt) / spinInterval);
+            const currentSpin = Math.floor(this.cpuTimer / spinInterval);
+
+            if (currentSpin > prevSpin) {
+                // Calculate how many indices to skip if dt was large
+                const skipCount = currentSpin - prevSpin;
+
+                // Cycle through the roster for a 'spin' feel, but skip the player
+                // and hidden chars (Mayu) so the roulette only flashes valid opponents.
+                let nextIndex = (this.cpuIndex + skipCount) % this.characters.length;
+                let guard = 0;
+                while ((nextIndex === this.playerIndex || this.characters[nextIndex].hidden) &&
+                    guard++ < this.characters.length) {
+                    nextIndex = (nextIndex + 1) % this.characters.length;
                 }
 
-                if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
-                    // Confirm CPU
-                    this.currentState = this.STATE_READY;
-                    this.readyTimer = 0;
+                this.cpuIndex = nextIndex;
+                this.updateCpuPortrait();
+                // Roulette cursor moved — same blip as the player's cursor move.
+                Assets.playSound('audio/tick');
+            }
+
+            if (this.cpuTimer > this.cpuSelectDuration) {
+                // Roulette landed: pick the opponent and reveal it on the
+                // READY/VS screen before the encounter. Same path for the
+                // first match and every subsequent one — chooseOpponentIndex
+                // stays the single selection rule (excludes hidden Mayu).
+                const idx = this.chooseOpponentIndex();
+                if (idx === null) {
+                    this.goToEnding();
+                    return;
                 }
 
-                // Mouse Input (Debug Manual)
-                if (Input.isMouseJustPressed()) {
-                    const clickedIndex = this.getHoveredCharacterIndex();
-                    if (clickedIndex !== -1) {
-                        if (Input.hasMouseMoved()) {
-                            this.cpuIndex = clickedIndex;
-                            this.updateCpuPortrait();
-                        }
-                        // Confirm if clicked again?
-                        if (this.cpuIndex === clickedIndex) {
-                            this.currentState = this.STATE_READY;
-                            this.readyTimer = 0;
-                        }
-                    }
-                }
-
-
-
-            } else {
-                this.cpuTimer += dt;
-                // Spin effect: change index every few frames based on absolute time
-                const spinInterval = 5;
-                const prevSpin = Math.floor((this.cpuTimer - dt) / spinInterval);
-                const currentSpin = Math.floor(this.cpuTimer / spinInterval);
-
-                if (currentSpin > prevSpin) {
-                    // Calculate how many indices to skip if dt was large
-                    const skipCount = currentSpin - prevSpin;
-
-                    // Cycle through the roster for a 'spin' feel, but skip the player
-                    // and hidden chars (Mayu) so the roulette only flashes valid opponents.
-                    let nextIndex = (this.cpuIndex + skipCount) % this.characters.length;
-                    let guard = 0;
-                    while ((nextIndex === this.playerIndex || this.characters[nextIndex].hidden) &&
-                        guard++ < this.characters.length) {
-                        nextIndex = (nextIndex + 1) % this.characters.length;
-                    }
-
-                    this.cpuIndex = nextIndex;
-                    this.updateCpuPortrait();
-                    // Roulette cursor moved — same blip as the player's cursor move.
-                    Assets.playSound('audio/tick');
-                }
-
-                if (this.cpuTimer > this.cpuSelectDuration) {
-                    // Roulette landed: pick the opponent and reveal it on the
-                    // READY/VS screen before the encounter. Same path for the
-                    // first match and every subsequent one — chooseOpponentIndex
-                    // stays the single selection rule (excludes hidden Mayu).
-                    const idx = this.chooseOpponentIndex();
-                    if (idx === null) {
-                        this.goToEnding();
-                        return;
-                    }
-
-                    this.cpuIndex = idx;
-                    this.updateCpuPortrait();
-                    this.currentState = this.STATE_READY;
-                    this.readyTimer = 0;
-                }
+                this.cpuIndex = idx;
+                this.updateCpuPortrait();
+                this.currentState = this.STATE_READY;
+                this.readyTimer = 0;
             }
         } else if (this.currentState === this.STATE_READY) {
             // Auto transition after a short delay
             this.readyTimer += dt;
             if (this.readyTimer > (Game.isAutoTest ? 10 : 60)) {
-                if (this.debugSkipDialogue) {
-                    Game.changeScene(BattleScene, {
-                        playerIndex: this.playerIndex, // Use BattleScene wrapper
-                        cpuIndex: this.cpuIndex
-                    });
-                } else {
-                    Game.changeScene(EncounterScene, {
-                        playerIndex: this.playerIndex,
-                        cpuIndex: this.cpuIndex,
-                        defeatedOpponents: this.defeatedOpponents
-                    });
-                }
+                Game.changeScene(EncounterScene, {
+                    playerIndex: this.playerIndex,
+                    cpuIndex: this.cpuIndex,
+                    defeatedOpponents: this.defeatedOpponents
+                });
             }
         }
     },
