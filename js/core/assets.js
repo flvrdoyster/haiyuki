@@ -39,9 +39,12 @@ const Assets = {
             if (el === this.currentMusic) return;
             el.muted = true;
             const p = el.play();
+            // The pause is deferred (play() resolves async). By the time it fires,
+            // playMusic() may already have claimed this element as the live BGM and
+            // started it — guard so we don't pause/reset the now-playing track.
             if (p && p.then) {
-                p.then(() => { el.pause(); el.currentTime = 0; }).catch(() => { });
-            } else {
+                p.then(() => { if (el !== this.currentMusic) { el.pause(); el.currentTime = 0; } }).catch(() => { });
+            } else if (el !== this.currentMusic) {
                 try { el.pause(); } catch (_) { }
             }
         });
