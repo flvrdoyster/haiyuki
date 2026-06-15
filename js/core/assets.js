@@ -83,6 +83,12 @@ const Assets = {
         });
         window.addEventListener('focus', resume);
         window.addEventListener('pageshow', resume); // bfcache restore (iOS Safari)
+        // Safety net: any user gesture also (re)starts a BGM that iOS refused to
+        // autostart (e.g. the title theme right after the loading→title tap). These
+        // stay attached (not once) so every later interaction can recover audio.
+        window.addEventListener('pointerdown', resume, { passive: true });
+        window.addEventListener('touchstart', resume, { passive: true });
+        window.addEventListener('keydown', resume);
     },
 
     toLoad: [
@@ -396,12 +402,19 @@ const Assets = {
         audio.muted = false; // undo the muted state left by _unlockAudio
         this.currentMusic = audio;
 
-        // even when called outside a direct user-gesture callback (e.g. scene transitions)
-        this._getAudioContext().resume().then(() => {
-            if (this.currentBgmId === id) {
-                audio.play().catch(e => console.warn(`BGM play blocked: ${id}`, e));
+        // Start playback. Try immediately (best chance of keeping the gesture-unlock
+        // that fired on the loading→title tap), resume the context in parallel, and
+        // retry once it's running. If iOS still refuses, the persistent gesture handler
+        // (_wireResumeHandlers) restarts it on the next tap/keypress.
+        const ctx = this._getAudioContext();
+        if (ctx.state !== 'running') ctx.resume().catch(() => { });
+        const retry = () => {
+            if (this.currentBgmId === id && this.currentMusic === audio && audio.paused) {
+                ctx.resume().then(() => audio.play().catch(() => { })).catch(() => { });
             }
-        });
+        };
+        const p = audio.play();
+        if (p && p.catch) p.catch(retry);
     },
 
     toggleMute: function () {
