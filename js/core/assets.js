@@ -50,7 +50,16 @@ const Assets = {
     toLoad: [
         'ui/title.png',
         'ui/pushok.png',   // "PUSH SPACE KEY"
+        'ui/logo_compile.png',       // "COMPILE" intro logo
         'ui/logo_compile_1998.png',  // Compile Logo with 1998
+
+        // Title logo (환세패유기) — layered, assembled on the title screen
+        'title/BACK.png',          // green wall texture behind the tiles
+        'title/LINE_NARUTO.png',   // 回-pattern band
+        'title/LOGO_REST.png',     // 환세 _ 유기 (gold)
+        'title/LOGO_PAI_TOP.png',  // center 패 (silver, final)
+        'title/LOGO_PAI_BOTTOM.png', // center 패 (red, stretch reveal)
+        'title/PAI.png',           // blank flying tile
 
         // Audio
         { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
