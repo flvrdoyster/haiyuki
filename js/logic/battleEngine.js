@@ -241,13 +241,20 @@ const BattleEngine = {
             ? BattleConfig.RULES.DRAW_ASSIST.chance : 0;
         this.lastDrawAssist = null; // inspection: last assisted draw's target
 
+        // Character luck (personality): biases the CPU's OWN draws toward (+) or away
+        // from (−) useful tiles, with probability |luck|. 화린 +, 페톰 −. (see drawTiles)
+        this.cpuLuck = (this.cpu.aiProfile && this.cpu.aiProfile.luck) || 0;
+
         this.startRound();
     },
 
     // Player difficulty picks a skill band; progression interpolates within it,
     // so early opponents are gentle and the final boss reaches the band's ceiling.
+    // Two real difficulty tiers: normal and hard. "easy" uses the SAME skill band as
+    // normal — what makes it easier is the player-side draw assist (see init), not a
+    // dumber CPU. Skill rises linearly within the band as the tournament progresses.
     DIFFICULTY_BANDS: {
-        easy: [0.10, 0.45],
+        easy: [0.30, 0.75],   // == normal; easy = normal CPU + draw assist
         normal: [0.30, 0.75],
         hard: [0.55, 1.00]
     },
@@ -778,6 +785,27 @@ const BattleEngine = {
             }
         }
 
+        // CPU draw luck (personality): bias the CPU's own single draw toward (luck>0)
+        // or away from (luck<0) useful tiles, with probability |luck|. Pure reorder of
+        // the deck top — composition untouched, mirrors the player assist above.
+        if (!buffActive && who === this.cpu && count === 1 && this.cpuLuck && this.deck.length >= 2 &&
+            Math.random() < Math.abs(this.cpuLuck)) {
+            const want = this.cpuLuck > 0; // true = best tile, false = worst tile
+            const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
+            const fullHand = this.getFullHand(who);
+            let pickOffset = 0;
+            let pickScore = want ? -Infinity : Infinity;
+            for (let i = 0; i < peek; i++) {
+                const tile = this.deck[this.deck.length - 1 - i];
+                const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {});
+                if (want ? (s > pickScore) : (s < pickScore)) { pickScore = s; pickOffset = i; }
+            }
+            if (pickOffset > 0) {
+                const picked = this.deck.splice(this.deck.length - 1 - pickOffset, 1)[0];
+                this.deck.push(picked);
+            }
+        }
+
         const drawn = [];
         for (let i = 0; i < count; i++) {
             if (this.deck.length > 0) drawn.push(this.deck.pop());
@@ -1167,7 +1195,8 @@ const BattleEngine = {
                 discards: this.discards,
                 opponentRiichi: this.p1.isRiichi,
                 doras: this.doras, // Pass Doras for AI
-                turnCount: this.turnCount
+                turnCount: this.turnCount,
+                charId: this.cpu.id // for value (큰 역 노림) yaku-score lookahead
             };
             discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
         }
@@ -1292,9 +1321,9 @@ const BattleEngine = {
         if (!cpuProfile) return; // Should not happen
 
         // Define Weights
-        // aggression: Likelihood to use Attack skills
+        // value:   Likelihood to use Attack/damage skills (big-hand characters)
         // defense: Likelihood to use Defense skills
-        // speed: Likelihood to use Setup/Cycle skills
+        // speed:   Likelihood to use Setup/Cycle skills
 
         // cpuSkill governs how reliably the CPU acts on a warranted skill — its
         // skill-use FREQUENCY. A weak CPU often lets a good chance slip; a strong

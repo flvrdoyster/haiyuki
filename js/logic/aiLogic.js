@@ -1,14 +1,22 @@
 const AILogic = {
-    DEFAULT_PROFILE: { type: 'DEFAULT', aggression: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3, greed: 0.3 },
+    DEFAULT_PROFILE: { type: 'DEFAULT', value: 0.5, speed: 0.5, defense: 0.5, colorBias: 0.3, greed: 0.3, luck: 0 },
 
     // Reward for a discard that leaves the hand one tile from winning (tenpai).
     TENPAI_BONUS: 300,
+    // `value` (큰 역/한 방 노림) weight: scales the reachable yaku score (2000..12800)
+    // into the discard ranking. Higher = chases bigger hands harder.
+    VALUE_WEIGHT: 0.05,
+    // Softmax mistake temperature scale (see decideDiscard). Higher = more mistakes
+    // at a given skill. Tune this to widen/narrow the skill→accuracy curve.
+    MISTAKE_TEMP: 0.6,
 
     /**
      * Choose which tile to discard.
-     * @param {number} skill 0..1 continuous AI competence. Controls mistake rate,
-     *        defense/dora awareness, and how much the tenpai lookahead is trusted.
-     *        Character STYLE comes from `profile` (orthogonal to skill).
+     * @param {number} skill 0..1 = CONSISTENCY/COMPETENCE only. Controls the mistake
+     *        rate (softmax temperature), dora awareness, the tenpai lookahead, and
+     *        riichi-miss. Character STYLE (value/speed/defense/colorBias/greed) comes
+     *        from `profile` and is applied at full strength regardless of skill, so
+     *        difficulty never flattens personality.
      */
     decideDiscard: function (hand, skill, profile, context) {
         if (!profile) profile = this.DEFAULT_PROFILE;
@@ -17,10 +25,11 @@ const AILogic = {
         const discards = context ? context.discards : [];
         const opponentRiichi = context ? context.opponentRiichi : false;
         const doras = context ? context.doras : [];
+        const charId = context ? context.charId : null;
 
-        // Strategic awareness scales with skill (weak AI is "blind")
-        const defenseAwareness = skill;       // 0 = ignores opponent threats entirely
-        const doraAwareness = skill;
+        // Style is applied at full strength regardless of skill (difficulty never
+        // flattens personality). Dora value is scaled by greed inside hand potential.
+        const value = (profile.value != null) ? profile.value : 0.5;
 
         const candidates = [];
         for (let i = 0; i < hand.length; i++) {
@@ -29,22 +38,29 @@ const AILogic = {
             remainingHand.splice(i, 1);
 
             // Base: maximize the potential of what's LEFT after discarding.
-            let score = this.calculateHandPotential(remainingHand, profile, doras, doraAwareness);
+            let score = this.calculateHandPotential(remainingHand, profile, doras, 1);
 
-            // Tenpai lookahead — the key skill signal. A skilled AI strongly avoids
-            // breaking a winning wait; a weak AI doesn't even notice. Only valid on a
-            // full concealed hand (11 tiles); skip after a Pon shortens the hand.
+            // Tenpai lookahead (competence) — a skilled AI avoids breaking a winning
+            // wait. Only valid on a full concealed hand (11 tiles).
             if (skill > 0.05 && remainingHand.length === 11) {
                 if (YakuLogic.checkTenpai(remainingHand)) {
                     score += this.TENPAI_BONUS * skill;
+                    // value (큰 역/한 방 노림): among tenpai discards, prefer the one
+                    // that can complete the BIGGER yaku. getRiichiScore simulates this
+                    // discard × every completion tile and returns the best yaku score.
+                    if (value > 0 && charId) {
+                        const reach = YakuLogic.getRiichiScore(hand, charId, i);
+                        score += reach.maxScore * value * this.VALUE_WEIGHT;
+                    }
                 }
             }
 
-            // Defense: when the opponent has declared Riichi, prefer genbutsu (a tile
-            // already in the discards is guaranteed safe in this set-based ruleset).
-            if (opponentRiichi && defenseAwareness > 0) {
+            // Defense (STYLE): under opponent Riichi prefer genbutsu (a tile already
+            // discarded is guaranteed safe here) to avoid dealing into ron. profile.
+            // defense alone drives how much the character plays safe vs pushes.
+            if (opponentRiichi) {
                 const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
-                if (isSafe) score += profile.defense * 200 * defenseAwareness;
+                if (isSafe) score += profile.defense * 200;
             }
 
             candidates.push({ index: i, score: score });
@@ -53,13 +69,23 @@ const AILogic = {
         // Higher score = better hand left behind = better tile to discard.
         candidates.sort((a, b) => b.score - a.score);
 
-        // Mistakes: with probability (1-skill)*0.6 pick a sub-optimal tile. The lower
-        // the skill, the deeper into the ranked list the mistake can reach.
-        const mistakeChance = (1 - skill) * 0.6;
-        if (candidates.length > 1 && Math.random() < mistakeChance) {
-            const depth = Math.min(candidates.length - 1, 1 + Math.floor((1 - skill) * 3));
-            const pick = 1 + Math.floor(Math.random() * depth);
-            return candidates[pick].index;
+        // Mistakes via softmax over the ranked scores, with temperature set by skill.
+        // High skill → T≈0 → near-greedy (best tile). Low skill → flatter, but still
+        // score-weighted: small slips (near-tie tiles) are common while big blunders
+        // (far-worse tiles) stay rare — unlike a uniform pick that blunders as often
+        // as it slips. Personality survives because the scores already encode it; the
+        // temperature only adds skill-scaled noise on top of that ranking.
+        if (candidates.length <= 1) return candidates[0].index;
+        const top = candidates[0].score;
+        const spread = (top - candidates[candidates.length - 1].score) || 1;
+        const T = spread * (1 - skill) * this.MISTAKE_TEMP;
+        if (T < 1e-6) return candidates[0].index; // perfect play at max skill
+        let sum = 0;
+        const weights = candidates.map(c => { const w = Math.exp((c.score - top) / T); sum += w; return w; });
+        let r = Math.random() * sum;
+        for (let i = 0; i < candidates.length; i++) {
+            r -= weights[i];
+            if (r <= 0) return candidates[i].index;
         }
         return candidates[0].index;
     },
@@ -113,34 +139,31 @@ const AILogic = {
             });
         }
 
-        // Dora Bonus
+        // Dora Bonus — greedy characters chase/protect dora harder (린샹·아타호 high,
+        // 스마슈 low). profile.greed defaults to 0.3 if unset.
         if (doras && doras.length > 0 && doraModifier > 0) {
+            const greed = (profile.greed != null) ? profile.greed : 0.3;
             hand.forEach(t => {
                 const isDora = doras.some(d => d.type === t.type && d.color === t.color);
                 if (isDora) {
-                    score += (50 * doraModifier); // Protect Dora scaled by difficulty awareness
+                    score += (50 * doraModifier * (0.5 + greed));
                 }
             });
         }
 
         // Character Specific Synergies? (Simple heuristic from YakuLogic)
-        // E.g. Check for Char+Weapon pairs if aggression/greed is high
+        // E.g. Check for Char+Weapon pairs if value/greed is high
 
         return score;
     },
 
     shouldRiichi: function (hand, skill, profile) {
-        if (!profile) profile = this.DEFAULT_PROFILE;
         if (skill == null) skill = 0.5;
 
-        // Weak AI sometimes misses the Riichi chance entirely.
-        // skill 0 → 40% chance to declare, skill 1 → always.
-        if (Math.random() > (0.4 + 0.6 * skill)) return false;
-
-        // Very passive personalities may stay quiet (Dama) regardless of skill.
-        if (profile.aggression < 0.3 && Math.random() < 0.4) return false;
-
-        return true;
+        // Riichi has no real trade-off in this ruleset (ron is riichi-only), so
+        // declaring when tenpai is simply correct play — NOT a personality axis. Gate
+        // only on competence: a weak AI sometimes fails to take the obvious riichi.
+        return Math.random() <= (0.6 + 0.4 * skill); // skill 0 → 60%, skill 1 → always
     },
 
     shouldRon: function (hand, discardedTile, skill, profile) {
@@ -160,18 +183,23 @@ const AILogic = {
         const isMenzen = context ? context.isMenzen : true;
         const turnCount = context ? context.turnCount : 0;
 
-        // STRATEGY: closed hands aim for Riichi, so avoid opening unless
-        // desperate. Pon eagerness is personality (profile.speed), not skill.
+        // Pon eagerness is personality: speed pushes to open, greed pulls back (a
+        // greedy character stays closed to keep riichi + dora; 스마슈 pons freely,
+        // 아타호 almost never). greed defaults to 0.3 if unset.
+        const greed = (profile.greed != null) ? profile.greed : 0.3;
+        const ponBias = profile.speed * (1 - 0.6 * greed);
+
+        // STRATEGY: closed hands aim for Riichi, so avoid opening unless desperate.
         if (isMenzen) {
             if (turnCount < 14) {
-                return Math.random() < (profile.speed * 0.1);
+                return Math.random() < (ponBias * 0.1);
             }
             // Late game: pon to finish in time
-            return Math.random() < profile.speed;
+            return Math.random() < ponBias;
         }
 
         // Already open — go for speed
-        return Math.random() < profile.speed;
+        return Math.random() < ponBias;
     },
 
     /**

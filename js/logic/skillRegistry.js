@@ -22,7 +22,8 @@ function _aggressiveSkillScore(ctx) {
     let score = 0;
     if (ctx.isTenpai) score += 0.8;          // High priority if Tenpai
     if (ctx.turn > 15) score += 0.3;         // Desperation
-    score += ctx.profile.aggression * 0.5;
+    // value (큰 역/한 방 노림) — damage/offense skills suit big-hand characters.
+    score += ((ctx.profile.value != null ? ctx.profile.value : 0.5)) * 0.5;
     return score;
 }
 
