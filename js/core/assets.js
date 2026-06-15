@@ -8,10 +8,21 @@ const Assets = {
     audioContext: null,
     _audioUnlocked: false,
     _sfxGainNode: null,
+    _resumeWired: false,
 
     _getAudioContext: function () {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // iOS drops the context to 'suspended'/'interrupted' on screen-lock or
+            // app-switch and does NOT auto-resume on return. When that happens while
+            // the page is visible, bring it back.
+            this.audioContext.onstatechange = () => {
+                const st = this.audioContext.state;
+                const visible = (typeof document === 'undefined') || document.visibilityState === 'visible';
+                if (visible && (st === 'suspended' || st === 'interrupted')) {
+                    this.audioContext.resume().catch(() => { });
+                }
+            };
         }
         return this.audioContext;
     },
@@ -48,6 +59,30 @@ const Assets = {
                 try { el.pause(); } catch (_) { }
             }
         });
+    },
+
+    // Returning from the background (screen-lock / app-switch / tab-switch): iOS
+    // leaves the AudioContext suspended/interrupted and the BGM <audio> paused, and
+    // does not auto-resume. Re-resume both. Only meaningful after the first unlock.
+    _resumeAudioOnReturn: function () {
+        if (!this._audioUnlocked) return;
+        const ctx = this.audioContext;
+        if (ctx && ctx.state !== 'running') ctx.resume().catch(() => { });
+        // Resume the live BGM element if it got paused while backgrounded.
+        const bgm = this.currentMusic;
+        if (bgm && !this.muted && bgm.paused) bgm.play().catch(() => { });
+    },
+
+    // Wire the return-from-background resume once (idempotent).
+    _wireResumeHandlers: function () {
+        if (this._resumeWired) return;
+        this._resumeWired = true;
+        const resume = () => this._resumeAudioOnReturn();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') resume();
+        });
+        window.addEventListener('focus', resume);
+        window.addEventListener('pageshow', resume); // bfcache restore (iOS Safari)
     },
 
     toLoad: [
@@ -234,6 +269,9 @@ const Assets = {
         window.addEventListener('touchstart', unlock, { once: true, passive: true });
         window.addEventListener('click', unlock, { once: true });
         window.addEventListener('keydown', unlock, { once: true });
+
+        // Re-resume audio when the page returns from the background (mobile).
+        this._wireResumeHandlers();
 
         const done = () => {
             this.loadedCount++;
