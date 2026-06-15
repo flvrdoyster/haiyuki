@@ -3,16 +3,35 @@ const LoadingScene = {
     delayTimer: 0,
     blinkTimer: 0,
     showPrompt: true,
+    _gateArmed: false,
 
     init: function () {
         this.isLoaded = false;
         this.delayTimer = 0;
         this.blinkTimer = 0;
         this.showPrompt = true;
+        this._gateArmed = false;
 
         Assets.load(() => {
             this.isLoaded = true;
         });
+    },
+
+    // Start the title BGM INSIDE the real start gesture (the loading→title tap), so
+    // it's audible the instant the title appears. iOS won't reliably start it from the
+    // later RAF-driven TitleScene.init, so we do it here in the DOM event handler.
+    // One-shot, removed after firing; TitleScene.init's playMusic(sameId) is then a
+    // no-op (playMusic is idempotent).
+    _armStartGesture: function () {
+        const start = () => {
+            Assets.playMusic('audio/bgm_title');
+            window.removeEventListener('pointerdown', start);
+            window.removeEventListener('touchstart', start);
+            window.removeEventListener('keydown', start);
+        };
+        window.addEventListener('pointerdown', start, { passive: true });
+        window.addEventListener('touchstart', start, { passive: true });
+        window.addEventListener('keydown', start);
     },
 
     update: function (dt) {
@@ -38,6 +57,10 @@ const LoadingScene = {
         // and dispatches KeyZ, which we accept here.
         this.blinkTimer += dt;
         if (this.blinkTimer > 40) { this.showPrompt = !this.showPrompt; this.blinkTimer = 0; }
+
+        // Once loaded, arm the in-gesture BGM start (handles the same tap/key that
+        // triggers the transition below).
+        if (!this._gateArmed) { this._armStartGesture(); this._gateArmed = true; }
 
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
             Game.changeScene(TitleScene);

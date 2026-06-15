@@ -383,6 +383,14 @@ const Assets = {
     },
 
     playMusic: function (id, loop = true) {
+        // Idempotent: if this exact track is already playing, leave it alone. Lets a
+        // caller (e.g. LoadingScene) start the BGM inside the user gesture and have a
+        // later scene's playMusic(sameId) be a no-op instead of restarting it.
+        if (this.currentBgmId === id && !this.muted &&
+            this.currentMusic && !this.currentMusic.paused) {
+            this.currentBgmLoop = loop;
+            return;
+        }
         this.stopMusic();
         this.currentBgmId = id;
         this.currentBgmLoop = loop;
