@@ -4,6 +4,10 @@ const LoadingScene = {
     blinkTimer: 0,
     showPrompt: true,
     _gateArmed: false,
+    starting: false,
+    startTimer: 0,
+    spinAngle: 0,
+    tile: null,
 
     init: function () {
         this.isLoaded = false;
@@ -11,20 +15,37 @@ const LoadingScene = {
         this.blinkTimer = 0;
         this.showPrompt = true;
         this._gateArmed = false;
+        this.starting = false;
+        this.startTimer = 0;
+        this.spinAngle = 0;
+
+        // Spinner tile — loaded on its own (the main asset load isn't ready yet while
+        // this screen is drawing), so it can spin from the first frame.
+        if (!this.tile) {
+            this.tile = new Image();
+            this.tile.src = 'assets/title/PAI.png';
+        }
 
         Assets.load(() => {
             this.isLoaded = true;
         });
     },
 
-    // Start the title BGM INSIDE the real start gesture (the loading→title tap), so
-    // it's audible the instant the title appears. iOS won't reliably start it from the
-    // later RAF-driven TitleScene.init, so we do it here in the DOM event handler.
-    // One-shot, removed after firing; TitleScene.init's playMusic(sameId) is then a
-    // no-op (playMusic is idempotent).
+    // Begin the start: kick the title BGM INSIDE the user gesture (iOS won't start it
+    // from a later RAF). We then hold the loading screen (see update) until the BGM is
+    // actually rolling, so the title doesn't appear ahead of its music. Idempotent.
+    _beginStart: function () {
+        if (this.starting) return;
+        this.starting = true;
+        this.startTimer = 0;
+        Assets.playMusic('audio/bgm_title');
+    },
+
+    // Arm the start on the real gesture (covers mouse/touch/keyboard, incl. the
+    // overlay gamepad's real touch). One-shot, removed after firing.
     _armStartGesture: function () {
         const start = () => {
-            Assets.playMusic('audio/bgm_title');
+            this._beginStart();
             window.removeEventListener('pointerdown', start);
             window.removeEventListener('touchstart', start);
             window.removeEventListener('keydown', start);
@@ -35,6 +56,9 @@ const LoadingScene = {
     },
 
     update: function (dt) {
+        // Spinner advances even while assets are still loading (the guard below).
+        this.spinAngle += (dt || 1) * 0.1;
+
         if (!this.isLoaded) return;
 
         const mode = new URLSearchParams(window.location.search).get('mode');
@@ -58,76 +82,40 @@ const LoadingScene = {
         this.blinkTimer += dt;
         if (this.blinkTimer > 40) { this.showPrompt = !this.showPrompt; this.blinkTimer = 0; }
 
-        // Once loaded, arm the in-gesture BGM start (handles the same tap/key that
-        // triggers the transition below).
+        // Once loaded, arm the in-gesture BGM start (fires on the same tap/key).
         if (!this._gateArmed) { this._armStartGesture(); this._gateArmed = true; }
 
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
-            Game.changeScene(TitleScene);
+        // Backup trigger (covers any input path the DOM handler might miss).
+        if (!this.starting && (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed())) {
+            this._beginStart();
+        }
+
+        // Hold the loading screen until the title BGM is actually rolling (or a short
+        // safety cap), THEN go to the title — so audio is live from the first frame
+        // rather than fading in mid-sequence.
+        if (this.starting) {
+            this.startTimer += dt;
+            const bgm = Assets.currentMusic;
+            const rolling = bgm && !bgm.paused && bgm.currentTime > 0;
+            if (rolling || this.startTimer > 120) { // ~2s cap if it never starts
+                Game.changeScene(TitleScene);
+            }
         }
     },
 
     draw: function (ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, Game.canvas.width, Game.canvas.height);
-        
-        const total = Assets.toLoad.length;
-        const loaded = Assets.loadedCount;
-        const progress = total > 0 ? loaded / total : 0;
-        
-        const barW = 320;
-        const barH = 24;
-        const barX = 320 - barW / 2;
-        // Bar sits where the title logo will appear; the PUSH prompt sits exactly
-        // where the title's PUSH SPACE KEY shows — so loading → title is seamless.
-        const barY = 160;
-        const radius = 10;
-        
-        const drawRoundRectPath = (x, y, w, h, r) => {
-            if (ctx.roundRect) {
-                ctx.roundRect(x, y, w, h, r);
-            } else {
-                ctx.moveTo(x + r, y);
-                ctx.lineTo(x + w - r, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-                ctx.lineTo(x + w, y + h - r);
-                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                ctx.lineTo(x + r, y + h);
-                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-                ctx.lineTo(x, y + r);
-                ctx.quadraticCurveTo(x, y, x + r, y);
-            }
-        };
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-        ctx.beginPath();
-        drawRoundRectPath(barX + 2, barY + 2, barW, barH, radius);
-        ctx.fill();
-        
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
-        ctx.lineWidth = 2;
-        
-        ctx.beginPath();
-        drawRoundRectPath(barX, barY, barW, barH, radius);
-        ctx.fill();
-        ctx.stroke();
-        
-        if (progress > 0) {
+        // Loading indicator: a single blank tile spinning in place.
+        const tile = this.tile;
+        if (tile && tile.complete && tile.naturalWidth) {
+            const w = tile.naturalWidth, h = tile.naturalHeight;
             ctx.save();
-            ctx.beginPath();
-            drawRoundRectPath(barX, barY, barW, barH, radius);
-            ctx.clip();
-            
-            ctx.fillStyle = 'rgba(255, 215, 0, 1)';
-            ctx.fillRect(barX, barY, barW * progress, barH);
+            ctx.translate(320, 190);
+            ctx.rotate(this.spinAngle);
+            ctx.drawImage(tile, -w / 2, -h / 2);
             ctx.restore();
-            
-            ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            drawRoundRectPath(barX, barY, barW, barH, radius);
-            ctx.stroke();
         }
 
         // Once loaded, prompt for the start gesture (blinks) — reuse the title's

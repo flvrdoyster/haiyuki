@@ -279,12 +279,25 @@ const Assets = {
         // Re-resume audio when the page returns from the background (mobile).
         this._wireResumeHandlers();
 
-        const done = () => {
-            this.loadedCount++;
-            if (this.loadedCount === this.toLoad.length) onComplete();
+        // Robust completion: each item settles exactly once (success OR error), and we
+        // fire onComplete once when all have settled. Guarding per-item against double
+        // settle (e.g. an <audio> error after canplaythrough) prevents the count from
+        // overshooting the total — which, with the old exact `=== total` check, would
+        // skip completion and hang the loading screen forever.
+        const total = this.toLoad.length;
+        this.loadedCount = 0;
+        let settled = 0;
+        let completed = false;
+        const finishOne = () => {
+            settled++;
+            this.loadedCount = settled;
+            if (!completed && settled >= total) { completed = true; onComplete(); }
         };
 
         this.toLoad.forEach(item => {
+            let itemSettled = false;
+            const done = () => { if (itemSettled) return; itemSettled = true; finishOne(); };
+
             let src = '';
             let id = '';
             let type = 'image';
