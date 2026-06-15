@@ -56,7 +56,24 @@ const CreditsConfig = {
     FALL_DONE: 58,
 
     FADE_FRAMES: 70,
-    END_HOLD: 40
+    END_HOLD: 40,
+
+    // Final message page (image font, drawAlphabet) shown after the staff roll.
+    // The staff roll itself is identical for both endings — only this page differs.
+    MESSAGE: {
+        HOLD: 180,       // hold the page (~3s)
+        FADEIN: 20,
+        LINES: {
+            TRUE: [
+                { text: 'COMPLETE!', y: 200, spacing: 32, scale: 1.5 },
+                { text: 'THANK YOU FOR PLAYING', y: 262, spacing: 32, scale: 1 }
+            ],
+            NORMAL: [
+                { text: 'CLEAR!', y: 200, spacing: 32, scale: 1.5 },
+                { text: 'THANK YOU FOR PLAYING', y: 262, spacing: 32, scale: 1 }
+            ]
+        }
+    }
 };
 
 // Top → bottom — one entry per '---' block of staff.md.
@@ -85,12 +102,14 @@ const CreditsScene = {
     finished: false,
     fade: 0,
     _pools: null,
+    endingType: 'NORMAL',   // 'TRUE' | 'NORMAL' — only the final message page differs
 
-    init: function () {
+    init: function (params) {
         this.t = 0;
         this.idx = 0;
         this.finished = false;
         this.fade = 0;
+        this.endingType = (params && params.endingType) ? params.endingType : 'NORMAL';
         this.buildSections();
 
         // Credits BGM. The ending illustration already plays bgm_ending, so keep it
@@ -171,6 +190,9 @@ const CreditsScene = {
                 holdEnd: completeEnd + C.HOLD
             };
         });
+
+        // Final message page (COMPLETE!/CLEAR!) — image font, ending-specific.
+        this.sections.push({ tiles: [], isMessage: true, holdEnd: CreditsConfig.MESSAGE.HOLD });
     },
 
     // Script of a glyph: 'kr' (Hangul), 'an' (Latin letters + digits), 'jp' (kana +
@@ -273,16 +295,30 @@ const CreditsScene = {
             return;
         }
 
+        // Skip: jump to the final message page; if already there, end.
         if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
-            this.finished = true;
+            const lastIdx = this.sections.length - 1;
+            if (this.idx >= lastIdx) {
+                this.finished = true;
+            } else {
+                this.idx = lastIdx;
+                this.t = 0;
+            }
             return;
         }
 
         this.t += dt;
         const sec = this.sections[this.idx];
 
-        if (sec.isCopyright) {
+        // Final message page — holds, then ends.
+        if (sec.isMessage) {
             if (this.t >= sec.holdEnd) this.finished = true;
+            return;
+        }
+
+        // Copyright logo — holds, then advances to the message page.
+        if (sec.isCopyright) {
+            if (this.t >= sec.holdEnd) { this.idx++; this.t = 0; }
             return;
         }
 
@@ -301,7 +337,20 @@ const CreditsScene = {
         else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, C.SCREEN_W, C.SCREEN_H); }
 
         const sec = this.sections[this.idx];
-        if (sec && sec.isCopyright) {
+        if (sec && sec.isMessage) {
+            // Final message page on black, image font, ending-specific.
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, C.SCREEN_W, C.SCREEN_H);
+            const M = CreditsConfig.MESSAGE;
+            const lines = M.LINES[this.endingType] || M.LINES.NORMAL;
+            ctx.globalAlpha = Math.min(1, this.t / M.FADEIN);
+            lines.forEach(line => {
+                Assets.drawAlphabet(ctx, line.text, C.SCREEN_W / 2, line.y, {
+                    color: 'yellow', spacing: line.spacing, scale: line.scale, align: 'center'
+                });
+            });
+            ctx.globalAlpha = 1;
+        } else if (sec && sec.isCopyright) {
             const logo = Assets.get('ui/logo_compile_1998.png');
             if (logo) {
                 const w = logo.width * C.COPY_LOGO_SCALE, h = logo.height * C.COPY_LOGO_SCALE;
