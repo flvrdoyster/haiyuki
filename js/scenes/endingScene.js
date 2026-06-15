@@ -156,7 +156,7 @@ const EndingScene = {
 
         } else {
             Game.isAutoTest = false; // Stop Auto-Test
-            Game.changeScene(CreditsScene, { endingType: 'NORMAL' });
+            Game.changeScene(CreditsScene);
         }
     }
 };

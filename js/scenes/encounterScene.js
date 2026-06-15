@@ -200,7 +200,7 @@ const EncounterScene = {
                     }
                 } else if (this.mode === 'TRUE_ENDING_CLEAR') {
                     // True Ending Clear -> Credits
-                    Game.changeScene(CreditsScene, { endingType: 'TRUE' });
+                    Game.changeScene(CreditsScene);
                 } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
                     // Ending Dialogue Finished -> Go to Ending Image
                     Game.changeScene(EndingScene, {

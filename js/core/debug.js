@@ -252,7 +252,7 @@ const DebugCheats = {
 window.unlockMayu   = () => { Game.saveData.unlocked.push('mayu'); Game.save(); location.reload(); };
 window.resetSave    = () => { Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: (Game.saveData && Game.saveData.difficulty) || 'normal' }; Game.continueCount = 0; Game.save(); location.reload(); };
 // Scene navigation
-window.toCredits    = (type = 'NORMAL') => Game.changeScene(CreditsScene, { endingType: type });
+window.toCredits    = () => Game.changeScene(CreditsScene);
 window.toCharSelect = () => Game.changeScene(CharacterSelectScene);
 window.toBattle     = (p1 = 0, cpu = 1) => Game.changeScene(BattleScene, { playerIndex: p1, cpuIndex: cpu });
 // Hidden boss (Mayu) — arm the full intrusion sequence from character select

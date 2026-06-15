@@ -85,14 +85,12 @@ const CreditsScene = {
     finished: false,
     fade: 0,
     _pools: null,
-    endingType: 'NORMAL',   // 'TRUE' | 'NORMAL' — ending route record (no visual diff; roll is shared)
 
-    init: function (params) {
+    init: function () {
         this.t = 0;
         this.idx = 0;
         this.finished = false;
         this.fade = 0;
-        this.endingType = (params && params.endingType) ? params.endingType : 'NORMAL';
         this.buildSections();
 
         // Credits BGM. The ending illustration already plays bgm_ending, so keep it
