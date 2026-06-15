@@ -340,6 +340,31 @@ hr {
     border-top: 1px solid rgba(68, 68, 68, 1);
 }
 
+/* Footer — 텍스트 톤만 조정(gensei-pc98 에뮬레이터 참고): 차분한 회색.
+   레이아웃·보더(실선/폭/정렬)는 공유 footer.css 그대로 둔다.
+   `#main-wrapper #footer`(id 2개)로 공유 규칙보다 우선. */
+#main-wrapper #footer {
+    color: rgba(150, 150, 150, 1);
+}
+
+#main-wrapper #footer a {
+    color: rgba(160, 160, 160, 1);
+}
+
+#main-wrapper #footer a:hover {
+    color: rgba(200, 200, 200, 1);
+}
+
+#main-wrapper #footer .site-version {
+    color: rgba(150, 150, 150, 1);
+    letter-spacing: 0.05em;
+}
+
+#main-wrapper #footer .footer-sep {
+    margin: 0 4px;
+    opacity: 0.55;
+}
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
     body {
@@ -352,24 +377,53 @@ hr {
     }
 
     #toolbar-row {
-        gap: 10px;
+        gap: 4px;
     }
 
-    /* Shrink Toolbar */
+    /* Shrink the toolbar so the option groups stay on ONE line (no wrap). */
+    .toolbar-center {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
     .toolbar-label {
-        font-size: 16px;
+        font-size: 12px;
     }
 
     .toolbar-group {
-        margin-right: 0px;
-        margin-bottom: 5px;
-        gap: 4px;
+        margin-right: 0;
+        margin-bottom: 0;
+        gap: 3px;
+    }
+
+    .toolbar-btn {
+        width: 38px;
+        height: 27px;
+    }
+
+    /* 난이도는 3분할 이미지라 더 넓어야 같은 높이(27px)로 보임 (데스크톱 75:35 비율 유지). */
+    .difficulty-btn {
+        width: 58px;
+    }
+
+    .toolbar-icon-btn {
+        padding: 4px 4px;
+    }
+
+    .toolbar-icon-btn svg {
+        height: 20px;
     }
 
     /* Shrink/Hide Footer details if needed */
     #footer {
         margin-top: 5px;
         font-size: 10px;
+    }
+
+    /* Copyright + version on ONE line (version would otherwise drop to its own row
+       once the other credits are hidden on mobile). */
+    #main-wrapper #footer p {
+        display: inline;
     }
 
     hr {
