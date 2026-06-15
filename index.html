@@ -25,14 +25,20 @@
     <meta property="og:site_name" content="atah.io">
     <meta property="og:locale" content="ko_KR">
     <!-- Google Tag Manager -->
-    <script>(function (w, d, s, l, i) {
-            w[l] = w[l] || []; w[l].push({
-                'gtm.start':
-                    new Date().getTime(), event: 'gtm.js'
-            }); var f = d.getElementsByTagName(s)[0],
-                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-        })(window, document, 'script', 'dataLayer', 'GTM-PR4S897C');</script>
+    <script>
+        // Load GTM only on the live site for real visitors. Skip on localhost/file://
+        // and under automated browsers (Playwright/Selenium set navigator.webdriver),
+        // so local dev and E2E test runs don't pollute analytics.
+        if (!navigator.webdriver && /(^|\.)atah\.io$/i.test(location.hostname)) {
+            (function (w, d, s, l, i) {
+                w[l] = w[l] || []; w[l].push({
+                    'gtm.start':
+                        new Date().getTime(), event: 'gtm.js'
+                }); var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                        'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+            })(window, document, 'script', 'dataLayer', 'GTM-PR4S897C');
+        }</script>
     <!-- End Google Tag Manager -->
     <link rel="stylesheet" href="../footer.css">
 </head>
