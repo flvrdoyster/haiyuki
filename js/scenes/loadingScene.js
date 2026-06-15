@@ -6,8 +6,8 @@ const LoadingScene = {
     _gateArmed: false,
     starting: false,
     startTimer: 0,
-    spinAngle: 0,
-    tile: null,
+    iconTimer: 0,
+    icon: null,
 
     init: function () {
         this.isLoaded = false;
@@ -17,13 +17,13 @@ const LoadingScene = {
         this._gateArmed = false;
         this.starting = false;
         this.startTimer = 0;
-        this.spinAngle = 0;
+        this.iconTimer = 0;
 
-        // Spinner tile — loaded on its own (the main asset load isn't ready yet while
-        // this screen is drawing), so it can spin from the first frame.
-        if (!this.tile) {
-            this.tile = new Image();
-            this.tile.src = 'assets/title/PAI.png';
+        // Loading icon = the title menu cursor (ui/pointer.png, 2-frame face). Loaded
+        // on its own since the main asset load isn't ready while this screen draws.
+        if (!this.icon) {
+            this.icon = new Image();
+            this.icon.src = 'assets/ui/pointer.png';
         }
 
         Assets.load(() => {
@@ -56,8 +56,8 @@ const LoadingScene = {
     },
 
     update: function (dt) {
-        // Spinner advances even while assets are still loading (the guard below).
-        this.spinAngle += (dt || 1) * 0.1;
+        // Icon animates even while assets are still loading (the guard below).
+        this.iconTimer += (dt || 1);
 
         if (!this.isLoaded) return;
 
@@ -107,14 +107,16 @@ const LoadingScene = {
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, Game.canvas.width, Game.canvas.height);
 
-        // Loading indicator: a single blank tile spinning in place.
-        const tile = this.tile;
-        if (tile && tile.complete && tile.naturalWidth) {
-            const w = tile.naturalWidth, h = tile.naturalHeight;
+        // Loading indicator: the title menu cursor (2-frame face), blinking in place.
+        // Drawn at a crisp 2× via nearest-neighbor (no blur).
+        const icon = this.icon;
+        if (icon && icon.complete && icon.naturalWidth) {
+            const fw = 32, fh = 32, scale = 2;
+            const dw = fw * scale, dh = fh * scale;
+            const frame = Math.floor(this.iconTimer / 10) % 2;
             ctx.save();
-            ctx.translate(320, 190);
-            ctx.rotate(this.spinAngle);
-            ctx.drawImage(tile, -w / 2, -h / 2);
+            ctx.imageSmoothingEnabled = false; // pixelate (nearest-neighbor)
+            ctx.drawImage(icon, frame * fw, 0, fw, fh, 320 - dw / 2, 240 - dh / 2, dw, dh);
             ctx.restore();
         }
 
