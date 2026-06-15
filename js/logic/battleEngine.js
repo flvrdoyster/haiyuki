@@ -1158,9 +1158,10 @@ const BattleEngine = {
         }
 
         // Decide Discard
-        // If Riichi (existing state), discard drawn tile
+        let discardIdx;
         if (this.cpu.isRiichi) {
-            this.discardTileCPU(this.cpu.hand.length - 1);
+            // If Riichi (existing state), discard drawn tile
+            discardIdx = this.cpu.hand.length - 1;
         } else {
             const context = {
                 discards: this.discards,
@@ -1168,7 +1169,21 @@ const BattleEngine = {
                 doras: this.doras, // Pass Doras for AI
                 turnCount: this.turnCount
             };
-            const discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
+            discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
+        }
+
+        // Hold briefly between draw and discard so the player can see the tile the
+        // CPU just drew before it's thrown. The DRAW event already fired (sound/anim);
+        // park in FX_PLAYING so CPU_TURN doesn't re-fire and input stays blocked, then
+        // discard after the beat. Autotest skips the hold (atomic, keeps tests fast).
+        const hold = this.isAutoTest() ? 0 : BattleConfig.SPEED.CPU_DISCARD_HOLD;
+        if (hold > 0) {
+            this.currentState = this.STATE_FX_PLAYING;
+            this.setTimeout(() => {
+                this.currentState = this.STATE_CPU_TURN;
+                this.discardTileCPU(discardIdx);
+            }, hold);
+        } else {
             this.discardTileCPU(discardIdx);
         }
     },

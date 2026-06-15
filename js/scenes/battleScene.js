@@ -514,6 +514,16 @@ const BattleScene = {
             return;
         }
 
+        // "리치 걸 수 있어!" button — same behavior as the win hint: opens the menu
+        // (where 리치 is chosen) rather than auto-declaring. Shares the win hint's
+        // slot; suppressed (and non-clickable) when a win is available.
+        const canRiichi = !canWin && BattleRenderer.canRiichiNow(engine);
+        engine.riichiButtonHover = canRiichi && BattleRenderer.checkRiichiButton(Input.mouseX, Input.mouseY);
+        if (canRiichi && Input.isMouseJustPressed() && engine.riichiButtonHover) {
+            BattleMenuSystem.toggle();
+            return;
+        }
+
         // Mouse Interaction
         const groupSize = engine.lastDrawGroupSize || 0;
         // Hover removed per request

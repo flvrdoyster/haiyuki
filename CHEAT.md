@@ -41,7 +41,7 @@ resetSave()    // wipe all progress + reload
 
 ### Scene navigation
 ```javascript
-toCredits('NORMAL')   // 'NORMAL' | 'TRUE'
+toCredits()           // 스탭롤(크레딧) 보기 — 엔딩 구분 없이 공통
 toCharSelect()
 toBattle(0, 1)        // (playerIndex, cpuIndex) — default Ataho vs Rinxiang
 ```

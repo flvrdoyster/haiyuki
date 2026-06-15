@@ -10,7 +10,13 @@ const FONTS = {
 // ("날 수 있어!"). Flush to the canvas right edge (x + w = 640), like the battle
 // menu. They never render at once (draw = WAIT_FOR_DRAW, win = PLAYER_TURN), so
 // they take turns occupying this exact spot. Move them together by editing here.
-const ACTION_BUTTON_BOX = { x: 540, y: 400, w: 100, h: 36 };
+// Shared geometry for the action-slot buttons: 패 가져오기 (draw) / 날 수 있어 (win) /
+// 리치 걸 수 있어 (riichi). They occupy the same slot one at a time. Rather than fixed
+// widths (which give uneven padding for different label lengths), each box is sized
+// to its text plus a shared padding and anchored to the same right edge — so padding
+// and margin are identical and only the total width differs. (Box computed in
+// BattleRenderer._actionButtonRect.)
+const ACTION_HINT_BOX = { right: 640, y: 400, h: 36, padX: 14 };
 
 const BattleConfig = {
     // ----------------------------------------------------------------
@@ -43,7 +49,9 @@ const BattleConfig = {
         // Hold the drawn tile before auto-discarding in Riichi.
         // ~50 ticks ≈ 0.85s @60fps — slow enough to clearly register each draw.
         RIICHI_AUTO_DISCARD: 50,
-        CPU_THINK_TIME: 8,       // CPU decision delay (Lower = Faster)
+        CPU_THINK_TIME: 24,      // Beat before the CPU draws (~0.4s) — "CPU is acting now"
+        CPU_DISCARD_HOLD: 36,    // Hold between the CPU's draw and discard (~0.6s) so the
+        //                          drawn tile registers before it's thrown (0 in autotest)
         ACTION_WAIT: 30,        // Wait time after Pon/Ron (ticks)
         WIN_WAIT: 80            // Wait before revealing hand on win (ticks)
     },
@@ -220,20 +228,31 @@ const BattleConfig = {
     // 누른다고 바로 나는 게 아니라 배틀 메뉴가 열려서 아가리를 고를 수 있고, 그냥
     // 닫고 더 높은 역을 노릴 수도 있음. 드로우 창과는 상태가 달라(쯔모는 PLAYER_TURN)
     // 패 가져오기 버튼과 같은 자리에 떠도 겹치지 않음.
+    // Geometry comes from ACTION_HINT_BOX (text-fit width, shared padding/margin) —
+    // these configs carry only the label and styling. Exposed on BattleConfig so the
+    // renderer can read it (BattleConfig.ACTION_HINT_BOX).
+    ACTION_HINT_BOX: ACTION_HINT_BOX,
     WIN_HINT: {
-        ...ACTION_BUTTON_BOX,
         text: "날 수 있어!",
         font: `bold 16px ${FONTS.bold}`,
         cursor: 'rgba(255, 105, 180, 0.5)'
     },
 
+    // "리치 걸 수 있어!" hint — parallel to WIN_HINT, sharing the same slot. When a
+    // tsumo is ALSO available the win hint takes the slot and this is suppressed, so
+    // they never overlap. Clicking opens the battle menu.
+    RIICHI_HINT: {
+        text: "리치 걸 수 있어!",
+        font: `bold 16px ${FONTS.bold}`,
+        cursor: 'rgba(255, 105, 180, 0.5)'
+    },
+
+    // Geometry from ACTION_HINT_BOX (text-fit width, shared padding/margin), same as
+    // the win/riichi hints — all three buttons share the same slot and styling.
     DRAW_BUTTON: {
-        ...ACTION_BUTTON_BOX,
         text: "패 가져오기",
         font: `bold 16px ${FONTS.bold}`,
-        dimmer: 'rgba(0, 0, 0, 0.5)',
-        cursor: 'rgba(255, 105, 180, 0.5)',
-        textColor: 'rgba(255, 255, 255, 1)'
+        cursor: 'rgba(255, 105, 180, 0.5)'
     },
     BATTLE_MENU: {
         w: 140,

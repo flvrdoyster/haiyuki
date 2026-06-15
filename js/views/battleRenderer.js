@@ -304,6 +304,12 @@ const BattleRenderer = {
             this.drawWinHint(ctx, state);
         }
 
+        // Riichi-available indicator — only during the player's own turn (riichi
+        // requires the freshly drawn hand). Stacked above the win hint.
+        if (state.currentState === state.STATE_PLAYER_TURN) {
+            this.drawRiichiHint(ctx, state);
+        }
+
         if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
             this.drawDrawButton(ctx, state);
         } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
@@ -1337,50 +1343,84 @@ const BattleRenderer = {
         return (state.possibleActions || []).some(a => a.type === 'TSUMO');
     },
 
+    // Box for an action-slot button, sized to its text plus the shared padding and
+    // anchored to the shared right edge — so 패 가져오기 / 날 수 있어 / 리치 걸 수 있어 get
+    // identical padding & margin, differing only in width. Measured here (needs ctx);
+    // the result is cached so the hit-test (no ctx) can reuse the same rect.
+    _actionButtonRect: function (ctx, conf) {
+        const box = BattleConfig.ACTION_HINT_BOX;
+        ctx.save();
+        ctx.font = conf.font;
+        const tw = ctx.measureText(conf.text).width;
+        ctx.restore();
+        const w = Math.ceil(tw) + box.padX * 2;
+        return { x: box.right - w, y: box.y, w: w, h: box.h };
+    },
+
     // "날 수 있어!" button (원본의 あがれるよ). Same UI as the draw button. Clicking
     // it opens the battle menu (where 아가리 is chosen) rather than auto-winning —
     // so the player can also close the menu and keep playing for a higher hand.
     drawWinHint: function (ctx, state) {
-        if (!this.canWinNow(state)) return;
+        if (!this.canWinNow(state)) { this._winHintRect = null; return; }
         const conf = BattleConfig.WIN_HINT;
+        const r = this._actionButtonRect(ctx, conf);
+        this._winHintRect = r;
         const isHovered = state ? state.winButtonHover : false;
-        Assets.drawButton(ctx, conf.x, conf.y, conf.w, conf.h, conf.text, isHovered, {
+        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
             cursorColor: conf.cursor
         });
     },
 
     checkWinButton: function (x, y) {
-        const conf = BattleConfig.WIN_HINT;
-        return x >= conf.x && x <= conf.x + conf.w &&
-               y >= conf.y && y <= conf.y + conf.h;
+        const r = this._winHintRect;
+        return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    },
+
+    // True when the player can declare Riichi right now (own turn, after draw).
+    // Once Riichi is committed (incl. the declaring-discard step) it's no longer
+    // offered — possibleActions may still hold a stale RIICHI, so guard on isRiichi.
+    canRiichiNow: function (state) {
+        if (state.p1 && state.p1.isRiichi) return false;
+        return (state.possibleActions || []).some(a => a.type === 'RIICHI');
+    },
+
+    // "리치 걸 수 있어!" button — parallel to drawWinHint. Clicking opens the battle
+    // menu (where 리치 is chosen) rather than auto-declaring.
+    drawRiichiHint: function (ctx, state) {
+        // The win hint shares this slot and takes priority — suppress when a win is
+        // also available so the two never overlap.
+        if (!this.canRiichiNow(state) || this.canWinNow(state)) { this._riichiHintRect = null; return; }
+        const conf = BattleConfig.RIICHI_HINT;
+        const r = this._actionButtonRect(ctx, conf);
+        this._riichiHintRect = r;
+        const isHovered = state ? state.riichiButtonHover : false;
+        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
+            font: conf.font,
+            cursorColor: conf.cursor
+        });
+    },
+
+    checkRiichiButton: function (x, y) {
+        const r = this._riichiHintRect;
+        return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
 
     drawDrawButton: function (ctx, state) {
         const conf = BattleConfig.DRAW_BUTTON;
-        const x = conf.x;
-        const y = conf.y;
-        const w = conf.w;
-        const h = conf.h;
-
+        const r = this._actionButtonRect(ctx, conf);
+        this._drawButtonRect = r;
         // Use state.drawButtonHover from BattleScene input
         const isHovered = state ? state.drawButtonHover : false;
-
-        const options = {
+        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
             cursorColor: conf.cursor
-        };
-
-        Assets.drawButton(ctx, x, y, w, h, conf.text, isHovered, options);
+        });
     },
 
     checkDrawButton: function (x, y) {
-        const conf = BattleConfig.DRAW_BUTTON;
-        if (x >= conf.x && x <= conf.x + conf.w &&
-            y >= conf.y && y <= conf.y + conf.h) {
-            return true;
-        }
-        return false;
+        const r = this._drawButtonRect;
+        return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
 
 
