@@ -249,6 +249,10 @@ const BattleConfig = {
             cursor: 'rgba(255, 105, 180, 0.5)'
         }
     },
+    // 피격 시 화면 전체 흔들림 — #game-container를 CSS translate로 위아래로 짧고 빠르게
+    // 흔든다(Game.shake). mag=강도(최대 진폭, CSS px), frames=시간(지속 프레임). 매
+    // 프레임 위/아래가 뒤집히고 진폭은 0까지 선형 감쇠. 여기 두 값만 바꿔 느낌 조절.
+    SHAKE: { mag: 10, frames: 10 },
     BATTLE_MENU: {
         w: 140,
         h: 150,

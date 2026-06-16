@@ -204,11 +204,37 @@ const Game = {
         Input.update();
     },
 
+    // Screen shake — translate the whole #game-container block via CSS transform so the
+    // entire screen jitters as one (no in-canvas edge reveal). Triggered on damage.
+    _shakeTimer: 0,
+    _shakeDur: 1,
+    _shakeMag: 0,
+
+    // mag = peak offset (CSS px), frames = duration; amplitude decays linearly to 0.
+    shake: function (mag, frames) {
+        this._shakeMag = mag;
+        this._shakeTimer = frames;
+        this._shakeDur = frames;
+    },
+
+    _applyShake: function () {
+        if (this._shakeTimer <= 0) return;
+        const el = this.canvas && this.canvas.parentElement; // #game-container
+        if (!el) return;
+        // 위아래로만, 매 프레임 방향을 뒤집어 짧고 빠르게(부르르). 진폭은 0까지 선형 감쇠.
+        const amp = this._shakeMag * (this._shakeTimer / this._shakeDur);
+        const dy = (this._shakeTimer % 2 === 0) ? amp : -amp;
+        el.style.transform = `translate(0px, ${dy.toFixed(2)}px)`;
+        this._shakeTimer--;
+        if (this._shakeTimer <= 0) el.style.transform = '';
+    },
+
     draw: function () {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (this.currentScene && this.currentScene.draw) {
             this.currentScene.draw(this.ctx);
         }
+        this._applyShake();
     },
 
     isAutoTest: false,

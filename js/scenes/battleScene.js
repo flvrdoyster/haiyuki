@@ -182,6 +182,9 @@ const BattleScene = {
                         Assets.playSound(BattleConfig.AUDIO.DAMAGE);
                     }
 
+                    // 피격 연출: 화면 전체 흔들림 (양쪽 피격 모두)
+                    Game.shake(BattleConfig.SHAKE.mag, BattleConfig.SHAKE.frames);
+
                     engine.events.splice(i, 1);
                     continue;
                 }
