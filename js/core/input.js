@@ -25,16 +25,21 @@ const Input = {
         if (this.initialized) return;
         this.initialized = true;
 
+        // Enter (incl. numpad) is an alias for Z — the confirm/action key. Normalizing
+        // here means every Input.Z check (isDown/isJustPressed) responds to Enter too,
+        // with no per-call-site changes.
+        const normalize = (code) => (code === 'Enter' || code === 'NumpadEnter') ? this.Z : code;
+
         window.addEventListener('keydown', (e) => {
             // Prevent default scrolling for arrow keys and space
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
                 e.preventDefault();
             }
-            this.keys[e.code] = true;
+            this.keys[normalize(e.code)] = true;
         });
 
         window.addEventListener('keyup', (e) => {
-            this.keys[e.code] = false;
+            this.keys[normalize(e.code)] = false;
         });
 
         // Mouse events

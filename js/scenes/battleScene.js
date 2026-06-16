@@ -36,7 +36,7 @@ const BattleScene = {
                 Game.changeScene(EncounterScene, {
                     playerIndex: e.playerIndex,
                     cpuIndex: e.cpuIndex,
-                    mode: 'TRUE_ENDING_CLEAR',
+                    mode: 'TRUE_ENDING',
                     defeatedOpponents: [] // Reset
                 });
                 return;
@@ -440,20 +440,18 @@ const BattleScene = {
         } else if (engine.currentState === engine.STATE_TILE_EXCHANGE) {
             this.handleTileExchangeInput(engine);
         } else if (engine.currentState === engine.STATE_WAIT_FOR_DRAW) {
-            // Manual Draw Input
+            // Manual Draw Input — only the 패 가져오기 action button is available here,
+            // so the keyboard cursor rests on it (highlighted) and Z/Space draws. A
+            // win/리치 is opt-in via the menu on PLAYER_TURN; drawing forgoes nothing
+            // here (you haven't drawn yet).
+            engine.actionFocused = true;
+            const onButton = BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
+            engine.actionHover = engine.actionFocused || onButton;
 
-            // Check Hover
-            engine.drawButtonHover = BattleRenderer.checkDrawButton(Input.mouseX, Input.mouseY);
-
-            // The draw button just draws (continue playing). A win, when available,
-            // is opt-in via the menu (아가리) — drawing forgoes it, letting the
-            // player keep aiming for a higher hand.
             if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z)) {
                 engine.confirmDraw();
-            } else if (Input.isMouseJustPressed()) {
-                if (engine.drawButtonHover) {
-                    engine.confirmDraw();
-                }
+            } else if (Input.isMouseJustPressed() && onButton) {
+                engine.confirmDraw();
             }
         } else if (engine.currentState === engine.STATE_WIN ||
             engine.currentState === engine.STATE_LOSE ||
@@ -504,49 +502,70 @@ const BattleScene = {
         // If Riichi is active AND NOT declaring, input is blocked (Auto Mode)
         if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
 
-        // "날 수 있어!" button (same UI as the draw button). When a win is available,
-        // clicking it opens the battle menu so the player can pick 아가리 — it does
-        // NOT auto-win, so they may instead close the menu and keep playing.
-        const canWin = BattleRenderer.canWinNow(engine);
-        engine.winButtonHover = canWin && BattleRenderer.checkWinButton(Input.mouseX, Input.mouseY);
-        if (canWin && Input.isMouseJustPressed() && engine.winButtonHover) {
-            BattleMenuSystem.toggle();
-            return;
-        }
-
-        // "리치 걸 수 있어!" button — same behavior as the win hint: opens the menu
-        // (where 리치 is chosen) rather than auto-declaring. Shares the win hint's
-        // slot; suppressed (and non-clickable) when a win is available.
-        const canRiichi = !canWin && BattleRenderer.canRiichiNow(engine);
-        engine.riichiButtonHover = canRiichi && BattleRenderer.checkRiichiButton(Input.mouseX, Input.mouseY);
-        if (canRiichi && Input.isMouseJustPressed() && engine.riichiButtonHover) {
-            BattleMenuSystem.toggle();
-            return;
-        }
-
-        // Mouse Interaction
-        const groupSize = engine.lastDrawGroupSize || 0;
-        // Hover removed per request
-        const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
-        if (hovered !== -1 && Input.hasMouseMoved()) { engine.hoverIndex = hovered; }
-
-        // Keyboard
         const handSize = engine.p1.hand.length;
+
+        // Action-slot button (날 수 있어! / 리치 걸 수 있어!) — single source of truth via
+        // getActiveAction. Both just open the battle menu (no auto-win/declare), so the
+        // player can decline and keep playing for a higher hand.
+        const hasAction = BattleRenderer.getActiveAction(engine) !== null;
+        if (!hasAction) engine.actionFocused = false; // can't rest on a button that isn't there
+
+        // Mouse: hovering the action button highlights it; clicking opens the menu.
+        const onActionBtn = hasAction && BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
+        if (onActionBtn && Input.isMouseJustPressed()) {
+            BattleMenuSystem.toggle();
+            return;
+        }
+
+        // Mouse: hovering a hand tile moves the cursor there (off the action button).
+        const groupSize = engine.lastDrawGroupSize || 0;
+        const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
+        if (hovered !== -1 && Input.hasMouseMoved()) {
+            engine.hoverIndex = hovered;
+            engine.actionFocused = false;
+        }
+
+        // Keyboard cursor: the action button sits one step right of the last tile, so
+        // pressing → past the rightmost tile lands on it; ← steps back, → wraps to the
+        // first tile (0). Only reachable while an action button is actually shown.
         if (Input.isJustPressed(Input.LEFT)) {
-            engine.hoverIndex--;
-            if (engine.hoverIndex < 0) engine.hoverIndex = handSize - 1;
+            if (engine.actionFocused) {
+                engine.actionFocused = false;
+                engine.hoverIndex = handSize - 1;
+            } else {
+                engine.hoverIndex--;
+                if (engine.hoverIndex < 0) engine.hoverIndex = handSize - 1;
+            }
         }
         if (Input.isJustPressed(Input.RIGHT)) {
-            engine.hoverIndex++;
-            if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
+            if (engine.actionFocused) {
+                engine.actionFocused = false;
+                engine.hoverIndex = 0; // wrap past the button to the first tile
+            } else if (engine.hoverIndex >= handSize - 1 && hasAction) {
+                engine.actionFocused = true; // step onto the action button
+            } else {
+                engine.hoverIndex++;
+                if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
+            }
         }
 
-        // Clamp
-        if (engine.hoverIndex >= handSize) engine.hoverIndex = handSize - 1;
-        if (engine.hoverIndex < 0) engine.hoverIndex = 0;
+        // Clamp the tile cursor (only meaningful when not focused on the button)
+        if (!engine.actionFocused) {
+            if (engine.hoverIndex >= handSize) engine.hoverIndex = handSize - 1;
+            if (engine.hoverIndex < 0) engine.hoverIndex = 0;
+        }
 
-        // Select / Discard
+        // Highlight the button when the keyboard cursor is on it OR the mouse hovers it.
+        engine.actionHover = engine.actionFocused || onActionBtn;
+
+        // Select / Discard / Activate
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
+
+            // Keyboard cursor on the action button → open the menu.
+            if (engine.actionFocused && (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE))) {
+                BattleMenuSystem.toggle();
+                return;
+            }
 
             // Mouse Interaction: Strict Check
             if (Input.isMouseJustPressed()) {
@@ -574,8 +593,8 @@ const BattleScene = {
                     engine.hoverIndex = -1;
                 }
             }
-            // Keyboard Interaction: Use current hover
-            else if (engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
+            // Keyboard Interaction: Use current hover (only when on a tile, not the button)
+            else if (!engine.actionFocused && engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
                 // Check Strict Target
                 if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== engine.hoverIndex) {
                     return;
@@ -711,7 +730,7 @@ const BattleScene = {
         // Reuse Draw Button Area Check for Exchange Button
         const isHoverButton = BattleRenderer.checkExchangeButton(Input.mouseX, Input.mouseY);
         if (Input.hasMouseMoved()) {
-            engine.drawButtonHover = isHoverButton; // Reuse this flag or new one? Reuse OK.
+            engine.exchangeButtonHover = isHoverButton; // own flag — not the action-slot button
         }
 
         // Confirm with ESC only — Z is the select/deselect toggle above, so the

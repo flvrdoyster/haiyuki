@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var VERSION = 'v2.1.0';
+    var VERSION = 'v2.1.1';
 
     function inject() {
         if (document.querySelector('.site-version')) return true;

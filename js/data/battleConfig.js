@@ -16,7 +16,7 @@ const FONTS = {
 // to its text plus a shared padding and anchored to the same right edge — so padding
 // and margin are identical and only the total width differs. (Box computed in
 // BattleRenderer._actionButtonRect.)
-const ACTION_HINT_BOX = { right: 640, y: 400, h: 36, padX: 14 };
+const ACTION_BUTTON_BOX = { right: 640, y: 400, h: 36, padX: 14 };
 
 const BattleConfig = {
     // ----------------------------------------------------------------
@@ -224,35 +224,30 @@ const BattleConfig = {
     // ----------------------------------------------------------------
     // Menus & Interaction
     // ----------------------------------------------------------------
-    // "날 수 있어!" 버튼 (원본의 あがれるよ). 패 가져오기 버튼과 동일한 UI·위치.
-    // 누른다고 바로 나는 게 아니라 배틀 메뉴가 열려서 아가리를 고를 수 있고, 그냥
-    // 닫고 더 높은 역을 노릴 수도 있음. 드로우 창과는 상태가 달라(쯔모는 PLAYER_TURN)
-    // 패 가져오기 버튼과 같은 자리에 떠도 겹치지 않음.
-    // Geometry comes from ACTION_HINT_BOX (text-fit width, shared padding/margin) —
-    // these configs carry only the label and styling. Exposed on BattleConfig so the
-    // renderer can read it (BattleConfig.ACTION_HINT_BOX).
-    ACTION_HINT_BOX: ACTION_HINT_BOX,
-    WIN_HINT: {
-        text: "날 수 있어!",
-        font: `bold 16px ${FONTS.bold}`,
-        cursor: 'rgba(255, 105, 180, 0.5)'
-    },
-
-    // "리치 걸 수 있어!" hint — parallel to WIN_HINT, sharing the same slot. When a
-    // tsumo is ALSO available the win hint takes the slot and this is suppressed, so
-    // they never overlap. Clicking opens the battle menu.
-    RIICHI_HINT: {
-        text: "리치 걸 수 있어!",
-        font: `bold 16px ${FONTS.bold}`,
-        cursor: 'rgba(255, 105, 180, 0.5)'
-    },
-
-    // Geometry from ACTION_HINT_BOX (text-fit width, shared padding/margin), same as
-    // the win/riichi hints — all three buttons share the same slot and styling.
-    DRAW_BUTTON: {
-        text: "패 가져오기",
-        font: `bold 16px ${FONTS.bold}`,
-        cursor: 'rgba(255, 105, 180, 0.5)'
+    // 액션 버튼 — 화면 우하단 한 슬롯에 한 번에 하나만 표시. 상태에 따라 패 가져오기
+    // (draw, WAIT_FOR_DRAW) / 날 수 있어 (win) / 리치 걸 수 있어 (riichi, PLAYER_TURN)
+    // 중 하나가 뜬다. 지오메트리는 셋이 공유(ACTION_BUTTON_BOX, 텍스트맞춤 폭·공통
+    // 패딩/마진)하고 여기엔 라벨·스타일만. win/riichi는 눌러도 바로 실행하지 않고 배틀
+    // 메뉴를 열어 고르게 하며(닫고 더 높은 역을 노릴 수 있음), draw는 패를 가져온다.
+    // 키보드는 핸드 커서를 맨 오른쪽 패 너머로 옮기면 닿는다(BattleScene). 지금 어떤
+    // 버튼이 떠 있는지는 단일 진입점 BattleRenderer.getActiveAction(state)가 결정한다.
+    ACTION_BUTTON_BOX: ACTION_BUTTON_BOX,
+    ACTION_BUTTONS: {
+        draw: {
+            text: "패 가져오기",
+            font: `bold 16px ${FONTS.bold}`,
+            cursor: 'rgba(255, 105, 180, 0.5)'
+        },
+        win: {
+            text: "날 수 있어!",
+            font: `bold 16px ${FONTS.bold}`,
+            cursor: 'rgba(255, 105, 180, 0.5)'
+        },
+        riichi: {
+            text: "리치 걸 수 있어!",
+            font: `bold 16px ${FONTS.bold}`,
+            cursor: 'rgba(255, 105, 180, 0.5)'
+        }
     },
     BATTLE_MENU: {
         w: 140,

@@ -231,10 +231,8 @@ const BattleEngine = {
 
         // Resolve CPU skill (0..1) from the player's difficulty band + tournament
         // progress. Skill controls AI competence; aiProfile controls style.
-        this.cpuSkill = this.computeCpuSkill(
-            data.difficulty || 'normal',
-            this.defeatedOpponents.length
-        );
+        this.difficulty = data.difficulty || 'normal';
+        this.cpuSkill = this.computeCpuSkill(this.difficulty, this.defeatedOpponents.length);
 
         // Easy-mode luck smoothing for the PLAYER's draws (see drawTiles).
         this.drawAssistChance = (data.difficulty === 'easy')
@@ -364,6 +362,11 @@ const BattleEngine = {
     },
 
     startRound: function () {
+        // [debug] 난이도 검증용 — 매 라운드 cpuSkill 출력. cpuSkill은 매치 시작 시
+        // 1회 산출되므로 같은 상대 내에선 라운드마다 동일하고, 다음 상대로 넘어가면
+        // (격파 수 증가) 밴드 내에서 올라간다.
+        const _band = this.DIFFICULTY_BANDS[this.difficulty] || this.DIFFICULTY_BANDS.normal;
+        console.log(`[Difficulty] ${this.difficulty} | 격파 ${this.defeatedOpponents.length}/${this.TOURNAMENT_LENGTH} | band [${_band[0]}~${_band[1]}] | cpuSkill=${this.cpuSkill.toFixed(3)}`);
 
         this.turnCount = 1;
         this.winningYaku = null;
@@ -1087,6 +1090,7 @@ const BattleEngine = {
         // When there are no actions, possibleActions is already empty.
         this.currentState = this.STATE_PLAYER_TURN;
         this.hoverIndex = this.p1.hand.length - 1; // Default cursor to new tile
+        this.actionFocused = false; // start on the new tile, not the action button
         this.timer = 0;
     },
 
@@ -1150,6 +1154,9 @@ const BattleEngine = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile)) {
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true; // Mark next discard
+
+                // Expression: Smile (mirrors the player's riichi; reset on discard).
+                this.setExpression('CPU', 'smile');
 
                 // Directly set BGM state to ensure overwrite logic works
                 this.currentBgm = 'audio/bgm_tension';

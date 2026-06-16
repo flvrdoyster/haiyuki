@@ -267,11 +267,13 @@ const CharacterSelectScene = {
                 // Calculate how many indices to skip if dt was large
                 const skipCount = currentSpin - prevSpin;
 
-                // Cycle through the roster for a 'spin' feel, but skip the player
-                // and hidden chars (Mayu) so the roulette only flashes valid opponents.
+                // Cycle through the roster for a 'spin' feel, but skip the player,
+                // hidden chars (Mayu), AND already-defeated opponents so the roulette
+                // only ever flashes valid (selectable) opponents.
                 let nextIndex = (this.cpuIndex + skipCount) % this.characters.length;
                 let guard = 0;
-                while ((nextIndex === this.playerIndex || this.characters[nextIndex].hidden) &&
+                while ((nextIndex === this.playerIndex || this.characters[nextIndex].hidden ||
+                    this.defeatedOpponents.includes(nextIndex)) &&
                     guard++ < this.characters.length) {
                     nextIndex = (nextIndex + 1) % this.characters.length;
                 }
@@ -392,14 +394,23 @@ const CharacterSelectScene = {
 
             // Dim if already selected by Player (during CPU phase/Ready)
             const isPlayerSelected = (this.currentState >= this.STATE_CPU_SELECT && index === this.playerIndex);
+            // Already-defeated opponents are out of the roulette — shade them so it's
+            // visually clear they can't be selected.
+            const isDefeated = this.defeatedOpponents.includes(index);
 
             ctx.save();
-            if (isPlayerSelected) {
+            if (isPlayerSelected || isDefeated) {
                 ctx.globalAlpha = SelectConfig.ICON_ROW.dimOpacity;
             }
             const iconImg = Assets.get(char.selectIcon);
             if (iconImg) {
                 ctx.drawImage(iconImg, r.x, r.y);
+                // Defeated: overlay a dark shade on top of the (already dimmed) icon.
+                if (isDefeated) {
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                    ctx.fillRect(r.x, r.y, r.w, r.h);
+                }
             }
             ctx.restore();
         });

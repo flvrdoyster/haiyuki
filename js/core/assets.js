@@ -227,7 +227,7 @@ const Assets = {
         'face/MAYU_base.png',
         'face/MAYU_blink-1.png', 'face/MAYU_blink-2.png',
         'face/MAYU_shocked.png', 'face/MAYU_smile.png',
-        'face/MAYU_unknown.png',
+        'face/MAYU_unknown.png', 'face/MAYU_unknown_smile.png',
 
         // Tiles
         'tiles/pai_ata.png', 'tiles/pai_rin.png', 'tiles/pai_smsh.png',

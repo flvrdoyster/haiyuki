@@ -72,11 +72,13 @@ const EncounterScene = {
 
         Assets.stopAll();
 
-        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
+        if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' || this.mode === 'TRUE_ENDING') {
+            // 진엔딩 정체 공개 마무리(TRUE_ENDING)도 엔딩과 같은 BGM.
             Assets.playMusic('audio/bgm_ending');
-        } else {
+        } else if (this.mode !== 'CHALLENGER') {
             Assets.playMusic('audio/bgm_trail');
         }
+        // CHALLENGER(눈썹개 난입)는 무음 — stopAll로 직전 음악만 끄고 새 BGM은 안 깐다.
 
         // Load Dialogue
         let p1 = this.characters[this.playerIndex];
@@ -99,7 +101,7 @@ const EncounterScene = {
 
         if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
             key += "_ending";
-        } else if (this.mode === 'TRUE_ENDING' || this.mode === 'TRUE_ENDING_CLEAR') {
+        } else if (this.mode === 'TRUE_ENDING') {
             // Use True Ending Dialogue (Post-Battle)
             key += "_true_ending";
         }
@@ -198,7 +200,7 @@ const EncounterScene = {
                             defeatedOpponents: []
                         });
                     }
-                } else if (this.mode === 'TRUE_ENDING_CLEAR') {
+                } else if (this.mode === 'TRUE_ENDING') {
                     // True Ending Clear -> Credits
                     Game.changeScene(CreditsScene);
                 } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
@@ -227,11 +229,10 @@ const EncounterScene = {
             return;
         }
 
-        // Tiled Background
+        // Tiled Background (cached pattern — don't allocate a new one each frame)
         const bg = Assets.get('bg/CHRBAK.png');
         if (bg) {
-            const pattern = ctx.createPattern(bg, 'repeat');
-            ctx.fillStyle = pattern;
+            ctx.fillStyle = Assets.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, 640, 480);
         }
 
@@ -303,8 +304,12 @@ const EncounterScene = {
 
         ctx.globalAlpha = 1.0; // Reset
 
-        // VS Logo (Hide in Ending Mode)
-        if (this.mode !== 'ENDING' && this.mode !== 'ENDING_WATCH') {
+        // VS Logo — only for pre-battle matchups (STORY/WATCH). Hidden in every
+        // dialogue/ending mode, including the true-ending reveal where Mayu's identity
+        // is shown and the two just talk (no matchup).
+        const isDialogueMode = this.mode === 'ENDING' || this.mode === 'ENDING_WATCH' ||
+            this.mode === 'TRUE_ENDING';
+        if (!isDialogueMode) {
             const vs = Assets.get('ui/vs.png');
             if (vs) {
                 ctx.drawImage(vs, (EncounterLayout.VS_LOGO.widthConstraint - vs.width) / 2, EncounterLayout.VS_LOGO.y);
@@ -428,10 +433,10 @@ const EncounterScene = {
     drawChallengerMonologue: function (ctx) {
         const w = 640, h = 480;
 
-        // Tiled background
+        // Tiled background (cached pattern — don't allocate a new one each frame)
         const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
         if (bg) {
-            ctx.fillStyle = ctx.createPattern(bg, 'repeat');
+            ctx.fillStyle = Assets.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, w, h);
         } else {
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';

@@ -76,9 +76,12 @@ const BattleRenderer = {
         // Portraits (Dynamic - animate)
         if (BattleScene.p1Character) BattleScene.p1Character.draw(ctx);
         if (BattleScene.cpuMasked) {
-            // Hidden boss: draw the MAYU_unknown silhouette directly (original
-            // image as-is, positioned via BattleConfig.MASKED_BOSS).
-            const sil = Assets.get('face/MAYU_unknown.png');
+            // Hidden boss: draw the masked silhouette directly (positioned via
+            // BattleConfig.MASKED_BOSS). It still reacts — swap to the smiling masked
+            // variant when the engine sets the boss's expression to 'smile' (the only
+            // masked variants are base + smile; other states fall back to base).
+            const smiling = BattleScene.cpuCharacter && BattleScene.cpuCharacter.state === 'smile';
+            const sil = Assets.get(smiling ? 'face/MAYU_unknown_smile.png' : 'face/MAYU_unknown.png');
             const m = BattleConfig.MASKED_BOSS;
             if (sil && m) ctx.drawImage(sil, m.x, m.y, sil.width * m.scale, sil.height * m.scale);
         } else if (BattleScene.cpuCharacter) {
@@ -298,26 +301,12 @@ const BattleRenderer = {
             this.drawBattleMenu(ctx, state);
         }
 
-        // Win-available indicator (separate from the draw button)
-        if (state.currentState === state.STATE_WAIT_FOR_DRAW ||
-            state.currentState === state.STATE_PLAYER_TURN) {
-            this.drawWinHint(ctx, state);
-        }
+        // Action-slot button — one of 패 가져오기 / 날 수 있어 / 리치 걸 수 있어, at most
+        // one at a time. getActiveAction(state) decides which (if any) by state.
+        this.drawActionButton(ctx, state);
 
-        // Riichi-available indicator — only during the player's own turn (riichi
-        // requires the freshly drawn hand). Stacked above the win hint.
-        if (state.currentState === state.STATE_PLAYER_TURN) {
-            this.drawRiichiHint(ctx, state);
-        }
-
-        if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
-            this.drawDrawButton(ctx, state);
-        } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
-            if (state.currentState === state.STATE_WAIT_FOR_DRAW) {
-                this.drawDrawButton(ctx, state);
-            } else if (state.currentState === state.STATE_TILE_EXCHANGE) {
-                this.drawExchangeWindow(ctx, state);
-            }
+        if (state.currentState === state.STATE_TILE_EXCHANGE) {
+            this.drawExchangeWindow(ctx, state);
         } else if (state.currentState === state.STATE_ROULETTE || state.showLastChanceResult) {
             this.drawRoulette(ctx, state);
         }
@@ -1343,40 +1332,6 @@ const BattleRenderer = {
         return (state.possibleActions || []).some(a => a.type === 'TSUMO');
     },
 
-    // Box for an action-slot button, sized to its text plus the shared padding and
-    // anchored to the shared right edge — so 패 가져오기 / 날 수 있어 / 리치 걸 수 있어 get
-    // identical padding & margin, differing only in width. Measured here (needs ctx);
-    // the result is cached so the hit-test (no ctx) can reuse the same rect.
-    _actionButtonRect: function (ctx, conf) {
-        const box = BattleConfig.ACTION_HINT_BOX;
-        ctx.save();
-        ctx.font = conf.font;
-        const tw = ctx.measureText(conf.text).width;
-        ctx.restore();
-        const w = Math.ceil(tw) + box.padX * 2;
-        return { x: box.right - w, y: box.y, w: w, h: box.h };
-    },
-
-    // "날 수 있어!" button (원본의 あがれるよ). Same UI as the draw button. Clicking
-    // it opens the battle menu (where 아가리 is chosen) rather than auto-winning —
-    // so the player can also close the menu and keep playing for a higher hand.
-    drawWinHint: function (ctx, state) {
-        if (!this.canWinNow(state)) { this._winHintRect = null; return; }
-        const conf = BattleConfig.WIN_HINT;
-        const r = this._actionButtonRect(ctx, conf);
-        this._winHintRect = r;
-        const isHovered = state ? state.winButtonHover : false;
-        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
-            font: conf.font,
-            cursorColor: conf.cursor
-        });
-    },
-
-    checkWinButton: function (x, y) {
-        const r = this._winHintRect;
-        return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-    },
-
     // True when the player can declare Riichi right now (own turn, after draw).
     // Once Riichi is committed (incl. the declaring-discard step) it's no longer
     // offered — possibleActions may still hold a stale RIICHI, so guard on isRiichi.
@@ -1385,41 +1340,60 @@ const BattleRenderer = {
         return (state.possibleActions || []).some(a => a.type === 'RIICHI');
     },
 
-    // "리치 걸 수 있어!" button — parallel to drawWinHint. Clicking opens the battle
-    // menu (where 리치 is chosen) rather than auto-declaring.
-    drawRiichiHint: function (ctx, state) {
-        // The win hint shares this slot and takes priority — suppress when a win is
-        // also available so the two never overlap.
-        if (!this.canRiichiNow(state) || this.canWinNow(state)) { this._riichiHintRect = null; return; }
-        const conf = BattleConfig.RIICHI_HINT;
+    // Single source of truth for which action button (if any) occupies the slot:
+    //   'draw'   — WAIT_FOR_DRAW (press to draw and keep playing)
+    //   'win'    — own turn, a non-riichi tsumo is available
+    //   'riichi' — own turn, riichi is available and no win on offer
+    //   null     — own turn with nothing special (just discard), or any other state
+    // Win takes priority over riichi so the two never overlap. Win/riichi are only
+    // offered on PLAYER_TURN (they need the freshly drawn hand and are actionable
+    // via the menu); WAIT_FOR_DRAW always shows draw. Renderer, mouse hit-test and
+    // the keyboard cursor (BattleScene) all read this one function.
+    getActiveAction: function (state) {
+        const st = state.currentState;
+        if (st === state.STATE_PLAYER_TURN) {
+            if (this.canWinNow(state)) return 'win';
+            if (this.canRiichiNow(state)) return 'riichi';
+            return null;
+        }
+        if (st === state.STATE_WAIT_FOR_DRAW) return 'draw';
+        return null;
+    },
+
+    // Box for the action-slot button, sized to its text plus the shared padding and
+    // anchored to the shared right edge — so 패 가져오기 / 날 수 있어 / 리치 걸 수 있어 get
+    // identical padding & margin, differing only in width. Measured here (needs ctx);
+    // the result is cached (_actionRect) so the hit-test (no ctx) reuses the same rect.
+    _actionButtonRect: function (ctx, conf) {
+        const box = BattleConfig.ACTION_BUTTON_BOX;
+        ctx.save();
+        ctx.font = conf.font;
+        const tw = ctx.measureText(conf.text).width;
+        ctx.restore();
+        const w = Math.ceil(tw) + box.padX * 2;
+        return { x: box.right - w, y: box.y, w: w, h: box.h };
+    },
+
+    // Draw whichever action button is active. Clicking win/riichi opens the battle
+    // menu (so the player can decline and keep playing); draw draws. Highlighted when
+    // hovered by mouse OR focused by the keyboard cursor (state.actionHover, set in
+    // BattleScene). Caches the active key + rect for the hit-test and input layer.
+    drawActionButton: function (ctx, state) {
+        const key = this.getActiveAction(state);
+        if (!key) { this._actionRect = null; this._actionKey = null; return; }
+        const conf = BattleConfig.ACTION_BUTTONS[key];
         const r = this._actionButtonRect(ctx, conf);
-        this._riichiHintRect = r;
-        const isHovered = state ? state.riichiButtonHover : false;
+        this._actionRect = r;
+        this._actionKey = key;
+        const isHovered = state ? !!state.actionHover : false;
         Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
             cursorColor: conf.cursor
         });
     },
 
-    checkRiichiButton: function (x, y) {
-        const r = this._riichiHintRect;
-        return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-    },
-
-    drawDrawButton: function (ctx, state) {
-        const conf = BattleConfig.DRAW_BUTTON;
-        const r = this._actionButtonRect(ctx, conf);
-        this._drawButtonRect = r;
-        // Use state.drawButtonHover from BattleScene input
-        const isHovered = state ? state.drawButtonHover : false;
-        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
-            font: conf.font,
-            cursorColor: conf.cursor
-        });
-    },
-
-    checkDrawButton: function (x, y) {
-        const r = this._drawButtonRect;
+    checkActionButton: function (x, y) {
+        const r = this._actionRect;
         return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
 
@@ -1558,8 +1532,8 @@ const BattleRenderer = {
         const keyHint = lab.key ? ` (${lab.key})` : '';
         const label = (count === 0 ? lab.cancel : lab.confirm) + keyHint;
 
-        // Hover handling
-        const isHover = state.drawButtonHover;
+        // Hover handling (own flag — independent of the action-slot button)
+        const isHover = state.exchangeButtonHover;
 
         // Pass noBorder option
         Assets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
