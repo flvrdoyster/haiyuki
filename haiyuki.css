@@ -340,29 +340,29 @@ hr {
     border-top: 1px solid rgba(68, 68, 68, 1);
 }
 
-/* Footer — 텍스트 톤만 조정(gensei-pc98 에뮬레이터 참고): 차분한 회색.
-   레이아웃·보더(실선/폭/정렬)는 공유 footer.css 그대로 둔다.
-   `#main-wrapper #footer`(id 2개)로 공유 규칙보다 우선. */
+/* Footer — TEXT COLORS only, matched to the gensei-pc98 emulator (docs/style.css).
+   Emulator: text #555, links #777 (hover #aaa), version #666. The game footer carries
+   footer.css's opacity:0.8, so values are pre-divided by 0.8 to render identically.
+   Layout/border untouched (shared footer.css). `#main-wrapper #footer` = 2 ids. */
 #main-wrapper #footer {
-    color: rgba(150, 150, 150, 1);
+    color: rgba(106, 106, 106, 1); /* #555 ÷ 0.8 */
 }
 
 #main-wrapper #footer a {
-    color: rgba(160, 160, 160, 1);
+    color: rgba(149, 149, 149, 1); /* #777 ÷ 0.8 */
 }
 
 #main-wrapper #footer a:hover {
-    color: rgba(200, 200, 200, 1);
+    color: rgba(213, 213, 213, 1); /* #aaa ÷ 0.8 */
 }
 
 #main-wrapper #footer .site-version {
-    color: rgba(150, 150, 150, 1);
+    color: rgba(128, 128, 128, 1); /* #666 ÷ 0.8 */
     letter-spacing: 0.05em;
 }
 
 #main-wrapper #footer .footer-sep {
     margin: 0 4px;
-    opacity: 0.55;
 }
 
 /* Mobile Optimizations */
@@ -414,14 +414,13 @@ hr {
         height: 20px;
     }
 
-    /* Shrink/Hide Footer details if needed */
-    #footer {
-        margin-top: 5px;
-        font-size: 10px;
+    /* 푸터 크기·행간·자간은 공유 footer.css에서 사이트 통일(에뮬레이터 0.75em).
+       여기선 게임 전용 레이아웃만: 모바일에서 저작권+버전을 한 줄로(다른 크레딧이
+       숨겨지면 버전이 아랫줄로 떨어지므로). */
+    #main-wrapper #footer {
+        margin-top: 12px;
     }
 
-    /* Copyright + version on ONE line (version would otherwise drop to its own row
-       once the other credits are hidden on mobile). */
     #main-wrapper #footer p {
         display: inline;
     }
