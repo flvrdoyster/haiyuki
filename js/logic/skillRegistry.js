@@ -1,43 +1,29 @@
-// Per-skill behavior hooks for BattleEngine.
-//
-// SkillData (characterData.js) owns the static data (name/desc/type/cost/sfx);
-// this registry owns the logic. All hooks are optional:
-//   canUse(engine, who, user)            - extra availability conditions
-//                                          (generic MP/limit checks stay in engine.canUseSkill)
-//   execute(engine, who, user, opponent) - apply the skill effect
-//   aiScore(engine, ctx)                 - CPU desire score, fires when score + rand(0~0.2) > 0.6
-//                                          ctx: { isTenpai, isPlayerRiichi, turn, profile }
-// Flags:
-//   multiUse: true - exempt from the once-per-round / once-per-turn limits
-//   autoFlow: true - fires via a dedicated flow (round start / pre-nagari);
-//                    the generic useSkill path is blocked to prevent double-fire
-//
-// REACTIVE skills (EXCHANGE_RON, SUPER_IAI) and DORA_BOMB have no registry
-// entry: they fire via the SkillFlows functions below, called from dedicated
-// engine flows (ron counter / win sequence) outside the generic skill pipeline.
-
-// --- Shared AI scoring profiles ---
+// 스킬별 동작 훅. 정적 데이터(name/desc/type/cost/sfx)는 SkillData(characterData.js),
+// 로직은 여기. 훅(모두 선택): canUse(engine,who,user) 추가 가용조건 / execute(engine,who,
+// user,opponent) 효과 / aiScore(engine,ctx) CPU 욕구(score+rand(0~0.2)>0.6 발동;
+// ctx={isTenpai,isPlayerRiichi,turn,profile}). 플래그: multiUse=라운드/턴 제한 면제,
+// autoFlow=전용 플로우로만 발동(일반 useSkill 경로 차단, 중복발동 방지).
+// REACTIVE(EXCHANGE_RON·SUPER_IAI)·DORA_BOMB은 레지스트리 항목 없이 아래 SkillFlows로
+// 전용 엔진 플로우(론 카운터/승리 시퀀스)에서 호출된다.
 
 function _aggressiveSkillScore(ctx) {
     let score = 0;
-    if (ctx.isTenpai) score += 0.8;          // High priority if Tenpai
-    if (ctx.turn > 15) score += 0.3;         // Desperation
-    // value (큰 역/한 방 노림) — damage/offense skills suit big-hand characters.
+    if (ctx.isTenpai) score += 0.8;
+    if (ctx.turn > 15) score += 0.3;
     score += ((ctx.profile.value != null ? ctx.profile.value : 0.5)) * 0.5;
     return score;
 }
 
 function _defensiveSkillScore(engine, ctx) {
     let score = 0;
-    if (ctx.isPlayerRiichi) score += 1.0;    // Immediate reaction
+    if (ctx.isPlayerRiichi) score += 1.0;
     if (engine.cpu.hp < 3000) score += 0.4;
     score += ctx.profile.defense * 0.5;
     return score;
 }
 
-// Best yaku score the CPU's current hand can reach (0..MAX). For value-aware skills
-// (e.g. CRITICAL only pays off on a big hand). Handles 12-tile (pre-discard) and
-// 11-tile (tenpai) hands against the real yaku table.
+// CPU 현재 손패가 도달 가능한 최고 역점수(value 인지 스킬용 — CRITICAL은 큰 손에서만 값어치).
+// 12패(버림 전)·11패(텐파이) 모두 처리.
 function _cpuBestYaku(engine) {
     const hand = engine.cpu.hand, charId = engine.cpu.id;
     let best = 0;
@@ -55,14 +41,9 @@ function _cpuBestYaku(engine) {
     return best;
 }
 
-
-// --- Skill flows ---
-// Larger skill implementations that drive engine state directly (sequencing,
-// states, deck). They live here so ALL skill-specific code is in this file;
-// the engine calls them with itself as the first argument.
-
+// 엔진 상태(시퀀싱/덱)를 직접 다루는 큰 스킬 구현. 스킬 전용 코드를 한 파일에 모으려 여기 둔다.
 const SkillFlows = {
-    // RINXIANG: rewrite ura-doras to the most frequent tile in the winner's hand
+    // 우라도라를 승자 손패에서 가장 많은 패로 덮어쓴다.
     applyDoraBomb: function (engine, attacker, who) {
         const skillId = 'DORA_BOMB';
         const skill = SkillData[skillId];
@@ -70,7 +51,6 @@ const SkillFlows = {
         if (!attacker.id || attacker.id !== 'rinxiang') return;
         if (attacker.mp < skill.cost) return;
 
-        // Find most frequent tile in hand
         const hand = engine.getFullHand(attacker);
         const counts = {};
         hand.forEach(tile => {
@@ -84,7 +64,6 @@ const SkillFlows = {
 
         engine.consumeMp(who, skill.cost);
 
-        // Set Ura Doras to the best tile
         for (let i = 0; i < engine.uraDoras.length; i++) {
             const targetTile = sorted[0].tile;
             engine.uraDoras[i] = {
@@ -99,7 +78,7 @@ const SkillFlows = {
         engine.events.push({ type: 'SOUND', id: 'audio/quake' });
     },
 
-    // SMASH (REACTIVE): cut the dangerous discard out of existence — turn passes
+    // REACTIVE: 위험한 버림패를 베어 없앤다 — 턴이 상대로 넘어감.
     activateSuperIaido: function (engine, who) {
         engine.discards.pop();
 
@@ -107,17 +86,16 @@ const SkillFlows = {
         engine.events.push({ type: 'SOUND', id: 'audio/sword_draw' });
         engine.triggerDialogue('SKILL_DEFENSE', who === 'P1' ? 'p1' : 'cpu');
 
-        // The discard is gone; it becomes the OTHER player's turn.
         if (who === 'CPU') {
             engine.currentState = engine.STATE_PLAYER_TURN;
             engine.playerDraw();
         } else {
             engine.currentState = engine.STATE_CPU_TURN;
-            engine.timer = 0; // Will trigger cpuDraw
+            engine.timer = 0;
         }
     },
 
-    // SMASH (REACTIVE): take the dangerous discard back — same player re-discards
+    // REACTIVE: 위험한 버림패를 손으로 되가져온다 — 같은 플레이어가 다시 버린다.
     activateRonTileExchange: function (engine, who) {
         const badTile = engine.discards.pop();
 
@@ -130,7 +108,6 @@ const SkillFlows = {
         engine.showPopup('SKILL', { text: '론 패 교환', blocking: false });
         engine.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
 
-        // Rewind to the discard phase of the SAME player
         if (who === 'P1') {
             engine.currentState = engine.STATE_PLAYER_TURN;
             const returnedIndex = engine.p1.hand.indexOf(badTile);
@@ -144,7 +121,7 @@ const SkillFlows = {
         }
     },
 
-    // PETUM: pre-nagari roulette for one last winning tile
+    // 나가리 직전 룰렛으로 마지막 화료패를 노린다.
     activateLastChance: function (engine, who) {
         const skillId = 'LAST_CHANCE';
         const skill = SkillData[skillId];
@@ -152,7 +129,6 @@ const SkillFlows = {
         engine.showPopup('SKILL', { text: skill.name, blocking: false });
         engine.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
 
-        // Sanity: the hand must actually be tenpai (have winning tiles)
         const player = engine.getPlayer(who);
         const hand = engine.getFullHand(player);
 
@@ -165,20 +141,17 @@ const SkillFlows = {
         });
 
         if (winningTiles.length === 0) {
-            console.error("Critical: Last Chance used but no winning tiles pattern found?");
             engine.showPopup('MISS', { blocking: false });
             engine.sequencing.active = true;
             return;
         }
 
-        // Only physical tiles remaining in the wall count
         if (engine.deck.length === 0) {
             engine.showPopup('MISS', { blocking: false });
             engine.sequencing.active = true;
             return;
         }
 
-        // Enter roulette state for the animation
         engine.currentState = engine.STATE_ROULETTE;
         engine.rouletteTimer = 0;
         engine.rouletteIndex = 0;
@@ -189,11 +162,10 @@ const SkillFlows = {
         engine.showLastChanceResult = false;
     },
 
-    // Driven from BattleEngine.updateLogic while in STATE_ROULETTE
     updateRoulette: function (engine, dt = 1.0) {
         if (engine.rouletteFinished) {
             engine.rouletteFinishTimer += dt;
-            if (engine.rouletteFinishTimer > 60) { // 1 second delay
+            if (engine.rouletteFinishTimer > 60) {
                 SkillFlows.resolveRouletteResult(engine);
             }
             return;
@@ -204,7 +176,6 @@ const SkillFlows = {
         engine.rouletteTimer += dt;
         const currentRoulette = Math.floor(engine.rouletteTimer / cycleInterval);
 
-        // Cycle image every 4 frames; large dt skips multiple steps
         if (currentRoulette > prevRoulette) {
             const skip = currentRoulette - prevRoulette;
             engine.rouletteIndex = (engine.rouletteIndex + skip) % PaiData.TYPES.length;
@@ -216,12 +187,11 @@ const SkillFlows = {
         }
     },
 
+    // 도박 기믹 — 덱에서 무작위 한 장.
     finishRoulette: function (engine) {
-        // Draw one tile from the deck at random
         const randIdx = Math.floor(Math.random() * engine.deck.length);
         const resultTile = engine.deck[randIdx];
 
-        // Stop spinning on the final tile
         engine.rouletteTileType = resultTile.type;
         engine.rouletteFinished = true;
         engine.rouletteFinishTimer = 0;
@@ -248,56 +218,52 @@ const SkillFlows = {
             engine.winningYaku = winYaku;
             const score = engine.calculateScore(winYaku.score, player.isMenzen, player, engine.cpu);
 
-            engine.sequencing.active = false; // Stop Nagari sequence completely
+            engine.sequencing.active = false;
             engine.pendingDamage = { target: 'CPU', amount: score };
             BattleSequencer.startWinSequence(engine, 'TSUMO', 'P1', score);
         } else {
             engine.showPopup('MISS', { blocking: false });
 
-            // Show result persistently until the next round/action changes the screen
             engine.showLastChanceResult = true;
 
-            // Resume Nagari sequence
             engine.sequencing.active = true;
             engine.currentState = engine.STATE_FX_PLAYING;
         }
     },
 
-    // SMASH / MAYU: automated round-start exchange for the CPU
+    // 라운드 시작 시 CPU 자동 패 교환. 가장 안 쓸모 있는 패부터 교체(실제 yaku 평가).
     executeCpuTileExchange: function (engine, skillId) {
         const skill = SkillData[skillId];
         if (!skill) return;
 
-        const badIndices = AILogic.getBadTileIndices(engine.cpu.hand);
-        if (badIndices.length === 0) return;
+        const hand = engine.cpu.hand, charId = engine.cpu.id;
+        if (hand.length === 0) return;
 
-        // Exchange up to 3 worst tiles if MP allows
-        const count = Math.min(badIndices.length, 3, Math.floor(engine.cpu.mp / skill.cost));
+        const ranked = hand.map((tile, i) => {
+            const rest = hand.slice(0, i).concat(hand.slice(i + 1));
+            return { i, keep: YakuLogic.rateTileForHand(rest, tile, charId, rest, {}) };
+        }).sort((a, b) => a.keep - b.keep);
+
+        const count = Math.min(3, Math.floor(engine.cpu.mp / skill.cost), ranked.length);
         if (count === 0) return;
 
         engine.consumeMp('CPU', count * skill.cost);
-        engine.exchangeTiles(engine.cpu, badIndices.slice(0, count));
+        engine.exchangeTiles(engine.cpu, ranked.slice(0, count).map(r => r.i));
 
-        // Audio feedback only (no visual popup)
         engine.events.push({ type: 'SOUND', id: 'audio/flip' });
         engine.triggerDialogue(skillId, 'cpu');
 
-        // Small delay so the player notices something happened
         engine.timer = -15;
     }
 };
 
 const SkillRegistry = {
-    // ----- ATAHO -----
+    // 리치 가능할 때만(닫힌 손패·텐파이 도달). 다음 쯔모 보장승리. 펑 후엔 못 씀.
     TIGER_STRIKE: {
-        // "리치를 걸 수 있을 때 사용하면 다음 쯔모로 반드시 난다" — only usable when
-        // Riichi is declarable (closed hand, tenpai-reachable). After Pon the hand
-        // is open → not usable.
         canUse: (engine, who) => engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
-            user.buffs.guaranteedWin = true; // Next Draw = Win
-            // 손패 고정: 텐파이를 깨면 보장 승리패를 못 찾아 스킬이 낭비되므로,
-            // 정상 리치와 동일하게 텐파이 유지 패만 버릴 수 있게 한다.
+            user.buffs.guaranteedWin = true;
+            // 텐파이 깨면 보장승리패를 못 찾아 낭비되므로 리치처럼 손패 고정.
             engine.declareRiichiLock(who);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
@@ -309,10 +275,9 @@ const SkillRegistry = {
             return !(target.buffs && target.buffs.curseDraw > 0);
         },
         execute: (engine, who, user, opponent) => {
-            opponent.buffs.curseDraw = 3; // 3 Turns
+            opponent.buffs.curseDraw = 3;
         },
-        // 상대 드로우 저주(공격 디버프) — 방어가 아니라 선제로 깔수록 누적 방해. 중반에
-        // 상대가 손 키우는 구간이 적기, 상대 리치면 드로우 차단이라 더 강력.
+        // 상대 드로우 저주(공격 디버프) — 선제로 깔수록 누적 방해. 중반·상대 리치 시 가중.
         aiScore: (engine, ctx) => {
             let score = 0.45;
             if (ctx.isPlayerRiichi) score += 0.4;
@@ -322,21 +287,21 @@ const SkillRegistry = {
         }
     },
 
-    // ----- FARI -----
     RECOVERY: {
         multiUse: true,
         canUse: (engine, who, user) => user.hp < user.maxHp,
         execute: (engine, who) => {
-            engine.heal(who, 3000); // 3000 HP
+            engine.heal(who, 3000);
             engine.playFX('fx/heal', BattleConfig.PORTRAIT[who].x + 100, 300, { scale: 1.5 });
         },
+        // HP 낮을수록 강하게.
         aiScore: (engine, ctx) => {
             let score = 0;
             const hpPct = engine.cpu.hp / engine.cpu.maxHp;
-            if (hpPct < 0.6) score += 0.5;   // Base need
-            if (hpPct < 0.3) score += 0.5;   // Critical need
+            if (hpPct < 0.6) score += 0.5;
+            if (hpPct < 0.3) score += 0.5;
             score += ctx.profile.defense * 0.4;
-            if (ctx.turn > 10) score += 0.2; // Late game safety
+            if (ctx.turn > 10) score += 0.2;
             return score;
         }
     },
@@ -345,19 +310,17 @@ const SkillRegistry = {
         multiUse: true,
         canUse: (engine, who, user) => !(user.buffs && user.buffs.discardGuard > 0),
         execute: (engine, who, user) => {
-            user.buffs.discardGuard = 5; // 5 Turns
+            user.buffs.discardGuard = 5;
         },
         aiScore: (engine, ctx) => _defensiveSkillScore(engine, ctx)
     },
 
-    // ----- PETUM -----
     CRITICAL: {
         canUse: (engine, who, user) => !(user.buffs && user.buffs.attackUp),
         execute: (engine, who, user) => {
-            user.buffs.attackUp = true; // Lasts the round
+            user.buffs.attackUp = true;
         },
-        // 라운드 한정 데미지 버프 — 큰 손일 때만 값어치. 텐파이 + 도달 가능 최고 역으로
-        // 가늠해 싼 텐파이엔 잘 안 쓰고, 큰 손이면 적극.
+        // 라운드 한정 데미지 버프 — 텐파이 + 도달 최고역 큰 손에서만 적극.
         aiScore: (engine, ctx) => {
             if (!ctx.isTenpai) return 0;
             let score = 0.25;
@@ -368,10 +331,9 @@ const SkillRegistry = {
     },
 
     LAST_CHANCE: {
-        autoFlow: true // Pre-nagari confirmation -> activateLastChance
+        autoFlow: true
     },
 
-    // ----- RINXIANG -----
     WATER_MIRROR: {
         canUse: (engine, who, user) => !(user.buffs && user.buffs.defenseUp),
         execute: (engine, who, user) => {
@@ -380,27 +342,21 @@ const SkillRegistry = {
         aiScore: (engine, ctx) => _defensiveSkillScore(engine, ctx)
     },
 
-    // ----- YURI -----
+    // 리치 가능 시만, 16턴 이후 불가, 스피릿 타이머 없을 때. 5턴 후 보장승리.
     SPIRIT_RIICHI: {
-        // "리치 가능 시 사용하면 5턴 후 쯔모로 반드시 난다. 16턴 이후 불가" — like
-        // TIGER_STRIKE, only usable when Riichi is declarable (closed hand, etc.),
-        // with a tighter turn limit and no active spirit timer.
         canUse: (engine, who, user) =>
             engine.turnCount <= 16 &&
             !(user.buffs && user.buffs.spiritTimer > 0) &&
             engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
-            user.buffs.spiritTimer = 5; // 5 Turns countdown
-            // 기합 리치 = 실제 리치 선언이기도 하다: 손패 고정.
+            user.buffs.spiritTimer = 5;
+            // 기합 리치 = 실제 리치 선언: 손패 고정.
             engine.declareRiichiLock(who);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },
 
-    // ----- SMASH / MAYU -----
-    // Setup skills: fire automatically at round start (STATE_INIT). For the
-    // player this opens the tile-exchange UI; for the CPU it runs the AI
-    // exchange directly. Per-tile MP cost is charged inside those flows.
+    // 셋업 스킬: 라운드 시작(STATE_INIT) 자동 발동. P1은 교환 UI, CPU는 AI 교환 실행.
     EXCHANGE_TILE: {
         multiUse: true,
         autoFlow: true,

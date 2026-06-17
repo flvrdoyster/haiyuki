@@ -724,32 +724,29 @@ const BattleEngine = {
                     const tile = this.deck.splice(winningTileIdx, 1)[0];
                     this.deck.push(tile);
                     who.buffs.guaranteedWin = false; // Consume buff
-                } else {
                 }
             }
 
-            // Curse Draw (Hell Pile)
+            // Curse Draw (Hell Pile): hand the victim the most USELESS tile — peek the
+            // deck top and surface the one that improves their hand LEAST, judged by the
+            // real yaku table (rateTileForHand). This is the exact inverse of the draw
+            // assist / cpuLuck: a tenpai victim never gets a completing tile, and while
+            // building they get the least-helpful tile. Pure reorder of the deck top
+            // (composition untouched).
             if (who.buffs && who.buffs.curseDraw > 0) {
-                // Simplistic: Ensure we don't give a winning tile if possible
-                // Move the top tile to the bottom while it'd be useful to the
-                // victim. Yaku here are triplet/color based (no sequential runs),
-                // so "useful" = pairs with a held tile (same id) OR feeds a colour
-                // flush they're already concentrating (≥5 of that colour).
-                // Try up to 5 times to find a 'bad' tile.
-
-                let attempts = 0;
-                while (attempts < 5) {
-                    const topTile = this.deck[this.deck.length - 1]; // Candidate
-                    const sameColorCount = who.hand.filter(t => t.color === topTile.color).length;
-                    const isUseful = who.hand.some(t => t.type === topTile.type) || sameColorCount >= 5;
-
-                    if (isUseful) {
-                        // It's useful, bury it
-                        const buried = this.deck.pop();
-                        this.deck.unshift(buried); // Move to bottom
-                        attempts++;
-                    } else {
-                        break;
+                if (this.deck.length >= 2) {
+                    const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
+                    const fullHand = this.getFullHand(who);
+                    let worstOffset = 0;
+                    let worstScore = Infinity;
+                    for (let i = 0; i < peek; i++) {
+                        const tile = this.deck[this.deck.length - 1 - i];
+                        const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {});
+                        if (s < worstScore) { worstScore = s; worstOffset = i; }
+                    }
+                    if (worstOffset > 0) {
+                        const picked = this.deck.splice(this.deck.length - 1 - worstOffset, 1)[0];
+                        this.deck.push(picked);
                     }
                 }
                 who.buffs.curseDraw--; // Decrement duration (turns)
@@ -1496,27 +1493,6 @@ const BattleEngine = {
             }
         }
         return validIndices;
-    },
-
-    /**
-     * Simplified Can Win Check (Is Tenpai?)
-     */
-    getTenpaiInfo: function (player) {
-        // This function is intended to return information about tenpai, not to execute a pon.
-        // If this was meant to be a modification of executeCpuPon, please clarify.
-
-        // Placeholder for Tenpai Info logic:
-        const hand = player.hand;
-        const tenpaiInfo = {
-            isTenpai: false,
-            waitingTiles: [],
-            potentialYakus: []
-        };
-
-        if (this.checkTenpai(hand)) {
-            tenpaiInfo.isTenpai = true;
-        }
-        return tenpaiInfo;
     },
 
     executeCpuPon: function (tile) {

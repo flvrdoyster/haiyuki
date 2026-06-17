@@ -12,11 +12,8 @@ const BattleMenuSystem = {
     constructMenu: function () {
         this.menuItems = [];
 
-        // Declaration commands (아가리/펑/리치) — original-game style fixed commands.
-        // Always listed and greyed when not currently available (like skills), rather
-        // than a forced popup. 아가리 = win = TSUMO (RON is riichi-auto, so it never
-        // surfaces here). The bound action comes from the engine's possibleActions;
-        // when absent the item is disabled and selecting it does nothing.
+        // 선언 커맨드(아가리=TSUMO/펑/리치): 팝업 대신 항상 표시, 불가 시 회색(스킬과 동일).
+        // 론은 리치 자동이라 메뉴에 안 뜬다.
         const pa = this.engine.possibleActions || [];
         const findAction = type => pa.find(a => a.type === type) || null;
         [
@@ -98,8 +95,6 @@ const BattleMenuSystem = {
             this.engine.useSkill(selectedId);
             return;
         } else if (selectedItem.type === 'ACTION') {
-            // Declaration (아가리/펑/리치) chosen from the menu → run its effect.
-            // Greyed (unavailable) commands do nothing, same as disabled skills.
             if (selectedItem.disabled || !selectedItem.action) {
                 return;
             }
