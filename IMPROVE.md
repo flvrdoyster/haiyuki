@@ -4,9 +4,10 @@
 
 ## 1. AI 난이도 + 캐릭터 성격 (드로우 운/개성) — 측정/튜닝 잔여
 - **완료(난이도):** 실질 2티어 — `DIFFICULTY_BANDS` easy=normal `[0.75,0.95]`, hard `[1.0,1.0]`(easy 차이는 플레이어 드로우 어시스트뿐). 진행도 선형 보간. 실수는 **softmax 온도 모델**(`aiLogic.decideDiscard`, `MISTAKE_TEMP`)로 점수 가중 — skill=1.0이면 무실수. 측정(시뮬): normal 초반 ~4.5%(텐파이 깸 1.8%) → 막판 ~0.6%, hard 0%. `skill`=역량/일관성, `aiProfile`=스타일로 직교 분리.
-- **완료(평가 로직):** 버림 결정이 **실제 yaku 테이블 기반**(드로우 어시스트와 동급 지능). `aiLogic.scoreDiscards`가 후보별로 — 텐파이는 `getRiichiScore`(도달 가능 최고 역 + 대기 폭), 비텐파이는 `countAcceptance`(ukeire) — 로 평가. 기존 `calculateHandPotential`(세트 합산)은 스타일 항·펑 손패 폴백으로만. 가중치 상수(`TENPAI_TIER`/`ACCEPT_W`/… in aiLogic).
-- **완료(성격):** `aiProfile` 6축(value/speed/colorBias/greed/defense/luck). `luck`은 매 단일 드로우마다 확률만큼 "다음 N장 중 최선패"(`DRAW_ASSIST.peek` 20). **음수 luck 폐기** — CPU에 플레이어보다 나쁜 패를 억지로 주면 CPU가 약해져 난이도↓라, 페톰을 베이스(0.25)보다 낮은 0으로 둬 상대적 불운만 표현. 화린·눈썹개 0.75. 캐릭터 값은 `characterData.js` 주석(공식 매뉴얼 페르소나 기반).
-- **잔여:** ① **캐릭터 행동 지문 측정** — 펑률·평균 승리 역점수·리치 턴·디일인률 등을 시뮬로 뽑아 성격이 실제 갈리는지 검증(버림 실수율은 `scoreDiscards`로 측정 가능). ② **value 빌드업 반영** — 초·중반 큰 역 선호는 여전히 약함(텐파이/도달성 위주). ③ 균형 미튜닝.
+- **완료(평가 로직):** 버림 결정이 **실제 yaku 테이블 기반**(드로우 어시스트와 동급 지능). `aiLogic.scoreDiscards`가 후보별로 — 텐파이는 `getRiichiScore`(도달 가능 최고 역 + 대기 폭), 비텐파이는 `acceptanceInfo`(ukeire + 도달 가능 최고 역) — 로 평가. 기존 `calculateHandPotential`(세트 합산)은 플레이버 베이스·펑 손패 폴백으로만. 가중치 상수(`TENPAI_TIER`/`ACCEPT_W`/… in aiLogic).
+- **완료(성격):** `aiProfile` 6축(value/speed/colorBias/greed/defense/luck). `luck`은 매 단일 드로우마다 확률만큼 "다음 N장 중 최선패"(`DRAW_ASSIST.peek` 20). **음수 luck 폐기** — CPU에 플레이어보다 나쁜 패를 억지로 주면 CPU가 약해져 난이도↓라, 페톰을 베이스(0.25)보다 낮은 0으로 둬 상대적 불운만 표현. 화린·눈썹개 0.75. 캐릭터 값은 `characterData.js` 주석(공식 매뉴얼 페르소나 기반). 평가 리라이트로 희석됐던 스타일 축은 **명시 항으로 복원** — colorBias(우세색 모이면 비우세 패 버림 `COLOR_W`)·greed(도라 버림 감점 `DORA_KEEP_W`)·defense(안전패 `DEFENSE_BASE + def×W`, 전 캐릭 상향)·value(비텐파이 도달 최고역 `VALUE_BUILD_W`). speed는 펑(`shouldPon`)·낮은 value로 표현.
+- **완료(스킬 타이밍):** CPU 매턴 스킬은 `SkillRegistry.aiScore` → 임계 0.6 → `skillUseChance`(=0.3+0.7×skill). HELL_PILE(선제 드로우 저주를 방어 버킷서 빼 능동 사용)·CRITICAL(`_cpuBestYaku`로 큰 손일 때만) 재점수화. 승리/리액티브/셋업 스킬은 이벤트 경로.
+- **잔여:** ① **캐릭터 행동 지문 측정** — 펑률·평균 승리 역점수·리치 턴·디일인률 등을 시뮬로 뽑아 성격이 실제 갈리는지 검증(버림 실수율은 `scoreDiscards`로 측정 가능). ② **스킬 aiScore 버킷이 거침**(공격/방어 공용) — 개별 스킬 타이밍 더 정교화 여지. ③ 균형 미튜닝.
 
 ## 2. FX 스타일 디테일업 (원본 게임 정합)
 - **목표:** 전투 FX(스킬/타격/리치 등)를 원본 게임에 더 가깝게 다듬기.

@@ -20,6 +20,11 @@ const AILogic = {
     SHANTEN_TIER: 400,   // base for a non-tenpai discard that still has accepting draws
     ACCEPT_W: 25,        // × acceptance count (ukeire) — prefer wider acceptance
     STYLE_W: 0.5,        // weight of the set-shape/color/dora/style flavor layered on top
+    DEFENSE_BASE: 300,   // 상대 리치 시 안전패(겐부츠) 기본 보너스 — 모든 캐릭이 챙기도록
+    DEFENSE_W: 600,      // × profile.defense — 방어형일수록 더 안전 지향
+    COLOR_W: 350,        // colorBias: 우세색이 모였을 때 비우세 패를 버리면 가산(순·초일색 노림)
+    DORA_KEEP_W: 400,    // greed: 도라를 버리면 감점(도라 애착) — 욕심 많을수록 강함
+    VALUE_BUILD_W: 300,  // value: 비텐파이에서도 도달 가능 최고 역 선호(빌드업 단계, 텐파이보다 약하게)
 
     /**
      * Choose which tile to discard.
@@ -77,6 +82,13 @@ const AILogic = {
         // Open (pon'd) hands keep the lighter shape/style heuristic.
         const smart = (hand.length === 12);
 
+        // Personality helpers, computed once and reused per candidate.
+        const greed = (profile.greed != null) ? profile.greed : 0.3;
+        // Dominant color of the full hand (for 순·초일색 steering).
+        let domColor = null, domCount = 0; const byColor = {};
+        for (const t of hand) { byColor[t.color] = (byColor[t.color] || 0) + 1; if (byColor[t.color] > domCount) { domCount = byColor[t.color]; domColor = t.color; } }
+        const doraSet = new Set((doras || []).map(d => d.type + '_' + d.color));
+
         const candidates = [];
         for (let i = 0; i < hand.length; i++) {
             const tile = hand[i];
@@ -95,23 +107,31 @@ const AILogic = {
                         + Math.min(reach.waitCount, 12) * this.WAIT_W;
                     if (value > 0) score += reach.maxScore * value * this.VALUE_WEIGHT; // chase big (style)
                 } else {
-                    // Not tenpai — reward acceptance (ukeire): how many draws advance the
-                    // hand toward a real win. Wider = closer / more flexible.
-                    const accept = this.countAcceptance(remainingHand);
-                    score = (accept > 0 ? this.SHANTEN_TIER : 0) + accept * this.ACCEPT_W;
+                    // Not tenpai — reward acceptance (ukeire) AND the best reachable yaku
+                    // one improvement away, so value steers the BUILD, not just tenpai.
+                    const acc = this.acceptanceInfo(remainingHand, charId);
+                    score = (acc.accept > 0 ? this.SHANTEN_TIER : 0) + acc.accept * this.ACCEPT_W;
+                    if (value > 0 && acc.bestYaku > 0) score += (acc.bestYaku / this.MAX_YAKU) * value * this.VALUE_BUILD_W;
                 }
-                // Style flavor (set shape / dominant color / dora / greed) layered on top.
+                // Generic shape/flavor baseline (speed via set-shape multiplier lives here).
                 score += this.calculateHandPotential(remainingHand, profile, doras, 1) * this.STYLE_W;
+
+                // --- Personality steer (STYLE) on the discarded tile ---
+                // colorBias (순·초일색): once a color is forming, prefer tossing off-color.
+                if (domCount >= 5 && tile.color !== domColor) score += profile.colorBias * this.COLOR_W;
+                // greed (도라 애착): keep dora — penalize discarding one (greedier = stronger).
+                if (doraSet.has(tile.type + '_' + tile.color)) score -= greed * this.DORA_KEEP_W;
             } else {
                 // Open hand: shape/style heuristic only.
                 score = this.calculateHandPotential(remainingHand, profile, doras, 1);
             }
 
             // Defense (STYLE): under opponent Riichi prefer discarding genbutsu (a tile
-            // already in the discards is guaranteed safe), scaled by profile.defense.
+            // already in the discards is guaranteed safe). Base bonus everyone gets +
+            // a defense-scaled part, so all characters value safety (방어형일수록 더).
             if (opponentRiichi) {
                 const isSafe = discards.some(d => d.type === tile.type && d.color === tile.color);
-                if (isSafe) score += profile.defense * 200;
+                if (isSafe) score += this.DEFENSE_BASE + profile.defense * this.DEFENSE_W;
             }
 
             candidates.push({ index: i, score: score });
@@ -119,27 +139,32 @@ const AILogic = {
         return candidates;
     },
 
-    // Ukeire: how many distinct draw tiles advance an 11-tile (non-tenpai) hand toward a
-    // win — i.e. let it reach tenpai after the best discard. Wider = better hand. Closed-
-    // hand measure (12-tile yaku check via checkTenpai); used by decideDiscard's smart path.
-    countAcceptance: function (hand11) {
-        let accept = 0;
+    // Ukeire + reachable value for an 11-tile (non-tenpai) hand:
+    //   accept   — how many distinct draws advance it to tenpai (after the best discard)
+    //   bestYaku — best yaku score reachable one improvement away (for value steering)
+    // Closed-hand measure (12-tile yaku check via checkTenpai/getRiichiScore).
+    acceptanceInfo: function (hand11, charId) {
+        let accept = 0, bestYaku = 0;
         for (const D of PaiData.TYPES) {
             const h12 = [...hand11, { type: D.id, color: D.color, img: D.img }];
             const tried = new Set();
-            let ok = false;
-            for (let j = 0; j < h12.length && !ok; j++) {
+            let foundJ = -1;
+            for (let j = 0; j < h12.length && foundJ < 0; j++) {
                 const d = h12[j];
                 const k = d.type + '_' + d.color;
                 if (tried.has(k)) continue;
                 tried.add(k);
                 const h11b = [...h12];
                 h11b.splice(j, 1);
-                if (YakuLogic.checkTenpai(h11b)) ok = true;
+                if (YakuLogic.checkTenpai(h11b)) foundJ = j;
             }
-            if (ok) accept++;
+            if (foundJ >= 0) {
+                accept++;
+                const rs = YakuLogic.getRiichiScore(h12, charId, foundJ);
+                if (rs.maxScore > bestYaku) bestYaku = rs.maxScore;
+            }
         }
-        return accept;
+        return { accept, bestYaku };
     },
 
     calculateHandPotential: function (hand, profile, doras, doraModifier = 1.0) {

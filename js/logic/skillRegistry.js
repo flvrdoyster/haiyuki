@@ -35,6 +35,26 @@ function _defensiveSkillScore(engine, ctx) {
     return score;
 }
 
+// Best yaku score the CPU's current hand can reach (0..MAX). For value-aware skills
+// (e.g. CRITICAL only pays off on a big hand). Handles 12-tile (pre-discard) and
+// 11-tile (tenpai) hands against the real yaku table.
+function _cpuBestYaku(engine) {
+    const hand = engine.cpu.hand, charId = engine.cpu.id;
+    let best = 0;
+    if (hand.length === 12) {
+        for (let i = 0; i < hand.length; i++) {
+            const rs = YakuLogic.getRiichiScore(hand, charId, i);
+            if (rs.maxScore > best) best = rs.maxScore;
+        }
+    } else {
+        for (const t of PaiData.TYPES) {
+            const w = YakuLogic.checkYaku([...hand, { type: t.id, color: t.color, img: t.img }], charId);
+            if (w && w.score > best) best = w.score;
+        }
+    }
+    return best;
+}
+
 
 // --- Skill flows ---
 // Larger skill implementations that drive engine state directly (sequencing,
@@ -291,7 +311,15 @@ const SkillRegistry = {
         execute: (engine, who, user, opponent) => {
             opponent.buffs.curseDraw = 3; // 3 Turns
         },
-        aiScore: (engine, ctx) => _defensiveSkillScore(engine, ctx)
+        // 상대 드로우 저주(공격 디버프) — 방어가 아니라 선제로 깔수록 누적 방해. 중반에
+        // 상대가 손 키우는 구간이 적기, 상대 리치면 드로우 차단이라 더 강력.
+        aiScore: (engine, ctx) => {
+            let score = 0.45;
+            if (ctx.isPlayerRiichi) score += 0.4;
+            if (ctx.turn >= 3 && ctx.turn <= 12) score += 0.2;
+            score += ((ctx.profile.value != null ? ctx.profile.value : 0.5)) * 0.2;
+            return score;
+        }
     },
 
     // ----- FARI -----
@@ -328,7 +356,15 @@ const SkillRegistry = {
         execute: (engine, who, user) => {
             user.buffs.attackUp = true; // Lasts the round
         },
-        aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
+        // 라운드 한정 데미지 버프 — 큰 손일 때만 값어치. 텐파이 + 도달 가능 최고 역으로
+        // 가늠해 싼 텐파이엔 잘 안 쓰고, 큰 손이면 적극.
+        aiScore: (engine, ctx) => {
+            if (!ctx.isTenpai) return 0;
+            let score = 0.25;
+            score += Math.min(_cpuBestYaku(engine) / 8000, 1) * 0.6;
+            score += ((ctx.profile.value != null ? ctx.profile.value : 0.5)) * 0.3;
+            return score;
+        }
     },
 
     LAST_CHANCE: {
