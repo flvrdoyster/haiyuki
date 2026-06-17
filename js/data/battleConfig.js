@@ -39,7 +39,7 @@ const BattleConfig = {
         // peek the top `peek` tiles with probability `chance` and surface the
         // one that builds the highest-scoring hand. Player-favor only — the
         // CPU never gets rigged draws on any difficulty.
-        DRAW_ASSIST: { chance: 1.0, peek: 6 },
+        DRAW_ASSIST: { chance: 1.0, peek: 20 },
 
         // AI competence is no longer a fixed bucket here. It is a continuous
         // skill (0..1) computed per battle from the player's difficulty band ×

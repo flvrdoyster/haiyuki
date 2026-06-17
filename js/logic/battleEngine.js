@@ -252,9 +252,13 @@ const BattleEngine = {
     // normal — what makes it easier is the player-side draw assist (see init), not a
     // dumber CPU. Skill rises linearly within the band as the tournament progresses.
     DIFFICULTY_BANDS: {
-        easy: [0.30, 0.75],   // == normal; easy = normal CPU + draw assist
-        normal: [0.30, 0.75],
-        hard: [0.55, 1.00]
+        // 운 게임이라 패 효율의 난이도 천장이 낮음 → AI는 거의/완전 최선수로 둔다.
+        // 실수율은 skill로 매핑(T = 점수폭 × (1−skill) × MISTAKE_TEMP):
+        //   normal=아주 가끔(1.0에 안 닿음), hard=절대 안 함(skill 1.0 → T=0).
+        // easy는 normal과 동일 밴드 — 난이도 차이는 easy 전용 (사기급) 드로우 어시스트뿐.
+        easy: [0.75, 0.95],   // == normal; 차이는 드로우 어시스트(easy만)
+        normal: [0.75, 0.95],
+        hard: [1.00, 1.00]
     },
     TOURNAMENT_LENGTH: 5, // opponents before the final boss
 

@@ -3,9 +3,10 @@
 남은 개선 과제만 정리. 완료되어 제외된 항목은 git 히스토리 참조.
 
 ## 1. AI 난이도 + 캐릭터 성격 (드로우 운/개성) — 측정/튜닝 잔여
-- **완료(난이도):** 실질 2티어 — `DIFFICULTY_BANDS` normal=hard 외 easy=normal(차이는 플레이어 드로우 어시스트뿐). 진행도 선형 보간. 실수는 **softmax 온도 모델**(`aiLogic.decideDiscard`, `MISTAKE_TEMP`)로 점수 가중 — 작은 실수 잦고 대형 헛수 드묾. `skill`=역량/일관성, `aiProfile`=스타일로 직교 분리(난이도가 성격을 안 죽임).
-- **완료(성격):** `aiProfile` 6축 — **value**(큰 역·한 방: `getRiichiScore.maxScore × value`로 텐파이 시 큰 역 선호) / **speed**(펑·템포) / **colorBias**(순·초일색) / **greed**(도라) / **defense**(상대 리치 시 안전패) / **luck**(CPU 드로우 질 ±, `BattleEngine.cpuLuck` peek-재배열). 캐릭터별 값은 공식 매뉴얼(`haiyuki_manual/char.html`) 페르소나 기반 — `characterData.js` 주석 참조. 리치는 트레이드오프가 없어 성격 축에서 제외(실력 전용).
-- **잔여:** ① **측정 미비** — 캐릭터별 행동 지문(펑률·평균 승리 역점수·리치 턴·디일인률·드로우 질)을 시뮬로 뽑아 "성격이 실제로 갈리는지" 검증 필요. 안 갈리면 가중치 상향. ② **value 반쪽** — 텐파이 *도달 순간*에만 큰 역 선호, 초·중반 빌드업은 휴리스틱(`calculateHandPotential`). ③ **균형 미튜닝**(우선순위 낮음). ④ 일부 축(defense/colorBias) 실전 발동 빈도 낮을 수 있음.
+- **완료(난이도):** 실질 2티어 — `DIFFICULTY_BANDS` easy=normal `[0.75,0.95]`, hard `[1.0,1.0]`(easy 차이는 플레이어 드로우 어시스트뿐). 진행도 선형 보간. 실수는 **softmax 온도 모델**(`aiLogic.decideDiscard`, `MISTAKE_TEMP`)로 점수 가중 — skill=1.0이면 무실수. 측정(시뮬): normal 초반 ~4.5%(텐파이 깸 1.8%) → 막판 ~0.6%, hard 0%. `skill`=역량/일관성, `aiProfile`=스타일로 직교 분리.
+- **완료(평가 로직):** 버림 결정이 **실제 yaku 테이블 기반**(드로우 어시스트와 동급 지능). `aiLogic.scoreDiscards`가 후보별로 — 텐파이는 `getRiichiScore`(도달 가능 최고 역 + 대기 폭), 비텐파이는 `countAcceptance`(ukeire) — 로 평가. 기존 `calculateHandPotential`(세트 합산)은 스타일 항·펑 손패 폴백으로만. 가중치 상수(`TENPAI_TIER`/`ACCEPT_W`/… in aiLogic).
+- **완료(성격):** `aiProfile` 6축(value/speed/colorBias/greed/defense/luck). `luck`은 매 단일 드로우마다 확률만큼 "다음 N장 중 최선패"(`DRAW_ASSIST.peek` 20). **음수 luck 폐기** — CPU에 플레이어보다 나쁜 패를 억지로 주면 CPU가 약해져 난이도↓라, 페톰을 베이스(0.25)보다 낮은 0으로 둬 상대적 불운만 표현. 화린·눈썹개 0.75. 캐릭터 값은 `characterData.js` 주석(공식 매뉴얼 페르소나 기반).
+- **잔여:** ① **캐릭터 행동 지문 측정** — 펑률·평균 승리 역점수·리치 턴·디일인률 등을 시뮬로 뽑아 성격이 실제 갈리는지 검증(버림 실수율은 `scoreDiscards`로 측정 가능). ② **value 빌드업 반영** — 초·중반 큰 역 선호는 여전히 약함(텐파이/도달성 위주). ③ 균형 미튜닝.
 
 ## 2. FX 스타일 디테일업 (원본 게임 정합)
 - **목표:** 전투 FX(스킬/타격/리치 등)를 원본 게임에 더 가깝게 다듬기.
