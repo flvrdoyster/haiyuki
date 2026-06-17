@@ -1,37 +1,30 @@
 const BattleScene = {
     init: function (data) {
         QADebug.reset();
-        // Difficulty preference is meta-game state (Game.saveData) — inject it
-        // here so the rules engine never reads save data itself.
+        // 난이도는 규칙 엔진이 saveData를 직접 읽지 않도록 여기서 주입
         data = data || {};
         if (!data.difficulty) {
             data.difficulty = (Game.saveData && Game.saveData.difficulty) || 'normal';
         }
         BattleEngine.init(data, this);
-        BattleRenderer.reset(); // Crucial for Layering Optimization
+        BattleRenderer.reset();
         this.initPortraits();
         this.activeFX = [];
-        this.confirmData = null; // Local Confirm State { msg, onYes, onNo, selected, timer }
-        this._confirmLayout = null; // Cache layout
+        this.confirmData = null;
+        this._confirmLayout = null;
     },
 
-    // Match end presentation: fade to black, then navigate. Wraps the (raw, synchronous)
-    // proceedFromMatchOver in the shared scene-transition fade — used for both win and
-    // lose. Kept separate so direct callers/tests can still navigate without the fade.
     endMatch: function () {
         Game.fadeTo(() => this.proceedFromMatchOver());
     },
 
-    // Match settled — meta-game policy: where to go next, unlocks/save, continue
-    // count. Owned by the scene so the rules engine stays navigation-free.
     proceedFromMatchOver: function () {
         const e = BattleEngine;
 
         if (e.matchWinner === 'P1') {
-            // Record the win (engine state carries tournament progress)
             e.defeatedOpponents = [...e.defeatedOpponents, e.cpuIndex];
 
-            // True-ending boss beaten? (Mayu is the hidden roster entry)
+            // 마유는 히든 보스 — 격파 시 진엔딩 분기
             const mayuIndex = CharacterData.findIndex(c => c.id === 'mayu');
             if (e.cpuIndex === mayuIndex) {
                 if (!Game.saveData.unlocked.includes('mayu')) {
@@ -39,12 +32,12 @@ const BattleScene = {
                     Game.save();
                 }
 
-                Game.isAutoTest = false; // Stop Auto Test
+                Game.isAutoTest = false;
                 Game.changeScene(EncounterScene, {
                     playerIndex: e.playerIndex,
                     cpuIndex: e.cpuIndex,
                     mode: 'TRUE_ENDING',
-                    defeatedOpponents: [] // Reset
+                    defeatedOpponents: []
                 });
                 return;
             }
@@ -57,19 +50,16 @@ const BattleScene = {
                 defeatedOpponents: e.defeatedOpponents
             });
         } else {
-            // Game Over → Continue Screen
             Game.continueCount++;
             Game.changeScene(ContinueScene, {
                 playerIndex: e.playerIndex,
                 cpuIndex: e.cpuIndex,
                 defeatedOpponents: e.defeatedOpponents,
-                isNextRound: false // Fresh rematch if continued
+                isNextRound: false
             });
         }
     },
 
-    // Portraits are view objects: the scene owns them, the renderer draws them,
-    // and the engine requests expression changes via EXPRESSION events.
     p1Character: null,
     cpuCharacter: null,
     cpuMasked: false,
@@ -85,7 +75,6 @@ const BattleScene = {
             'mayu': 'MAYU'
         };
 
-        // Auto-Detection (Standard face folder only)
         const getAnimConfig = (charData) => {
             if (!charData) return null;
             const prefix = idMap[charData.id] || charData.id.toUpperCase();
@@ -104,10 +93,7 @@ const BattleScene = {
         }, false);
         this.p1Character.setAnimationConfig(getAnimConfig(p1Data));
 
-        // Hidden boss: a non-player Mayu fights masked. The silhouette is drawn
-        // directly by BattleRenderer (MAYU_unknown.png, BattleConfig.MASKED_BOSS),
-        // NOT this portrait — cpuCharacter is kept only for the event system.
-        // Game logic still uses BattleEngine.cpu.id ('mayu'); name → "???".
+        // 마스크 보스: BattleRenderer가 실루엣(MAYU_unknown.png)을 직접 그림 — cpuCharacter는 이벤트 시스템용으로만 유지
         this.cpuMasked = (cpuData && cpuData.id === 'mayu' && (!p1Data || p1Data.id !== 'mayu'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
@@ -122,7 +108,7 @@ const BattleScene = {
         this.cpuCharacter.setState('idle');
     },
 
-    // Layout is recomputed only when the message changes (used every frame for hit detection)
+    // 메시지가 바뀔 때만 레이아웃 재계산 (매 프레임 히트 판정에 사용)
     getConfirmLayout: function (msg) {
         if (this._confirmLayout && this._confirmLayout.msg === msg) return this._confirmLayout;
         this._confirmLayout = UIHelpers.getConfirmLayout(msg);
@@ -133,9 +119,6 @@ const BattleScene = {
         if (!engine.events) return;
 
         let i = 0;
-        // Simple queue scan:
-        // Audio -> Play & Remove
-        // Visual -> Check Blocking. If blocked, skip (i++). If not, Play & Remove.
         while (i < engine.events.length) {
             try {
                 const evt = engine.events[i];
@@ -167,12 +150,12 @@ const BattleScene = {
                 }
 
                 if (evt.type === 'DAMAGE') {
-                    // Play Damage Sound Customized by Attacker Character (Source of Damage)
+                    // 공격자 캐릭터에 따라 피격 효과음 분기 (검사: slash, 나머지: impact 랜덤)
                     let attackerId = null;
                     if (evt.target === 'P1') {
-                        attackerId = engine.cpu.id; // CPU attacked P1
+                        attackerId = engine.cpu.id;
                     } else if (evt.target === 'CPU') {
-                        attackerId = engine.p1.id; // P1 attacked CPU
+                        attackerId = engine.p1.id;
                     }
 
                     if (attackerId) {
@@ -180,16 +163,13 @@ const BattleScene = {
                         if (isSword) {
                             Assets.playSound('audio/slash');
                         } else {
-                            // Random Impact 1-3
                             const r = Math.floor(Math.random() * 3) + 1;
                             Assets.playSound(`audio/impact-${r}`);
                         }
                     } else {
-                        // Fallback
                         Assets.playSound(BattleConfig.AUDIO.DAMAGE);
                     }
 
-                    // 피격 연출: 화면 전체 흔들림 (양쪽 피격 모두)
                     Game.shake(BattleConfig.SHAKE.mag, BattleConfig.SHAKE.frames);
 
                     engine.events.splice(i, 1);
@@ -208,11 +188,9 @@ const BattleScene = {
                     continue;
                 }
 
-                // Visual Event (FX)
                 const isBlocked = this.activeFX.some(fx => fx.blocking);
                 if (!isBlocked) {
                     if (evt.type === 'FX') {
-                        // Check for Popup Type Sound
                         if (evt.options && evt.options.popupType) {
                             const conf = BattleConfig.POPUP.TYPES[evt.options.popupType];
                             if (conf && conf.sound) {
@@ -222,15 +200,13 @@ const BattleScene = {
                         this.spawnFX(evt.asset, evt.x, evt.y, evt.options);
                     }
                     engine.events.splice(i, 1);
-                    // Note: If we just spawned a blocking FX, isBlocked will be true for subsequent items in this loop
                     continue;
                 } else {
-                    // Blocked: Leave in queue, move to next item check
                     i++;
                 }
             } catch (e) {
                 console.error("Error processing event:", e);
-                engine.events.splice(i, 1); // Remove problematic event
+                engine.events.splice(i, 1);
             }
         }
     },
@@ -241,13 +217,8 @@ const BattleScene = {
             const life = options.life || 45;
             const scale = options.scale || 1.0;
             const slideFrom = options.slideFrom;
-            const anim = options.anim; // New: Animation Type
+            const anim = options.anim;
             const blocking = options.blocking || false;
-
-            // Prevent Overlap: REMOVED per user request
-            // if (blocking) {
-            //    this.activeFX = [];
-            // }
 
             let startX = x;
             let endX = x;
@@ -275,7 +246,7 @@ const BattleScene = {
                 endX: endX, endY: endY,
                 timer: 0, life: life, maxLife: life,
                 scale: scale, alpha: 0,
-                baseScale: scale, // Store original target scale
+                baseScale: scale,
                 anim: anim,
                 slideFrom: slideFrom,
                 blocking: blocking
@@ -287,25 +258,21 @@ const BattleScene = {
         for (let i = this.activeFX.length - 1; i >= 0; i--) {
             const fx = this.activeFX[i];
             fx.life -= dt;
-            fx.timer += dt; // If we use timer for any logic
+            fx.timer += dt;
 
-            // Animation Logic
-            // Fade In (0-10)
             const fadeInDur = BattleConfig.FX.fadeInDuration;
             if (fx.maxLife - fx.life <= fadeInDur) {
                 fx.alpha = (fx.maxLife - fx.life) / fadeInDur;
             }
 
-            // Slide Logic (Improved Easing)
             if (fx.slideFrom) {
                 const slideDur = BattleConfig.FX.slideDuration;
                 const p = Math.min(1, (fx.maxLife - fx.life) / slideDur);
-                // EaseOutCubic: 1 - (1-x)^3. Much smoother than Quad for UI slides.
+                // EaseOutCubic: UI 슬라이드에 Quad보다 부드러움
                 const ease = 1 - Math.pow(1 - p, 3);
                 fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                 fx.y = fx.startY + (fx.endY - fx.startY) * ease;
             } else if (fx.anim === 'ZOOM_IN') {
-                // Natural Pop (BackOut Easing)
                 const popDur = BattleConfig.FX.zoomPopDuration;
                 const age = fx.maxLife - fx.life;
                 const overshoot = BattleConfig.FX.zoomOvershoot;
@@ -313,70 +280,55 @@ const BattleScene = {
                 if (age < popDur) {
                     let p = age / popDur;
                     p = p - 1;
-                    // Cubic Back Out
                     const scaleP = p * p * ((overshoot + 1) * p + overshoot) + 1;
                     fx.scale = fx.baseScale * scaleP;
                 } else {
                     fx.scale = fx.baseScale;
                 }
             } else if (fx.anim === 'BOUNCE_UP') {
-                // "Drop and Bounce" Logic
-                // Phase 1: Drop from Sky (StartOffset) to Floor (ImpactOffset)
-                // Phase 2: Bounce from Floor to Target (0,0 relative)
-
                 const age = fx.maxLife - fx.life;
                 const dropDur = BattleConfig.FX.bounceDropDuration;
                 const bounceDur = BattleConfig.FX.bounceUpDuration;
                 const startOffX = BattleConfig.FX.bounceStartOffsetX;
                 const startOffY = BattleConfig.FX.bounceStartOffsetY;
-                const floorOffY = BattleConfig.FX.bounceFloorOffsetY; // The "floor" below target
+                const floorOffY = BattleConfig.FX.bounceFloorOffsetY;
                 const impactOffX = BattleConfig.FX.bounceImpactOffsetX;
 
                 if (age < dropDur) {
-                    // Phase 1: Falling Down (Ease In Quad - Gravity)
                     const p = age / dropDur;
-                    const easeIn = p * p; // Gravity accelerating
+                    const easeIn = p * p;
 
-                    // Lerp from Start to Impact
-                    fx.x = (fx.endX + startOffX) + (impactOffX - startOffX) * p; // X usually linear
+                    fx.x = (fx.endX + startOffX) + (impactOffX - startOffX) * p;
                     fx.y = (fx.endY + startOffY) + (floorOffY - startOffY) * easeIn;
 
                     fx.alpha = Math.min(1, age / 4);
 
-                    // Add squash scale at impact? (Optional polish)
                     if (p > 0.9) fx.scaleY = fx.baseScale * 0.8;
                     else fx.scaleY = fx.baseScale;
 
                 } else {
-                    // Phase 2: Bouncing Up to Target (Ease Out Quad/Back)
                     const bounceAge = age - dropDur;
                     let p = Math.min(1, bounceAge / bounceDur);
 
-                    // Ease Out Back for "Snap" to position
-                    // or Ease Out Quad for simple gravity
                     const easeOut = p * (2 - p);
 
-                    // Interpolate from Impact(Floor) to Target(0 offset)
                     fx.x = (fx.endX + impactOffX) + (0 - impactOffX) * easeOut;
                     fx.y = (fx.endY + floorOffY) + (0 - floorOffY) * easeOut;
 
-                    // Restore scale
                     fx.scaleY = fx.baseScale;
                     fx.alpha = 1.0;
                 }
-                // Ensure final position
                 if (age >= dropDur + bounceDur) {
                     fx.x = fx.endX;
                     fx.y = fx.endY;
                 }
             } else if (fx.anim === 'SLIDE') {
-                // Explicit Slide (Same as above)
                 const slideDur = BattleConfig.FX.slideDuration + 4;
                 const age = fx.maxLife - fx.life;
 
                 if (age <= slideDur) {
                     const p = age / slideDur;
-                    const ease = 1 - Math.pow(1 - p, 4); // Quartic Out (Snappier)
+                    const ease = 1 - Math.pow(1 - p, 4);
                     fx.x = fx.startX + (fx.endX - fx.startX) * ease;
                     fx.y = fx.startY + (fx.endY - fx.startY) * ease;
                 } else {
@@ -385,7 +337,6 @@ const BattleScene = {
                 }
             }
 
-            // Fade Out (Last 20 frames)
             const fadeOutDur = BattleConfig.FX.fadeOutDuration;
             if (fx.life < fadeOutDur) {
                 fx.alpha = fx.life / fadeOutDur;
@@ -403,7 +354,6 @@ const BattleScene = {
         dt = dt || 1.0;
         QADebug.sync(BattleEngine);
 
-        // Local Confirmation Update (Blocks Logic)
         if (this.confirmData) {
             this.updateConfirm(dt);
             return;
@@ -411,32 +361,26 @@ const BattleScene = {
 
         this.processEvents(BattleEngine);
         this.updateFX(dt);
-        BattleDialogue.update(dt); // Update Dialogue Timers
+        BattleDialogue.update(dt);
 
-        // Portrait animations always run, even while a blocking FX pauses logic
+        // 블로킹 FX 중에도 포트레이트 애니메이션은 계속 실행
         if (this.p1Character) this.p1Character.update(dt);
         if (this.cpuCharacter) this.cpuCharacter.update(dt);
 
-        // Check Blocking Status
         const isBlocking = this.activeFX.some(fx => fx.blocking);
         if (isBlocking) {
-            return; // Pause Logic and Input
+            return;
         }
 
-        // Logic Update
         BattleEngine.updateLogic();
 
-        // Input Handling
         const engine = BattleEngine;
 
-        // Global Toggles
         if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
-            // Block Menu during Riichi (Auto-discard)
+            // 리치 자동 버림 중에는 메뉴 금지
             if (engine.p1 && engine.p1.isRiichi) return;
 
-            // No battle menu during tile-exchange setup — fall through so
-            // handleTileExchangeInput can use ESC as the exchange-confirm key
-            // (replaces Enter, per user request).
+            // 패 교환 중에는 ESC를 교환 확인키로 쓰므로 메뉴 스킵
             if (engine.currentState !== engine.STATE_TILE_EXCHANGE) {
                 BattleMenuSystem.toggle();
                 return;
@@ -450,10 +394,6 @@ const BattleScene = {
         } else if (engine.currentState === engine.STATE_TILE_EXCHANGE) {
             this.handleTileExchangeInput(engine);
         } else if (engine.currentState === engine.STATE_WAIT_FOR_DRAW) {
-            // Manual Draw Input — only the 패 가져오기 action button is available here,
-            // so the keyboard cursor rests on it (highlighted) and Z/Space draws. A
-            // win/리치 is opt-in via the menu on PLAYER_TURN; drawing forgoes nothing
-            // here (you haven't drawn yet).
             engine.actionFocused = true;
             const onButton = BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
             engine.actionHover = engine.actionFocused || onButton;
@@ -467,10 +407,7 @@ const BattleScene = {
             engine.currentState === engine.STATE_LOSE ||
             engine.currentState === engine.STATE_NAGARI) {
 
-            // Result Screen Input (Delayed 2s)
-            // engine.stateTimer ensures we wait before accepting input.
-            // Z/Space both require a fresh press (not isDown) so the winning/
-            // confirming keypress can't bleed through and skip the result.
+            // stateTimer > 120 (약 2초) 후에만 입력 수락 — 승리키 블리드스루 방지
             if (engine.stateTimer > 120 && (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed())) {
                 engine.confirmResult();
             }
@@ -478,7 +415,6 @@ const BattleScene = {
     },
 
     handleBattleMenuInput: function () {
-        // Keyboard
         if (Input.isJustPressed(Input.UP)) {
             BattleMenuSystem.selectedMenuIndex--;
             if (BattleMenuSystem.selectedMenuIndex < 0) BattleMenuSystem.selectedMenuIndex = BattleMenuSystem.menuItems.length - 1;
@@ -487,8 +423,6 @@ const BattleScene = {
             if (BattleMenuSystem.selectedMenuIndex >= BattleMenuSystem.menuItems.length) BattleMenuSystem.selectedMenuIndex = 0;
         }
 
-        // Mouse Hover using Renderer Helper
-        // Mouse Click
         const hovered = BattleRenderer.getMenuItemAt(Input.mouseX, Input.mouseY, BattleMenuSystem.menuItems);
         if (hovered !== -1 && Input.hasMouseMoved()) {
             BattleMenuSystem.selectedMenuIndex = hovered;
@@ -508,26 +442,21 @@ const BattleScene = {
     },
 
     handlePlayerTurnInput: function (engine) {
-        // Riichi Locked Input: Allow manual discard ONLY when declaring Riichi
-        // If Riichi is active AND NOT declaring, input is blocked (Auto Mode)
+        // 리치 자동 버림 중에는 선언 중일 때만 수동 입력 허용
         if (engine.p1.isRiichi && !engine.p1.declaringRiichi) return;
 
         const handSize = engine.p1.hand.length;
 
-        // Action-slot button (날 수 있어! / 리치 걸 수 있어!) — single source of truth via
-        // getActiveAction. Both just open the battle menu (no auto-win/declare), so the
-        // player can decline and keep playing for a higher hand.
+        // 액션 버튼(날 수 있어!/리치) — getActiveAction이 단일 진실 출처; 누르면 메뉴 열어 거절 가능
         const hasAction = BattleRenderer.getActiveAction(engine) !== null;
-        if (!hasAction) engine.actionFocused = false; // can't rest on a button that isn't there
+        if (!hasAction) engine.actionFocused = false;
 
-        // Mouse: hovering the action button highlights it; clicking opens the menu.
         const onActionBtn = hasAction && BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
         if (onActionBtn && Input.isMouseJustPressed()) {
             BattleMenuSystem.toggle();
             return;
         }
 
-        // Mouse: hovering a hand tile moves the cursor there (off the action button).
         const groupSize = engine.lastDrawGroupSize || 0;
         const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
         if (hovered !== -1 && Input.hasMouseMoved()) {
@@ -535,9 +464,7 @@ const BattleScene = {
             engine.actionFocused = false;
         }
 
-        // Keyboard cursor: the action button sits one step right of the last tile, so
-        // pressing → past the rightmost tile lands on it; ← steps back, → wraps to the
-        // first tile (0). Only reachable while an action button is actually shown.
+        // ← : 액션 버튼에서 마지막 패로, 패에서 왼쪽으로. → : 마지막 패에서 버튼으로, 버튼에서 첫 패(0)로 순환
         if (Input.isJustPressed(Input.LEFT)) {
             if (engine.actionFocused) {
                 engine.actionFocused = false;
@@ -552,70 +479,56 @@ const BattleScene = {
                 engine.actionFocused = false;
                 engine.hoverIndex = 0; // wrap past the button to the first tile
             } else if (engine.hoverIndex >= handSize - 1 && hasAction) {
-                engine.actionFocused = true; // step onto the action button
+                engine.actionFocused = true;
             } else {
                 engine.hoverIndex++;
                 if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
             }
         }
 
-        // Clamp the tile cursor (only meaningful when not focused on the button)
         if (!engine.actionFocused) {
             if (engine.hoverIndex >= handSize) engine.hoverIndex = handSize - 1;
             if (engine.hoverIndex < 0) engine.hoverIndex = 0;
         }
 
-        // Highlight the button when the keyboard cursor is on it OR the mouse hovers it.
         engine.actionHover = engine.actionFocused || onActionBtn;
 
-        // Select / Discard / Activate
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
 
-            // Keyboard cursor on the action button → open the menu.
             if (engine.actionFocused && (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE))) {
                 BattleMenuSystem.toggle();
                 return;
             }
 
-            // Mouse Interaction: Strict Check
             if (Input.isMouseJustPressed()) {
                 const clickIndex = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
                 if (clickIndex !== -1) {
-                    // Check Strict Target (Riichi Auto-Move)
                     if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== clickIndex) {
                         return;
                     }
 
-                    // Riichi Manual Discard Validation (Specifically during Declaration)
                     if (engine.p1.declaringRiichi) {
                         const validIndices = engine.validRiichiDiscardIndices;
                         if (!validIndices || !validIndices.includes(clickIndex)) {
-                            // Invalid Discard (Breaks Tenpai) - Block
-                            Assets.playSound('audio/wrong'); // Error sound
+                            Assets.playSound('audio/wrong');
                             return;
                         }
                     }
 
-                    engine.hoverIndex = clickIndex; // Select the clicked tile
+                    engine.hoverIndex = clickIndex;
                     engine.discardTile(clickIndex);
                 } else {
-                    // Clicked empty space -> Clear selection to prevent accidents
                     engine.hoverIndex = -1;
                 }
-            }
-            // Keyboard Interaction: Use current hover (only when on a tile, not the button)
-            else if (!engine.actionFocused && engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
-                // Check Strict Target
+            } else if (!engine.actionFocused && engine.hoverIndex !== -1 && engine.hoverIndex < handSize) {
                 if (engine.riichiTargetIndex !== -1 && engine.riichiTargetIndex !== engine.hoverIndex) {
                     return;
                 }
 
-                // Riichi Manual Discard Validation (Specifically during Declaration)
                 if (engine.p1.declaringRiichi) {
                     const validIndices = engine.validRiichiDiscardIndices;
                     if (!validIndices || !validIndices.includes(engine.hoverIndex)) {
-                        // Invalid Discard (Breaks Tenpai) - Block
-                        Assets.playSound('audio/wrong'); // Error sound
+                        Assets.playSound('audio/wrong');
                         return;
                     }
                 }
@@ -626,11 +539,8 @@ const BattleScene = {
     },
 
     draw: function (ctx) {
-        // Optimized Draw: Pass BattleEngine directly + ActiveFX argument
-        // New: Pass Ura Doras
         BattleRenderer.draw(ctx, BattleEngine, this.activeFX);
 
-        // Draw Local Confirmation Dialog on top
         if (this.confirmData) {
             this.drawConfirm(ctx);
         }
@@ -641,11 +551,11 @@ const BattleScene = {
             msg: msg,
             onYes: onYes,
             onNo: onNo,
-            selected: 1, // Default to NO
-            timer: 10, // Cooldown
-            cost: options.cost || 0 // Store cost
+            selected: 1,
+            timer: 10,
+            cost: options.cost || 0
         };
-        this._confirmLayout = null; // Reset cache
+        this._confirmLayout = null;
     },
 
     updateConfirm: function (dt = 1.0) {
@@ -655,11 +565,9 @@ const BattleScene = {
             return;
         }
 
-        // --- Mouse Interaction ---
         const mx = Input.mouseX;
         const my = Input.mouseY;
 
-        // Use Layout
         const layout = this.getConfirmLayout(d.msg);
         const yes = layout.yesBtn;
         const no = layout.noBtn;
@@ -683,11 +591,9 @@ const BattleScene = {
             }
         }
 
-        // --- Keyboard Interaction ---
         if (Input.isJustPressed(Input.LEFT) || Input.isJustPressed(Input.RIGHT) ||
             Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
             d.selected = (d.selected === 0) ? 1 : 0;
-            // Optional: Play tick sound
         }
 
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
@@ -698,9 +604,6 @@ const BattleScene = {
             }
             this.confirmData = null;
         }
-        // Cancel = leave the selection on NO (default) and press Z/Space, or
-        // toggle to NO with the arrows. No separate cancel key (X/ESC) — the
-        // dialog is fully operable with 방향키 + Z(Space), matching the keymap.
     },
 
     drawConfirm: function (ctx) {
@@ -712,8 +615,7 @@ const BattleScene = {
     },
 
     handleTileExchangeInput: function (engine) {
-        // Reuse Player Turn Hover Logic for selection
-        const groupSize = 0; // No group in dealing phase
+        const groupSize = 0;
         const hovered = BattleRenderer.getHandTileAt(Input.mouseX, Input.mouseY, engine.p1, groupSize);
         if (hovered !== -1 && Input.hasMouseMoved()) { engine.hoverIndex = hovered; }
 
@@ -727,25 +629,19 @@ const BattleScene = {
             if (engine.hoverIndex >= handSize) engine.hoverIndex = 0;
         }
 
-        // Toggle Selection — Z(=Space) marks/unmarks a tile for exchange.
+        // Z(=Space)로 교환 대상 패 토글
         if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || (Input.isMouseJustPressed() && hovered !== -1)) {
             if (engine.hoverIndex >= 0 && engine.hoverIndex < handSize) {
                 engine.toggleExchangeSelection(engine.hoverIndex);
             }
         }
 
-        // Confirm / Cancel
-        // Button Logic?
-        // Let's implement Confirm Button Logic too.
-        // Reuse Draw Button Area Check for Exchange Button
         const isHoverButton = BattleRenderer.checkExchangeButton(Input.mouseX, Input.mouseY);
         if (Input.hasMouseMoved()) {
-            engine.exchangeButtonHover = isHoverButton; // own flag — not the action-slot button
+            engine.exchangeButtonHover = isHoverButton;
         }
 
-        // Confirm with ESC only — Z is the select/deselect toggle above, so the
-        // exchange is committed with ESC (or clicking the confirm button). ESC
-        // reaches here because the global menu-toggle skips STATE_TILE_EXCHANGE.
+        // ESC로만 확인 — Z는 위에서 토글로 쓰임; 글로벌 메뉴 토글이 이 상태를 건너뛰므로 ESC가 여기까지 도달
         if (Input.isJustPressed(Input.ESC) || (Input.isMouseJustPressed() && isHoverButton)) {
             engine.confirmTileExchange();
         }

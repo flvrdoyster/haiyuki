@@ -1,65 +1,49 @@
-// Staff roll — mahjong-themed, matching the original. NOT a scroll: each section
-// (one '---' block of staff.md: a left-aligned role label + indented name lines) is
-// assembled tile-by-tile. Tiles fly in from the RIGHT and land left→right with a
-// little upward bounce ("draw").
-//
-// Typo gimmick (one per line): the line assembles with all-but-the-last correct
-// character PLUS one extra WRONG tile inserted among them. Once the whole section is
-// shown, every inserted wrong tile rises away together ("discard"); the tiles to its
-// right slide LEFT to close the gap; then the final character of each line flies in
-// from the right to complete it. The section holds, then every tile DROPS STRAIGHT
-// DOWN and the next section assembles. The closing COMPILE line is a pre-made image.
-//
-// Layout: everything is LEFT-aligned; labels at LABEL_X, names indented to BODY_X;
-// lines stacked by tile height (no overlap); the block is centered vertically.
+// 스태프롤: 각 섹션을 타일 단위로 조립. 틀린 타일 삽입→폐기→정답 타일 착지→낙하 순으로 진행.
+// 마지막 섹션(copyright)은 미리 만든 이미지.
 
 const CreditsConfig = {
     SCREEN_W: 640,
     SCREEN_H: 480,
 
-    LABEL_X: 100,        // left edge of role labels / title
-    BODY_X: 280,         // left edge of name lines (indented)
-    SECTION_CENTER_Y: 240,   // screen vertical center (SCREEN_H / 2)
-    V_MARGIN: 10,        // gap between stacked tiles (on top of tile height)
+    LABEL_X: 100,        // 역할 레이블 좌측 끝
+    BODY_X: 280,         // 이름 줄 좌측 끝(들여쓰기)
+    SECTION_CENTER_Y: 240,
+    V_MARGIN: 10,
 
-    ADV: 40,             // per-glyph advance (= cell width)
+    ADV: 40,             // 글자 폭
     CELL_H: 64,
 
     TITLE_SCALE: 1,
     ROLE_SCALE: 1,
     NAME_SCALE: 1,
 
-    // Closing copyright is a pre-made image ('ui/logo_compile_1998.png'), centered.
+    // 클로징 이미지('ui/logo_compile_1998.png')
     COPY_LOGO_SCALE: 1,
     COPY_Y: 228,
     COPY_FADEIN: 20,
 
-    // Draw-in (fly from right, then bounce up & settle)
     SLIDE: 8,
     SLIDE_DX: 180,
     BOUNCE: 16,
     BOUNCE_H: 20,
-    DRAW_STEP: 8,        // delay before the next tile begins
+    DRAW_STEP: 8,        // 다음 타일 시작 딜레이
 
-    // Typo gimmick — the wrong tile mirrors the script of the char it sits next to
-    // (Korean→Korean, alphanumeric→alphanumeric, Japanese→Japanese), drawn from the
-    // atlas's glyphs of that script (see _scriptOf / _pickWrong).
-    ASSEMBLE_PAUSE: 20,  // hold the assembled-with-typos state
-    DISCARD: 11,         // wrong tiles rise away
+    // 틀린 타일은 같은 문자 계통에서 뽑음(_scriptOf / _pickWrong)
+    ASSEMBLE_PAUSE: 20,  // 틀린 타일 표시 유지
+    DISCARD: 11,         // 틀린 타일 상승 폐기
     RISE: 90,
-    SHIFT: 9,            // right-side tiles slide left to close the gap
+    SHIFT: 9,            // 빈 자리 메우기
 
     HOLD: 90,
     COPY_HOLD: 120,
 
-    FALL_G: 1.2,         // straight-down gravity
+    FALL_G: 1.2,         // 낙하 가속도
     FALL_DONE: 58,
 
     FADE_FRAMES: 70,
     END_HOLD: 40
 };
 
-// Top → bottom — one entry per '---' block of staff.md.
 const STAFF_ROLL = [
     { title: '환세패유기 STAFF' },
     { role: '플래너', names: ['南 千晶', 'さかや☆'] },
@@ -93,15 +77,13 @@ const CreditsScene = {
         this.fade = 0;
         this.buildSections();
 
-        // Credits BGM. The ending illustration already plays bgm_ending, so keep it
-        // seamless there; on the other paths (continue / true-ending) start it now.
+        // 엔딩 씬에서 이미 bgm_ending을 재생 중이면 이어서; 그 외 경로는 여기서 시작
         if (Assets.currentBgmId !== 'audio/bgm_ending') Assets.playMusic('audio/bgm_ending');
     },
 
     buildSections: function () {
         const C = CreditsConfig;
         this.sections = STAFF_ROLL.map((entry) => {
-            // The closing copyright is a single pre-made image, not assembled tiles.
             if (entry.copyright !== undefined) {
                 return { tiles: [], isCopyright: true, holdEnd: C.COPY_HOLD };
             }
@@ -114,14 +96,13 @@ const CreditsScene = {
                     .concat(entry.names.map(n => ({ text: n, scale: C.NAME_SCALE, x: C.BODY_X })));
             }
 
-            // Vertical layout: stack by tile height (no overlap), centered.
             let totalH = 0;
             lines.forEach(l => { totalH += C.CELL_H * l.scale; });
             totalH += (lines.length - 1) * C.V_MARGIN;
             let cursorY = C.SECTION_CENTER_Y - totalH / 2;
 
             const tiles = [];
-            let order = 0; // assembly sequence across the whole section
+            let order = 0;
             lines.forEach((line) => {
                 const ty = cursorY;
                 const adv = C.ADV * line.scale;
@@ -129,8 +110,6 @@ const CreditsScene = {
                 const N = chars.length;
                 const slotX = (s) => line.x + s * adv;
 
-                // One wrong tile inserted at slot p; the final char is held back to
-                // fly in last. Assembly shows chars[0..N-2] with `wrong` spliced in.
                 const p = Math.floor(Math.random() * N);
                 const script = this._scriptOf(chars[p]) || this._dominantScript(chars) || 'jp';
                 const wrongCh = this._pickWrong(script, chars[p]);
@@ -147,7 +126,7 @@ const CreditsScene = {
                     });
                     order++;
                 }
-                // The final character flies in last to complete the line.
+                // 마지막 글자는 폐기·이동 후 가장 나중에 착지
                 tiles.push({
                     ch: chars[N - 1], ty: ty, scale: line.scale,
                     assembleX: null, finalX: slotX(N - 1),
@@ -173,8 +152,7 @@ const CreditsScene = {
         });
     },
 
-    // Script of a glyph: 'kr' (Hangul), 'an' (Latin letters + digits), 'jp' (kana +
-    // CJK), or null (symbols / space).
+    // 'kr'(한글) / 'an'(라틴+숫자) / 'jp'(가나·한자) / null(기호·공백)
     _scriptOf: function (ch) {
         if (!ch) return null;
         const c = ch.codePointAt(0);
@@ -184,7 +162,7 @@ const CreditsScene = {
         return null;
     },
 
-    // Per-script pools of the atlas glyphs (built once), used to source wrong tiles.
+    // 아틀라스 글리프에서 계통별 풀 구축(최초 1회)
     _buildPools: function () {
         const pools = { kr: [], an: [], jp: [] };
         const seen = {};
@@ -206,7 +184,6 @@ const CreditsScene = {
         return best;
     },
 
-    // A random wrong glyph of the given script (≠ exclude).
     _pickWrong: function (script, exclude) {
         const pools = this._pools || this._buildPools();
         const all = pools[script] || [];
@@ -215,15 +192,13 @@ const CreditsScene = {
         return src.length ? src[Math.floor(Math.random() * src.length)] : exclude;
     },
 
-    // Render state {ch, x, y, alpha} of one tile at the current section clock, or
-    // null if it isn't visible. (Falling is handled in draw().)
     _tileState: function (tile, sec) {
         const C = CreditsConfig;
         const t = this.t;
         const slideIn = (p, x) => ({ x: x + (1 - _easeOut(p)) * C.SLIDE_DX, y: tile.ty });
         const bounce = (p, x) => ({ x: x, y: tile.ty - Math.sin(p * Math.PI) * C.BOUNCE_H });
 
-        // Final character: hidden until the gap has closed, then flies in.
+        // 마지막 글자: 갭이 닫힌 뒤 착지
         if (tile.isLast) {
             if (t < sec.shiftEnd) return null;
             const lt = t - sec.shiftEnd;
@@ -234,7 +209,6 @@ const CreditsScene = {
 
         if (t < tile.startT) return null;
 
-        // Phase 1: fly in to the assembly slot.
         const assembleDone = tile.startT + C.SLIDE + C.BOUNCE;
         if (t < assembleDone) {
             const lt = t - tile.startT;
@@ -243,7 +217,6 @@ const CreditsScene = {
             return { ch: tile.ch, x: pos.x, y: pos.y, alpha: 1 };
         }
 
-        // The inserted wrong tile: holds, then rises away.
         if (tile.isWrong) {
             if (t < sec.typoStart) return { ch: tile.ch, x: tile.assembleX, y: tile.ty, alpha: 1 };
             if (t < sec.discardEnd) {
@@ -253,7 +226,7 @@ const CreditsScene = {
             return null;
         }
 
-        // Correct assembly tile: slides left during the shift if it sits right of p.
+        // 위치가 안 바뀌는 타일은 그대로
         if (tile.finalX === tile.assembleX) return { ch: tile.ch, x: tile.assembleX, y: tile.ty, alpha: 1 };
         if (t < sec.discardEnd) return { ch: tile.ch, x: tile.assembleX, y: tile.ty, alpha: 1 };
         if (t < sec.shiftEnd) {
@@ -315,7 +288,7 @@ const CreditsScene = {
 
             for (const tile of sec.tiles) {
                 if (falling) {
-                    if (tile.isWrong) continue; // already gone
+                    if (tile.isWrong) continue;
                     const ft = Math.max(0, fallT - tile.fallDelay);
                     const y = tile.ty + 0.5 * C.FALL_G * ft * ft;
                     if (y > C.SCREEN_H + 80) continue;

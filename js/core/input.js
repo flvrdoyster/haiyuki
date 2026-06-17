@@ -2,7 +2,6 @@ const Input = {
     keys: {},
     prevKeys: {},
 
-    // Mouse state
     mouseX: 0,
     mouseY: 0,
     prevMouseX: 0,
@@ -12,7 +11,6 @@ const Input = {
     isRightMouseDown: false,
     prevRightMouseDown: false,
 
-    // Key mapping (using e.code)
     LEFT: 'ArrowLeft',
     RIGHT: 'ArrowRight',
     UP: 'ArrowUp',
@@ -25,13 +23,10 @@ const Input = {
         if (this.initialized) return;
         this.initialized = true;
 
-        // Enter (incl. numpad) is an alias for Z — the confirm/action key. Normalizing
-        // here means every Input.Z check (isDown/isJustPressed) responds to Enter too,
-        // with no per-call-site changes.
+        // Enter·NumpadEnter를 Z(확인키)로 정규화 — 모든 isDown/isJustPressed가 자동 반응
         const normalize = (code) => (code === 'Enter' || code === 'NumpadEnter') ? this.Z : code;
 
         window.addEventListener('keydown', (e) => {
-            // Prevent default scrolling for arrow keys and space
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
                 e.preventDefault();
             }
@@ -42,15 +37,10 @@ const Input = {
             this.keys[normalize(e.code)] = false;
         });
 
-        // Mouse events
         if (canvas) {
             this.canvas = canvas;
 
-            // Map a client (screen) coordinate to internal canvas coordinates.
-            // The rect is read fresh on every pointer event: getBoundingClientRect
-            // on a single element inside a read-only handler is cheap, and it makes
-            // coordinates immune to any layout shift (CSS transforms, panel toggles,
-            // mobile browser chrome) without needing to invalidate a cached rect.
+            // rect을 매번 새로 읽어 레이아웃 변화(CSS transform·모바일 크롬바 등)에 면역
             this.mapToCanvas = (clientX, clientY) => {
                 const rect = canvas.getBoundingClientRect();
                 this.mouseX = (clientX - rect.left) * (canvas.width / rect.width);
@@ -77,10 +67,9 @@ const Input = {
                 }
             });
 
-            // Touch Support
             canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevent scrolling
-                this.isTouch = true; // Flag touch interaction
+                e.preventDefault();
+                this.isTouch = true;
                 const touch = e.touches[0];
                 this.mapToCanvas(touch.clientX, touch.clientY);
                 this.isMouseDown = true;
@@ -104,12 +93,9 @@ const Input = {
     },
 
     update: function () {
-        // Copy current keys to prevKeys for edge detection
         this.prevKeys = { ...this.keys };
         this.prevMouseDown = this.isMouseDown;
         this.prevRightMouseDown = this.isRightMouseDown;
-
-        // Mouse move tracking
         this.prevMouseX = this.mouseX;
         this.prevMouseY = this.mouseY;
     },
@@ -130,7 +116,7 @@ const Input = {
         return this.isMouseDown && !this.prevMouseDown;
     },
 
-    isMouseRightClick: function () { // Just Pressed check for Right Click
+    isMouseRightClick: function () {
         return this.isRightMouseDown && !this.prevRightMouseDown;
     }
 };

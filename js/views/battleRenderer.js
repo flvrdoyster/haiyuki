@@ -24,15 +24,12 @@ const BattleRenderer = {
     updateStaticLayers: function (state) {
         this.initBuffers();
 
-        // Update BG Canvas
         const bgCtx = this.bgCanvas.getContext('2d');
         bgCtx.imageSmoothingEnabled = false;
 
-        // Fill Black
         bgCtx.fillStyle = 'rgba(0, 0, 0, 1)';
         bgCtx.fillRect(0, 0, 640, 480);
 
-        // Random BG
         const randomBg = Assets.get(state.bgPath);
         if (randomBg) {
             const bgConf = BattleConfig.BG;
@@ -46,40 +43,30 @@ const BattleRenderer = {
             bgCtx.drawImage(randomBg, x, y);
         }
 
-        // Update FG Canvas (UI BG + Names)
         const fgCtx = this.fgCanvas.getContext('2d');
         fgCtx.imageSmoothingEnabled = false;
-        fgCtx.clearRect(0, 0, 640, 480); // Clear previous
+        fgCtx.clearRect(0, 0, 640, 480);
 
-        // UI Background
         const uiBg = Assets.get(BattleConfig.UI_BG.path);
         if (uiBg) fgCtx.drawImage(uiBg, 0, 0);
 
-        // Character Names
         this.drawCharacterNames(fgCtx, state);
 
         this._dirtyStatic = false;
     },
 
     draw: function (ctx, state, activeFX) {
-        // Disable interpolation for pixel art / precise layering
         ctx.imageSmoothingEnabled = false;
 
-        // Check Static Layers
         if (this._dirtyStatic || !this.bgCanvas) {
             this.updateStaticLayers(state);
         }
 
-        // Draw Static BG
         ctx.drawImage(this.bgCanvas, 0, 0);
 
-        // Portraits (Dynamic - animate)
         if (BattleScene.p1Character) BattleScene.p1Character.draw(ctx);
         if (BattleScene.cpuMasked) {
-            // Hidden boss: draw the masked silhouette directly (positioned via
-            // BattleConfig.MASKED_BOSS). It still reacts — swap to the smiling masked
-            // variant when the engine sets the boss's expression to 'smile' (the only
-            // masked variants are base + smile; other states fall back to base).
+            // 마유가 숨겨진 보스로 등장할 때 실루엣 표시; smile 상태만 별도 이미지 존재
             const smiling = BattleScene.cpuCharacter && BattleScene.cpuCharacter.state === 'smile';
             const sil = Assets.get(smiling ? 'face/MAYU_unknown_smile.png' : 'face/MAYU_unknown.png');
             const m = BattleConfig.MASKED_BOSS;
@@ -88,31 +75,24 @@ const BattleRenderer = {
             BattleScene.cpuCharacter.draw(ctx);
         }
 
-        // Draw Static FG (UI BG + Names)
         ctx.drawImage(this.fgCanvas, 0, 0);
 
-        // Draw Dynamic UI (Buff Indicators)
         this.drawBuffIndicators(ctx, state);
 
-        // Discards
         this.drawDiscards(ctx, state);
 
-        // Hands
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
         const gap = BattleConfig.HAND.tileGap;
 
-        // CPU Hand (Top)
-        // CPU Hand (Top)
         const cpuMetrics = this.getVisualMetrics(state.cpu, 0, 'cpu');
         const cpuStartX = cpuMetrics.handStartX;
         const cpuCount = state.cpu.hand.length;
 
         for (let i = 0; i < cpuCount; i++) {
-            let xOffset = 0;
-            const x = cpuStartX + i * (tileW + gap) + xOffset;
+            const x = cpuStartX + i * (tileW + gap);
 
-            // Reveal hand if CPU wins or Nagari or Revealed
+            // CPU 승리/나가리/패 공개 시 손패 공개
             if (state.currentState === state.STATE_LOSE || state.currentState === state.STATE_MATCH_OVER || state.currentState === state.STATE_NAGARI || state.cpu.isRevealed) {
                 this.drawTile(ctx, state.cpu.hand[i], x, BattleConfig.HAND.cpuY, tileW, tileH);
             } else {
@@ -120,13 +100,10 @@ const BattleRenderer = {
             }
         }
 
-        // Draw CPU Open Sets (Right of hand)
         this.drawOpenSets(ctx, state.cpu.openSets, cpuMetrics.openStartX, BattleConfig.HAND.cpuY, tileW, tileH, true);
 
-        // Player Hand (Bottom)
         const pCount = state.p1.hand.length;
         const groupSize = state.lastDrawGroupSize || 0;
-        // Check state constants from state object
         const hasGap = (groupSize > 0) && (state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_BATTLE_MENU);
 
         const metrics = this.getVisualMetrics(state.p1, hasGap ? groupSize : 0, 'p1');
@@ -135,16 +112,12 @@ const BattleRenderer = {
         for (let i = 0; i < pCount; i++) {
             const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y;
-            // Update Hover Logic to include Exchange State
             const isHover = ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && i === state.hoverIndex);
 
             if (isHover) {
                 y += BattleConfig.HAND.hoverYOffset;
             }
 
-            // Determine side image based on face-down state
-            // If face-down (deal) or Exchanging, use specific back-side asset.
-            // isExchanging calculated here to avoid 'const' redecl issue if block scoped, but var var is safer or just let
             const isExchanging = state.exchangeIndices && state.exchangeIndices.includes(i);
             const useBackSide = state.p1.isFaceDown || isExchanging;
 
@@ -152,28 +125,18 @@ const BattleRenderer = {
             const sideImg = Assets.get(sideAsset);
 
             if (sideImg) {
-                // Draw at Top (y - height)
                 const sy = y - sideImg.height;
                 ctx.drawImage(sideImg, pos.x, sy, tileW, sideImg.height);
             }
 
-            if (state.p1.isRiichi && i === state.riichiTargetIndex) {
-                // Riichi indicator if needed
-            }
-
-            // Determine Tint (Validity)
             const options = {};
             if (state.p1.isRiichi) {
-                // Check validity
+                // 리치 후 버릴 수 없는 패 어둡게
                 const validIndices = state.validRiichiDiscardIndices;
                 if (validIndices && !validIndices.includes(i)) {
-                    options.tint = 'rgba(0, 0, 0, 0.6)'; // Darken invalid tiles
+                    options.tint = 'rgba(0, 0, 0, 0.6)';
                 }
             }
-
-            // Draw Face or Back based on state
-            // Check Exchange Selection (Visual Flip)
-            // isExchanging is already calculated above
 
             if (state.p1.isFaceDown || isExchanging) {
                 this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/pai_back.png');
@@ -182,53 +145,35 @@ const BattleRenderer = {
             }
         }
 
-        // Draw Cursor (Top Layer)
         if ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && state.hoverIndex >= 0 && state.hoverIndex < pCount) {
             const i = state.hoverIndex;
             const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y + BattleConfig.HAND.hoverYOffset;
 
-            // Programmatic Cursor (2px Box)
             const sideImg = Assets.get('tiles/side-top.png');
             const sideH = sideImg ? sideImg.height : 14;
             const totalH = tileH + sideH;
-
-            // Adjust rect to include top side
-            // Original: y, totalH. (Downwards)
-            // New: y - sideH, totalH.
             const cursorY = y - sideH;
 
-            // ... (Color Logic) ...
-
-            // Multi-Color Blink Logic
             const hConf = BattleConfig.HAND;
             if (hConf.hoverColors && hConf.hoverColors.length > 0) {
                 const speed = hConf.hoverBlinkSpeed || 10;
-                // Use timer (frame count) to cycle colors
+                // 타이머로 색상 순환 (프레임 기반)
                 const cIndex = Math.floor(state.timer / speed) % hConf.hoverColors.length;
                 ctx.strokeStyle = hConf.hoverColors[cIndex];
             } else {
                 ctx.strokeStyle = hConf.hoverColor;
             }
             ctx.lineWidth = BattleConfig.HAND.hoverWidth;
-
-            // Draw Rectangle over Tile Face + Side
-            // ctx.strokeRect(pos.x, y, tileW, totalH); // Old
             ctx.strokeRect(pos.x, cursorY, tileW, totalH);
         }
 
-        // Player Open Sets
-        // Use calculated openStartX instead of fixed anchor
         this.drawOpenSets(ctx, state.p1.openSets, metrics.openStartX, BattleConfig.HAND.playerY, tileW, tileH, false);
 
-        // Dora
-        // Dora
         this.drawDora(ctx, state.doras, state.uraDoras, state.uraDoraRevealed);
 
-        // Info (Turn/Round)
         this.drawInfo(ctx, state.turnCount, state.currentRound);
 
-        // Riichi Sticks (New UI)
         const riichiConf = BattleConfig.RIICHI_STICK;
         if (riichiConf && Assets.get(riichiConf.path)) {
             const rImg = Assets.get(riichiConf.path);
@@ -239,70 +184,44 @@ const BattleRenderer = {
             const rH = rImg.height * rScale;
             const cx = BattleConfig.SCREEN.centerX;
 
-            // P1 Riichi (Left of Center)
-            // Draw relative to center. explicit offset is gap from center line.
             if (state.p1.isRiichi) {
-                // X = Center - Offset - Image Width (to align right edge of image to offset point)
+                // 중앙선 왼쪽: 오른쪽 끝이 offset 위치에 닿도록
                 const rx = cx - rOff - rW;
                 ctx.drawImage(rImg, rx, rY, rW, rH);
             }
 
-            // CPU Riichi (Right of Center)
             if (state.cpu.isRiichi) {
-                // X = Center + Offset (Align left edge of image to offset point)
                 const rx = cx + rOff;
                 ctx.drawImage(rImg, rx, rY, rW, rH);
             }
         }
 
-        // Dialogue (Behind Bars/UI)
-        // Dialogue (Behind Bars/UI)
-        // Draw always if active (Skills use dialogue during Win sequence)
+        // 스킬 대화는 승리 시퀀스 중에도 표시되므로 항상 그림
         BattleDialogue.draw(ctx, state);
 
-        // Bars
         this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y, state.p1.hp, state.p1.maxHp, "HP");
 
-        // MP Bar with Preview Cost support
         let p1PreviewCost = 0;
-        // Check Global BattleScene for confirm data (standard skills)
         if (typeof BattleScene !== 'undefined' && BattleScene.confirmData && BattleScene.confirmData.cost) {
             p1PreviewCost = BattleScene.confirmData.cost;
         }
-        // Check Exchange State (custom skills)
-        if (state.currentState === state.STATE_TILE_EXCHANGE && state.skillId) {
-            // Calculate tile exchange cost?
-            // Exchange is usually per tile interaction, visually previewed on selection?
-            // Or initial cost? 
-            // The user request was "Other skills too". Standard skills.
-            // Exchange cost is dynamic. 
-            // Let's focus on Standard Confirm first.
-        }
 
-        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP", p1PreviewCost); // P1 MP
+        this.drawBar(ctx, BattleConfig.BARS.P1.x, BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.p1.mp, state.p1.maxMp, "MP", p1PreviewCost);
 
         this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y, state.cpu.hp, state.cpu.maxHp, "HP");
-        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.cpu.mp, state.cpu.maxMp, "MP"); // CPU MP
+        this.drawBar(ctx, BattleConfig.BARS.CPU.x, BattleConfig.BARS.CPU.y + BattleConfig.BARS.height + BattleConfig.BARS.gap, state.cpu.mp, state.cpu.maxMp, "MP");
 
-        // FX
-        // FX handling is usually stateless drawing, but depends on activeFX array
         this.drawFX(ctx, activeFX);
 
-
-
-        // Overlays / UI
         if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI) {
-            // 라운드별 결과 창만 — 매치 종료(빅토리)는 제거, 블랙 페이드로 처리.
+            // 라운드별 결과 창만 — 매치 종료는 블랙 페이드로 처리
             this.drawResult(ctx, state);
         }
 
-        // Battle Menu
         if (state.currentState === state.STATE_BATTLE_MENU) {
             this.drawBattleMenu(ctx, state);
         }
 
-        // Action-slot button — one of 패 가져오기 / 날 수 있어 / 리치 걸 수 있어, at most
-        // one at a time. getActiveAction(state) decides which (if any) by state.
         this.drawActionButton(ctx, state);
 
         if (state.currentState === state.STATE_TILE_EXCHANGE) {
@@ -314,8 +233,7 @@ const BattleRenderer = {
     },
 
     drawRoulette: function (ctx, state) {
-        // Calculate Position (Same as Draw Tile)
-        // We pretend groupSize=1 to get the gap
+        // groupSize=1 로 가상 설정하여 드로우 갭 위치 계산
         const metrics = this.getVisualMetrics(state.p1, 1, 'p1');
         const pStartX = metrics.handStartX;
         const pCount = state.p1.hand.length;
@@ -325,34 +243,28 @@ const BattleRenderer = {
         const tileH = BattleConfig.HAND.tileHeight;
 
         const x = pos.x;
-        const y = BattleConfig.HAND.playerY; // Standard Y
+        const y = BattleConfig.HAND.playerY;
 
-        // Draw the Roulette Tile
         if (state.rouletteTileType) {
             const typeData = PaiData.TYPES.find(t => t.id === state.rouletteTileType);
             const tile = { type: state.rouletteTileType, img: typeData.img, color: typeData.color };
 
-            // Draw Side (like normal hand)
             const sideImg = Assets.get('tiles/side-top.png');
             if (sideImg) {
                 const sy = y - sideImg.height;
                 ctx.drawImage(sideImg, x, sy, tileW, sideImg.height);
             }
 
-            // Draw Glow or Highlight?
             ctx.save();
             ctx.shadowColor = 'gold';
             ctx.shadowBlur = 20;
             this.drawTile(ctx, tile, x, y, tileW, tileH);
             ctx.restore();
 
-            // Draw Border
             ctx.strokeStyle = 'gold';
             ctx.lineWidth = 3;
             ctx.strokeRect(x, y, tileW, tileH);
         }
-
-        // Removed Prompt Text as requested
     },
 
     drawCharacterNames: function (ctx, state) {
@@ -364,9 +276,8 @@ const BattleRenderer = {
         ctx.fillStyle = conf.color;
         ctx.strokeStyle = conf.stroke;
         ctx.lineWidth = conf.strokeWidth;
-        ctx.textBaseline = 'alphabetic'; // Explicitly reset baseline prevents jitter
+        ctx.textBaseline = 'alphabetic'; // 기준선 명시: 프레임 간 흔들림 방지
 
-        // Draw P1 Name
         if (state.p1 && state.p1.name) {
             const name = state.p1.name;
             ctx.textAlign = conf.P1.align || 'left';
@@ -374,7 +285,6 @@ const BattleRenderer = {
             ctx.fillText(name, conf.P1.x, conf.P1.y);
         }
 
-        // Draw CPU Name
         if (state.cpu && state.cpu.name) {
             const name = BattleRenderer.maskedCpuName(state);
             ctx.textAlign = conf.CPU.align || 'right';
@@ -384,17 +294,12 @@ const BattleRenderer = {
         ctx.restore();
     },
 
-    // Non-player Mayu fights masked (hidden-boss intrusion): show "???" in place
-    // of her real name. s is the engine (or any object with .cpu/.p1).
+    // 플레이어가 마유가 아닐 때 CPU 마유는 "???" 표기 (숨겨진 보스)
     maskedCpuName: function (s) {
         if (s && s.cpu && s.cpu.id === 'mayu' && s.p1 && s.p1.id !== 'mayu') return '???';
         return (s && s.cpu && s.cpu.name) ? s.cpu.name : '';
     },
 
-    /**
-     * Skill Buff UI Indicators
-     * Displays remaining turns for active buffs near character names.
-     */
     drawBuffIndicators: function (ctx, engine) {
         const conf = BattleConfig.BUFF_DISPLAY;
         if (!conf) return;
@@ -408,7 +313,6 @@ const BattleRenderer = {
         ctx.lineWidth = conf.strokeWidth;
         ctx.textBaseline = 'alphabetic';
 
-        // P1 Buffs
         const p1 = engine.p1;
         if (p1 && p1.buffs) {
             const buffs = p1.buffs;
@@ -419,7 +323,6 @@ const BattleRenderer = {
             if (buffs.guaranteedWin === true) indicators.push(`${conf.icons.guaranteedWin}1`);
 
             if (indicators.length > 0) {
-                // Use engine.p1.name for measurement (more direct)
                 ctx.save();
                 ctx.font = nameConf.font;
                 const nameWidth = ctx.measureText(p1.name || "").width;
@@ -434,7 +337,6 @@ const BattleRenderer = {
             }
         }
 
-        // CPU Buffs
         const cpu = engine.cpu;
         if (cpu && cpu.buffs) {
             const buffs = cpu.buffs;
@@ -467,39 +369,29 @@ const BattleRenderer = {
 
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.tileGap;
-        const setGap = BattleConfig.HAND.sectionGap; // Used for open sets spacing? No, this is internal set gap
-        // User said: "2. Gap between open sets should be excluded (same as tile gap?)"
-        // Yes, "Exclude open set gap" -> implies they should look like one continuous block or just standard tile gap.
-        // We will use tileGap for the gap between sets.
-        const internalSetGap = BattleConfig.HAND.tileGap; // Gap between sets (removed extra gap)
+        // 세트 간 간격은 tileGap과 동일 (extra gap 제거됨)
+        const internalSetGap = BattleConfig.HAND.tileGap;
         const drawGap = BattleConfig.HAND.drawGap;
-        const sectionGap = BattleConfig.HAND.sectionGap; // Gap between hand and open sets
+        const sectionGap = BattleConfig.HAND.sectionGap;
 
-        // Calculate Hand Width
         const handSize = character.hand.length;
         let handW = handSize * (tileW + gap);
-        if (handSize > 0) handW -= gap; // Remove last gap
+        if (handSize > 0) handW -= gap;
         if (groupSize > 0) handW += drawGap;
 
-        // Calculate Open Sets Width
         let openW = 0;
         if (character.openSets && character.openSets.length > 0) {
             character.openSets.forEach(set => {
                 openW += (set.tiles.length * tileW) + ((set.tiles.length - 1) * gap) + internalSetGap;
             });
-            openW -= internalSetGap; // Remove last gap
+            openW -= internalSetGap;
         }
 
-        // Total Width
         let totalW = handW;
         if (openW > 0) totalW += sectionGap + openW;
 
-        // Start X (Centered)
-        // Note: For CPU, we might calculate differently if we want top centered.
-        // Current logic centers it the same way.
         const startX = (640 - totalW) / 2;
 
-        // Update Cached Object
         m.totalW = totalW;
         m.startX = startX;
         m.handStartX = startX;
@@ -522,7 +414,7 @@ const BattleRenderer = {
             x += drawGap;
         }
 
-        // Reuse Object
+        // GC 압박 최소화: 매 프레임 객체 재사용
         this._tempPos.x = x;
         this._tempPos.y = BattleConfig.HAND.playerY;
         return this._tempPos;
@@ -533,7 +425,6 @@ const BattleRenderer = {
         if (img) {
             ctx.drawImage(img, x, y, w, h);
 
-            // Tint Overlay
             if (options.tint) {
                 ctx.save();
                 ctx.fillStyle = options.tint;
@@ -552,11 +443,10 @@ const BattleRenderer = {
     },
 
     drawCardBack: function (ctx, x, y, w, h, path) {
-        const img = Assets.get(path) || Assets.get('tiles/back.png'); // Fallback
+        const img = Assets.get(path) || Assets.get('tiles/back.png');
         if (img) {
             ctx.drawImage(img, x, y, w, h);
         } else {
-            // Fallback
             ctx.fillStyle = BattleConfig.FALLBACK.cardBackBg;
             ctx.fillRect(x, y, w, h);
             ctx.lineWidth = 1;
@@ -565,7 +455,6 @@ const BattleRenderer = {
         }
     },
 
-    // Cached Layout Objects for Discards
     _p1DiscardLayout: { col: 0, row: 0, x: 0, y: 0 },
     _cpuDiscardLayout: { col: 0, row: 0, x: 0, y: 0 },
 
@@ -577,7 +466,6 @@ const BattleRenderer = {
 
         const allDiscards = state.discards;
 
-        // Reset & Use Cached Layouts
         const p1Layout = this._p1DiscardLayout;
         p1Layout.col = 0; p1Layout.row = 0;
         p1Layout.x = BattleConfig.DISCARDS.P1.x;
@@ -597,12 +485,9 @@ const BattleRenderer = {
             if (isP1) layout = p1Layout;
             else layout = cpuLayout;
 
-            // Determine effective dimensions for this slot
-            // If Riichi, width is Height (rotated 90 deg)
+            // 리치 버림패는 90도 회전 → 슬롯 폭이 높이값
             const slotW = t.isRiichi ? dh : dw;
 
-            // Check Wrap (Pre-check to move to next row if needed? No, standard is Max items per row)
-            // But if we wrap, we reset X.
             if (layout.col >= max) {
                 layout.col = 0;
                 layout.row++;
@@ -613,59 +498,40 @@ const BattleRenderer = {
             const dx = layout.x;
             const dy = layout.y;
 
-            // Update Layout for NEXT item
             layout.x += slotW + gap;
             layout.col++;
 
-            // Draw Logic
-            // Check if last (Highlight)
             if (t === lastDiscard) {
-                // Determine highlight size
                 const w = BattleConfig.HAND.tileWidth;
                 const h = BattleConfig.HAND.tileHeight;
 
-                // Rotated logic for highlight
                 if (t.isRiichi) {
-                    // Center based on Visual Width (slotW = dh)
-                    // Center of slot
-                    const cx = dx + slotW / 2;
-                    const cy = dy + dh / 2;
-
-                    ctx.save();
-                    ctx.translate(cx, cy);
-                    ctx.rotate(-Math.PI / 2); // Rotate 90 deg CCW
-
-                    // Draw centered
-                    this.drawTile(ctx, t, -w / 2, -h / 2, w, h);
-
-                    // Highlight border
-                    ctx.strokeStyle = 'yellow';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-w / 2, -h / 2, w, h);
-
-                    ctx.restore();
-                } else {
-                    // Standard Highlight
-                    // Center in slot (dw width)
-                    const cx = dx + (dw - w) / 2;
-                    const cy = dy + (dh - h) / 2;
-
-                    this.drawTile(ctx, t, cx, cy, w, h);
-                    ctx.strokeStyle = 'yellow';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(cx, cy, w, h);
-                }
-            } else {
-                // Normal Draw
-                if (t.isRiichi) {
-                    // Center in the allocated slot (which is dh wide)
                     const cx = dx + slotW / 2;
                     const cy = dy + dh / 2;
 
                     ctx.save();
                     ctx.translate(cx, cy);
                     ctx.rotate(-Math.PI / 2);
-                    // Draw normal dimensions (dw x dh) rotated
+                    this.drawTile(ctx, t, -w / 2, -h / 2, w, h);
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(-w / 2, -h / 2, w, h);
+                    ctx.restore();
+                } else {
+                    const cx = dx + (dw - w) / 2;
+                    const cy = dy + (dh - h) / 2;
+                    this.drawTile(ctx, t, cx, cy, w, h);
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(cx, cy, w, h);
+                }
+            } else {
+                if (t.isRiichi) {
+                    const cx = dx + slotW / 2;
+                    const cy = dy + dh / 2;
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(-Math.PI / 2);
                     this.drawTile(ctx, t, -dw / 2, -dh / 2, dw, dh);
                     ctx.restore();
                 } else {
@@ -679,13 +545,8 @@ const BattleRenderer = {
         if (!openSets || openSets.length === 0) return;
 
         const gap = BattleConfig.HAND.tileGap;
-        const setGap = BattleConfig.HAND.tileGap; // Use tileGap for gap between sets (removed extra gap)
+        const setGap = BattleConfig.HAND.tileGap;
 
-        // P1: Draw from Right to Left? Or Left to Right from Anchor?
-        // Original: "openSetRightAnchor: 620"
-        // CPU: params passed `cpuStartX + width`.
-
-        // Draw Side Asset if Player (isCpu false)
         const sideImg = !isCpu ? Assets.get('tiles/side-top.png') : null;
 
         if (isCpu) {
@@ -698,9 +559,6 @@ const BattleRenderer = {
                 currentX += setGap;
             });
         } else {
-            // P1: Left-to-Right logic to match BattleScene.drawOpenSets
-            // Check BattleScene.js logic: it used startX from metrics calculation
-            // But here we are passed startX.
             let currentX = startX;
             openSets.forEach(set => {
                 set.tiles.forEach(tile => {
@@ -716,19 +574,16 @@ const BattleRenderer = {
     },
 
     drawDora: function (ctx, doras, uraDoras, isRevealed) {
-        // Dora Indicator Frame
         const frameConf = BattleConfig.DORA.frame;
         const frameImg = Assets.get(frameConf.path);
 
         const cx = BattleConfig.DORA.x;
         const cy = BattleConfig.DORA.y;
 
-        // Draw Frame
         let fx = cx + frameConf.xOffset;
         let fy = cy + frameConf.yOffset;
 
         if (frameImg) {
-            // Apply Alignment
             if (frameConf.align === 'center') {
                 fx -= frameImg.width / 2;
                 fy -= frameImg.height / 2;
@@ -736,27 +591,23 @@ const BattleRenderer = {
             ctx.drawImage(frameImg, fx, fy);
         }
 
-        // Draw Doras
         const tileW = BattleConfig.DORA.tileWidth;
         const tileH = BattleConfig.DORA.tileHeight;
         const gap = BattleConfig.DORA.gap;
 
-        // Visual Correction: Align Tiles to Frame
         let alignedFrameX = cx + frameConf.xOffset;
-        let alignedFrameY = cy + frameConf.yOffset; // Baseline Y
+        let alignedFrameY = cy + frameConf.yOffset;
 
         if (frameImg && frameConf.align === 'center') {
             alignedFrameX -= frameImg.width / 2;
-            alignedFrameY -= frameImg.height / 2; // Frame Top Y
+            alignedFrameY -= frameImg.height / 2;
         }
 
-        // Use Configured Offsets
         const tOffX = BattleConfig.DORA.tileXOffset || 0;
         const tOffY = BattleConfig.DORA.tileYOffset || 0;
 
         let startX = alignedFrameX + tOffX;
 
-        // Adjust StartY
         let startY = cy;
         if (frameImg && frameConf.align === 'center') {
             startY = alignedFrameY + (frameImg.height - tileH) / 2 + tOffY;
@@ -764,13 +615,10 @@ const BattleRenderer = {
             startY = cy + tOffY;
         }
 
-        // Visible Dora (Slot 0)
         if (doras.length > 0) {
             this.drawTile(ctx, doras[0], startX, startY, tileW, tileH);
         }
 
-        // Ura Dora (Slot 1) - If it exists and Game Rule supports it
-        // Check local game rule or passed params. Assuming slot 1 is Ura Dora.
         if (uraDoras && uraDoras.length > 0) {
             const x = startX + (tileW + gap);
             if (isRevealed) {
@@ -787,33 +635,27 @@ const BattleRenderer = {
         const roundImg = Assets.get(tConf.labels.roundPath);
 
         const cx = 320;
-        // Calculate X based on offsets
         const tx = cx - tConf.turnLabel.offset;
         const rx = cx + tConf.roundLabel.offset;
 
         if (turnImg && roundImg) {
-            // Draw Turn Label
             let tX = tx;
             if (tConf.turnLabel.align === 'center') tX -= turnImg.width / 2;
             else if (tConf.turnLabel.align === 'right') tX -= turnImg.width;
             ctx.drawImage(turnImg, tX, tConf.turnLabel.y);
 
-            // Draw Round Label
             let rX = rx;
             if (tConf.roundLabel.align === 'center') rX -= roundImg.width / 2;
             else if (tConf.roundLabel.align === 'right') rX -= roundImg.width;
             ctx.drawImage(roundImg, rX, tConf.roundLabel.y);
         }
 
-        // Cap turn display at 20
+        // 최대 20턴 표시 (스프라이트 시트 범위)
         const displayTurn = Math.min(turn, 20);
-        // Turn Number X
         const tnx = cx - tConf.turnNumber.offset;
         this.drawNumber(ctx, displayTurn, tnx, tConf.turnNumber.y, tConf.turnNumber.align, tConf.turnNumber.pad || 0);
 
-        // Cap round display at 20
         const displayRound = Math.min(round, 20);
-        // Round Number X
         const rnx = cx + tConf.roundNumber.offset;
         this.drawNumber(ctx, displayRound, rnx, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
     },
@@ -841,22 +683,15 @@ const BattleRenderer = {
     },
 
     drawBar: function (ctx, x, y, val, max, label, previewCost = 0) {
-
-        // Clamping
         const pct = Math.max(0, Math.min(1, val / max));
         const fillW = Math.floor(BattleConfig.BARS.width * pct);
 
         const path = label === 'HP' ? BattleConfig.BARS.hpPath : BattleConfig.BARS.mpPath;
         const img = Assets.get(path);
 
-        // Draw Base Bar
         if (img) {
             if (previewCost > 0) {
-                // Draw Full Bar first? checking layering.
-                // We want: [Remaining][Cost(Blinking)][Empty]
-                // val is CURRENT MP. We want to show (val - cost).
-
-                // Remaining Safe MP
+                // previewCost 구간은 빨간색 점멸: [잔여][비용(점멸)][빈칸]
                 const safeVal = Math.max(0, val - previewCost);
                 const safePct = Math.max(0, Math.min(1, safeVal / max));
                 const safeW = Math.floor(BattleConfig.BARS.width * safePct);
@@ -865,19 +700,11 @@ const BattleRenderer = {
                     ctx.drawImage(img, 0, 0, img.width, img.height, x, y, safeW, BattleConfig.BARS.height);
                 }
 
-                // Cost Segment (Blinking)
-                // If we have cost to show
                 if (val > safeVal) {
                     const costW = fillW - safeW;
-                    // Blinking Alpha
                     const alpha = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
                     ctx.save();
                     ctx.globalAlpha = alpha;
-                    // Draw red tint or just draw the bar segment with filter? 
-                    // Simple: Draw same bar img but maybe verify color? 
-                    // User asked for "show in MP bar". usually red for cost.
-                    // Let's use a red fill or specific asset if avail. 
-                    // Fallback to red rectangle for visibility.
                     ctx.fillStyle = 'red';
                     ctx.fillRect(x + safeW, y, costW, BattleConfig.BARS.height);
                     ctx.restore();
@@ -886,7 +713,6 @@ const BattleRenderer = {
                 ctx.drawImage(img, 0, 0, img.width, img.height, x, y, fillW, BattleConfig.BARS.height);
             }
         } else {
-            // Fallback Rect
             ctx.fillStyle = label === 'HP' ? 'blue' : 'yellow';
             ctx.fillRect(x, y, fillW, BattleConfig.BARS.height);
 
@@ -896,7 +722,6 @@ const BattleRenderer = {
                 const safeW = Math.floor(BattleConfig.BARS.width * safePct);
                 const costW = fillW - safeW;
 
-                // Redraw cost part as red
                 ctx.fillStyle = 'red';
                 ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
                 ctx.fillRect(x + safeW, y, costW, BattleConfig.BARS.height);
@@ -922,96 +747,57 @@ const BattleRenderer = {
     drawResult: function (ctx, state) {
         const conf = BattleConfig.RESULT;
 
-        // Dimmer (Removed per user request)
-        // ctx.fillStyle = conf.dimmerColor || 'rgba(0,0,0,0.5)';
-        // ctx.fillRect(0, 0, 640, 480);
-
-        // Window Body (Frame)
-        // Use defaults if missing in config
         const rx = conf.x !== undefined ? conf.x : 60;
         const ry = conf.y !== undefined ? conf.y : 80;
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        // Draw Window using Assets helper
         Assets.drawWindow(ctx, rx, ry, rw, rh);
 
-        // Border (Removed/Redundant with Frame, but kept if special overlay needed? No, Frame has border)
-        // if (conf.borderWidth > 0) { ... } -> Removed
-
-        // Content Rendering
-        const info = state.resultInfo; // { type: 'WIN', score: 1000 }
+        const info = state.resultInfo;
         if (!info) return;
 
-        const typeConf = conf.TYPES[info.type] || conf.TYPES.LOSE; // Fallback
+        // LOSE 폴백: 타입 미등록 시 LOSE 스타일 적용
+        const typeConf = conf.TYPES[info.type] || conf.TYPES.LOSE;
 
-        // Check if Standard WIN/LOSE/NAGARI for Split Layout
         if (info.type === 'WIN' || info.type === 'LOSE' || info.type === 'NAGARI') {
-            // New Split Layout
             ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle'; // Align vertically center for list items
-
-            // Left Column: Yaku + Bonuses
+            ctx.textBaseline = 'middle';
             ctx.font = conf.yakuFont;
             ctx.fillStyle = conf.yakuColor;
 
             let currentY = conf.yakuY;
 
-            // const lineHeight = 40; // Removed in favor of conf.lineHeight
-
-            // Draw Main Yaku
             if (info.yakuName) {
-                // Name (Left)
                 ctx.textAlign = 'left';
                 ctx.fillStyle = conf.yakuColor;
                 ctx.fillText(info.yakuName, conf.yakuListX, currentY);
 
-                // Score (Right)
-                // Use yakuScore if available, else calc base? 
                 const s = info.yakuScore || 0;
-                // Draw Number Image
-                // Scale based on font height (approx 20px)
-                // Number image usually has height ~32px? 
-                // Let's assume height 20px for target.
-                // We need source dimensions. Assets.drawNumberBig calculates it.
-                // We can pass scale? or simply height.
-                // drawNumberBig uses scale.
-                // Let's guess scale = 1.0 if image is close. 
-                // Better: drawNumberBig supports scale.
-
-                // Align Right: We pass align:'right'.
-                // Center Vertically correction: drawNumberBig draws from Top Y.
-                // CurrentY is middle. Image H approx 35px at 1.0. At 0.6 scale ~21px.
-                // We should offset Y by -10px.
+                // scale 0.6: 스프라이트 높이 ~40px 기준 렌더 크기 ~24px
                 Assets.drawNumberBig(ctx, s, conf.scoreListX, currentY - 12, {
                     align: 'right',
-                    scale: 0.6, // Adjust this visually. Original is likely bigger. 20px is small. 
-                    // image height usually ~40-64. 0.6 => ~24-38. 
-                    // Let's try 0.7 for now.
+                    scale: 0.6,
                     spacing: 1,
                     imgId: 'ui/number_yellow.png'
                 });
 
-                currentY += conf.lineHeight; // Use Config
+                currentY += conf.lineHeight;
             }
 
-            // Draw Bonuses
             if (info.bonuses) {
-                // Prepare Bonus Config
                 const bonusConf = conf.BONUS || {};
                 const bonusFont = bonusConf.font || conf.yakuFont;
                 const bonusColor = bonusConf.color || conf.yakuColor;
                 const bonusPrefix = bonusConf.prefix || "";
 
                 info.bonuses.forEach(bonus => {
-                    // Name (Left)
                     ctx.textAlign = 'left';
                     ctx.fillStyle = bonusColor;
                     ctx.font = bonusFont;
                     ctx.fillText(bonusPrefix + bonus.name, conf.yakuListX, currentY);
 
-                    // Score (Right)
-                    // Check if score is number or string (for Nagari Tenpai/Noten status)
+                    // 나가리 텐파이/노텐은 문자열로 올 수 있음
                     if (typeof bonus.score === 'number') {
                         Assets.drawNumberBig(ctx, bonus.score, conf.scoreListX, currentY - 12, {
                             align: 'right',
@@ -1020,26 +806,16 @@ const BattleRenderer = {
                             imgId: 'ui/number_yellow.png'
                         });
                     } else {
-                        // String Score (Text Status)
                         ctx.textAlign = 'right';
-                        ctx.fillStyle = conf.scoreColor; // Go back to Gold/White for text?
-                        ctx.font = conf.scoreFont; // Use Score Font (20px)
+                        ctx.fillStyle = conf.scoreColor;
+                        ctx.font = conf.scoreFont;
                         ctx.fillText(bonus.score, conf.scoreListX, currentY);
                     }
 
-                    currentY += conf.lineHeight; // Use Config
+                    currentY += conf.lineHeight;
                 });
             }
 
-            // Draw Total Score Line?
-            // User requested separating them. The main score is sum.
-            // Maybe draw a line and then Total?
-            // "Result" header is displayed by logic? Origin game has simple list.
-            // Total is prominently displayed at top right usually, but here we list items.
-            // Let's draw TOTAL at bottom right for clarity.
-
-            // Separator Line
-            // Separator Line
             const separatorY = currentY - (conf.lineHeight / 2) + (conf.separatorGap || 0);
 
             ctx.beginPath();
@@ -1049,41 +825,30 @@ const BattleRenderer = {
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Total Label
             const damageY = separatorY + (conf.damageGap || 15) + (conf.lineHeight / 2);
 
             ctx.textAlign = 'left';
             ctx.fillStyle = conf.scoreColor;
             ctx.fillText("데미지", conf.yakuListX, damageY);
 
-            // Total Score
-            // SKILL EFFECT ANIMATION
-            // Check if buffs impacted score
             const hasBuffs = info.activeBuffs && info.activeBuffs.length > 0;
             let displayScore = info.score;
-            let isRolling = false;
 
             if (hasBuffs) {
-                // Animation Logic
-                // 0-60 frames: Wait (Show Base Total)
-                // 60-120 frames: ROLL (Interpolate Base -> Final)
-                // 120+ frames: Final
-
-                const baseTotal = (info.baseScore || 0) + (info.bonusScore || 0); // Base + Bonus
+                // 버프 적용 시 점수 롤업 애니메이션: 0~80f 기저값 → 80~140f 보간 → 이후 최종값
+                const baseTotal = (info.baseScore || 0) + (info.bonusScore || 0);
                 const finalTotal = info.score;
 
-                if (state.timer < 80) { // Increased delay to ~1.3s
+                if (state.timer < 80) {
                     displayScore = baseTotal;
                 } else if (state.timer < 140) {
-                    isRolling = true;
-                    const progress = (state.timer - 80) / 60; // 0.0 to 1.0 (Same duration)
+                    const progress = (state.timer - 80) / 60;
                     // Ease Out Quad
                     const ease = 1 - (1 - progress) * (1 - progress);
-
                     displayScore = Math.floor(baseTotal + (finalTotal - baseTotal) * ease);
 
-                    // Play Tick Sound (Every 4 frames)
-                    const prevTick = Math.floor((state.timer - 1.0) / 4); // Use 1.0 as fallback dt if not available, or just state.timer-delta
+                    // 4프레임마다 틱 사운드
+                    const prevTick = Math.floor((state.timer - 1.0) / 4);
                     const currentTick = Math.floor(state.timer / 4);
                     if (currentTick > prevTick) {
                         Assets.playSound(BattleConfig.AUDIO.TICK);
@@ -1095,53 +860,25 @@ const BattleRenderer = {
 
             Assets.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
                 align: 'right',
-                scale: 0.6, // Matched with others (0.6)
+                scale: 0.6,
                 spacing: 1,
-                // Use red number when rolling or final state if buffs were active
-                // User Request: No color change
                 imgId: 'ui/number_yellow.png'
             });
 
-            // Restore Title (WIN / LOSE)
-            // Draw relative to Window Top or Conf Title Pos?
-            // Conf Title Pos: titleX: 320, titleY: 150.
-            // But window might be moved. Config has static titleX/Y.
-            // Let's use config titleX/Y but adjust drawing properties.
             ctx.textAlign = "center";
             ctx.fillStyle = typeConf.color;
             ctx.font = conf.titleFont;
-            // Draw slightly above the list? Yaku list starts at yakuY (140).
-            // TitleY (150) overlaps list. We need to check config.
-            // Original config had titleY: 150, but yakuY is 140.
-            // We should arguably draw title ABOVE window or at top of window.
-            // Let's just use configured titleX/Y and user can tune config if needed.
-            // Wait, previous code had `ctx.fillText(typeConf.title, conf.titleX, conf.titleY);` in legacy block.
-
-            // Override Config for now to ensure it's above.
-            const safeTitleY = (conf.y !== undefined ? conf.y : 80) + 40;
-            // Or just use conf.titleY if conf says so?
-            // Let's rely on conf.titleY assuming user tunes it, OR hardcode reasonable position.
-            // User asked to "Render Title".
-            // Title Position
-            // Use conf.titleY if set, otherwise default to slightly above yaku list
+            // conf.titleY 미설정 시 야쿠 리스트 위 여백 확보
             const titleY = conf.titleY !== undefined ? conf.titleY : 120;
             ctx.fillText(typeConf.title, conf.titleX, titleY);
 
         }
-        // RESULT 창은 라운드별(WIN/LOSE/NAGARI)만 담당. 매치 종료 화면(빅토리)은 제거됨
-        // — 매치가 끝나면 BattleScene.endMatch가 블랙 페이드로 다음 장면으로 넘긴다.
 
-
-        // Footer "Press Space" (Global for all result types)
         if (state.stateTimer > 120) {
             if (Math.floor(state.stateTimer / 30) % 2 === 0) {
                 ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-                // ctx.font = "16px monospace";
                 ctx.font = `bold 16px ${FONTS.bold}`;
                 const offset = (conf.pressSpaceOffset !== undefined) ? conf.pressSpaceOffset : 20;
-                // Frame Bottom Y = ry + rh
-                // Ensure ry/rh are defined. Logic at top set them.
-                // We need to access them here or recap.
                 const ry = conf.y !== undefined ? conf.y : 0;
                 const rh = conf.h || 320;
                 const pressY = ry + rh + offset;
@@ -1173,20 +910,16 @@ const BattleRenderer = {
         const m = this._menuMetrics(BattleMenuSystem.menuItems);
         const x = m.x, y = m.y, w = m.w, h = m.h;
 
-        // Draw Window using Assets helper
         Assets.drawWindow(ctx, x, y, w, h);
 
         const startX = m.startX;
         const startY = m.startY;
-
-        // Use Fixed Line Height
         const lineHeight = m.lineHeight;
 
         ctx.font = conf.font;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
-        // Helper to get item height
         const getItemHeight = (item) => {
             if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
             return lineHeight;
@@ -1198,7 +931,6 @@ const BattleRenderer = {
             const h = getItemHeight(item);
 
             if (item.type === 'SEPARATOR') {
-                // Draw Separator
                 const lineY = Math.floor(currentY + (h / 2) + conf.cursorYOffset);
                 ctx.beginPath();
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
@@ -1209,16 +941,13 @@ const BattleRenderer = {
                 ctx.stroke();
 
                 currentY += h;
-                return; // Skip text rendering
+                return;
             }
 
-            // Normal Item
             const itemY = Math.floor(currentY + (h / 2) + conf.cursorYOffset);
 
-            // Selection Cursor
             if (i === BattleMenuSystem.selectedMenuIndex) {
                 ctx.fillStyle = conf.cursor;
-                // Cursor bar width
                 const barW = w - (conf.padding * 2);
                 ctx.fillRect(startX, Math.floor(currentY + conf.cursorYOffset), barW, h);
                 ctx.fillStyle = conf.textSelected;
@@ -1226,50 +955,33 @@ const BattleRenderer = {
                 ctx.fillStyle = conf.textDefault;
             }
 
-            // Handle Objects vs Strings (Transition Support)
             const label = item.label || item;
             const isDisabled = item.disabled;
 
             ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
 
-            // Overlay Disabled State (Gray out)
             if (isDisabled) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent dimmer over text
-                // Also can re-draw text in gray
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
                 ctx.fillText(label, startX + conf.textOffsetX, itemY + conf.textOffsetY);
             }
 
             currentY += h;
         });
     },
-    /**
-     * HIT TESTING HELPERS
-     * Centralizes coordinate logic so Scene doesn't need to know layout details.
-     */
 
-    // True when the player can CHOOSE to win right now. Only a non-riichi tsumo
-    // qualifies — ron requires riichi, and riichi auto-wins (no choice).
+    // 츠모만 선택 가능 (론은 리치 필수, 리치는 자동 승리)
     canWinNow: function (state) {
         return (state.possibleActions || []).some(a => a.type === 'TSUMO');
     },
 
-    // True when the player can declare Riichi right now (own turn, after draw).
-    // Once Riichi is committed (incl. the declaring-discard step) it's no longer
-    // offered — possibleActions may still hold a stale RIICHI, so guard on isRiichi.
+    // 리치 선언 가능 여부; 이미 리치 중이면 possibleActions에 RIICHI가 남아 있어도 false
     canRiichiNow: function (state) {
         if (state.p1 && state.p1.isRiichi) return false;
         return (state.possibleActions || []).some(a => a.type === 'RIICHI');
     },
 
-    // Single source of truth for which action button (if any) occupies the slot:
-    //   'draw'   — WAIT_FOR_DRAW (press to draw and keep playing)
-    //   'win'    — own turn, a non-riichi tsumo is available
-    //   'riichi' — own turn, riichi is available and no win on offer
-    //   null     — own turn with nothing special (just discard), or any other state
-    // Win takes priority over riichi so the two never overlap. Win/riichi are only
-    // offered on PLAYER_TURN (they need the freshly drawn hand and are actionable
-    // via the menu); WAIT_FOR_DRAW always shows draw. Renderer, mouse hit-test and
-    // the keyboard cursor (BattleScene) all read this one function.
+    // 액션 버튼 단일 진실 출처: 'draw'/'win'/'riichi'/null
+    // 승리 > 리치 우선순위; Renderer·마우스·키보드 모두 이 함수를 참조
     getActiveAction: function (state) {
         const st = state.currentState;
         if (st === state.STATE_PLAYER_TURN) {
@@ -1281,10 +993,7 @@ const BattleRenderer = {
         return null;
     },
 
-    // Box for the action-slot button, sized to its text plus the shared padding and
-    // anchored to the shared right edge — so 패 가져오기 / 날 수 있어 / 리치 걸 수 있어 get
-    // identical padding & margin, differing only in width. Measured here (needs ctx);
-    // the result is cached (_actionRect) so the hit-test (no ctx) reuses the same rect.
+    // 텍스트 폭 기반 동적 크기; ctx 필요 → 렌더 시 계산 후 _actionRect에 캐싱
     _actionButtonRect: function (ctx, conf) {
         const box = BattleConfig.ACTION_BUTTON_BOX;
         ctx.save();
@@ -1295,10 +1004,6 @@ const BattleRenderer = {
         return { x: box.right - w, y: box.y, w: w, h: box.h };
     },
 
-    // Draw whichever action button is active. Clicking win/riichi opens the battle
-    // menu (so the player can decline and keep playing); draw draws. Highlighted when
-    // hovered by mouse OR focused by the keyboard cursor (state.actionHover, set in
-    // BattleScene). Caches the active key + rect for the hit-test and input layer.
     drawActionButton: function (ctx, state) {
         const key = this.getActiveAction(state);
         if (!key) { this._actionRect = null; this._actionKey = null; return; }
@@ -1320,27 +1025,20 @@ const BattleRenderer = {
 
 
     getHandTileAt: function (x, y, player, groupSize) {
-        // Reuse getVisualMetrics
         const handSize = player.hand.length;
         const metrics = this.getVisualMetrics(player, groupSize);
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
 
-        // TIGHTER HITBOX LOGIC
-        // Reduce clickable area to prevent edge mis-clicks
-        const xPad = tileW * 0.15; // 15% padding on each side (30% total reduction)
-        const yPad = tileH * 0.1;  // 10% padding on each side
+        // 엣지 오클릭 방지: 패 면적의 15%/10% 안쪽만 히트
+        const xPad = tileW * 0.15;
+        const yPad = tileH * 0.1;
 
-        // Optimization: Check Y bounds first (with padding)
         const handY = BattleConfig.HAND.playerY;
         if (y < handY + yPad || y > handY + tileH - yPad) return -1;
 
-        // Iterate or Calculate?
-        // `getPlayerHandPosition` includes group gap logic.
-        // Iterating is safer vs complex math inversion.
         for (let i = 0; i < handSize; i++) {
             const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
-            // Check X with padding
             if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
                 return i;
             }
@@ -1348,7 +1046,6 @@ const BattleRenderer = {
         return -1;
     },
 
-    // Helper to check Menu Hit
     getMenuItemAt: function (mouseX, mouseY, menuItems) {
         const conf = BattleConfig.BATTLE_MENU;
         const m = this._menuMetrics(menuItems);
@@ -1356,7 +1053,6 @@ const BattleRenderer = {
         const startX = m.startX;
         const startY = m.startY;
 
-        // Window Bounds Check
         if (mouseX < x || mouseX > x + w || mouseY < y || mouseY > y + h) return -1;
 
         const lineHeight = m.lineHeight;
@@ -1376,9 +1072,7 @@ const BattleRenderer = {
                 continue;
             }
 
-            // Hit Check
             if (mouseY >= currentY && mouseY < currentY + itemH) {
-                // Check X (roughly)
                 if (mouseX >= startX && mouseX <= startX + (w - conf.padding * 2)) {
                     return i;
                 }
@@ -1389,123 +1083,85 @@ const BattleRenderer = {
     },
 
     drawExchangeWindow: function (ctx, state) {
-        // Use Confirm Config for Style reference
         const conf = BattleConfig.CONFIRM;
 
         ctx.save();
-        ctx.font = conf.font; // Matches Confirm
+        ctx.font = conf.font;
 
-        // Measure Text for Dynamic Width
-        // Use Configured Message
-        // Determine ID based on context (default to EXCHANGE_TILE)
-        // If we had the skill ID passed in 'state', better. 
-        // Assuming EXCHANGE_TILE for now or logic to switch.
-        // Actually, state should have skillId. If not, use generic.
         const skillId = state.skillId || 'EXCHANGE_TILE';
         const msgFn = BattleConfig.MESSAGES.SKILL_CONFIRM[skillId];
-        const text = msgFn ? msgFn(0) : "바꿀 패를 선택하세요."; // Pass 0 cost as this is instructions
+        const text = msgFn ? msgFn(0) : "바꿀 패를 선택하세요.";
         const textMetrics = ctx.measureText(text);
         const textW = textMetrics.width;
-        const textH = conf.lineHeight || 24; // Approx height
+        const textH = conf.lineHeight || 24;
 
-        // Calculate Layout (Matching BattleScene.getConfirmLayout logic)
-        // Box H = TextH + PadY*2 + BtnMargin + BtnH + Buffer
         const buttonAreaH = (conf.buttonMarginTop || 14) + conf.buttonHeight;
         let h = textH + (conf.padding.y * 2) + buttonAreaH;
 
-        // Min/Max constraints
         const minW = conf.minWidth || 200;
         const minH = conf.minHeight || 80;
         h = Math.max(h, minH);
 
-        const paddingX = 60; // 30px each side
+        const paddingX = 60;
         const w = Math.max(minW, textW + paddingX);
 
         const x = (640 - w) / 2;
-        // Use Confirm Y if available, else Center (fallback)
         const y = (conf.y !== undefined) ? conf.y : (480 - h) / 2;
 
         Assets.drawWindow(ctx, x, y, w, h);
 
         const count = state.exchangeIndices ? state.exchangeIndices.length : 0;
 
-        // Text
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        // Font already set
-
-        // Layout Text - Start Y
-        // Logic: y + padding + lineHeight (Confirm uses loop, here simpler)
         ctx.fillText(text, x + w / 2, y + conf.padding.y + textH);
 
-        // Button
         const btnW = 140;
         const btnH = conf.buttonHeight;
         const btnX = x + (w - btnW) / 2;
-
-        // Position from bottom using padding
-        // confirmLayout uses: boxY + boxH - padding.y - btnH
         const btnY = y + h - conf.padding.y - btnH;
 
-        // Labels + key hint come from BattleConfig.CONFIRM.labelsExchange
-        // (single source for this UI text — see battleConfig.js).
+        // 레이블 출처: BattleConfig.CONFIRM.labelsExchange (단일 진실 출처)
         const lab = conf.labelsExchange;
         const keyHint = lab.key ? ` (${lab.key})` : '';
         const label = (count === 0 ? lab.cancel : lab.confirm) + keyHint;
 
-        // Hover handling (own flag — independent of the action-slot button)
         const isHover = state.exchangeButtonHover;
-
-        // Pass noBorder option
         Assets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
 
-        // Show Cost Hint if selection > 0
         if (count > 0) {
             this.drawMpPreview(ctx, state, count);
         }
 
-        // Cache Button Rect for Input
         this._exchangeBtnRect = { x: btnX, y: btnY, w: btnW, h: btnH };
 
         ctx.restore();
     },
 
     drawMpPreview: function (ctx, state, count) {
-        // Need Cost. Let's assume 6 for now or try to fetch.
+        // 마유 4MP/타일, 나머지 6MP/타일 (캐릭터별 고정값)
         const charId = state.p1.id || 'smash';
         const costPerTile = (charId === 'mayu') ? 4 : 6;
         const totalCost = count * costPerTile;
 
         const barX = BattleConfig.BARS.P1.x;
-        const barY = BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap; // MP is below HP
-        // Calculate Width of Cost
+        const barY = BattleConfig.BARS.P1.y + BattleConfig.BARS.height + BattleConfig.BARS.gap;
         const maxMp = state.p1.maxMp || 100;
         const currentMp = state.p1.mp || 0;
 
-        // Pct of Max
         const costPct = Math.min(1, totalCost / maxMp);
         const costW = Math.floor(BattleConfig.BARS.width * costPct);
 
-        // Start X of Cost Bar = Current Fill End - Cost Width
         const currentPct = Math.min(1, currentMp / maxMp);
         const currentW = Math.floor(BattleConfig.BARS.width * currentPct);
 
-        // If cost > current, cap at currentW
+        // cost > current이면 currentW로 clamp
         const renderCostW = Math.min(costW, currentW);
         const startX = barX + currentW - renderCostW;
 
-        // Draw Overlay (e.g., Flashing Red or Darker Yellow)
         ctx.save();
         ctx.fillStyle = (Math.floor(state.timer / 10) % 2 === 0) ? 'rgba(255, 50, 50, 0.8)' : 'rgba(200, 50, 50, 0.8)';
         ctx.fillRect(startX, barY, renderCostW, BattleConfig.BARS.height);
-
-        // Show numeric cost -> Removed as per user request
-        // ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        // const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
-        // ctx.font = `bold 12px ${fontName}`;
-        // ctx.textAlign = 'center';
-        // ctx.fillText(`-${totalCost}`, startX + renderCostW / 2, barY - 4);
-
         ctx.restore();
     },
 

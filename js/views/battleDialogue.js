@@ -1,11 +1,10 @@
 const BattleDialogue = {
-    // Store localized states for each owner
     states: {
         P1: { active: false, timer: 0, texture: null },
         CPU: { active: false, timer: 0, texture: null }
     },
 
-    // Offscreen Canvas for caching (Shared generator)
+    // _cacheCanvas는 텍스처 생성 시 공유 임시 버퍼; 최종 결과는 별도 canvas로 복사해 반환
     _cacheCanvas: null,
 
     init: function () {
@@ -16,9 +15,7 @@ const BattleDialogue = {
 
     show: function (text, owner) {
         if (!text) return;
-        // console.log(`[BattleDialogue] Show: "${text}" (Owner: ${owner})`);
 
-        // Ensure Init
         this.init();
 
         const state = this.states[owner];
@@ -43,7 +40,6 @@ const BattleDialogue = {
     },
 
     draw: function (ctx) {
-        // Draw both if active
         ['P1', 'CPU'].forEach(owner => {
             const state = this.states[owner];
             if (state.active && state.texture) {
@@ -56,7 +52,7 @@ const BattleDialogue = {
         const conf = BattleConfig.DIALOGUE;
         const ownerConf = (owner === 'P1') ? conf.P1 : conf.CPU;
 
-        // Position Logic (Anchored to Center/Dora)
+        // 도라 중앙 기준 앵커
         const centerX = 320;
         const doraY = 220;
 
@@ -66,7 +62,6 @@ const BattleDialogue = {
         const w = texture.width;
         const h = texture.height;
 
-        // Draw Center-Aligned
         ctx.drawImage(texture, x - w / 2, y - h / 2);
     },
 
@@ -74,21 +69,18 @@ const BattleDialogue = {
         const conf = BattleConfig.DIALOGUE;
         const bubbleImg = Assets.get(conf.bubblePath);
 
-        // Setup Canvas
         const w = bubbleImg ? bubbleImg.width : 200;
         const h = bubbleImg ? bubbleImg.height : 100;
 
         const canvas = this._cacheCanvas;
-        // Optimization: Don't resize if same? No, always set to match bubble.
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, w, h); // Clear previous
+        ctx.clearRect(0, 0, w, h);
 
-        // Draw Bubble
         if (bubbleImg) {
             if (owner === 'CPU') {
-                // CPU: Rotate 180
+                // CPU 말풍선은 180도 회전
                 ctx.save();
                 ctx.translate(w / 2, h / 2);
                 ctx.rotate(Math.PI);
@@ -99,26 +91,22 @@ const BattleDialogue = {
                 ctx.drawImage(bubbleImg, 0, 0);
             }
         } else {
-            // Fallback
             ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.fillRect(0, 0, w, h);
             ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
             ctx.strokeRect(0, 0, w, h);
         }
 
-        // Draw Text
         ctx.font = conf.font;
         ctx.fillStyle = conf.color || 'rgba(0, 0, 0, 1)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Word Wrap
         const maxWidth = w * 0.8;
         const lineHeight = conf.lineHeight || 20;
 
         const lines = this._wrapText(ctx, text, maxWidth);
 
-        // Center Block vertically
         const totalTextHeight = lines.length * lineHeight;
         let startY = h / 2 - totalTextHeight / 2 + lineHeight / 2;
 
@@ -130,9 +118,7 @@ const BattleDialogue = {
             ctx.fillText(line, startX, startY + i * lineHeight);
         });
 
-        // Create a specific Image/Canvas for this state to avoid shared canvas overwrite
-        // PROBLEM: _cacheCanvas is shared. If we return it, P1 will be overwritten by CPU gen.
-        // FIX: Create a new canvas copy for the state.
+        // _cacheCanvas는 공유이므로 별도 canvas로 복사해 반환
         const outputCanvas = document.createElement('canvas');
         outputCanvas.width = w;
         outputCanvas.height = h;
@@ -148,11 +134,6 @@ const BattleDialogue = {
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
 
-            if (char === '\\n') { // Check for escaped newline?? Or literal char logic
-                // Since we split string char by char, we might miss \n if it's one char vs escaped.
-                // Assuming standard JS string, char is \n.
-            }
-            // Simple newline check
             if (char === '\n') {
                 lines.push(currentLine);
                 currentLine = '';

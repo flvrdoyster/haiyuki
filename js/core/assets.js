@@ -1,6 +1,6 @@
 const Assets = {
     images: {},
-    audio: {},          // BGM only: { [id]: HTMLAudioElement }
+    audio: {},          // BGM: { [id]: HTMLAudioElement }
     sfxBuffers: {},     // SFX: { [id]: AudioBuffer }
     currentMusic: null,
     muted: false,
@@ -13,9 +13,7 @@ const Assets = {
     _getAudioContext: function () {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            // iOS drops the context to 'suspended'/'interrupted' on screen-lock or
-            // app-switch and does NOT auto-resume on return. When that happens while
-            // the page is visible, bring it back.
+            // iOS는 화면 잠금/앱 전환 시 컨텍스트를 suspended/interrupted로 만들고 자동 복귀하지 않음 — 화면이 보일 때 재개.
             this.audioContext.onstatechange = () => {
                 const st = this.audioContext.state;
                 const visible = (typeof document === 'undefined') || document.visibilityState === 'visible';
@@ -42,17 +40,13 @@ const Assets = {
         this._audioUnlocked = true;
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume();
-        // iOS needs a play() inside a user gesture to unlock each BGM element for
-        // later programmatic playback. We do that play→pause but keep every element
-        // MUTED the whole time and never unmute here — so nothing is audible. The
-        // element that actually becomes the BGM is unmuted by playMusic().
+        // iOS: 사용자 제스처 안에서 play()를 호출해야 나중에 프로그래밍으로 재생 가능.
+        // 모든 BGM 요소를 muted 상태로 play→pause하여 잠금 해제만 수행. 실제 음성은 playMusic()에서만 출력.
         Object.values(this.audio).forEach(el => {
             if (el === this.currentMusic) return;
             el.muted = true;
             const p = el.play();
-            // The pause is deferred (play() resolves async). By the time it fires,
-            // playMusic() may already have claimed this element as the live BGM and
-            // started it — guard so we don't pause/reset the now-playing track.
+            // play()는 비동기로 해결되므로, 그 사이에 playMusic()이 이 요소를 BGM으로 지정했을 수 있음 — 현재 재생 중인 트랙을 pause하지 않도록 보호.
             if (p && p.then) {
                 p.then(() => { if (el !== this.currentMusic) { el.pause(); el.currentTime = 0; } }).catch(() => { });
             } else if (el !== this.currentMusic) {
@@ -61,19 +55,16 @@ const Assets = {
         });
     },
 
-    // Returning from the background (screen-lock / app-switch / tab-switch): iOS
-    // leaves the AudioContext suspended/interrupted and the BGM <audio> paused, and
-    // does not auto-resume. Re-resume both. Only meaningful after the first unlock.
+    // iOS: 백그라운드 복귀 시 AudioContext와 BGM 요소가 일시정지 상태로 남음 — 둘 다 재개.
     _resumeAudioOnReturn: function () {
         if (!this._audioUnlocked) return;
         const ctx = this.audioContext;
         if (ctx && ctx.state !== 'running') ctx.resume().catch(() => { });
-        // Resume the live BGM element if it got paused while backgrounded.
         const bgm = this.currentMusic;
         if (bgm && !this.muted && bgm.paused) bgm.play().catch(() => { });
     },
 
-    // Wire the return-from-background resume once (idempotent).
+    // 백그라운드 복귀 핸들러를 한 번만 등록(멱등).
     _wireResumeHandlers: function () {
         if (this._resumeWired) return;
         this._resumeWired = true;
@@ -82,10 +73,8 @@ const Assets = {
             if (document.visibilityState === 'visible') resume();
         });
         window.addEventListener('focus', resume);
-        window.addEventListener('pageshow', resume); // bfcache restore (iOS Safari)
-        // Safety net: any user gesture also (re)starts a BGM that iOS refused to
-        // autostart (e.g. the title theme right after the loading→title tap). These
-        // stay attached (not once) so every later interaction can recover audio.
+        window.addEventListener('pageshow', resume); // bfcache 복원 (iOS Safari)
+        // 사용자 제스처에도 연결 — iOS가 자동재생을 거부한 BGM을 다음 탭/키에서 복구하기 위해 once 없이 유지.
         window.addEventListener('pointerdown', resume, { passive: true });
         window.addEventListener('touchstart', resume, { passive: true });
         window.addEventListener('keydown', resume);
@@ -93,19 +82,19 @@ const Assets = {
 
     toLoad: [
         'ui/title.png',
-        'ui/pushok.png',   // "PUSH SPACE KEY"
-        'ui/logo_compile.png',       // "COMPILE" intro logo
-        'ui/logo_compile_1998.png',  // Compile Logo with 1998
+        'ui/pushok.png',
+        'ui/logo_compile.png',
+        'ui/logo_compile_1998.png',
 
-        // Title logo (환세패유기) — layered, assembled on the title screen
-        'title/BACK.png',          // green wall texture behind the tiles
-        'title/LINE_NARUTO.png',   // 回-pattern band
-        'title/LOGO_REST.png',     // 환세 _ 유기 (gold)
-        'title/LOGO_PAI_TOP.png',  // center 패 (silver, final)
-        'title/LOGO_PAI_BOTTOM.png', // center 패 (red, stretch reveal)
-        'title/PAI.png',           // blank flying tile
+        // 타이틀 로고 — 레이어드 조합
+        'title/BACK.png',
+        'title/LINE_NARUTO.png',
+        'title/LOGO_REST.png',
+        'title/LOGO_PAI_TOP.png',
+        'title/LOGO_PAI_BOTTOM.png', // 빨간색, 스트레치 리빌용
+        'title/PAI.png',
 
-        // Audio
+        // 오디오
         { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
         { id: 'audio/discard', src: 'assets/audio/discard.mp3', type: 'audio' },
         { id: 'audio/bgm_title', src: 'assets/audio/bgm_title.mp3', type: 'audio' },
@@ -125,8 +114,8 @@ const Assets = {
         { id: 'audio/pon', src: 'assets/audio/pon.mp3', type: 'audio' },
         { id: 'audio/riichi', src: 'assets/audio/riichi.mp3', type: 'audio' },
         { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
-        { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' }, // Gong Sound
-        { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' }, // New Victory Sound
+        { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' },
+        { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' },
         { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
         { id: 'audio/hit-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
         { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
@@ -136,23 +125,20 @@ const Assets = {
         { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
         { id: 'audio/slash', src: 'assets/audio/hit-4.mp3', type: 'audio' },
         { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
-        { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' }, // Tiger Strike SFX
-        { id: 'audio/quake', src: 'assets/audio/quake.mp3', type: 'audio' }, // Dora Bomb SFX
-        { id: 'audio/skill_activate', src: 'assets/audio/whoosh.mp3', type: 'audio' }, // Default Skill SFX
+        { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' },
+        { id: 'audio/quake', src: 'assets/audio/quake.mp3', type: 'audio' },
+        { id: 'audio/skill_activate', src: 'assets/audio/whoosh.mp3', type: 'audio' },
 
-        // New Dealing Sounds
-        { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // Alias for deal
+        { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // draw.mp3 별칭
         { id: 'audio/flip', src: 'assets/audio/flip.mp3', type: 'audio' },
         { id: 'audio/tick', src: 'assets/audio/tick.mp3', type: 'audio' },
 
-        // Character Select Assets
-        'bg/CHRBAK.png', // Keeping both if needed, or just new one
-        'bg/MAYUBAK.png', // Hidden boss (Mayu) intrusion monologue background
+        'bg/CHRBAK.png',
+        'bg/MAYUBAK.png', // 마유 난입 모놀로그 배경
         'bg/OVERBAK.png',
-        'bg/STAFFBAK.png', // Staff roll background (rock + 幻世牌遊記 watermark)
+        'bg/STAFFBAK.png', // 스탭롤 배경 (幻世牌遊記 워터마크)
         'bg/GAMEBG.png',
 
-        // FX
         { id: 'fx/pon', src: 'assets/fx/pon.png', type: 'image' },
         { id: 'fx/ron', src: 'assets/fx/ron.png', type: 'image' },
         { id: 'fx/riichi', src: 'assets/fx/riichi.png', type: 'image' },
@@ -161,7 +147,6 @@ const Assets = {
         { id: 'fx/tenpai', src: 'assets/fx/tenpai.png', type: 'image' },
         { id: 'fx/noten', src: 'assets/fx/noten.png', type: 'image' },
 
-        // Random Backgrounds
         'bg/00.png', 'bg/01.png', 'bg/02.png', 'bg/03.png',
         'bg/04.png', 'bg/05.png', 'bg/06.png', 'bg/07.png',
         'bg/08.png', 'bg/09.png', 'bg/10.png', 'bg/11.png',
@@ -170,93 +155,79 @@ const Assets = {
         'ui/long_bubble.png',
         'ui/long_bubble_tail.png',
         'ui/short_bubble.png',
-        'ui/battle_menu.png', // Battle Menu Overlay
+        'ui/battle_menu.png',
         'face/select_cursor.png',
 
-        // Individual Select Icons
         'face/select_ATA.png', 'face/select_RIN.png', 'face/select_FARI.png',
         'face/select_SMSH.png', 'face/select_PET.png', 'face/select_YURI.png',
         'face/select_MAYU.png',
 
-        // UI Frame
         'ui/frame/corner-lefttop.png', 'ui/frame/corner-righttop.png',
         'ui/frame/corner-leftbottom.png', 'ui/frame/corner-rightbottom.png',
         'ui/frame/line-top.png', 'ui/frame/line-bottom.png',
         'ui/frame/line-left.png', 'ui/frame/line-right.png',
 
-        // Number Fonts
         'ui/number_big.png',
 
-        // Encounter/Dialogue Portraits (Detailed)
-        // Ataho
+        // 대화 포트레이트
         'face/ATA_base.png',
         'face/ATA_blink-1.png', 'face/ATA_blink-2.png',
         'face/ATA_shocked.png', 'face/ATA_smile.png',
 
-        // Rinxiang
         'face/RIN_base.png',
         'face/RIN_blink-1.png', 'face/RIN_blink-2.png',
         'face/RIN_shocked.png', 'face/RIN_smile.png',
         'face/RIN_talk-1.png', 'face/RIN_talk-2.png',
 
-        // Fari
         'face/FARI_base.png',
         'face/FARI_blink-1.png', 'face/FARI_blink-2.png',
         'face/FARI_shocked.png', 'face/FARI_smile.png',
         'face/FARI_talk-1.png', 'face/FARI_talk-2.png',
 
-        // Smashu
         'face/SMSH.png', 'face/SMSH_base.png', 'face/SMSH_idle.png',
         'face/SMSH_blink-1.png', 'face/SMSH_blink-2.png',
         'face/SMSH_shocked.png', 'face/SMSH_smile.png',
         'face/SMSH_talk-1.png', 'face/SMSH_talk-2.png',
 
-        // Petum
         'face/PET_base.png',
-        // 'face/PET_blink-1.png', 'face/PET_blink-2.png', // Petum has no blink frames in directory
+        // 'face/PET_blink-1.png', 'face/PET_blink-2.png', // PET 블링크 프레임 없음
         'face/PET_shocked.png', 'face/PET_smile.png',
         'face/PET_talk-1.png', 'face/PET_talk-2.png',
 
-        // Yuri
         'face/YURI_base.png',
         'face/YURI_blink-1.png', 'face/YURI_blink-2.png',
         'face/YURI_shocked.png', 'face/YURI_smile.png',
         'face/YURI_talk-1.png', 'face/YURI_talk-2.png',
 
-        // Mayu
         'face/MAYU_base.png',
         'face/MAYU_blink-1.png', 'face/MAYU_blink-2.png',
         'face/MAYU_shocked.png', 'face/MAYU_smile.png',
         'face/MAYU_unknown.png', 'face/MAYU_unknown_smile.png',
 
-        // Tiles
         'tiles/pai_ata.png', 'tiles/pai_rin.png', 'tiles/pai_smsh.png',
         'tiles/pai_pet.png', 'tiles/pai_fari.png', 'tiles/pai_yuri.png',
         'tiles/pai_punch.png', 'tiles/pai_wand.png', 'tiles/pai_sword.png',
         'tiles/pai_red.png', 'tiles/pai_blue.png', 'tiles/pai_yellow.png', 'tiles/pai_purple.png',
 
-        // Tile Parts
         'tiles/back-top.png', 'tiles/back-bottom.png', 'tiles/pai_back.png',
         'tiles/side-top.png', 'tiles/side-top-back.png', 'tiles/side-bottom.png',
-        'tiles/pai_uradora.png', // Hidden Dora
+        'tiles/pai_uradora.png', // 우라도라
 
-        // UI
         'ui/number.png',
-        'ui/number_yellow.png', // New yellow number font
+        'ui/number_yellow.png',
         'ui/turn.png',
         'ui/round.png',
         'ui/dora.png',
-        'ui/riichi.png', // New Riichi stick asset
+        'ui/riichi.png',
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
         'ui/alphabet.png',
         'ui/pointer.png',
 
-        // Endings
         'ending/ending_ATA.png', 'ending/ending_FARI.png', 'ending/ending_MAYU.png',
         'ending/ending_RIN.png', 'ending/ending_SMSH.png', 'ending/ending_YURI.png',
         'ending/theend.png',
-        'ending/staff.png' // Staff-roll image font atlas (16×8 grid, 40×64 cells)
+        'ending/staff.png' // 스탭롤 이미지 폰트 아틀라스 (16×8, 셀 40×64)
     ],
     loadedCount: 0,
 
@@ -270,20 +241,15 @@ const Assets = {
             return;
         }
 
-        // Unlock AudioContext and pre-warm BGM elements on first user gesture
         const unlock = () => this._unlockAudio();
         window.addEventListener('touchstart', unlock, { once: true, passive: true });
         window.addEventListener('click', unlock, { once: true });
         window.addEventListener('keydown', unlock, { once: true });
 
-        // Re-resume audio when the page returns from the background (mobile).
         this._wireResumeHandlers();
 
-        // Robust completion: each item settles exactly once (success OR error), and we
-        // fire onComplete once when all have settled. Guarding per-item against double
-        // settle (e.g. an <audio> error after canplaythrough) prevents the count from
-        // overshooting the total — which, with the old exact `=== total` check, would
-        // skip completion and hang the loading screen forever.
+        // 각 항목은 성공/실패 어느 쪽이든 정확히 한 번 settled. 이중 settled를 방지하여
+        // 카운트가 total을 초과해 onComplete를 건너뛰는 버그를 막음.
         const total = this.toLoad.length;
         this.loadedCount = 0;
         let settled = 0;
@@ -313,7 +279,7 @@ const Assets = {
 
             if (type === 'audio') {
                 if (id.includes('bgm')) {
-                    // BGM: HTMLAudioElement (streaming, long file)
+                    // BGM: HTMLAudioElement(스트리밍)
                     const audio = new Audio();
                     audio.addEventListener('canplaythrough', () => {
                         if (!this.audio[id]) {
@@ -328,7 +294,7 @@ const Assets = {
                     audio.src = src;
                     audio.load();
                 } else {
-                    // SFX: Web Audio API — decoded once, zero-latency playback
+                    // SFX: Web Audio API — 한 번 디코딩 후 지연 없이 재생
                     const xhr = new XMLHttpRequest();
                     xhr.open('GET', src, true);
                     xhr.responseType = 'arraybuffer';
@@ -348,7 +314,6 @@ const Assets = {
                     xhr.send();
                 }
             } else {
-                // Image
                 const img = new Image();
                 img.src = src;
                 img.onload = () => {
@@ -396,9 +361,7 @@ const Assets = {
     },
 
     playMusic: function (id, loop = true) {
-        // Idempotent: if this exact track is already playing, leave it alone. Lets a
-        // caller (e.g. LoadingScene) start the BGM inside the user gesture and have a
-        // later scene's playMusic(sameId) be a no-op instead of restarting it.
+        // 동일 트랙이 재생 중이면 no-op — LoadingScene에서 시작한 BGM을 다음 장면이 재시작하지 않게 함.
         if (this.currentBgmId === id && !this.muted &&
             this.currentMusic && !this.currentMusic.paused) {
             this.currentBgmLoop = loop;
@@ -420,13 +383,10 @@ const Assets = {
         audio.currentTime = 0;
         audio.loop = loop;
         audio.volume = 0.5;
-        audio.muted = false; // undo the muted state left by _unlockAudio
+        audio.muted = false; // _unlockAudio에서 muted된 상태 해제
         this.currentMusic = audio;
 
-        // Start playback. Try immediately (best chance of keeping the gesture-unlock
-        // that fired on the loading→title tap), resume the context in parallel, and
-        // retry once it's running. If iOS still refuses, the persistent gesture handler
-        // (_wireResumeHandlers) restarts it on the next tap/keypress.
+        // 즉시 재생 시도하고 컨텍스트 재개를 병렬로 수행. iOS가 거부하면 _wireResumeHandlers의 제스처 핸들러가 재시도.
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume().catch(() => { });
         const retry = () => {
@@ -474,66 +434,41 @@ const Assets = {
 
     stopAll: function () {
         this.stopMusic();
-        // SFX BufferSourceNodes are fire-and-forget, no active references to stop
+        // SFX BufferSourceNode는 fire-and-forget이라 참조 없음
     },
 
-    /**
-     * Draw a specific frame from a spritesheet.
-     * Assumes horizontal strip by default.
-     * @param {CanvasRenderingContext2D} ctx 
-     * @param {string} filename 
-     * @param {number} x - Destination x
-     * @param {number} y - Destination y
-     * @param {number} frameIndex - 0-based index
-     * @param {number} frameWidth 
-     * @param {number} frameHeight 
-     */
     drawFrame: function (ctx, filename, x, y, frameIndex, frameWidth, frameHeight) {
         const img = this.get(filename);
         if (!img) return;
 
-        // Safety check
         if (!frameWidth || !frameHeight) {
             ctx.drawImage(img, x, y);
             return;
         }
 
         const sx = frameIndex * frameWidth;
-        const sy = 0; // Assume horizontal strip
+        const sy = 0; // 수평 스트립 가정
 
-        // Clip to image bounds (basic check)
         if (sx >= img.width) return;
 
         ctx.drawImage(img, sx, sy, frameWidth, frameHeight, x, y, frameWidth, frameHeight);
     },
-
-    /**
-     * Draw text using 'ui/alphabet.png'.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {string} text - Text to draw (A-Z, ?)
-     * @param {number} x - Start x position
-     * @param {number} y - Start y position
-     * @param {string} color - 'orange' (default) or 'yellow'
-     */
 
     drawAlphabet: function (ctx, text, x, y, options = {}) {
         const img = this.get('ui/alphabet.png');
         if (!img) return;
 
         let color = options.color || 'orange';
-        // Check if string option was passed
         if (typeof options === 'string') color = options;
 
         const scale = options.scale || 1.0;
         const frameWidth = 32;
         const frameHeight = 32;
 
-        // Spacing: If configured, use it. Default to frameWidth.
-        // We applying scaling to spacing so the text stays proportional.
         const baseSpacing = options.spacing !== undefined ? options.spacing : 32;
         const spacing = baseSpacing * scale;
 
-        // Default space width should be half of char width (16) unless specified
+        // 공백 폭 기본값: 글자 폭의 절반(16)
         const baseSpaceWidth = options.spaceWidth !== undefined ? options.spaceWidth : 16;
         const spaceWidth = baseSpaceWidth * scale;
         const align = options.align || 'left';
@@ -546,19 +481,18 @@ const Assets = {
         let totalWidth = 0;
         text = text.toUpperCase();
 
-        // Custom widths (Advance) - Source is still 32px grid
+        // 글자별 어드밴스(소스는 32px 그리드). A-Z는 spacing 기본값 사용.
         const charWidths = {
             '.': 12,
             ',': 12,
             '!': 12,
-            '?': 32 // Explicit
-            // A-Z defaults to 'spacing'
+            '?': 32
         };
 
         const getAdvance = (char) => {
             if (char === ' ') return spaceWidth;
             if (charWidths[char] !== undefined) return charWidths[char] * scale;
-            return spacing; // Default 32 * scale
+            return spacing;
         };
 
         for (let i = 0; i < text.length; i++) {
@@ -569,7 +503,7 @@ const Assets = {
         if (align === 'center') currentX -= totalWidth / 2;
         else if (align === 'right') currentX -= totalWidth;
 
-        // Row map
+        // 아틀라스 row: 0=orange, 1=yellow
         const row = (color === 'yellow') ? 1 : 0;
         const sy = row * frameHeight;
 
@@ -584,8 +518,6 @@ const Assets = {
 
             const index = chars.indexOf(char);
             if (index !== -1) {
-                // If the user draws the dot in the center of the 32px grid cell, and we just advance 12px,
-
                 const sx = index * frameWidth;
                 ctx.drawImage(img, sx, sy, frameWidth, frameHeight, currentX, y, destW, destH);
             }
@@ -594,10 +526,7 @@ const Assets = {
         }
     },
 
-    // Staff-roll image font ('ending/staff.png'). Unlike drawAlphabet (Latin only),
-    // this atlas packs the exact glyphs the credits need — kanji, kana, Latin,
-    // digits, symbols and the Korean role labels — one cell each, in row-major
-    // order below. 16 columns × 8 rows, each cell 40×64 (RGBA, transparent gaps).
+    // ending/staff.png: 크레딧 전용 이미지 폰트. 16열×8행, 셀 40×64. 한자·가나·라틴·한국어 포함.
     STAFF_FONT_ROWS: [
         '幻世牌遊記STAFプランナーログ',
         'マデザイサウド&エフェクトEX.',
@@ -617,14 +546,12 @@ const Assets = {
                 if (map[ch] === undefined) map[ch] = { col: col, row: row };
             });
         });
-        // Space renders as the blank tile at the far-right end of the atlas.
+        // 공백 = 아틀라스 맨 오른쪽 끝 빈 셀
         map[' '] = { col: 15, row: 7 };
         this._staffFontMap = map;
         return map;
     },
 
-    // Single staff-roll glyph at top-left (x, y) — for the credit's per-tile
-    // animation (each character flies in / discards / falls independently).
     drawStaffGlyph: function (ctx, ch, x, y, scale) {
         const img = this.get('ending/staff.png');
         if (!img) return;
@@ -635,23 +562,12 @@ const Assets = {
         ctx.drawImage(img, cell.col * W, cell.row * H, W, H, x, y, W * scale, H * scale);
     },
 
-    /**
-     * Draw big number using 'ui/number_big.png'.
-     * Assumes horizontal strip of undefined width (auto-calculated) or fixed width.
-     * Usually 0-9.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number|string} number 
-     * @param {number} x Center X (if align center) or Left X
-     * @param {number} y Top Y
-     * @param {object} options { align: 'center'|'left', spacing: 0 }
-     */
     drawNumberBig: function (ctx, number, x, y, options = {}) {
         const imgId = options.imgId || 'ui/number_big.png';
         const img = this.get(imgId);
         if (!img) return;
 
-        // Determine frame width. 
-        // Assume 0-9 (10 digits).
+        // 0–9, 10등분
         const frameWidth = img.width / 10;
         const frameHeight = img.height;
         const spacing = options.spacing || 2;
@@ -665,7 +581,6 @@ const Assets = {
         const dh = frameHeight * scale;
         const scaledSpacing = spacing * scale;
 
-        // Calculate total width
         let totalW = (str.length * dw) + ((str.length - 1) * scaledSpacing);
 
         let startX = x;
@@ -690,15 +605,6 @@ const Assets = {
         }
     },
 
-    /**
-     * Draw a 9-slice frame using registered frame assets.
-     * Edges are tiled to fill the space.
-     * @param {CanvasRenderingContext2D} ctx 
-     * @param {number} x 
-     * @param {number} y 
-     * @param {number} w 
-     * @param {number} h 
-     */
     drawUIFrame: function (ctx, x, y, w, h) {
         const tl = this.get('ui/frame/corner-lefttop.png');
         const tr = this.get('ui/frame/corner-righttop.png');
@@ -711,43 +617,30 @@ const Assets = {
         const right = this.get('ui/frame/line-right.png');
 
         if (!tl || !tr || !bl || !br || !top || !bottom || !left || !right) {
-            return; // Assets not loaded yet
+            return;
         }
 
-        // Draw Corners
         ctx.drawImage(tl, x, y);
         ctx.drawImage(tr, x + w - tr.width, y);
         ctx.drawImage(bl, x, y + h - bl.height);
         ctx.drawImage(br, x + w - br.width, y + h - br.height);
 
-        // Draw Top/Bottom Edges (Tiled)
         const innerX = x + tl.width;
         const innerW = w - tl.width - tr.width;
         if (innerW > 0) {
-            // Top
             this.drawTiled(ctx, top, innerX, y, innerW, top.height, 'horizontal');
-            // Bottom
             this.drawTiled(ctx, bottom, innerX, y + h - bottom.height, innerW, bottom.height, 'horizontal');
         }
 
-        // Draw Left/Right Edges (Tiled)
-        const innerY = y + tl.height; // Assuming corners have same height
+        const innerY = y + tl.height;
         const innerH = h - tl.height - bl.height;
 
         if (innerH > 0) {
-            // Left
             this.drawTiled(ctx, left, x, innerY, left.width, innerH, 'vertical');
-            // Right
             this.drawTiled(ctx, right, x + w - right.width, innerY, right.width, innerH, 'vertical');
         }
     },
 
-    /**
-     * Get or create a cached pattern for an image.
-     * @param {CanvasRenderingContext2D} ctx 
-     * @param {HTMLImageElement} img 
-     * @param {string} repetition 
-     */
     getPattern: function (ctx, img, repetition = 'repeat') {
         if (!img._patterns) img._patterns = {};
         if (!img._patterns[repetition]) {
@@ -756,68 +649,47 @@ const Assets = {
         return img._patterns[repetition];
     },
 
-    /**
-     * Helper to draw a tiled image efficiently.
-     */
     drawTiled: function (ctx, img, x, y, fillW, fillH, direction) {
-        // Use cached pattern
         ctx.save();
         ctx.translate(x, y);
-        // Use default 'repeat' as the specific direction repeat (repeat-x/y) is rarely needed if we fillRect correctly?
-        // Existing code used 'repeat'. Stick to 'repeat' as fillRect limits the area anyway.
+        // fillRect가 영역을 제한하므로 'repeat'으로 충분
         const ptrn = this.getPattern(ctx, img, 'repeat');
         ctx.fillStyle = ptrn;
         ctx.fillRect(0, 0, fillW, fillH);
         ctx.restore();
     },
-    /**
-     * Draw a standard UI Window (Frame + Dimmer).
-     * CONTEXT SAFE: Saves and Restores context state.
-     */
     drawWindow: function (ctx, x, y, w, h) {
         ctx.save();
-        // Frame
         this.drawUIFrame(ctx, x, y, w, h);
 
-        // Inner Dimmer (Standard 4px border)
         const border = 4;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
         ctx.restore();
     },
 
-    /**
-     * Draw a standard UI Button.
-     * CONTEXT SAFE: Saves and Restores context state.
-     */
     drawButton: function (ctx, x, y, w, h, label, isSelected, options = {}) {
         ctx.save();
 
-        // Frame (Optional)
         if (!options.noBorder) {
             this.drawUIFrame(ctx, x, y, w, h);
 
-            // Fallback: If UI Frame assets missing, draw a border
+            // 프레임 에셋 미로드 시 폴백 테두리
             if (!this.get('ui/frame/corner-lefttop.png')) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
                 ctx.strokeRect(x, y, w, h);
             }
         }
 
-        // Inner Dimmer / Highlight
         if (isSelected) {
-            // Selected: Pink highlight
             ctx.fillStyle = options.cursorColor || 'rgba(255, 105, 180, 0.5)';
             ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
         } else {
-            // Unselected: Dark dimmer
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
         }
 
-        // Text
         ctx.fillStyle = isSelected ? 'rgba(255, 255, 0, 1)' : 'rgba(255, 255, 255, 1)';
-        // Use Global FONTS if available, otherwise fallback
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
         ctx.font = options.font || `bold 16px ${fontName}`;
         ctx.textAlign = 'center';

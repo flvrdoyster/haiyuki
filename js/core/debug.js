@@ -1,27 +1,7 @@
-/**
- * debug.js — consolidated debug / QA module (console & test only; no on-screen UI).
- *
- *   QADebug     — read-only state snapshot → window.__haiyuki__ (Playwright reads this).
- *   DebugCheats — mutating cheats, exposed as bare console functions (win(),
- *                 challengerTest(), autoTest(), lastChance(), …). See CHEAT.md.
- *
- * Nothing runs unless called: QADebug.sync() from battleScene each frame; cheats from devtools.
- */
-
-/**
- * QADebug — read-only game state export for testing & QA.
- *
- * Usage (browser console):
- *   window.__haiyuki__              → current snapshot
- *   window.__haiyuki__.p1.isTenpai → true/false
- *   window.__haiyuki__.actions.canRon
- *
- * All fields are deeply frozen. Never mutates game state.
- */
 const QADebug = (() => {
     'use strict';
 
-    // Human-readable names matching BattleEngine.STATE_* constants (by index)
+    // BattleEngine.STATE_* 인덱스 대응 이름
     const STATE_NAMES = [
         'INIT',             // 0
         'DEALING',          // 1
@@ -40,11 +20,9 @@ const QADebug = (() => {
         'ROULETTE',         // 14
     ];
 
-    // Tenpai computation is O(13 × checkYaku). Refresh at most once every N ticks.
+    // 텐파이 계산은 O(13×checkYaku) — N틱마다 갱신으로 비용 절감
     const TENPAI_REFRESH_INTERVAL = 30;
     let _tenpai = { p1: false, cpu: false, lastTick: -Infinity };
-
-    // --- Pure copy helpers (no game-object references leak out) ---
 
     function copyTile(t) {
         if (!t) return null;
@@ -70,20 +48,16 @@ const QADebug = (() => {
         return (sets || []).map(s => Object.freeze({ tiles: Object.freeze(copyTiles(s.tiles)) }));
     }
 
-    // --- Tenpai helper (safe; engine.checkTenpai + engine.getFullHand) ---
-
     function computeTenpai(engine, player) {
         try {
             const hand = engine.getFullHand(player);
-            // checkTenpai expects 11 tiles; fewer means still dealing
+            // 11장 미만이면 아직 배패 중
             if (!hand || hand.length < 11) return false;
             return !!engine.checkTenpai(hand);
         } catch (_) {
             return false;
         }
     }
-
-    // --- Player snapshot ---
 
     function playerSnapshot(p, tenpai) {
         return Object.freeze({
@@ -102,15 +76,12 @@ const QADebug = (() => {
         });
     }
 
-    // --- Public API ---
-
     function sync(engine) {
         if (!engine || engine.currentState === undefined) {
             window.__haiyuki__ = null;
             return;
         }
 
-        // Throttled tenpai refresh
         const tick = engine.totalTicks || 0;
         if (tick - _tenpai.lastTick >= TENPAI_REFRESH_INTERVAL) {
             _tenpai.p1  = computeTenpai(engine, engine.p1);
@@ -121,7 +92,6 @@ const QADebug = (() => {
         const actions = engine.possibleActions || [];
 
         window.__haiyuki__ = Object.freeze({
-            // ── Game state ─────────────────────────────────────────────────
             state: Object.freeze({
                 id:            engine.currentState,
                 name:          STATE_NAMES[engine.currentState] ?? String(engine.currentState),
@@ -131,12 +101,10 @@ const QADebug = (() => {
                 isSequencing:  !!(engine.sequencing && engine.sequencing.active),
             }),
 
-            // ── Players ────────────────────────────────────────────────────
             p1:  playerSnapshot(engine.p1,  _tenpai.p1),
             cpu: playerSnapshot(engine.cpu, _tenpai.cpu),
 
-            // ── Available actions (current possibleActions) ────────────────
-            // Ron requires Riichi per RULEBOOK §4. Pon opens the hand (Menzen lost).
+            // 론은 리치 필수(§4), 퐁은 멘젠 해제
             actions: Object.freeze({
                 canTsumo: actions.some(a => a.type === 'TSUMO'),
                 canRon:   actions.some(a => a.type === 'RON'),
@@ -145,22 +113,19 @@ const QADebug = (() => {
                 raw:      Object.freeze(actions.map(a => Object.freeze({ type: a.type, label: a.label }))),
             }),
 
-            // ── Board ──────────────────────────────────────────────────────
             board: Object.freeze({
                 doras:        Object.freeze(copyTiles(engine.doras)),
                 uraDoras:     Object.freeze(copyTiles(engine.uraDoras)),
-                // discards is a flat shared array (both players pushed to same list)
+                // 버림패는 양 플레이어 공유 배열
                 discardCount: engine.discards ? engine.discards.length : 0,
                 discards:     Object.freeze(copyTiles(engine.discards)),
             }),
 
-            // ── Round result (populated in WIN/LOSE/NAGARI states) ─────────
             winningYaku: engine.winningYaku
                 ? Object.freeze({ name: engine.winningYaku.name, score: engine.winningYaku.score })
                 : null,
 
-            // ── Easy-mode draw assist: what the last player draw steered toward
-            //    (null if assist off / hasn't fired). tier: complete|tenpai|building
+            // tier: complete|tenpai|building. 미발동 시 null
             drawAssist: engine.lastDrawAssist
                 ? Object.freeze({
                     turn: engine.lastDrawAssist.turn,
@@ -181,20 +146,13 @@ const QADebug = (() => {
     return { sync, reset };
 })();
 
-/**
- * DebugCheats — cheat implementations + the forceChallenger flag (mutating,
- * unlike QADebug above). Exposed to the console as bare functions further down
- * — win(), lastChance(), challengerTest(), etc. See CHEAT.md.
- */
 const DebugCheats = {
-    // Flag: when true, character-select confirm jumps straight to the ending →
-    // hidden-boss intrusion (arm with window.challengerTest()).
+    // true면 캐릭터 선택 확인 시 엔딩→히든보스 진입 (window.challengerTest()로 무장)
     forceChallenger: false,
 
     testLastChance: function () {
         const e = BattleEngine;
 
-        // Force Petum's skills onto P1 and jump to the last turn
         e.p1.skills = ['LAST_CHANCE', 'CRITICAL'];
         e.p1.mp = 100;
         e.turnCount = 20;
@@ -204,7 +162,6 @@ const DebugCheats = {
             return { type: data.id, color: data.color, img: data.img };
         };
 
-        // Tenpai hand (11) + 1 trash tile to discard
         const newHand = [];
         for (let i = 0; i < 3; i++) newHand.push(createTile('ataho'));
         for (let i = 0; i < 3; i++) newHand.push(createTile('smash'));
@@ -221,7 +178,6 @@ const DebugCheats = {
         const e = BattleEngine;
         const yakuName = 'IP_E_DAM';
 
-        // 9 Atahos + 3 Punches
         const template = [
             { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
             { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' }, { id: 'ataho', color: 'red' },
@@ -238,8 +194,6 @@ const DebugCheats = {
         e.setExpression('P1', 'smile');
         e.checkSelfActions();
         if (e.possibleActions.length > 0) {
-            // No forced modal: stay in the normal turn so the "날 수 있어!" hint and
-            // the battle menu (아가리) surface the win. Drawing/discarding declines it.
             e.currentState = e.STATE_PLAYER_TURN;
             e.hoverIndex = e.p1.hand.length - 1;
             e.timer = 0;
@@ -247,43 +201,26 @@ const DebugCheats = {
     }
 };
 
-// ── Console cheats — all bare functions, one consistent form (see CHEAT.md) ──
-// Save
 window.unlockMayu   = () => { Game.saveData.unlocked.push('mayu'); Game.save(); location.reload(); };
 window.resetSave    = () => { Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: (Game.saveData && Game.saveData.difficulty) || 'normal' }; Game.continueCount = 0; Game.save(); location.reload(); };
-// Scene navigation
 window.toCredits    = () => Game.changeScene(CreditsScene);
 window.toCharSelect = () => Game.changeScene(CharacterSelectScene);
 window.toBattle     = (p1 = 0, cpu = 1) => Game.changeScene(BattleScene, { playerIndex: p1, cpuIndex: cpu });
-// Hidden boss (Mayu) — arm the full intrusion sequence from character select
 window.challengerTest = () => {
     DebugCheats.forceChallenger = true;
     console.log('[Cheat] Challenger armed — pick a character to jump to the ending.');
 };
-// Auto-test
 window.autoTest     = () => Game.startAutoTest();
 window.autoLose     = () => Game.startAutoLoseTest();
 window.stopAuto     = () => Game.stopAutoTest();
-// Battle
 window.lastChance   = () => DebugCheats.testLastChance();
 window.win          = () => DebugCheats.debugWin();
 
-/**
- * DebugOverlay — on-screen console for devtools-less debugging (mobile).
- *
- * Mirrors console.log/info/warn/error AND uncaught errors (window 'error' +
- * 'unhandledrejection') into a fixed, scrollable panel — so you can read logs
- * on a phone where devtools isn't available. Original console methods still
- * fire (passthrough). Self-contained: builds its own DOM + styles, no edits to
- * index.html or CSS.
- *
- * Shown only when the URL has ?debug (close with the ✕ button). When ?debug is
- * absent this module does nothing — no console wrapping, no DOM. No game logic here.
- */
+// ?debug URL 파라미터 시에만 활성화 — 부재 시 완전 무동작
 const DebugOverlay = (() => {
     'use strict';
 
-    const MAX = 120;                       // ring-buffer line cap
+    const MAX = 120; // 링버퍼 상한
     const COLORS = { error: '#ff6b6b', warn: '#ffd166', info: '#8ec6ff', log: '#cfd2d6' };
 
     let buffer = [];
@@ -293,7 +230,7 @@ const DebugOverlay = (() => {
         try { return new URLSearchParams(location.search).has('debug'); } catch (_) { return false; }
     }
 
-    // Stringify console args without ever calling console.* (would re-enter).
+    // console.* 재진입 방지를 위해 직접 직렬화
     function fmt(args) {
         return Array.prototype.map.call(args, (a) => {
             if (a instanceof Error) return a.message;
@@ -315,8 +252,7 @@ const DebugOverlay = (() => {
         panel = document.createElement('div');
         panel.id = 'debug-overlay';
         panel.style.cssText = [
-            // Fixed-size strip pinned to the top — never grows with content, so it
-            // can't swallow the screen mid-play. logBody scrolls to show latest.
+            // 고정 높이로 상단 고정 — 콘텐츠가 늘어도 화면을 잠식하지 않음
             'position:fixed', 'top:0', 'left:0', 'right:0', 'height:150px',
             'z-index:20000', 'display:none', 'flex-direction:column',
             'font:11px/1.45 monospace', 'background:rgba(0,0,0,0.82)', 'color:#cfd2d6',
@@ -363,7 +299,6 @@ const DebugOverlay = (() => {
         if (visible) render();
     }
 
-    // Wrap console.* (passthrough) + catch uncaught errors.
     function hook() {
         if (installed) return;
         installed = true;
@@ -371,7 +306,7 @@ const DebugOverlay = (() => {
             const orig = console[lvl] ? console[lvl].bind(console) : function () {};
             console[lvl] = function () {
                 orig.apply(null, arguments);
-                try { push(lvl, fmt(arguments)); } catch (_) { /* never break the app */ }
+                try { push(lvl, fmt(arguments)); } catch (_) { /* 앱 중단 방지 */ }
             };
         });
         window.addEventListener('error', (e) => {
@@ -385,7 +320,7 @@ const DebugOverlay = (() => {
     }
 
     function init() {
-        if (!autoShow()) return;   // ?debug-only — zero overhead when absent
+        if (!autoShow()) return;
         hook();
         build();
         visible = true;

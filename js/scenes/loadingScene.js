@@ -19,8 +19,7 @@ const LoadingScene = {
         this.startTimer = 0;
         this.iconTimer = 0;
 
-        // Loading icon = the title menu cursor (ui/pointer.png, 2-frame face). Loaded
-        // on its own since the main asset load isn't ready while this screen draws.
+        // 메인 에셋 로드 완료 전에도 그려야 하므로 아이콘(pointer.png)만 별도 로드
         if (!this.icon) {
             this.icon = new Image();
             this.icon.src = 'assets/ui/pointer.png';
@@ -31,9 +30,7 @@ const LoadingScene = {
         });
     },
 
-    // Begin the start: kick the title BGM INSIDE the user gesture (iOS won't start it
-    // from a later RAF). We then hold the loading screen (see update) until the BGM is
-    // actually rolling, so the title doesn't appear ahead of its music. Idempotent.
+    // iOS는 제스처 핸들러 안에서만 오디오 재생 가능 → 제스처 직후 BGM 시작, 멱등
     _beginStart: function () {
         if (this.starting) return;
         this.starting = true;
@@ -41,8 +38,7 @@ const LoadingScene = {
         Assets.playMusic('audio/bgm_title');
     },
 
-    // Arm the start on the real gesture (covers mouse/touch/keyboard, incl. the
-    // overlay gamepad's real touch). One-shot, removed after firing.
+    // 오버레이 패드의 실제 터치 포함, 모든 입력 경로에서 one-shot으로 시작 트리거
     _armStartGesture: function () {
         const start = () => {
             this._beginStart();
@@ -56,13 +52,11 @@ const LoadingScene = {
     },
 
     update: function (dt) {
-        // Icon animates even while assets are still loading (the guard below).
         this.iconTimer += (dt || 1);
 
         if (!this.isLoaded) return;
 
         const mode = new URLSearchParams(window.location.search).get('mode');
-        // Watch mode / autotest proceed automatically (no gesture available/needed).
         if (mode === 'story' || mode === 'watch' || Game.isAutoTest) {
             this.delayTimer += dt;
             if (this.delayTimer > 30) {
@@ -75,29 +69,23 @@ const LoadingScene = {
             return;
         }
 
-        // Apple/Safari block audio until a user gesture, so gate the opening behind a
-        // click/touch/key — the same gesture unlocks audio (Assets' window listeners).
-        // The overlay gamepad works too: a real touch on a pad button unlocks audio
-        // and dispatches KeyZ, which we accept here.
+        // Safari는 제스처 없이 오디오 불가 → 입력 대기 후 시작
         this.blinkTimer += dt;
         if (this.blinkTimer > 40) { this.showPrompt = !this.showPrompt; this.blinkTimer = 0; }
 
-        // Once loaded, arm the in-gesture BGM start (fires on the same tap/key).
         if (!this._gateArmed) { this._armStartGesture(); this._gateArmed = true; }
 
-        // Backup trigger (covers any input path the DOM handler might miss).
+        // DOM 핸들러가 놓칠 수 있는 경로를 Input으로 보완
         if (!this.starting && (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed())) {
             this._beginStart();
         }
 
-        // Hold the loading screen until the title BGM is actually rolling (or a short
-        // safety cap), THEN go to the title — so audio is live from the first frame
-        // rather than fading in mid-sequence.
+        // BGM이 실제로 재생 중일 때 타이틀 전환 (최대 2초 안전 캡)
         if (this.starting) {
             this.startTimer += dt;
             const bgm = Assets.currentMusic;
             const rolling = bgm && !bgm.paused && bgm.currentTime > 0;
-            if (rolling || this.startTimer > 120) { // ~2s cap if it never starts
+            if (rolling || this.startTimer > 120) {
                 Game.changeScene(TitleScene);
             }
         }
@@ -107,21 +95,17 @@ const LoadingScene = {
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, Game.canvas.width, Game.canvas.height);
 
-        // Loading indicator: the title menu cursor (2-frame face), blinking in place.
-        // Drawn at a crisp 2× via nearest-neighbor (no blur).
         const icon = this.icon;
         if (icon && icon.complete && icon.naturalWidth) {
             const fw = 32, fh = 32, scale = 2;
             const dw = fw * scale, dh = fh * scale;
             const frame = Math.floor(this.iconTimer / 10) % 2;
             ctx.save();
-            ctx.imageSmoothingEnabled = false; // pixelate (nearest-neighbor)
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(icon, frame * fw, 0, fw, fh, 320 - dw / 2, 240 - dh / 2, dw, dh);
             ctx.restore();
         }
 
-        // Once loaded, prompt for the start gesture (blinks) — reuse the title's
-        // "PUSH SPACE KEY" graphic.
         if (this.isLoaded && this.showPrompt) {
             const push = Assets.get('ui/pushok.png');
             if (push) ctx.drawImage(push, (640 - push.width) / 2, TitleConfig.PUSH_KEY.y);

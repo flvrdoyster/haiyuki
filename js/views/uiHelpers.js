@@ -1,13 +1,6 @@
-// Shared canvas UI helpers used by multiple scenes (confirm dialog layout/drawing).
+// 확인 다이얼로그 레이아웃·그리기 공용 헬퍼 (여러 씬에서 사용)
 const UIHelpers = {
-    /**
-     * Compute the layout for a confirm dialog: window box, message lines,
-     * and YES/NO button rects. Message lines are split on a literal "\n"
-     * (backslash + n) to match the dialogue data format.
-     * @param {string} msg
-     * @param {object} opts - { centerY: true } ignores BattleConfig.CONFIRM.y
-     *                        and centers the box vertically (title screen behavior).
-     */
+    // opts.centerY=true 이면 BattleConfig.CONFIRM.y 무시하고 세로 중앙 배치 (타이틀 화면용)
     getConfirmLayout: function (msg, opts = {}) {
         const conf = BattleConfig.CONFIRM || {
             minWidth: 320, minHeight: 160, padding: { x: 40, y: 30 },
@@ -49,25 +42,16 @@ const UIHelpers = {
         };
     },
 
-    /**
-     * Draw a confirm dialog: full-screen dimmer, window, message, YES/NO buttons.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {object} layout - result of getConfirmLayout
-     * @param {number} selectedIndex - 0 = yes, 1 = no
-     */
     drawConfirmDialog: function (ctx, layout, selectedIndex) {
         const conf = BattleConfig.CONFIRM || {};
 
         ctx.save();
 
-        // Dimmer
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
-        // Dialog Box
         Assets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
-        // Message Text
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
         ctx.font = conf.font || `20px ${fontName}`;
@@ -78,7 +62,6 @@ const UIHelpers = {
             ctx.fillText(line, 320, layout.text.startY + (i * layout.text.lineHeight));
         });
 
-        // Buttons
         const yesLabel = (conf.labels && conf.labels.yes) ? conf.labels.yes : 'YES';
         const noLabel = (conf.labels && conf.labels.no) ? conf.labels.no : 'NO';
         const yes = layout.yesBtn;

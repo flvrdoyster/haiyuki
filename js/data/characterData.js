@@ -1,6 +1,4 @@
-// Skill Definitions
 const SkillData = {
-    // Ataho
     'TIGER_STRIKE': {
         name: '맹호일발권',
         desc: '리치를 걸 수 있을 때 사용하면 다음 쯔모로 반드시 난다. 20턴 째엔 사용할 수 없다.',
@@ -18,7 +16,6 @@ const SkillData = {
         effect: {}
     },
 
-    // Rinxiang
     'WATER_MIRROR': {
         name: '수경',
         desc: '상대가 났을 때 자신이 받는 데미지를 25% 감소시킨다.',
@@ -36,7 +33,6 @@ const SkillData = {
         effect: {}
     },
 
-    // Fari
     'RECOVERY': {
         name: '회복',
         desc: 'HP를 조금 회복한다. 한 라운드에 몇 번이고 사용할 수 있다.',
@@ -54,7 +50,6 @@ const SkillData = {
         effect: {}
     },
 
-    // Smash
     'EXCHANGE_TILE': {
         name: '패 교환',
         desc: '라운드 시작 시 필요 없는 패를 교환한다.',
@@ -72,7 +67,6 @@ const SkillData = {
         effect: {}
     },
 
-    // Petum
     'CRITICAL': {
         name: '크리티컬',
         desc: '내가 났을 때 상대에게 주는 데미지를 25% 증가시킨다.',
@@ -90,7 +84,6 @@ const SkillData = {
         effect: {}
     },
 
-    // Yuri
     'SUPER_IAI': {
         name: '초 거합베기',
         desc: '상대 론 시, 내가 버린 패를 거합베기로 잘라 무효화한다. 내가 리치를 걸고 있을 때는 사용할 수 없다.',
@@ -108,47 +101,23 @@ const SkillData = {
         effect: {}
     },
 
-    // Mayu
     'PAINT_TILE': {
         name: '패 덧칠',
-        desc: '라운드 시작 시 필요 없는 패를 교환한다.', // EXCHANGE_TILE의 상위 호환 (MP가 더 적게 소비)
+        desc: '라운드 시작 시 필요 없는 패를 교환한다.', // EXCHANGE_TILE 상위호환 (MP 비용 더 낮음)
         type: 'SETUP',
-        cost: 4, // Per tile
+        cost: 4, // 패 1장당
         sfx: 'audio/flip',
         effect: {}
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CHARACTER PERSONAS (reference) — derived from the official manual (haiyuki_manual/
-// char.html). These describe the INTENDED play personality each `aiProfile` should
-// express; tune the trait values to match these, not the other way around. Goal is
-// distinct personalities first; cross-character balance is secondary.
-//
-// Trait axes (each pulls ONE distinct in-game lever with a real trade-off):
-//   value      — 큰 역 / 한 방을 노림: steer discards toward a high-scoring reachable
-//                yaku (slow but big) vs settle for a fast cheap win. (← was aggression)
-//   speed      — pon eagerness / rush cheap fast hands
-//   colorBias  — chase the one-color big yaku (순일색/초일색)
-//   greed      — chase & protect dora (value via dora)
-//   defense    — under opponent riichi, prefer safe tiles (genbutsu) to avoid ron
-//   luck       — CPU draw quality (+ useful, − poor). not a choice; flavor only.
-// (Riichi itself has no trade-off here — ron is riichi-only — so riichi eagerness is
-//  COMPETENCE/skill, not a personality axis.)
-//
-//   아타호  — 펑 거의 안 하고 한 색을 뚝심 있게 모아 크고 느린 손. 안 서두르고
-//             리치/한 방 지향. 위험 패도 잘 안 접음. 운은 평범.
-//   린샹    — 무난·효율적이되 도라를 끝까지 챙겨 점수를 키움. 공수 균형, 평균 실력.
-//   화린    — 좋은 패가 잘 들어와 초반부터 리치/텐파이. 상대 리치엔 잘 접고 버팀
-//             (회복·방어 스킬 궁합). 리치는 적극적.
-//   페톰    — 위험 패 안 가리고 마구 밀어붙임(거의 안 접음). 대신 패가 잘 안 들어와
-//             손이 더딤 → 크리/라스트찬스로 한탕 만회형.
-//   유리    — 공격도 하지만 상대 리치엔 안전패로 확실히 접는 단단한 방어, 실수 드묾
-//             (엘리트). 론 무효로 역전형.
-//   스마슈  — 펑 적극적으로 빠르게 싸고 작은 손을 후딱 완성. 큰 손·도라·색엔 욕심
-//             없음. 초반 러시(장기전 약함).
-//   눈썹개  — 전부 강함: 빠르고 잘 막고 운도 좋고 실수 거의 없음(보스).
-// ─────────────────────────────────────────────────────────────────────────────
+// aiProfile 축 의미 (각각 독립적인 인게임 레버):
+//   value     — 큰 역/한 방 지향 (높을수록 빠른 저점수 완성 포기)
+//   speed     — 펑 적극성 / 빠른 완성 경향
+//   colorBias — 순일색·초일색 등 단색 대역 추구
+//   greed     — 도라 수집·보호
+//   defense   — 상대 리치 시 안전패(겐부쓰) 우선도
+//   luck      — CPU 쯔모 패질 보정 (+좋음 / 0 이하=나쁨). 선택 아닌 플레이버.
 const CharacterData = [
     {
         id: 'ataho', name: '아타호', face: 'face/ATA_base.png', selectIcon: 'face/select_ATA.png', rival: 'rinxiang', skills: ['TIGER_STRIKE', 'HELL_PILE'], battleOffsetX: 0, battleOffsetY: 0,
@@ -172,8 +141,7 @@ const CharacterData = [
     },
     {
         id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/select_PET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20,
-        // 무방비로 마구 밀어붙임(거의 안 접음). 운 0 — 베이스(0.1)보다 낮아 상대적으로 패
-        // 운 나쁨. (음수로 CPU에 플레이어보다 나쁜 패를 억지로 주면 CPU가 약해져 난이도↓라 안 씀.)
+        // 무방비 전돌(거의 안 접음). luck=0: 음수로 두면 CPU가 약해져 난이도↓가 돼 0으로 유지.
         aiProfile: { type: 'TRICKY_ATTACK', value: 0.80, speed: 0.50, defense: 0.15, colorBias: 0.55, greed: 0.55, luck: 0.00 },
     },
     {
@@ -181,7 +149,6 @@ const CharacterData = [
         // 엘리트: 공격하되 상대 리치엔 확실히 안전패로 접는 단단한 방어.
         aiProfile: { type: 'ELITE', value: 0.65, speed: 0.50, defense: 0.85, colorBias: 0.50, greed: 0.55, luck: 0.25 },
     },
-    // Hidden / Bosses
     {
         id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: -24,
         // 보스: 전부 강함 — 빠르고 잘 막고 운도 좋고 실수 거의 없음.

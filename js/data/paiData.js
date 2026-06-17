@@ -37,7 +37,6 @@ const PaiData = {
         { id: 'mayu_purple', name: '보라 눈썹개', color: 'purple', category: 'mayu', img: 'tiles/pai_purple.png' }
     ],
 
-    // Helper to get image path (simplified)
     getImg: function (typeId) {
         const type = this.TYPES.find(t => t.id === typeId);
         return type ? type.img : null;

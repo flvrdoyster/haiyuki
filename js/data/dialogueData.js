@@ -1,9 +1,4 @@
 const DialogueData = {
-    // ----------------------------------------------------------------
-    // Encounter Dialogues (Pre-Battle)
-    // ----------------------------------------------------------------
-
-    // Ataho vs Rinxiang
     "ataho_rinxiang": [
         { speaker: "rinxiang", text: "앗, 여기에 있었군요...", speakerState: '', listenerState: '' },
         { speaker: "ataho", text: "자....자네는 린샹.", speakerState: '', listenerState: '' },
@@ -19,7 +14,6 @@ const DialogueData = {
         { speaker: "rinxiang", text: "알아들었죠?\n그럼, 승부에요!", speakerState: 'smile', listenerState: 'shocked' }
     ],
 
-    // Ataho vs Fari
     "ataho_fari": [
         { speaker: "ataho", text: "어라, 화린님 아니신가?\n자네도 참가했던 겐가?", speakerState: '', listenerState: '' },
         { speaker: "fari", text: "아니요, 저는 이쪽이 너무나도 시끌벅적하기에 \n아무 생각 없이 들렀더니,\n어느샌가 참가하는 게 되어 버려서...", speakerState: '', listenerState: '' },
@@ -29,7 +23,6 @@ const DialogueData = {
         { speaker: "ataho", text: "그러면, 슬슬 시작해볼까나.", speakerState: '', listenerState: '' }
     ],
 
-    // Ataho vs Petum
     "ataho_petum": [
         { speaker: "petum", text: "어라, 아타호씨 아니십니까?\n어때요? 다음에 또 한 잔 하러 가실까요?", speakerState: 'smile', listenerState: '' },
         { speaker: "ataho", text: "아니, 그만 두지.\n자네랑 마시면 좋을게 하나도 없으니 말야.", speakerState: 'shocked', listenerState: '' },
@@ -42,7 +35,6 @@ const DialogueData = {
         { speaker: "ataho", text: "생긴 것보다 나이 먹은 자네에겐 듣고 싶지 않네!!", listenerState: 'shocked', speakerState: '' }
     ],
 
-    // Ataho vs Smash
     "ataho_smash": [
         { speaker: "smash", text: "여, 아저씨.\n이런 곳에서 만나다니 우연이네.\n도대체 어떻게 된거야?", speakerState: 'smile', listenerState: '' },
         { speaker: "ataho", text: "대회가 있다길래 참가했더니,\n무투대회도 많이 마시기 대회도 아니고,\n게임 대회라지 뭔가.", listenerState: 'smile', speakerState: '' },
@@ -51,7 +43,6 @@ const DialogueData = {
         { speaker: "smash", text: "미안하지만 이 몸의 계획을 위해\n아저씨는 여기서 져줘야 겠어.", listenerState: 'shocked', speakerState: '' }
     ],
 
-    // Ataho vs Yuriwakamaru
     "ataho_yuri": [
         { speaker: "ataho", text: "어라, 자네는!", speakerState: 'smile', listenerState: '' },
         { speaker: "yuri", text: "나랑 어디서 만난 적이라도 있었나?", listenerState: 'smile', speakerState: '' },
@@ -68,7 +59,6 @@ const DialogueData = {
         { speaker: "yuri", text: "뭐야, 넌!", listenerState: 'shocked', speakerState: 'shocked' }
     ],
 
-    // Rinxiang vs Fari
     "rinxiang_fari": [
         { speaker: "fari", text: "안녕하세요.", speakerState: 'smile', listenerState: '' },
         { speaker: "rinxiang", text: "아...안녕하세요.", listenerState: 'smile', speakerState: '' },
@@ -82,7 +72,6 @@ const DialogueData = {
         { speaker: "fari", text: "세상에는 해도 될 말과 안 될 말이 있다구요!!", speakerState: 'shocked', listenerState: 'shocked' }
     ],
 
-    // Rinxiang vs Petum
     "rinxiang_petum": [
         { speaker: "petum", text: "처음 뵙겠습니다.\n당신이 린샹씨군요?", speakerState: '', listenerState: '' },
         { speaker: "rinxiang", text: "아... 당신은...?", speakerState: '', listenerState: '' },
@@ -95,7 +84,6 @@ const DialogueData = {
         { speaker: "petum", text: "한 번 정도는 같이 어울려 달라구요.", speakerState: '', listenerState: '' }
     ],
 
-    // Rinxiang vs Smash
     "rinxiang_smash": [
         { speaker: "smash", text: "여, 린샹.\n오랜만이네.", speakerState: 'smile', listenerState: '' },
         { speaker: "rinxiang", text: "어머 스마슈잖아, 우연이네.\n여전히 여자애들 꽁무니나 쫓아다니는 거에요?", listenerState: 'smile', speakerState: '' },
@@ -108,7 +96,6 @@ const DialogueData = {
         { speaker: "smash", text: "뭐라구~!!", speakerState: 'shocked', listenerState: 'shocked' }
     ],
 
-    // Rinxiang vs Yuriwakamaru
     "rinxiang_yuri": [
         { speaker: "yuri", text: "거기 여자, 잠깐 기다려!\n너, 분명 린샹이지?", speakerState: '', listenerState: '' },
         { speaker: "rinxiang", text: "누구야, 당신?\n사람 이름을 함부로 부르고...", speakerState: 'shocked', listenerState: '' },
@@ -118,7 +105,6 @@ const DialogueData = {
         { speaker: "yuri", text: "시... 시끄러워.\n신경쓰고 있는 부분을...", speakerState: 'shocked', listenerState: '' }
     ],
 
-    // Fari vs Petum
     "fari_petum": [
         { speaker: "fari", text: "어머, 페톰씨\n안녕하세요?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "아, 안녕하세요.", speakerState: '', listenerState: '' },
@@ -136,7 +122,6 @@ const DialogueData = {
         { speaker: "petum", text: "그렇네요, 시간이 아까우니까.", speakerState: '', listenerState: '' }
     ],
 
-    // Fari vs Smash
     "fari_smash": [
         { speaker: "smash", text: "이게 누구야, 화린양이잖아.\n만나고 싶었어.", speakerState: 'smile', listenerState: '' },
         { speaker: "fari", text: "어머, 스마슈씨.\n저도 스마슈씨를 만나고 싶었어요.", speakerState: '', listenerState: 'smile' },
@@ -151,7 +136,6 @@ const DialogueData = {
         { speaker: "smash", text: "역시 화린양.\n말이 통한다니까!!", speakerState: 'smile', listenerState: 'smile' }
     ],
 
-    // Fari vs Yuriwakamaru
     "fari_yuri": [
         { speaker: "fari", text: "안녕하세요.", speakerState: 'smile', listenerState: '' },
         { speaker: "yuri", text: "화린이잖아.\n오랜만이네.", speakerState: 'smile', listenerState: 'smile' },
@@ -166,7 +150,6 @@ const DialogueData = {
         { speaker: "yuri", text: "어... 어이,\n농담하지 말아줘.\n난 그런 거 입는 거, 두 번 다신 사양이라구.", speakerState: 'shocked', listenerState: 'smile' }
     ],
 
-    // Petum vs Smash
     "petum_smash": [
         { speaker: "smash", text: "앗, 페톰이잖아.\n이런 곳에서 만나다니 별일인걸.", speakerState: 'smile', listenerState: '' },
         { speaker: "petum", text: "... 그렇네요.", speakerState: '', listenerState: '' },
@@ -183,7 +166,6 @@ const DialogueData = {
         { speaker: "smash", text: "뭐라고~옷!!\n그렇다는 건, 지금까지 네놈의 대답은 전부 잠꼬대였던거냐!!", speakerState: 'shocked', listenerState: '' }
     ],
 
-    // Petum vs Yuriwakamaru
     "petum_yuri": [
         { speaker: "petum", text: "여, 안녕하십니까.", speakerState: '', listenerState: '' },
         { speaker: "yuri", text: "아... 아, 안녕.", speakerState: '', listenerState: '' },
@@ -193,7 +175,6 @@ const DialogueData = {
         { speaker: "yuri", text: "그렇네, 그렇게 할까.", speakerState: '', listenerState: '' }
     ],
 
-    // Smash vs Yuriwakamaru
     "smash_yuri": [
         { speaker: "smash", text: "드디어 마지막인가...\n도대체, 어떤 놈이 상대냐?", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "아무렴 어때.\n어떤 녀석이 상대라고 해도, 나는 지지 않아!", speakerState: 'smile', listenerState: '' },
@@ -206,47 +187,36 @@ const DialogueData = {
         { speaker: "yuri", text: "바라던 바다.", speakerState: '', listenerState: '' }
     ],
 
-    // Ataho vs Mayu
     "ataho_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // Rinxiang vs Mayu
     "rinxiang_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // Fari vs Mayu
     "fari_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // Petum vs Mayu
     "petum_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // Smash vs Mayu
     "smash_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // Yuri vs Mayu
     "yuri_mayu": [
         { speaker: "mayu", text: "멍멍 머~엉 컁컁캬~앙\n(나는 최강의 도전자다멍)", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~옹 멍머~엉\n(자, 승부다멍)", speakerState: '', listenerState: '' },
     ],
 
-    // ----------------------------------------------------------------
-    // Ending Dialogues (Post-Battle)
-    // ----------------------------------------------------------------
-
-    // Ataho vs Rinxiang (Ending)
     "ataho_rinxiang_ending": [
         { speaker: "rinxiang", text: "져버렸네... 약속대로,\n제가 당신과 함께하겠어요.", speakerState: '', listenerState: '' },
         { speaker: "ataho", text: "기... 기다려, 린샹.\n자네에게는,\n아직 너무 이르다고 생각됨세만...", speakerState: '', listenerState: '' },
@@ -261,7 +231,6 @@ const DialogueData = {
         { speaker: "rinxiang", text: "뭐? 뭐랑 착각했던 거야?\n알려줘요, 아타호!", speakerState: '', listenerState: '' }
     ],
 
-    // Rinxiang vs Ataho (Ending)
     "rinxiang_ataho_ending": [
         { speaker: "rinxiang", text: "약속대로, 나랑 함께해요.\n아타호.", speakerState: 'smile', listenerState: '' },
         { speaker: "ataho", text: "음. 조금 성급한 느낌이긴 하지만.\n약속은 약속이니까.", speakerState: 'shocked', listenerState: 'smile' },
@@ -279,7 +248,6 @@ const DialogueData = {
         { speaker: "rinxiang", text: "앗... 기다려, 아타호!", speakerState: '', listenerState: '' }
     ],
 
-    // Fari vs Petum (Ending)
     "fari_petum_ending": [
         { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "글쎄, 모르겠네요.\n대체 왜인 걸까요?", speakerState: '', listenerState: '' },
@@ -291,7 +259,6 @@ const DialogueData = {
         { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요.", speakerState: 'smile', listenerState: 'smile' }
     ],
 
-    // Petum vs Fari (Ending)
     "petum_fari_ending": [
         { speaker: "fari", text: "그런데 우리들은, 왜 이런 걸 하고 있던 걸까요?", speakerState: '', listenerState: '' },
         { speaker: "petum", text: "글쎄, 모르겠네요.\n대체 왜인 걸까요?", speakerState: '', listenerState: '' },
@@ -301,7 +268,6 @@ const DialogueData = {
         { speaker: "fari", text: "알겠어요.\n그러면 기다리고 있을게요.", speakerState: '', listenerState: '' }
     ],
 
-    // Smash vs Yuri (Ending)
     "smash_yuri_ending": [
         { speaker: "smash", text: "좋았어, 내가 우승이라구!", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "자, 얼마나 많은 여자애들이 나의 우승을 \n축하해주려나~?", speakerState: '', listenerState: '' },
@@ -316,7 +282,6 @@ const DialogueData = {
         { speaker: "yuri", text: "훗, 저런저런...\n여전한 바보로구만...", speakerState: '', listenerState: '' }
     ],
 
-    // Yuri vs Smash (Ending)
     "yuri_smash_ending": [
         { speaker: "smash", text: "젠장... 나의 패배다...", speakerState: '', listenerState: '' },
         { speaker: "smash", text: "………………", speakerState: 'silence', listenerState: '' },
@@ -332,7 +297,6 @@ const DialogueData = {
         { speaker: "yuri", text: "당연하잖아!\n나는 여자라고~!!", speakerState: '', listenerState: '' }
     ],
 
-    // Mayu vs Yuri (Ending)
     "mayu_yuri_ending": [
         { speaker: "mayu", text: "머~엉!!\n(그~럼, 이제부터가 즐길 거리다멍)", speakerState: 'shocked', listenerState: '' },
         { speaker: "yuri", text: "무… 무슨 짓을 할 셈이냐, 눈썹개!\n그런 무서운 얼굴을 하고서는…", speakerState: '', listenerState: 'shocked' },
@@ -342,26 +306,18 @@ const DialogueData = {
         { speaker: "yuri", text: "그… 그만둬~!", speakerState: 'shocked', listenerState: 'smile' },
     ],
 
-
-    // ----------------------------------------------------------------
-    // True Ending Dialogues (Post-Battle)
-    // ----------------------------------------------------------------
-
-    // Ataho vs Mayu (True Ending)
     "ataho_mayu_true_ending": [
         { speaker: "ataho", text: "어이쿠야, 자네의 정체는 눈썹개였던 건가!\n그러면, 어째서 내게 대결을 청해온겐가?", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "크~웅...", speakerState: '', listenerState: '' },
         { speaker: "ataho", text: "흠. 무슨 말을 하는 건지 모르겠지만,\n아무튼 이 몸에게 도전한 것은, 조금 무모했던 것 같구먼.", speakerState: '', listenerState: '' }
     ],
 
-    // Rinxiang vs Mayu (True Ending)
     "rinxiang_mayu_true_ending": [
         { speaker: "rinxiang", text: "너는 눈썹개였구나!", speakerState: '', listenerState: '' },
         { speaker: "rinxiang", text: "이 나에게 도전하다니, 10년은 일러. \n더 수행을 쌓고 오라구!", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "큐~웅...", speakerState: '', listenerState: '' }
     ],
 
-    // Fari vs Mayu (True Ending)
     "fari_mayu_true_ending": [
         { speaker: "fari", text: "당신은... 눈썹개였던 건가요?", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "큐~웅...", speakerState: '', listenerState: '' },
@@ -370,7 +326,6 @@ const DialogueData = {
         { speaker: "mayu", text: "큐~웅...", speakerState: '', listenerState: '' }
     ],
 
-    // Petum vs Mayu (True Ending)
     "petum_mayu_true_ending": [
         { speaker: "petum", text: "어라, 당신은 눈썹개씨였던 겁니까.", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠웅...", speakerState: '', listenerState: '' },
@@ -379,7 +334,6 @@ const DialogueData = {
         { speaker: "petum", text: "아니, 감사는 됐어요.\n그럼 건강히.", speakerState: '', listenerState: '' }
     ],
 
-    // Smash vs Mayu (True Ending)
     "smash_mayu_true_ending": [
         { speaker: "smash", text: "네...네 놈은 눈썹개!!", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~웅...", speakerState: '', listenerState: '' },
@@ -388,7 +342,6 @@ const DialogueData = {
         { speaker: "smash", text: "아우~웅!!", speakerState: '', listenerState: '' }
     ],
 
-    // Yuri vs Mayu (True Ending)
     "yuri_mayu_true_ending": [
         { speaker: "yuri", text: "뭐야 너, 눈썹개였던 건가.\n여전히 웃긴 얼굴이네~", speakerState: '', listenerState: '' },
         { speaker: "mayu", text: "쿠~웅...", speakerState: '', listenerState: '' },
@@ -396,14 +349,7 @@ const DialogueData = {
         { speaker: "mayu", text: "캬아~앙!!", speakerState: '', listenerState: '' }
     ],
 
-
-    // ----------------------------------------------------------------
-    // Battle Dialogues (In-Game)
-    // ----------------------------------------------------------------
-    // Format: "KEY": ["Dialog Option 1", "Option 2", ...]
-
     BATTLE: {
-        // Default / Safe Fallback
         default: {
             PON: [],
             PON_REPLY: [],
@@ -416,7 +362,6 @@ const DialogueData = {
             COUNTER_RIICHI: [],
             WORRY_RON: []
         },
-        // Ataho
         ataho: {
             PON: ["그걸 좀 가져가야겠구먼."],
             PON_REPLY: ["뭐야, 그걸 노리고 있었던 겐가..."],
@@ -428,11 +373,9 @@ const DialogueData = {
             BAD_DRAW: ["이건 필요 없는 패로구먼."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
             WORRY_RON: ["이거 위험한가?", "이건 넘어가겠지."],
-            // Skills
             TIGER_STRIKE: ["맹호일발권!\n이걸로 나의 승리라네."],
             HELL_PILE: ["그렇게 승리를 서두르면 안 되지.\n자네에겐 지옥 쌓기일세."]
         },
-        // Rinxiang
         rinxiang: {
             PON: ["됐다! 이거 갖고 싶었어."],
             PON_REPLY: ["시시하긴. 이런 게 갖고 싶어?"],
@@ -444,11 +387,9 @@ const DialogueData = {
             BAD_DRAW: ["이런 건 필요없어."],
             COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
             WORRY_RON: ["이거... 설마...", "설마 이런 패를 원할 리 없겠지."],
-            // Skills
             WATER_MIRROR: ["수경!"],
             DORA_BOMB: ["받아랏, 도라폭진!"]
         },
-        // Smash
         smash: {
             PON: ["헤헤헤, 잘 먹을게~!"],
             PON_REPLY: ["뭐라굿!?"],
@@ -460,11 +401,9 @@ const DialogueData = {
             BAD_DRAW: ["이건 필요 없겠는데..."],
             COUNTER_RIICHI: ["후우~ 겨우 다 모았네..."],
             WORRY_RON: ["이거 위험하겠는데...", "뭔가 수상한데..."],
-            // Skills
             EXCHANGE_TILE: [],
             EXCHANGE_RON: ["설마 이걸로 론을 노린 건 아니겠지?"]
         },
-        // Petum
         petum: {
             PON: ["그건, 제가 가져가겠습니다."],
             PON_REPLY: ["이런..."],
@@ -476,11 +415,9 @@ const DialogueData = {
             BAD_DRAW: ["하아."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
             WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요.", "이걸로 될까요?"],
-            // Skills
             CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프실 겁니다만 참아 주시죠."],
             LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
         },
-        // Fari
         fari: {
             PON: ["그거~ 받아가도 괜찮을까요?"],
             PON_REPLY: ["어서 가져가세요."],
@@ -492,11 +429,9 @@ const DialogueData = {
             BAD_DRAW: ["유감이지만,\n이건 필요 없겠어요."],
             COUNTER_RIICHI: ["우후훗, 지고 있을 순 없죠."],
             WORRY_RON: ["이건... 위험할까요?", "이거, 넘어가겠지요?"],
-            // Skills
             RECOVERY: ["상처를 회복하겠어요."],
             DISCARD_GUARD: ["버린 패 방어에요.\n가져가면 안 돼요."]
         },
-        // Yuriwakamaru
         yuri: {
             PON: ["이건 내가 가져가지."],
             PON_REPLY: ["지금 그건... 뭐냐."],
@@ -508,11 +443,9 @@ const DialogueData = {
             BAD_DRAW: ["이런이런..."],
             COUNTER_RIICHI: ["나도 질 수 없지."],
             WORRY_RON: ["이건 어떠냐!!", "이건 괜찮겠지."],
-            // Skills
             SUPER_IAI: ["어이쿠, 나도 모르게 손이 미끄러졌네.\n미안, 미안."],
             SPIRIT_RIICHI: ["금방 끝내서 편하게 해줄게."]
         },
-        // Mayu
         mayu: {
             PON: ["멍!!"],
             PON_REPLY: ["캬잉"],
@@ -524,7 +457,6 @@ const DialogueData = {
             BAD_DRAW: ["캬잉"],
             COUNTER_RIICHI: ["멍!"],
             WORRY_RON: ["캬잉", "멍!"],
-            // Skills
             PAINT_TILE: []
         }
     }

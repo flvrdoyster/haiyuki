@@ -1,27 +1,13 @@
-// Battle Configuration (Rules & UI)
-// Must match the @font-face family in haiyuki.css ('KoddiUDOnGothic', weights 400/700).
-// Bold is selected via the 'bold' prefix in canvas font strings, not by family name.
+// haiyuki.css @font-face 패밀리('KoddiUDOnGothic')와 일치해야 함. 굵기는 family가 아닌 canvas font 'bold' 접두어로 결정.
 const FONTS = {
     regular: '"KoddiUDOnGothic"',
     bold: '"KoddiUDOnGothic"'
 };
 
-// Shared footprint for the draw button ("패 가져오기") and the win button
-// ("날 수 있어!"). Flush to the canvas right edge (x + w = 640), like the battle
-// menu. They never render at once (draw = WAIT_FOR_DRAW, win = PLAYER_TURN), so
-// they take turns occupying this exact spot. Move them together by editing here.
-// Shared geometry for the action-slot buttons: 패 가져오기 (draw) / 날 수 있어 (win) /
-// 리치 걸 수 있어 (riichi). They occupy the same slot one at a time. Rather than fixed
-// widths (which give uneven padding for different label lengths), each box is sized
-// to its text plus a shared padding and anchored to the same right edge — so padding
-// and margin are identical and only the total width differs. (Box computed in
-// BattleRenderer._actionButtonRect.)
+// 패 가져오기/날 수 있어/리치 걸 수 있어 세 버튼이 같은 슬롯을 공유. 폭은 텍스트+padX로 가변, 오른쪽 끝만 고정. (BattleRenderer._actionButtonRect)
 const ACTION_BUTTON_BOX = { right: 640, y: 400, h: 36, padX: 14 };
 
 const BattleConfig = {
-    // ----------------------------------------------------------------
-    // Core Settings
-    // ----------------------------------------------------------------
     GAME_ID: 'HAIYUKI_WEB',
     SCREEN: {
         width: 640,
@@ -35,30 +21,19 @@ const BattleConfig = {
         NAGARI_DAMAGE: 1000,
         SKILLS_ENABLED: true,
 
-        // Easy-mode player draw assist (luck smoothing): on a single draw,
-        // peek the top `peek` tiles with probability `chance` and surface the
-        // one that builds the highest-scoring hand. Player-favor only — the
-        // CPU never gets rigged draws on any difficulty.
+        // 플레이어 운 보정: chance 확률로 상위 peek장을 들여다보고 최고득점 패를 꺼냄. CPU는 적용 안 됨.
         DRAW_ASSIST: { chance: 1.0, peek: 20 },
-
-        // AI competence is no longer a fixed bucket here. It is a continuous
-        // skill (0..1) computed per battle from the player's difficulty band ×
-        // tournament progress — see BattleEngine.computeCpuSkill / AILogic.
+        // AI 실력은 여기 없음 — BattleEngine.computeCpuSkill / AILogic에서 연속값(0..1)으로 산출.
     },
     SPEED: {
-        // Hold the drawn tile before auto-discarding in Riichi.
-        // ~50 ticks ≈ 0.85s @60fps — slow enough to clearly register each draw.
+        // ~50 ticks ≈ 0.85s @60fps — 리치 자동 버림 전 드로 패 인지 여유
         RIICHI_AUTO_DISCARD: 50,
-        CPU_THINK_TIME: 24,      // Beat before the CPU draws (~0.4s) — "CPU is acting now"
-        CPU_DISCARD_HOLD: 36,    // Hold between the CPU's draw and discard (~0.6s) so the
-        //                          drawn tile registers before it's thrown (0 in autotest)
-        ACTION_WAIT: 30,        // Wait time after Pon/Ron (ticks)
-        WIN_WAIT: 80            // Wait before revealing hand on win (ticks)
+        CPU_THINK_TIME: 24,      // CPU 드로 전 간격 (~0.4s)
+        CPU_DISCARD_HOLD: 36,    // CPU 드로→버림 간격 (~0.6s); autotest에선 0
+        ACTION_WAIT: 30,
+        WIN_WAIT: 80
     },
 
-    // ----------------------------------------------------------------
-    // Visuals & Animation
-    // ----------------------------------------------------------------
     UI_BG: { path: 'bg/GAMEBG.png', color: 'rgba(34, 85, 34, 1)' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {
@@ -67,25 +42,19 @@ const BattleConfig = {
         baseW: 264,
         baseH: 280
     },
-    // Hidden-boss masked silhouette in battle — MAYU_unknown.png (280×256) drawn
-    // directly by BattleRenderer (bypasses the portrait auto-slice). Tune x/y/scale.
+    // MAYU_unknown.png(280×256) — BattleRenderer가 portrait 슬라이스 우회하여 직접 그림
     MASKED_BOSS: { x: 400, y: 80, scale: 1.0 },
     ANIMATION: {
-        BLINK_SPEED: 4,       // Frames per blink frame
-        TALK_SPEED: 10,        // Frames per mouth frame
-        BLINK_INTERVAL: 200    // Interval between blinks (frames)
+        BLINK_SPEED: 4,
+        TALK_SPEED: 10,
+        BLINK_INTERVAL: 200
     },
     FX: {
-        // Generic FX Animation Settings
-        fadeInDuration: 4,  // Frames to fade in
-        fadeOutDuration: 12, // Frames to fade out
-        slideDuration: 20,   // Frames for slide animation
-
-        // ZOOM_IN (Pop) Settings
+        fadeInDuration: 4,
+        fadeOutDuration: 12,
+        slideDuration: 20,
         zoomPopDuration: 16,
         zoomOvershoot: 2.0,
-
-        // BOUNCE_UP Settings
         bounceDropDuration: 10,
         bounceUpDuration: 10,
         bounceStartOffsetX: -200,
@@ -94,19 +63,15 @@ const BattleConfig = {
         bounceFloorOffsetY: 80
     },
 
-    // ----------------------------------------------------------------
-    // Table Elements
-    // ----------------------------------------------------------------
     HAND: {
-        playerY: 410,     // Unified Player Hand Y Position
-        openSetRightAnchor: 620, // Right padding/anchor for open sets
+        playerY: 410,
+        openSetRightAnchor: 620,
         cpuY: 10,
         tileWidth: 40,
         tileHeight: 53,
-        // Spacing
-        tileGap: 0,       // Standard gap between tiles
-        drawGap: 10,      // Gap for newly drawn tile
-        sectionGap: 10,   // Gap between Hand and Open Sets
+        tileGap: 0,
+        drawGap: 10,      // 드로 직후 패와의 간격
+        sectionGap: 10,   // 손패↔공개세트 간격
 
         hoverYOffset: -10,
         hoverColor: 'rgba(255, 170, 0, 1)',
@@ -123,29 +88,26 @@ const BattleConfig = {
         rowMax: 10
     },
     DORA: {
-        x: 320, y: 180, // x is now center if align is center
+        x: 320, y: 180,
         gap: 5,
         align: 'center',
         tileWidth: 40,
         tileHeight: 53,
-        tileXOffset: 10, // New: Tile X alignment relative to frame
-        tileYOffset: -6, // New: Tile Y alignment relative to frame
+        tileXOffset: 10,
+        tileYOffset: -6,
         frame: { path: 'ui/dora.png', xOffset: 0, yOffset: 40, align: 'center' }
     },
     RIICHI_STICK: {
         path: 'ui/riichi.png',
         y: 246,
-        offset: 58,            // Distance from Center (Dora)
+        offset: 58,            // 도라 중심에서의 거리
         scale: 0.9
     },
 
-    // ----------------------------------------------------------------
-    // UI / HUD
-    // ----------------------------------------------------------------
     NAME_DISPLAY: {
         font: `bold 28px ${FONTS.bold}`,
-        color: 'rgba(72, 72, 199, 1)', // Text fill color
-        stroke: 'rgba(255, 255, 255, 1)', // Text border color
+        color: 'rgba(72, 72, 199, 1)',
+        stroke: 'rgba(255, 255, 255, 1)',
         strokeWidth: 3,
         P1: { x: 10, y: 324, align: 'left' },
         CPU: { x: 630, y: 324, align: 'right' }
@@ -155,7 +117,7 @@ const BattleConfig = {
         color: 'rgba(72, 72, 199, 1)',
         stroke: 'rgba(255, 255, 255, 1)',
         strokeWidth: 2,
-        P1: { offsetX: 6, offsetY: -4 }, // Gap from Name's end
+        P1: { offsetX: 6, offsetY: -4 },
         CPU: { offsetX: 6, offsetY: -4 },
         icons: {
             discardGuard: '버린 패 방어 ',
@@ -170,14 +132,12 @@ const BattleConfig = {
         mpPath: 'ui/bar_yellow.png',
         P1: { x: 41, y: 347 },
         CPU: { x: 459, y: 347 },
-        gap: 8, // Gap between HP and MP bars
+        gap: 8,
     },
     INFO: {
-        // Center-Relative Offsets (Center = 320)
-        // Turn = Center - Offset
-        // Round = Center + Offset
+        // 중심(320) 기준 오프셋: 턴 = 중심-offset, 라운드 = 중심+offset
         turnLabel: { offset: 60, y: 180, align: 'right' },
-        turnNumber: { offset: 60, y: 200, align: 'right', pad: 2 }, // pad는 자릿수를 의미함
+        turnNumber: { offset: 60, y: 200, align: 'right', pad: 2 }, // pad = 자릿수
         roundLabel: { offset: 60, y: 180, align: 'left' },
         roundNumber: { offset: 60, y: 200, align: 'left', pad: 2 },
         numbers: { path: 'ui/number.png', w: 14, gap: 2 },
@@ -190,28 +150,24 @@ const BattleConfig = {
         bubblePath: 'ui/short_bubble.png',
         font: `18px ${FONTS.regular}`,
         color: 'rgba(255, 255, 255, 1)',
-        lineHeight: 20, // Added for multi-line support
-        life: 120,      // Duration in frames
-        replyDelay: 0, // Response delay (ticks)
+        lineHeight: 20,
+        life: 120,
+        replyDelay: 0,
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
         CHANCE: {
-            RANDOM: 0.7,      // Neutral draw chatter (0.0 - 1.0)
-            WORRY_RON: 0.7,   // Chance for worry dialogue when player is Riichi
-            DRAW_GOOD: 0.7,   // Reaction when a useful tile is drawn (GOOD_DRAW)
-            DRAW_BAD: 0.7     // Reaction when a useless tile is drawn (BAD_DRAW)
+            RANDOM: 0.7,
+            WORRY_RON: 0.7,
+            DRAW_GOOD: 0.7,
+            DRAW_BAD: 0.7
         }
     },
     POPUP: {
-        // Configuration for Action Callouts (Riichi, Pon, Ron, Tsumo, Nagari)
-        // These use the FX system but are positioned according to these settings.
         x: 320,
         y: 200,
         scale: 1.0,
-        life: 45, // Default Life
+        life: 45,
         align: 'center',
-
-        // Sound mapping for Popups
         TYPES: {
             'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' },
             'PON': { life: 50, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
@@ -221,16 +177,7 @@ const BattleConfig = {
         }
     },
 
-    // ----------------------------------------------------------------
-    // Menus & Interaction
-    // ----------------------------------------------------------------
-    // 액션 버튼 — 화면 우하단 한 슬롯에 한 번에 하나만 표시. 상태에 따라 패 가져오기
-    // (draw, WAIT_FOR_DRAW) / 날 수 있어 (win) / 리치 걸 수 있어 (riichi, PLAYER_TURN)
-    // 중 하나가 뜬다. 지오메트리는 셋이 공유(ACTION_BUTTON_BOX, 텍스트맞춤 폭·공통
-    // 패딩/마진)하고 여기엔 라벨·스타일만. win/riichi는 눌러도 바로 실행하지 않고 배틀
-    // 메뉴를 열어 고르게 하며(닫고 더 높은 역을 노릴 수 있음), draw는 패를 가져온다.
-    // 키보드는 핸드 커서를 맨 오른쪽 패 너머로 옮기면 닿는다(BattleScene). 지금 어떤
-    // 버튼이 떠 있는지는 단일 진입점 BattleRenderer.getActiveAction(state)가 결정한다.
+    // 어떤 버튼이 활성인지는 BattleRenderer.getActiveAction(state)가 단일 결정
     ACTION_BUTTON_BOX: ACTION_BUTTON_BOX,
     ACTION_BUTTONS: {
         draw: {
@@ -249,30 +196,25 @@ const BattleConfig = {
             cursor: 'rgba(255, 105, 180, 0.5)'
         }
     },
-    // 피격 시 화면 전체 흔들림 — #game-container를 CSS translate로 위아래로 짧고 빠르게
-    // 흔든다(Game.shake). mag=강도(최대 진폭, CSS px), frames=시간(지속 프레임). 매
-    // 프레임 위/아래가 뒤집히고 진폭은 0까지 선형 감쇠. 여기 두 값만 바꿔 느낌 조절.
+    // mag=최대 진폭(CSS px), frames=지속 프레임; 진폭 선형 감쇠(Game.shake)
     SHAKE: { mag: 10, frames: 10 },
     BATTLE_MENU: {
         w: 140,
         h: 150,
-        x: 500, // 640 - 140
-        y: 330, // 480 - 150
+        x: 500,
+        y: 330,
         font: `bold 16px ${FONTS.bold}`,
         textDefault: 'rgba(255, 255, 255, 1)',
         textSelected: 'rgba(255, 255, 0, 1)',
-        cursor: 'rgba(255, 105, 180, 0.5)', // HotPink 0.5
+        cursor: 'rgba(255, 105, 180, 0.5)',
         dimmer: 'rgba(0, 0, 0, 0.5)',
-        padding: 2, // Increased padding for 9-slice look
+        padding: 2,
         textOffsetX: 8,
         textOffsetY: 2,
-        fixedLineHeight: 24, // Fixed height per item
-        separatorHeight: 8, // Height for separator items
+        fixedLineHeight: 24,
+        separatorHeight: 8,
         cursorYOffset: -6,
-
-        // Menu Layout Definition. The 아가리/펑/리치 declaration commands are
-        // prepended dynamically in constructMenu(), so this layout is just the
-        // skills block and the yaku-list help below them.
+        // 아가리/펑/리치 선언은 constructMenu()가 앞에 동적 삽입; 여기선 스킬+역일람만
         layout: [
             { type: 'SEPARATOR' },
             { id: 'SKILLS_PLACEHOLDER' }, // Insert Skills Here
@@ -284,65 +226,46 @@ const BattleConfig = {
     CONFIRM: {
         y: 200,
         minWidth: 200,
-        minHeight: 120, // Slightly taller to fit 2 lines comfortably
-        padding: { x: 20, y: 20 }, // Increased horizontal padding
+        minHeight: 120,
+        padding: { x: 20, y: 20 },
         font: `16px ${FONTS.regular}`,
         lineHeight: 24,
-        buttonHeight: 32, // Slightly smaller buttons
+        buttonHeight: 32,
         buttonWidth: 90,
         buttonGap: 10,
         buttonMarginTop: 20,
-        labels: { yes: '그래', no: '아니' }, // Default labels
-        // Exchange-specific labels + key hint (commit with ESC).
+        labels: { yes: '그래', no: '아니' },
+        // 패 교환 전용 — ESC로 확정
         labelsExchange: { confirm: '바꾸자', cancel: '싫어', key: 'ESC' }
     },
 
     MESSAGES: {
-        // Explicit messages to avoid generic "을(를)" post-positions
+        // 조사 오용 방지 — 스킬별 개별 문구
         SKILL_CONFIRM: {
-            // Ataho
             'TIGER_STRIKE': (cost) => `맹호일발권을 사용할까요?`,
             'HELL_PILE': (cost) => `지옥쌓기를 사용할까요?`,
-
-            // Rinxiang
             'WATER_MIRROR': (cost) => `수경을 사용할까요?`,
             'DORA_BOMB': (cost) => `도라폭진을 사용할까요?`,
-
-            // Fari
             'RECOVERY': (cost) => `회복을 사용할까요?`,
             'DISCARD_GUARD': (cost) => `버린 패 방어를 사용할까요?`,
-
-            // Smash 
             'EXCHANGE_TILE': (cost) => `바꿀 패를 선택하세요.`,
             'EXCHANGE_RON': (cost) => `론 패 교환을 사용할까요?`,
-
-            // Mayu
             'PAINT_TILE': (cost) => `덧칠할 패를 선택하세요.`,
-
-            // Petum
             'CRITICAL': (cost) => `크리티컬을 사용할까요?`,
             'LAST_CHANCE': (cost) => `라스트 찬스를 사용할까요?`,
-
-            // Yuri
             'SPIRIT_RIICHI': (cost) => `기합 리치를 사용할까요?`,
             'SUPER_IAI': (cost) => `초 거합베기를 사용할까요?`,
-
-            // Fallback (Functionally used if ID missing)
             'DEFAULT': (name, cost) => `${name} 스킬을 사용할까요?`
         }
     },
 
 
-    // ----------------------------------------------------------------
-    // Audio
-    // ----------------------------------------------------------------
     AUDIO: {
-        // Generic Battle Sounds
         DRAW: 'audio/draw',
         DISCARD: 'audio/discard',
-        HIT: 'audio/impact-1', // Default hit sound
-        DAMAGE: 'audio/impact-2', // Slightly heavier default for total damage
-        TICK: 'audio/tick' // Score rolling sound
+        HIT: 'audio/impact-1',
+        DAMAGE: 'audio/impact-2',
+        TICK: 'audio/tick'
     },
     BGM: {
         BASIC: 'audio/bgm_basic',
@@ -354,72 +277,60 @@ const BattleConfig = {
         TITLE: 'audio/bgm_title',
         CHRSEL: 'audio/bgm_chrsel'
     },
-    // Legacy Sound map
-    SOUNDS: {},
-
-    // ----------------------------------------------------------------
-    // Result Screen
-    // ----------------------------------------------------------------
     RESULT: {
-        // --- Window Configuration ---
         x: 120, y: 90, w: 400, h: 300,
         windowColor: 'rgba(0, 0, 0, 0.85)',
         borderColor: 'rgba(255, 255, 255, 1)',
         borderWidth: 2,
 
-        // --- Title Configuration ---
-        titleX: 320,         // Centered horizontally
-        titleY: 140,         // Title Y Position
+        titleX: 320,
+        titleY: 140,
         titleFont: `bold 36px ${FONTS.bold}`,
 
-        // --- Layout Constants (Split View) ---
-        yakuListX: 140,      // Left Column Start X
-        scoreListX: 500,     // Right Column Align X (Right Aligned)
-        yakuY: 180,          // Start Y for Yaku List
-        scoreX: 320,         // Legacy/MatchWin Center X
-        scoreY: 180,         // Legacy/MatchWin Start Y
-        infoLineHeight: 30,  // Legacy Line Height
-        lineHeight: 32,      // Vertical spacing between items
-        separatorGap: 15,    // Gap before separator line
-        damageGap: 15,       // Gap after separator line before "Damage" text
-        pressSpaceOffset: -40, // Offset Y for 'Press Space' from bottom of window
+        yakuListX: 140,
+        scoreListX: 500,
+        yakuY: 180,
+        scoreX: 320,
+        scoreY: 180,
+        infoLineHeight: 30,
+        lineHeight: 32,
+        separatorGap: 15,
+        damageGap: 15,
+        pressSpaceOffset: -40,
 
-        // --- Fonts ---
         yakuFont: `bold 20px ${FONTS.bold}`,
         scoreFont: `bold 20px ${FONTS.bold}`,
         infoFont: `24px ${FONTS.regular}`,
 
-        // --- Colors ---
         yakuColor: 'rgba(255, 255, 255, 1)',
-        scoreColor: 'rgba(255, 215, 0, 1)', // Gold
-        resultColor: 'rgba(255, 255, 255, 1)',  // Legacy/Fallback
-        subColor: 'rgba(255, 255, 0, 1)',   // Legacy/Fallback
-        infoColor: 'rgba(255, 255, 255, 1)',    // Legacy/Fallback
+        scoreColor: 'rgba(255, 215, 0, 1)',
+        resultColor: 'rgba(255, 255, 255, 1)',
+        subColor: 'rgba(255, 255, 0, 1)',
+        infoColor: 'rgba(255, 255, 255, 1)',
 
-        // --- Type Specific Configuration ---
         TYPES: {
             WIN: {
                 title: "승!",
                 text: "{yaku}\n데미지: {score}",
                 color: "rgba(255, 255, 255, 1)",
-                sound: "audio/fanfare" // Configurable Sound
+                sound: "audio/fanfare"
             },
             LOSE: {
                 title: "패!",
                 text: "{yaku}\n데미지: -{score}",
                 color: "rgba(255, 255, 255, 1)",
-                sound: "audio/lose" // Configurable Sound
+                sound: "audio/lose"
             },
             NAGARI: {
                 title: "무승부!",
                 text: "플레이어: {p1Status} / 상대: {cpuStatus}\n{damageMsg}",
                 color: "rgba(255, 255, 255, 1)",
-                sound: "audio/wrong" // Configurable Sound
+                sound: "audio/wrong"
             },
             MATCH_WIN: {
                 title: "{winner} 승리!",
                 color: "gold",
-                sound: "audio/victory", // Configurable Sound
+                sound: "audio/victory",
                 historyFont: `16px ${FONTS.regular}`,
                 historyLineHeight: 20,
                 historyMaxVisible: 7,
@@ -430,18 +341,13 @@ const BattleConfig = {
             pressSpace: "계속 진행하기"
         },
 
-        // Bonus Display Configuration
         BONUS: {
             font: `bold 20px ${FONTS.bold}`,
             color: 'rgba(255, 255, 255, 1)',
-            lineHeight: 32    // Match main list
+            lineHeight: 32
         }
     },
 
-    // ----------------------------------------------------------------
-    // Data & Texts
-    // ----------------------------------------------------------------
-    // Yaku Names for Configuration
     YAKU_NAMES: {
         IP_E_DAM: '입에 담을 수도 없는 엄청난 기술',
 
@@ -509,7 +415,6 @@ const BattleConfig = {
         SAM_YEON_GYEOK: '삼연격'
     },
 
-    // Status Texts (Tenpai/Noten/Damage)
     STATUS_TEXTS: {
         TENPAI: "텐파이",
         NOTEN: "노텐",

@@ -20,8 +20,7 @@ const Game = {
         Input.init(this.canvas);
 
         const muteBtn = document.getElementById('mute-btn');
-        // Speaker icons (note ↔ note-with-slash), swapped on toggle like the
-        // gensei-pc98 emulator's mute button.
+        // gensei-pc98 뮤트 버튼과 동일한 음표/슬래시 SVG 아이콘
         const SVG_SOUND_ON = '<svg viewBox="0 0 49.13 70.14" height="22"><path fill="currentColor" d="M7.43,68.29c-2.31-1.26-4.13-3.01-5.45-5.25s-1.98-4.77-1.98-7.58.65-5.41,1.96-7.62c1.3-2.21,3.12-3.93,5.45-5.14,2.33-1.22,4.96-1.82,7.89-1.82s5.45.59,7.73,1.76l-.09-42.63h26.19v14.77h-18.72v40.69c0,2.81-.65,5.34-1.96,7.58-1.3,2.24-3.1,3.99-5.38,5.25s-4.88,1.87-7.78,1.85c-2.93.03-5.55-.59-7.87-1.85Z"/></svg>';
         const SVG_SOUND_OFF = '<svg viewBox="0 0 56.02 70.14" height="22"><rect fill="currentColor" x="26.51" y="-3.04" width="3" height="76.23" transform="translate(-16.59 30.08) rotate(-45)"/><polygon fill="currentColor" points="33.86 35.68 33.86 14.77 52.58 14.77 52.58 0 26.38 0 26.44 28.27 33.86 35.68"/><path fill="currentColor" d="M26.47,42.63c-2.29-1.17-4.86-1.76-7.73-1.76s-5.56.61-7.89,1.82c-2.33,1.22-4.15,2.93-5.45,5.14-1.3,2.21-1.96,4.75-1.96,7.62s.66,5.34,1.98,7.58,3.13,3.99,5.45,5.25c2.31,1.26,4.94,1.87,7.87,1.85,2.9.03,5.49-.59,7.78-1.85s4.08-3.01,5.38-5.25c1.3-2.24,1.96-4.77,1.96-7.58v-9.12l-7.39-7.39v3.68Z"/></svg>';
         const renderMuteIcon = (isMuted) => {
@@ -51,8 +50,7 @@ const Game = {
 
         const difficultyBtn = document.getElementById('difficulty-btn');
         if (difficultyBtn) {
-            // 3-segment selector: image shows 쉬움/중간/어려움, highlighting the
-            // active one; clicking a segment picks that difficulty directly.
+            // 3-분할 클릭으로 난이도 직접 선택
             const segments = ['easy', 'normal', 'hard'];
             const render = () => {
                 const key = segments.includes(this.saveData.difficulty) ? this.saveData.difficulty : 'normal';
@@ -159,7 +157,7 @@ const Game = {
         if (data) {
             try {
                 const parsed = JSON.parse(data);
-                // Minimal schema check so a corrupted save can't poison game state
+                // 오염된 세이브가 게임 상태를 오염시키지 않도록 최소 스키마 검사
                 if (parsed && Array.isArray(parsed.unlocked)) {
                     this.saveData = parsed;
                     if (!this.saveData.difficulty) this.saveData.difficulty = 'normal';
@@ -183,9 +181,7 @@ const Game = {
     changeScene: function (scene, data) {
         this.currentScene = scene;
 
-        // 난이도는 BattleScene.init에서 1회만 적용되어 진행 중 매치엔 반영되지 않으므로,
-        // 전투 중에는 토글을 잠가 "바꿨는데 왜 안 변하지" 혼란을 막는다. 전투를 벗어나면
-        // 자동 해제. (다음 판 난이도 미리 변경은 전투 종료 후 가능.)
+        // 난이도는 BattleScene.init에서 1회 적용 → 전투 중 변경 불가(혼란 방지), 종료 후 자동 해제
         const diffBtn = document.getElementById('difficulty-btn');
         if (diffBtn) {
             diffBtn.disabled = (typeof BattleScene !== 'undefined' && scene === BattleScene);
@@ -197,27 +193,23 @@ const Game = {
     },
 
     update: function (dt = 1.0) {
-        // 페이드 인 중에는 새 장면을 멈춰 둔다 — 전환이 완전히 끝난 뒤에 다음 장면이 시작.
-        // (페이드 아웃 중에는 이전 장면이 계속 돌아 이벤트/음악 정리가 정상 처리됨.)
+        // 페이드 인 중에는 새 장면 업데이트를 정지(전환 완료 후 다음 장면 시작)
+        // 페이드 아웃 중에는 이전 장면이 계속 동작하여 이벤트/음악 정리가 정상 처리됨
         const fadingIn = this._fade && this._fade.phase === 'in';
         if (!fadingIn && this.currentScene && this.currentScene.update) {
             this.currentScene.update(dt);
         }
         this._updateFade(dt);
-        // Input.update() must be called AFTER scene update to properly detect 'just pressed' events
+        // 씬 업데이트 후 호출해야 'just pressed' 감지가 정확함
         Input.update();
     },
 
-    // ── Reusable scene-transition fade ──────────────────────────────────────────
-    // Fades the screen to black, runs `action` at full black (typically a
-    // Game.changeScene), then fades back in. The overlay is drawn in draw() so it
-    // survives the scene swap. Use anywhere a transition should fade through black:
-    //   Game.fadeTo(() => Game.changeScene(NextScene, data));
-    // opts: { outDur, inDur } in frames (default 24 ≈ 0.4s each); inDur:0 = no fade-in.
+    // opts: { outDur, inDur } 프레임 단위 (기본 24≈0.4s); inDur:0 이면 페이드인 없음
+    // Game.fadeTo(() => Game.changeScene(NextScene, data)) 형태로 사용
     _fade: null,
 
     fadeTo: function (action, opts) {
-        // 자동 테스트는 페이드 없이 즉시 전환(동기 동작·속도 보존). 이미 페이드 중이면 무시.
+        // 자동 테스트는 즉시 전환(페이드 없이 동기 실행). 이미 페이드 중이면 무시.
         if (this.isAutoTest) { if (action) action(); return; }
         if (this._fade) return;
         opts = opts || {};
@@ -261,13 +253,12 @@ const Game = {
         ctx.restore();
     },
 
-    // Screen shake — translate the whole #game-container block via CSS transform so the
-    // entire screen jitters as one (no in-canvas edge reveal). Triggered on damage.
+    // CSS transform으로 #game-container 전체를 흔들어 캔버스 엣지 노출 없이 진동
     _shakeTimer: 0,
     _shakeDur: 1,
     _shakeMag: 0,
 
-    // mag = peak offset (CSS px), frames = duration; amplitude decays linearly to 0.
+    // mag: 최대 진폭(CSS px), frames: 지속 프레임; 진폭 0까지 선형 감쇠
     shake: function (mag, frames) {
         this._shakeMag = mag;
         this._shakeTimer = frames;
@@ -276,9 +267,9 @@ const Game = {
 
     _applyShake: function () {
         if (this._shakeTimer <= 0) return;
-        const el = this.canvas && this.canvas.parentElement; // #game-container
+        const el = this.canvas && this.canvas.parentElement;
         if (!el) return;
-        // 위아래로만, 매 프레임 방향을 뒤집어 짧고 빠르게(부르르). 진폭은 0까지 선형 감쇠.
+        // 매 프레임 상하 방향을 반전하여 짧게 부르르 떨리는 효과
         const amp = this._shakeMag * (this._shakeTimer / this._shakeDur);
         const dy = (this._shakeTimer % 2 === 0) ? amp : -amp;
         el.style.transform = `translate(0px, ${dy.toFixed(2)}px)`;
@@ -291,7 +282,7 @@ const Game = {
         if (this.currentScene && this.currentScene.draw) {
             this.currentScene.draw(this.ctx);
         }
-        this._drawFade(); // black transition overlay, on top of the scene
+        this._drawFade();
         this._applyShake();
     },
 
@@ -322,7 +313,7 @@ const Game = {
         Game.lastTime = currentTime;
 
         let dt = elapsed / (1000 / 60);
-        // Cap dt to avoid massive jumps (max 250ms / ~15 frames)
+        // 탭 전환 등으로 인한 큰 점프를 막기 위해 최대 15프레임으로 제한
         dt = Math.min(15, dt);
 
         const iterations = Game.isAutoTest ? 10 : 1;
@@ -337,8 +328,8 @@ const Game = {
 };
 
 window.onload = function () {
-    // Canvas text does not trigger @font-face loading by itself, so wait for the
-    // webfont before the first frame — capped at 3s so a CDN outage can't block the game.
+    // Canvas 텍스트는 @font-face를 자동 로드하지 않으므로 웹폰트 준비 후 첫 프레임 시작
+    // CDN 장애 시 무한 대기를 막기 위해 3s 타임아웃
     const fontsReady = (document.fonts && document.fonts.load)
         ? Promise.all([
             document.fonts.load('16px "KoddiUDOnGothic"'),

@@ -1,9 +1,5 @@
-// On-screen virtual gamepad for touch devices.
-// Dispatches synthetic KeyboardEvents that the game's Input (window keydown/keyup,
-// keyed by e.code) already understands — no game-logic changes needed.
-//
-// Mapping: D-pad → arrows; 확인 → KeyZ (works for confirm/select AND tile discard,
-// unlike Enter which the player-turn discard ignores); 메뉴 → Escape (menu toggle).
+// 터치용 가상 패드. window keydown/keyup(e.code)에 합성 이벤트를 발사한다.
+// 확인 버튼은 KeyZ — Enter는 플레이어 턴 타패를 무시하므로 KeyZ로 통일.
 (function () {
     'use strict';
 
@@ -19,7 +15,7 @@
     function dispatchKey(name, type) {
         var p = KEY_MAP[name];
         if (!p) return;
-        // The game listens on window; bubbling from the canvas reaches it.
+        // canvas에서 bubble → window까지 도달하도록 canvas를 발사 기점으로 쓴다.
         var target = document.getElementById('game-canvas') || document;
         target.dispatchEvent(new KeyboardEvent(type, {
             key: p.code, code: p.code, keyCode: p.keyCode, which: p.keyCode,
@@ -38,8 +34,7 @@
 
         pad.querySelectorAll('button').forEach(function (b) { b.setAttribute('tabindex', '-1'); });
 
-        // One key held at a time (no diagonals/chords) — matches the game's
-        // single-direction navigation.
+        // 동시 입력 없음(대각선·코드 미지원) — 게임이 단방향 탐색만 사용하므로.
         var activeKey = null;
         function release() {
             if (!activeKey) return;
@@ -66,7 +61,6 @@
         pad.addEventListener('touchend', function (e) { e.preventDefault(); release(); }, { passive: false });
         pad.addEventListener('touchcancel', function (e) { e.preventDefault(); release(); }, { passive: false });
 
-        // Mouse support (desktop, e.g. ?gamepad for testing)
         pad.addEventListener('mousedown', function (e) {
             var btn = e.target.closest('[data-key]');
             if (!btn) return;
