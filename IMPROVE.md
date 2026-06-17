@@ -12,10 +12,9 @@
 - **현재:** `BattleEngine.playFX('fx/...')` + `SkillFlows`에서 슬래시/힐/리치 등 FX 재생. 스프라이트·타이밍·스케일이 원본과 일부 차이.
 - **참고:** 구체적 차이는 원본 캡처 확보 후 정리. 위치 후보 — `js/views/battleRenderer.js`(FX 드로우), `js/logic/skillRegistry.js`(SkillFlows), `assets/fx/*`.
 
-## 3. 배틀 결과(RESULT) 창 개선
-- **목표:** 승/패 결과 화면(역·점수·데미지 표기)의 레이아웃·연출 개선.
-- **현재:** 승리 시퀀스 결과 표시는 `BattleSequencer.startWinSequence`(REVEAL_HAND/REVEAL_URA 등 스텝)로 구성.
-- **참고:** 개선 범위(가독성/원본 정합/정보량) 결정 필요.
+## 3. 배틀 결과(RESULT) 창 — 라운드별 원본 형태 정합 (잔여)
+- **완료:** 매치 종료 RESULT(빅토리 화면, `MATCH_WIN`)는 제거 — 이건 원본에 없던 임의 추가분이었음. 매치가 끝나면 블랙 페이드 → 다음 장면(승/패 동일). 재사용 전환 `Game.fadeTo(action, opts)` 신설(어디서나 `Game.fadeTo(() => Game.changeScene(씬, 데이터))`). `drawResult`는 라운드별(WIN/LOSE/NAGARI)만 담당.
+- **잔여:** 라운드별 RESULT 창은 **원본 게임에도 있던 요소**(매치 종료 RESULT와 달리 임의 추가 아님). 다만 현재 구현 형태(역·점수 2열 레이아웃 등)가 원본과 달라, **원본 형태에 맞추는 작업**이 남음. 위치: `BattleRenderer.drawResult`(분할 레이아웃) + `BattleConfig.RESULT`. 다른 씬 전환에 페이드 적용 위치는 추후 지정(`Game.fadeTo`).
 
 ## 4. 별도 튜토리얼 추가 검토
 - **목표:** 규칙(패·역·스킬·조작)을 가르치는 별도 튜토리얼 도입 여부 검토.

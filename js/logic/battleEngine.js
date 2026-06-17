@@ -331,19 +331,21 @@ const BattleEngine = {
         // Stop BGM
         this.events.push({ type: 'STOP_MUSIC' });
 
+        // 승/패 사운드
         if (winner === 'P1') {
-            this.resultInfo = { type: 'MATCH_WIN', history: this.roundHistory };
             const sound = BattleConfig.RESULT.TYPES.MATCH_WIN.sound;
             if (sound) this.events.push({ type: 'SOUND', id: sound });
-            // Remain in STATE_MATCH_OVER for P1 Win (Victory Screen)
         } else {
-            // LOSE: Skip Result Screen, Go directly to Continue
-            // Play sound if configured
-            const sound = BattleConfig.RESULT.TYPES.MATCH_LOSE ? BattleConfig.RESULT.TYPES.MATCH_LOSE.sound : 'audio/lose';
+            const sound = (BattleConfig.RESULT.TYPES.MATCH_LOSE && BattleConfig.RESULT.TYPES.MATCH_LOSE.sound) || 'audio/lose';
             if (sound) this.events.push({ type: 'SOUND', id: sound });
+        }
 
+        // 빅토리/RESULT 화면 없음 — 승/패 모두 블랙 페이드로 다음 장면 전환(scene이 처리).
+        // endMatch가 페이드를 깔고, 암전 시점에 proceedFromMatchOver(실제 네비)를 호출한다.
+        if (this.scene && this.scene.endMatch) {
+            this.scene.endMatch();
+        } else {
             this.proceedFromMatchOver();
-            return; // Exit
         }
     },
 
@@ -959,9 +961,7 @@ const BattleEngine = {
                 break;
 
             case this.STATE_MATCH_OVER:
-                if (this.stateTimer > 60 && (Input.isMouseDown || Input.isDown(Input.SPACE) || Input.isDown(Input.Z) || Input.isMouseJustPressed())) {
-                    this.proceedFromMatchOver();
-                }
+                // 매치 종료는 matchOver에서 endMatch(블랙 페이드)로 자동 전환 — 입력 대기 없음.
                 break;
 
             case this.STATE_DAMAGE_ANIMATION:

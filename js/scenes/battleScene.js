@@ -15,6 +15,13 @@ const BattleScene = {
         this._confirmLayout = null; // Cache layout
     },
 
+    // Match end presentation: fade to black, then navigate. Wraps the (raw, synchronous)
+    // proceedFromMatchOver in the shared scene-transition fade — used for both win and
+    // lose. Kept separate so direct callers/tests can still navigate without the fade.
+    endMatch: function () {
+        Game.fadeTo(() => this.proceedFromMatchOver());
+    },
+
     // Match settled — meta-game policy: where to go next, unlocks/save, continue
     // count. Owned by the scene so the rules engine stays navigation-free.
     proceedFromMatchOver: function () {

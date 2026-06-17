@@ -200,8 +200,62 @@ const Game = {
         if (this.currentScene && this.currentScene.update) {
             this.currentScene.update(dt);
         }
+        this._updateFade(dt);
         // Input.update() must be called AFTER scene update to properly detect 'just pressed' events
         Input.update();
+    },
+
+    // ── Reusable scene-transition fade ──────────────────────────────────────────
+    // Fades the screen to black, runs `action` at full black (typically a
+    // Game.changeScene), then fades back in. The overlay is drawn in draw() so it
+    // survives the scene swap. Use anywhere a transition should fade through black:
+    //   Game.fadeTo(() => Game.changeScene(NextScene, data));
+    // opts: { outDur, inDur } in frames (default 24 ≈ 0.4s each); inDur:0 = no fade-in.
+    _fade: null,
+
+    fadeTo: function (action, opts) {
+        // 자동 테스트는 페이드 없이 즉시 전환(동기 동작·속도 보존). 이미 페이드 중이면 무시.
+        if (this.isAutoTest) { if (action) action(); return; }
+        if (this._fade) return;
+        opts = opts || {};
+        this._fade = {
+            phase: 'out',
+            t: 0,
+            outDur: opts.outDur != null ? opts.outDur : 24,
+            inDur: opts.inDur != null ? opts.inDur : 24,
+            action: action || null,
+            ranAction: false,
+            alpha: 0
+        };
+    },
+
+    _updateFade: function (dt) {
+        const f = this._fade;
+        if (!f) return;
+        f.t += dt;
+        if (f.phase === 'out') {
+            f.alpha = f.outDur > 0 ? Math.min(1, f.t / f.outDur) : 1;
+            if (f.t >= f.outDur) {
+                f.alpha = 1;
+                if (!f.ranAction) { f.ranAction = true; if (f.action) f.action(); }
+                f.phase = 'in';
+                f.t = 0;
+                if (f.inDur <= 0) this._fade = null;
+            }
+        } else { // 'in'
+            f.alpha = f.inDur > 0 ? Math.max(0, 1 - f.t / f.inDur) : 0;
+            if (f.t >= f.inDur) this._fade = null;
+        }
+    },
+
+    _drawFade: function () {
+        const f = this._fade;
+        if (!f || f.alpha <= 0) return;
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${f.alpha})`;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.restore();
     },
 
     // Screen shake — translate the whole #game-container block via CSS transform so the
@@ -234,6 +288,7 @@ const Game = {
         if (this.currentScene && this.currentScene.draw) {
             this.currentScene.draw(this.ctx);
         }
+        this._drawFade(); // black transition overlay, on top of the scene
         this._applyShake();
     },
 

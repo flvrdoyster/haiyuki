@@ -291,8 +291,8 @@ const BattleRenderer = {
 
 
         // Overlays / UI
-        if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI || state.currentState === state.STATE_MATCH_OVER) {
-            // Draw Result uses state variables
+        if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI) {
+            // 라운드별 결과 창만 — 매치 종료(빅토리)는 제거, 블랙 페이드로 처리.
             this.drawResult(ctx, state);
         }
 
@@ -1127,88 +1127,9 @@ const BattleRenderer = {
             const titleY = conf.titleY !== undefined ? conf.titleY : 120;
             ctx.fillText(typeConf.title, conf.titleX, titleY);
 
-        } else {
-            // LEGACY / MATCH RESULT LAYOUT (Centered)
-            ctx.textAlign = "center";
-            ctx.textBaseline = 'middle'; // Unified baseline with main layout
-
-            // Title
-            ctx.fillStyle = typeConf.color;
-            // Title with Template Support
-            let title = typeConf.title;
-            let winnerName = "";
-            if (state.matchWinner === 'P1') winnerName = state.p1.name || "";
-            else if (state.matchWinner === 'CPU') winnerName = BattleRenderer.maskedCpuName(state);
-
-            if (winnerName) title = title.replace("{winner}", winnerName);
-
-            ctx.font = conf.titleFont;
-            ctx.fillText(title, conf.titleX, conf.titleY);
-
-            // Info Text (Score or Message)
-            ctx.fillStyle = conf.infoColor;
-            ctx.font = conf.infoFont;
-
-            // Template replacement
-            let text = typeConf.text || "";
-            if (info.score !== undefined) {
-                text = text.replace("{score}", info.score);
-            }
-            if (info.yakuName !== undefined) {
-                text = text.replace("{yaku}", info.yakuName);
-            } else {
-                text = text.replace("{yaku}", "");
-            }
-
-            if (info.p1Status !== undefined) text = text.replace("{p1Status}", info.p1Status);
-            if (info.cpuStatus !== undefined) text = text.replace("{cpuStatus}", info.cpuStatus);
-            if (info.damageMsg !== undefined) text = text.replace("{damageMsg}", info.damageMsg);
-
-            // Append Round History (MATCH_WIN / MATCH_LOSE)
-            // We will render this separately after the main text to use different font
-            let historyText = "";
-            if (info.history && info.history.length > 0) {
-                info.history.forEach(h => {
-                    if (h.result === '무승부') {
-                        historyText += `ROUND ${h.round}: 무승부\n`;
-                    } else {
-                        historyText += `ROUND ${h.round}: ${h.result} - ${h.yaku}\n`;
-                    }
-                });
-            }
-
-            text = text.trim();
-
-            const lines = text.split('\n');
-
-            lines.forEach((line, i) => {
-                ctx.fillText(line, conf.scoreX, conf.scoreY + (i * conf.infoLineHeight));
-            });
-
-            // Render History with Custom Font & Limits (Only for Match Results usually)
-            if (historyText.length > 0) {
-                // ... (History code is fine to leave here if it relies else block)
-                // We need to move history logic inside here or duplicate?
-                // History logic follows below, but uses logic that depends on `lines`.
-                // Let's copy/keep history logic inside valid scope.
-
-                const hFont = typeConf.historyFont || `16px ${FONTS.regular}`;
-                const hLineHeight = typeConf.historyLineHeight || 25;
-                const hMax = typeConf.historyMaxVisible || 5;
-
-                ctx.font = hFont;
-                const historyLines = historyText.split('\n').filter(l => l.trim().length > 0);
-                const visibleLines = (historyLines.length > hMax) ? historyLines.slice(-hMax) : historyLines;
-                const startY = (typeConf.historyY !== undefined) ? typeConf.historyY : (conf.scoreY + (lines.length * conf.infoLineHeight) + 10);
-
-                visibleLines.forEach((line, i) => {
-                    const y = startY + (i * hLineHeight);
-                    ctx.fillText(line, conf.scoreX, y);
-                });
-            }
         }
-
-        // History logic moved into else block
+        // RESULT 창은 라운드별(WIN/LOSE/NAGARI)만 담당. 매치 종료 화면(빅토리)은 제거됨
+        // — 매치가 끝나면 BattleScene.endMatch가 블랙 페이드로 다음 장면으로 넘긴다.
 
 
         // Footer "Press Space" (Global for all result types)
