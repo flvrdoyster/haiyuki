@@ -197,7 +197,10 @@ const Game = {
     },
 
     update: function (dt = 1.0) {
-        if (this.currentScene && this.currentScene.update) {
+        // 페이드 인 중에는 새 장면을 멈춰 둔다 — 전환이 완전히 끝난 뒤에 다음 장면이 시작.
+        // (페이드 아웃 중에는 이전 장면이 계속 돌아 이벤트/음악 정리가 정상 처리됨.)
+        const fadingIn = this._fade && this._fade.phase === 'in';
+        if (!fadingIn && this.currentScene && this.currentScene.update) {
             this.currentScene.update(dt);
         }
         this._updateFade(dt);

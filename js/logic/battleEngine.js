@@ -331,11 +331,8 @@ const BattleEngine = {
         // Stop BGM
         this.events.push({ type: 'STOP_MUSIC' });
 
-        // 승/패 사운드
-        if (winner === 'P1') {
-            const sound = BattleConfig.RESULT.TYPES.MATCH_WIN.sound;
-            if (sound) this.events.push({ type: 'SOUND', id: sound });
-        } else {
+        // 패배 사운드만. 승리 효과음은 제거 — 빅토리 화면이 사라져서 다음 장면과 겹쳤음.
+        if (winner !== 'P1') {
             const sound = (BattleConfig.RESULT.TYPES.MATCH_LOSE && BattleConfig.RESULT.TYPES.MATCH_LOSE.sound) || 'audio/lose';
             if (sound) this.events.push({ type: 'SOUND', id: sound });
         }

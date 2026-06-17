@@ -201,8 +201,8 @@ const EncounterScene = {
                         });
                     }
                 } else if (this.mode === 'TRUE_ENDING') {
-                    // True Ending Clear -> Credits
-                    Game.changeScene(CreditsScene);
+                    // True Ending → 스탭롤: 블랙 페이드로 전환(전환이 끝난 뒤 스탭롤 시작).
+                    Game.fadeTo(() => Game.changeScene(CreditsScene));
                 } else if (this.mode === 'ENDING' || this.mode === 'ENDING_WATCH') {
                     // Ending Dialogue Finished -> Go to Ending Image
                     Game.changeScene(EndingScene, {
