@@ -1,5 +1,3 @@
-// Battle UI Configuration is now in js/data/battleUIConfig.js
-
 const BattleEngine = {
     // States
     STATE_INIT: 0,
@@ -29,13 +27,8 @@ const BattleEngine = {
     lastState: -1,
     timeouts: [],
 
-    /**
-     * DeltaTime-Aware Timeout System
-     * Uses logic ticks (dt) instead of system clock.
-     * Prevents "early firing" on slow PCs where game time is slower than real time.
-     */
+    // 시스템 시계 대신 로직 틱(dt) 기반 타임아웃 — 느린 PC에서 조기 발동 방지.
     setTimeout: function (callback, delayTicks) {
-        // delayTicks: Expected frames (1.0 = 1/60th sec)
         const timeout = {
             callback: callback,
             timer: 0,
@@ -68,18 +61,13 @@ const BattleEngine = {
     calculateScore: function (baseScore, isMenzen, attacker, defender) {
         let score = baseScore;
 
-        // Open Hand Penalty: 75% Score (3/4)
+        // 오픈 핸드 페널티: 75%.
         if (!isMenzen) {
             score = Math.floor(baseScore * 0.75);
         }
 
-        // NOTE: CRITICAL(attackUp) / WATER_MIRROR(defenseUp) modifiers are applied
-        // (and consumed) once in BattleSequencer.startWinSequence, which is the
-        // single authoritative damage step. They were ALSO applied here, so every
-        // win path (calculateScore → startWinSequence) doubled them — CRITICAL
-        // became ×1.5625, 수경 became ×0.5625. Do not re-add them here.
-
-        // Round to nearest 10
+        // CRITICAL/WATER_MIRROR 보정은 startWinSequence에서만 1회 적용·소모한다.
+        // 여기서 또 곱하면 이중 적용되므로 추가 금지.
         return Math.round(score / 10) * 10;
     },
 
@@ -246,11 +234,7 @@ const BattleEngine = {
         this.startRound();
     },
 
-    // Player difficulty picks a skill band; progression interpolates within it,
-    // so early opponents are gentle and the final boss reaches the band's ceiling.
-    // Two real difficulty tiers: normal and hard. "easy" uses the SAME skill band as
-    // normal — what makes it easier is the player-side draw assist (see init), not a
-    // dumber CPU. Skill rises linearly within the band as the tournament progresses.
+    // 난이도 밴드 × 토너 진행도로 cpuSkill 보간(초반 약, 최종보스 천장). skill=역량.
     DIFFICULTY_BANDS: {
         // 운 게임이라 패 효율의 난이도 천장이 낮음 → AI는 거의/완전 최선수로 둔다.
         // 실수율은 skill로 매핑(T = 점수폭 × (1−skill) × MISTAKE_TEMP):
@@ -313,15 +297,10 @@ const BattleEngine = {
     },
 
     confirmResult: function () {
-        // User clicked to confirm result (Win/Lose/Nagari)
-
-        // Calculate Damage if needed (Usually done in checkRoundEnd, stored in resultInfo)
-        // Actually, checkRoundEnd sets currentState. 
-        // We just need to move to DAMAGE_ANIMATION state to play visual fx.
-
+        // 결과 확인 → 데미지 애니메이션 상태로.
         this.currentState = this.STATE_DAMAGE_ANIMATION;
         this.timer = 0;
-        this.stateTimer = 0; // Reset state timer
+        this.stateTimer = 0;
         this._damageEffectTriggered = false;
     },
     matchOver: function (winner) {
