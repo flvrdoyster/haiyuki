@@ -14,15 +14,11 @@
 - **현재:** `BattleEngine.playFX('fx/...')` + `SkillFlows`에서 슬래시/힐/리치 등 FX 재생. 스프라이트·타이밍·스케일이 원본과 일부 차이.
 - **참고:** 구체적 차이는 원본 캡처 확보 후 정리. 위치 후보 — `js/views/battleRenderer.js`(FX 드로우), `js/logic/skillRegistry.js`(SkillFlows), `assets/fx/*`.
 
-## 3. 배틀 결과(RESULT) 창 — 라운드별 원본 형태 정합 (잔여)
-- **완료:** 매치 종료 RESULT(빅토리 화면, `MATCH_WIN`)는 제거 — 이건 원본에 없던 임의 추가분이었음. 매치가 끝나면 블랙 페이드 → 다음 장면(승/패 동일). 재사용 전환 `Game.fadeTo(action, opts)` 신설(어디서나 `Game.fadeTo(() => Game.changeScene(씬, 데이터))`). `drawResult`는 라운드별(WIN/LOSE/NAGARI)만 담당.
-- **잔여:** 라운드별 RESULT 창은 **원본 게임에도 있던 요소**(매치 종료 RESULT와 달리 임의 추가 아님). 다만 현재 구현 형태(역·점수 2열 레이아웃 등)가 원본과 달라, **원본 형태에 맞추는 작업**이 남음. 위치: `BattleRenderer.drawResult`(분할 레이아웃) + `BattleConfig.RESULT`. 다른 씬 전환에 페이드 적용 위치는 추후 지정(`Game.fadeTo`).
+## 3. 타이틀 화면 — COMPILE 상단 로고/징글 (잔여)
+- **완료:** 인트로 시퀀스 원본 정합 구현됨 — BACK 물결 → 回 밴드 좌우 날아듦 → 크림 PAI 산포 → LOGO_REST 차오름 → 중앙 패(빨강 스트레치+차오름 → 은색 모자이크 수렴). 로딩 후 제스처 게이트(클릭/터치/키)로 오프닝 시작(iOS 오디오 언락). 커서 이동 효과음, 오프닝 스킵(최종 상태 스냅). 에셋 `assets/title/*`, `ui/pushok.png`, `ui/logo_compile_1998.png`.
+- **잔여:** 원본은 인트로 내내 상단에 핑크 `COMPILE` 로고(`assets/ui/logo_compile.png`)를 띄우고 최종/메뉴 시 사라뜨림. 미구현(보류). 구현 시 ① 픽셀 조립 연출(스탭롤 방식) 또는 ② 단순 페이드인 중 택1. 함께 COMPILE 징글(`bgm_compile.mp3`) 짝 맞춤 가능.
+- **참고:** `ref_title2.mp4`(letterbox 없음)가 분석에 가장 적합. 게임 영역은 `ref_title.mp4` 기준 x160–1120 필러박스.
 
 ## 4. 별도 튜토리얼 추가 검토
 - **목표:** 규칙(패·역·스킬·조작)을 가르치는 별도 튜토리얼 도입 여부 검토.
 - **참고:** 도입 시 진입점(타이틀 메뉴?)·범위(인터랙티브 vs 정적 안내) 결정 필요. 우선 "검토" 단계.
-
-## 5. 타이틀 화면 — COMPILE 상단 로고/징글 (잔여)
-- **완료:** 인트로 시퀀스 원본 정합 구현됨 — BACK 물결 → 回 밴드 좌우 날아듦 → 크림 PAI 산포 → LOGO_REST 차오름 → 중앙 패(빨강 스트레치+차오름 → 은색 모자이크 수렴). 로딩 후 제스처 게이트(클릭/터치/키)로 오프닝 시작(iOS 오디오 언락). 커서 이동 효과음, 오프닝 스킵(최종 상태 스냅). 에셋 `assets/title/*`, `ui/pushok.png`, `ui/logo_compile_1998.png`.
-- **잔여:** 원본은 인트로 내내 상단에 핑크 `COMPILE` 로고(`assets/ui/logo_compile.png`)를 띄우고 최종/메뉴 시 사라뜨림. 미구현(보류). 구현 시 ① 픽셀 조립 연출(스탭롤 방식) 또는 ② 단순 페이드인 중 택1. 함께 COMPILE 징글(`bgm_compile.mp3`) 짝 맞춤 가능.
-- **참고:** `ref_title2.mp4`(letterbox 없음)가 분석에 가장 적합. 게임 영역은 `ref_title.mp4` 기준 x160–1120 필러박스.
