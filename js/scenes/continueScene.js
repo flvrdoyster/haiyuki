@@ -23,7 +23,7 @@ const ContinueConfig = {
         cursorOffset: 100 // 텍스트 중심~커서 간격(픽셀)
     },
     INFO: {
-        text: "진 엔딩 조건을 달성할 수 없습니다.",
+        text: "컨티뉴를 선택하면 진 엔딩 조건을 달성할 수 없습니다.",
         x: 320, y: 440,
         font: `16px ${FONTS.regular}`,
         color: 'rgba(85, 85, 85, 1)'
