@@ -97,6 +97,7 @@ const Assets = {
         // 오디오
         { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
         { id: 'audio/discard', src: 'assets/audio/discard.mp3', type: 'audio' },
+        { id: 'audio/bgm_compile', src: 'assets/audio/bgm_compile.mp3', type: 'audio' },
         { id: 'audio/bgm_title', src: 'assets/audio/bgm_title.mp3', type: 'audio' },
         { id: 'audio/bgm_chrsel', src: 'assets/audio/bgm_chrsel.mp3', type: 'audio' },
         { id: 'audio/bgm_trail', src: 'assets/audio/bgm_trail.mp3', type: 'audio' },
