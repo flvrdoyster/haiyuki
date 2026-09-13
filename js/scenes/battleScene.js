@@ -398,7 +398,7 @@ const BattleScene = {
             const onButton = BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
             engine.actionHover = engine.actionFocused || onButton;
 
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z)) {
+            if (Input.isConfirmKey()) {
                 engine.confirmDraw();
             } else if (Input.isMouseJustPressed() && onButton) {
                 engine.confirmDraw();
@@ -408,7 +408,7 @@ const BattleScene = {
             engine.currentState === engine.STATE_NAGARI) {
 
             // stateTimer > 120 (약 2초) 후에만 입력 수락 — 승리키 블리드스루 방지
-            if (engine.stateTimer > 120 && (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed())) {
+            if (engine.stateTimer > 120 && (Input.isConfirmKey() || Input.isMouseJustPressed())) {
                 engine.confirmResult();
             }
         }
@@ -436,7 +436,7 @@ const BattleScene = {
             }
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
+        if (Input.isConfirmKey()) {
             BattleMenuSystem.handleSelection();
         }
     },
@@ -493,9 +493,9 @@ const BattleScene = {
 
         engine.actionHover = engine.actionFocused || onActionBtn;
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
+        if (Input.isConfirmKey() || Input.isMouseJustPressed()) {
 
-            if (engine.actionFocused && (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE))) {
+            if (engine.actionFocused && (Input.isConfirmKey())) {
                 BattleMenuSystem.toggle();
                 return;
             }
@@ -596,7 +596,7 @@ const BattleScene = {
             d.selected = (d.selected === 0) ? 1 : 0;
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
+        if (Input.isConfirmKey()) {
             if (d.selected === 0) {
                 if (d.onYes) d.onYes();
             } else {
@@ -630,7 +630,7 @@ const BattleScene = {
         }
 
         // Z(=Space)로 교환 대상 패 토글
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || (Input.isMouseJustPressed() && hovered !== -1)) {
+        if (Input.isConfirmKey() || (Input.isMouseJustPressed() && hovered !== -1)) {
             if (engine.hoverIndex >= 0 && engine.hoverIndex < handSize) {
                 engine.toggleExchangeSelection(engine.hoverIndex);
             }

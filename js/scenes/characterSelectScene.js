@@ -186,7 +186,7 @@ const CharacterSelectScene = {
                 if (onHidden) backToRow();
             }
 
-            if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
+            if (Input.isConfirmKey()) {
                 this.currentState = this.STATE_CPU_SELECT;
                 this.cpuTimer = 0;
                 this.updateCpuPortrait();

@@ -246,7 +246,7 @@ const CreditsScene = {
             return;
         }
 
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
+        if (Input.isConfirmKey() || Input.isMouseJustPressed()) {
             this.finished = true;
             return;
         }

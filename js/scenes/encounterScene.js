@@ -152,7 +152,7 @@ const EncounterScene = {
         if (this.cpuPortrait) this.cpuPortrait.update(dt);
 
         // 입력으로 대사 진행, AutoTest는 타이머로 자동 진행
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
+        if (Input.isConfirmKey() || Input.isMouseJustPressed() || (Game.isAutoTest && this.textTimer > 2)) {
 
             if (Game.isAutoTest) this.textTimer = 0;
 
@@ -295,58 +295,63 @@ const EncounterScene = {
         ctx.restore();
 
 
+        this.drawDialogueBubble(ctx, currentLine.text, speakerSide);
+    },
+
+    // 대사 말풍선(박스 + 꼬리 + 본문).
+    //
+    // 여기와 drawChallengerMonologue 가 같은 코드를 복붙해 쓰고 있었다 —
+    // 박스 스케일·위치, 줄바꿈, baseline 보정(lineHeight * 0.7)까지 전부 동일하고
+    // **꼬리 위치만** 달랐다. 그 차이만 tail 인자로 남기고 하나로 합쳤다.
+    //
+    // tail: 'none'(꼬리 없음) | 'p1'(왼쪽) | 'cpu'(오른쪽, 좌우 반전) | 'center'(가운데)
+    drawDialogueBubble: function (ctx, text, tail) {
+        const W = 640, H = 480;
         const box = Assets.get('ui/long_bubble.png');
-        const tail = Assets.get('ui/long_bubble_tail.png');
+        if (!box) return;
+        const tailImg = Assets.get('ui/long_bubble_tail.png');
 
-        if (box && tail) {
-            const maxWidth = 640;
-            let scale = 1;
-            if (box.width > maxWidth) {
-                scale = maxWidth / box.width;
+        const scale = box.width > W ? W / box.width : 1;
+        const dw = box.width * scale;
+        const dh = box.height * scale;
+        const bx = (W - dw) / 2;
+        const by = H - dh - EncounterLayout.DIALOGUE.marginBottom;
+
+        ctx.drawImage(box, bx, by, dw, dh);
+
+        if (tailImg && tail !== 'none') {
+            const tailY = by + EncounterLayout.DIALOGUE.tailYOffset;
+            if (tail === 'center') {
+                ctx.drawImage(tailImg, bx + dw / 2 - tailImg.width / 2, tailY);
+            } else if (tail === 'p1') {
+                ctx.drawImage(tailImg, bx + EncounterLayout.DIALOGUE.tailXOffset * scale, tailY);
+            } else {
+                ctx.save();
+                ctx.translate(bx + dw - EncounterLayout.DIALOGUE.tailXOffset * scale, tailY);
+                ctx.scale(-1, 1);
+                ctx.drawImage(tailImg, 0, 0);
+                ctx.restore();
             }
-
-            const drawWidth = box.width * scale;
-            const drawHeight = box.height * scale;
-            const boxX = (640 - drawWidth) / 2;
-            const boxY = 480 - drawHeight - EncounterLayout.DIALOGUE.marginBottom;
-
-            ctx.drawImage(box, boxX, boxY, drawWidth, drawHeight);
-
-            if (speakerSide !== 'none') {
-                const tailY = boxY + EncounterLayout.DIALOGUE.tailYOffset;
-                if (speakerSide === 'p1') {
-                    ctx.drawImage(tail, boxX + EncounterLayout.DIALOGUE.tailXOffset * scale, tailY);
-                } else {
-                    ctx.save();
-                    ctx.translate(boxX + drawWidth - EncounterLayout.DIALOGUE.tailXOffset * scale, tailY);
-                    ctx.scale(-1, 1);
-                    ctx.drawImage(tail, 0, 0);
-                    ctx.restore();
-                }
-            }
-
-            ctx.save();
-            ctx.font = EncounterLayout.DIALOGUE.text.font;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-
-            if (currentLine.text) {
-                const text = currentLine.text;
-                const lines = text.split('\n');
-                const lineHeight = EncounterLayout.DIALOGUE.text.lineHeight;
-                const totalTextHeight = lines.length * lineHeight;
-                const verticalCenter = boxY + (drawHeight / 2);
-                // 0.7: baseline 기준으로 아래 밀기
-                let startY = verticalCenter - (totalTextHeight / 2) + (lineHeight * 0.7);
-                startY += EncounterLayout.DIALOGUE.text.baselineCorrection;
-
-                lines.forEach((line, i) => {
-                    ctx.fillText(line, boxX + EncounterLayout.DIALOGUE.text.xPadding, startY + i * lineHeight);
-                });
-            }
-            ctx.restore();
         }
+
+        if (!text) return;
+
+        ctx.save();
+        ctx.font = EncounterLayout.DIALOGUE.text.font;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+
+        const lines = text.split('\n');
+        const lh = EncounterLayout.DIALOGUE.text.lineHeight;
+        // 0.7: baseline 기준으로 아래 밀기
+        const sy = by + dh / 2 - (lines.length * lh) / 2 + lh * 0.7
+            + EncounterLayout.DIALOGUE.text.baselineCorrection;
+
+        lines.forEach((line, i) => {
+            ctx.fillText(line, bx + EncounterLayout.DIALOGUE.text.xPadding, sy + i * lh);
+        });
+        ctx.restore();
     },
 
     setupCharacterAnimation: function (portrait, id) {
@@ -386,28 +391,7 @@ const EncounterScene = {
         }
 
         const currentLine = this.dialogueSequence[this.currentLineIndex] || {};
-        const box = Assets.get('ui/long_bubble.png');
-        const tail = Assets.get('ui/long_bubble_tail.png');
-        if (box) {
-            const scale = box.width > w ? w / box.width : 1;
-            const dw = box.width * scale, dh = box.height * scale;
-            const bx = (w - dw) / 2;
-            const by = h - dh - EncounterLayout.DIALOGUE.marginBottom;
-            ctx.drawImage(box, bx, by, dw, dh);
-            if (tail) ctx.drawImage(tail, bx + dw / 2 - tail.width / 2, by + EncounterLayout.DIALOGUE.tailYOffset);
-
-            if (currentLine.text) {
-                ctx.save();
-                ctx.font = EncounterLayout.DIALOGUE.text.font;
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'alphabetic';
-                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-                const lines = currentLine.text.split('\n');
-                const lh = EncounterLayout.DIALOGUE.text.lineHeight;
-                let sy = by + dh / 2 - (lines.length * lh) / 2 + lh * 0.7 + EncounterLayout.DIALOGUE.text.baselineCorrection;
-                lines.forEach((line, i) => ctx.fillText(line, bx + EncounterLayout.DIALOGUE.text.xPadding, sy + i * lh));
-                ctx.restore();
-            }
-        }
+        // 난입 모놀로그는 말하는 쪽이 화면에 없으므로 꼬리를 가운데에 둔다.
+        this.drawDialogueBubble(ctx, currentLine.text, 'center');
     }
 };

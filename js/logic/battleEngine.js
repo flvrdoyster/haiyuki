@@ -25,34 +25,9 @@ const BattleEngine = {
     totalTicks: 0,
     stateTimer: 0,
     lastState: -1,
-    timeouts: [],
 
-    // 로직 틱(dt) 기반 타임아웃 — 느린 PC에서 조기 발동 방지.
-    setTimeout: function (callback, delayTicks) {
-        const timeout = {
-            callback: callback,
-            timer: 0,
-            duration: delayTicks,
-            id: ++this._timeoutIdCounter
-        };
-        this.dtTimeouts.push(timeout);
-        return timeout.id;
-    },
-
-    updateTimeouts: function (dt = 1.0) {
-        for (let i = this.dtTimeouts.length - 1; i >= 0; i--) {
-            const t = this.dtTimeouts[i];
-            t.timer += dt;
-            if (t.timer >= t.duration) {
-                this.dtTimeouts.splice(i, 1);
-                t.callback();
-            }
-        }
-    },
-
-    clearTimeouts: function () {
-        this.dtTimeouts = [];
-    },
+    // 로직 틱(dt) 기반 타임아웃 — 구현은 core/timers.js.
+    timers: TickTimers.create(),
 
     DELAY_DRAW: 60,
     DELAY_DISCARD_AUTO: 60,
@@ -136,7 +111,7 @@ const BattleEngine = {
             };
         }
 
-        this.clearTimeouts();
+        this.timers.clear();
 
         this.playerIndex = data.playerIndex || 0;
         this.cpuIndex = data.cpuIndex || 0;
@@ -167,8 +142,7 @@ const BattleEngine = {
         }
 
         this.activeFX = [];
-        this.dtTimeouts = [];
-        this._timeoutIdCounter = 0;
+        // 타이머는 위 timers.clear()에서 이미 비웠다.
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         this.currentState = this.STATE_INIT;
@@ -682,7 +656,7 @@ const BattleEngine = {
         this.timer += dt;
         this.totalTicks += dt;
 
-        this.updateTimeouts(dt);
+        this.timers.update(dt);
 
         if (this.currentState !== this.lastState) {
             this.stateTimer = 0;
@@ -704,7 +678,7 @@ const BattleEngine = {
         }
 
         if (this.isAutoTest() && this.currentState === this.STATE_PLAYER_TURN && this.timer > 3) {
-            this.performAutoTurn();
+            AutoPlay.performTurn(this);
             return;
         }
 
@@ -789,13 +763,13 @@ const BattleEngine = {
             case this.STATE_WIN:
             case this.STATE_LOSE:
                 // 롤링 애니메이션(160프레임) 종료 후 입력 수신.
-                if (this.stateTimer > 160 && (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z))) {
+                if (this.stateTimer > 160 && (Input.isMouseJustPressed() || Input.isConfirmKey())) {
                     this.confirmResult();
                 }
                 break;
 
             case this.STATE_NAGARI:
-                if (Input.isMouseJustPressed() || Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z)) {
+                if (Input.isMouseJustPressed() || Input.isConfirmKey()) {
                     this.confirmResult();
                 }
                 break;
@@ -1005,7 +979,7 @@ const BattleEngine = {
         const hold = this.isAutoTest() ? 0 : BattleConfig.SPEED.CPU_DISCARD_HOLD;
         if (hold > 0) {
             this.currentState = this.STATE_FX_PLAYING;
-            this.setTimeout(() => {
+            this.timers.add(() => {
                 this.currentState = this.STATE_CPU_TURN;
                 this.discardTileCPU(discardIdx);
             }, hold);
@@ -1247,7 +1221,7 @@ const BattleEngine = {
         this.dialogueTriggeredThisTurn = true;
 
         this.currentState = this.STATE_FX_PLAYING;
-        this.setTimeout(() => {
+        this.timers.add(() => {
             if (!this.applyPon(this.cpu, tile)) return;
 
             this.currentState = this.STATE_CPU_TURN;
@@ -1372,10 +1346,10 @@ const BattleEngine = {
             this.dialogueTriggeredThisTurn = true;
 
             this.currentState = this.STATE_FX_PLAYING;
-            this.setTimeout(() => {
+            this.timers.add(() => {
                 if (!this.applyPon(this.p1, action.targetTile)) return;
 
-                this.setTimeout(() => {
+                this.timers.add(() => {
                     this.triggerDialogue('PON_REPLY', 'cpu');
                 }, BattleConfig.DIALOGUE.replyDelay);
 
@@ -1393,7 +1367,7 @@ const BattleEngine = {
 
             const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
             this.triggerDialogue(riichiKey, 'p1');
-            this.setTimeout(() => {
+            this.timers.add(() => {
                 this.triggerDialogue('RIICHI_REPLY', 'cpu');
             }, BattleConfig.DIALOGUE.replyDelay);
 
@@ -1671,7 +1645,7 @@ const BattleEngine = {
     toggleExchangeSelection: function (index) {
         if (this.exchangeIndices.includes(index)) {
             this.exchangeIndices = this.exchangeIndices.filter(i => i !== index);
-            Assets.playSound('audio/cursor');
+            Assets.playSound('audio/tick');
         } else {
             const charData = CharacterData.find(c => c.id === this.p1.id);
             const p1Skills = charData ? charData.skills : [];
@@ -1683,13 +1657,13 @@ const BattleEngine = {
                 const skill = SkillData[skillId];
                 const currentCost = this.exchangeIndices.length * skill.cost;
                 if (this.p1.mp < currentCost + skill.cost) {
-                    Assets.playSound('audio/cancel');
+                    Assets.playSound('audio/wrong');
                     return;
                 }
             }
 
             this.exchangeIndices.push(index);
-            Assets.playSound('audio/cursor');
+            Assets.playSound('audio/tick');
         }
     },
 
@@ -1720,7 +1694,7 @@ const BattleEngine = {
 
         if (this.p1.mp < totalCost) {
             this.showPopup('SKILL', { text: "MP 부족!", blocking: false });
-            Assets.playSound('audio/cancel');
+            Assets.playSound('audio/wrong');
             return;
         }
 
@@ -1734,81 +1708,6 @@ const BattleEngine = {
 
         this.currentState = this.STATE_WAIT_FOR_DRAW;
         this.timer = 0;
-    },
-
-    performAutoTurn: function () {
-        if (this.currentState !== this.STATE_PLAYER_TURN) {
-            return;
-        }
-
-        const tsumoAction = (this.possibleActions || []).find(a => a.type === 'TSUMO');
-        if (tsumoAction) {
-            this.executeAction(tsumoAction);
-            return;
-        }
-
-        // Riichi Enforcement: Must discard drawn tile (last one)
-        if (this.p1.isRiichi) {
-            if (this.p1.declaringRiichi && this.p1.validRiichiDiscardIndices) {
-                const validIdx = this.p1.validRiichiDiscardIndices[0];
-                this.discardTile(validIdx);
-            } else {
-                this.discardTile(this.p1.hand.length - 1);
-            }
-            return;
-        }
-
-        // Auto-Riichi Check
-        if (this.p1.isMenzen && this.p1.hand.length >= 2) {
-            let canRiichi = false;
-            let riichiDiscardIndex = -1;
-
-            for (let i = 0; i < this.p1.hand.length; i++) {
-                const tempHand = [...this.p1.hand];
-                tempHand.splice(i, 1);
-                if (this.checkTenpai(tempHand)) {
-                    canRiichi = true;
-                    riichiDiscardIndex = i;
-                    break;
-                }
-            }
-
-            if (canRiichi) {
-                this.p1.isRiichi = true;
-                this.p1.declaringRiichi = true;
-                this.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
-                // Sound handled by showPopup -> View (popupType check)
-                this.updateBattleMusic();
-                this.discardTile(riichiDiscardIndex);
-                return;
-            }
-        }
-
-        try {
-            // Delegate to AI Logic. Player autopilot plays competently and
-            // independently of the CPU difficulty setting.
-            const context = {
-                discards: this.discards,
-                opponentRiichi: this.cpu.isRiichi // Auto-play defends against CPU Riichi
-            };
-            const discardIdx = AILogic.decideDiscard(this.p1.hand, 0.7, null, context);
-
-            if (typeof discardIdx !== 'number' || discardIdx < 0) {
-                console.error("AILogic returned invalid index:", discardIdx);
-                // Fallback: Discard rightmost tile safely
-                this.discardTile(this.p1.hand.length - 1);
-                return;
-            }
-
-            this.discardTile(discardIdx);
-        } catch (e) {
-            console.error("Error during Auto-Select:", e);
-            console.error(e.stack);
-            // Fallback: Discard rightmost tile safely to prevent soft-lock
-            if (this.p1.hand.length > 0) {
-                this.discardTile(this.p1.hand.length - 1);
-            }
-        }
     }
 };
 

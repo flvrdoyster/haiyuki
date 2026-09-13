@@ -54,7 +54,7 @@ const ContinueScene = {
 
         if (Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
             this.selectedOption = (this.selectedOption + 1) % 2;
-            Assets.playSound('audio/select');
+            Assets.playSound('audio/tick');
         }
 
         const mx = Input.mouseX;
@@ -73,7 +73,7 @@ const ContinueScene = {
             if (Input.hasMouseMoved()) this.selectedOption = 1;
         }
 
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
+        if (Input.isConfirmKey() || Input.isMouseJustPressed()) {
             if (this.selectedOption === 0) {
                 this.retry();
             } else {

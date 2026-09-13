@@ -83,7 +83,7 @@ const SkillFlows = {
         engine.discards.pop();
 
         engine.playFX('fx/slash_lr', 320, 240, { scale: 2.0, life: 30 });
-        engine.events.push({ type: 'SOUND', id: 'audio/sword_draw' });
+        engine.events.push({ type: 'SOUND', id: 'audio/slash' });
         engine.triggerDialogue('SKILL_DEFENSE', who === 'P1' ? 'p1' : 'cpu');
 
         if (who === 'CPU') {
@@ -182,7 +182,7 @@ const SkillFlows = {
             engine.rouletteTileType = PaiData.TYPES[engine.rouletteIndex].id;
         }
 
-        if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed()) {
+        if (Input.isConfirmKey() || Input.isMouseJustPressed()) {
             SkillFlows.finishRoulette(engine);
         }
     },

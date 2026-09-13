@@ -32,7 +32,7 @@ const EndingScene = {
 
         if (this.challengerIntro) {
             this.challengerTimer += dt;
-            const pressed = Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed();
+            const pressed = Input.isConfirmKey() || Input.isMouseJustPressed();
             const done = this.challengerTimer > 180 ||
                 (this.challengerTimer > 30 && pressed) ||
                 (Game.isAutoTest && this.challengerTimer > 5);
@@ -52,7 +52,7 @@ const EndingScene = {
         }
 
         if (this.canSkip) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isConfirmKey() || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.checkTrueEnding();
             }
         }

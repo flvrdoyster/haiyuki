@@ -78,7 +78,7 @@ const TitleScene = {
         }
 
         if (this.currentState === this.STATE_PRESS_KEY) {
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isConfirmKey() || Input.isMouseJustPressed() || Game.isAutoTest) {
                 this.currentState = this.STATE_MODE_SELECT;
                 this.introTimer = 99999; // 오프닝 스킵 — 로고를 최종 상태로 즉시 고정
             }
@@ -118,7 +118,7 @@ const TitleScene = {
 
             if (this.menuIndex !== prevIndex) Assets.playSound('audio/tick');
 
-            if (Input.isJustPressed(Input.SPACE) || Input.isJustPressed(Input.Z) || Input.isMouseJustPressed() || Game.isAutoTest) {
+            if (Input.isConfirmKey() || Input.isMouseJustPressed() || Game.isAutoTest) {
                 if (this.menuIndex === 0) {
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
@@ -171,7 +171,7 @@ const TitleScene = {
             this.confirmSelected = (this.confirmSelected === 0) ? 1 : 0;
         }
 
-        if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE)) {
+        if (Input.isConfirmKey()) {
             if (this.confirmSelected === 0) {
                 this.resetSaveData();
             }
