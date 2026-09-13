@@ -9,6 +9,7 @@ const Assets = {
     _audioUnlocked: false,
     _sfxGainNode: null,
     _resumeWired: false,
+    _sfxResumePending: false,   // 컨텍스트 재개 대기 중인 SFX는 하나로 제한(몰아치기 방지)
 
     _getAudioContext: function () {
         if (!this.audioContext) {
@@ -347,6 +348,13 @@ const Assets = {
             console.warn(`SFX not found: ${id}`);
             return;
         }
+        // 화면이 가려진 동안의 효과음은 버린다. 예전엔 suspended 상태에서도
+        // ctx.resume().then(play)로 요청을 쌓아뒀다가, 포그라운드 복귀로 컨텍스트가
+        // running이 되는 순간 쌓인 콜백이 전부 동시에 resolve되어 효과음이 몰아쳤다.
+        // 지나간 효과음을 뒤늦게 들려줄 이유는 없으므로 드롭이 맞다.
+        // (BGM은 반대로 이어져야 하므로 playMusic 쪽 resume/retry 경로는 그대로 둔다)
+        if (typeof document !== 'undefined' && document.hidden) return;
+
         const ctx = this._getAudioContext();
         const play = () => {
             const source = ctx.createBufferSource();
@@ -354,11 +362,21 @@ const Assets = {
             source.connect(this._getSfxGain());
             source.start(0);
         };
+
         if (ctx.state === 'running') {
             play();
-        } else {
-            ctx.resume().then(play);
+            return;
         }
+
+        // 화면은 보이는데 컨텍스트가 아직 안 깨어난 경우(최초 제스처 직후 등)만 재개를 기다린다.
+        // 단 동시에 하나까지만 — 여러 개가 쌓이면 그게 곧 몰아치기가 된다.
+        if (this._sfxResumePending) return;
+        this._sfxResumePending = true;
+        ctx.resume().then(() => {
+            this._sfxResumePending = false;
+            if (typeof document !== 'undefined' && document.hidden) return;
+            play();
+        }).catch(() => { this._sfxResumePending = false; });
     },
 
     playMusic: function (id, loop = true) {

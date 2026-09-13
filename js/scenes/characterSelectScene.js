@@ -57,21 +57,29 @@ const CharacterSelectScene = {
         this.readyTimer = 0;
         this.lastHoveredIndex = -1;
 
-        Assets.playMusic('audio/bgm_chrsel');
-
         this.mode = data && data.mode ? data.mode : 'STORY';
         this.defeatedOpponents = data && data.defeatedOpponents ? data.defeatedOpponents : [];
 
-        this.updateP1Portrait();
-        this.updateCpuPortrait();
-
         if (this.mode === 'NEXT_MATCH') {
             this.playerIndex = data.playerIndex;
-            this.updateP1Portrait();
-            // NEXT_MATCH도 룰렛 스핀을 거쳐 상대를 선정 — 직접 인카운터로 점프하지 않음
+
+            // 마지막 상대까지 격파해 후보가 없으면 룰렛을 돌리지 않고 엔딩으로 직행.
+            // 돌려봤자 뽑을 상대가 없어 60프레임을 헛돈 뒤 goToEnding으로 빠지므로,
+            // 플레이어에겐 히든 보스 난입 직전에 룰렛이 도는 것처럼 보였다.
+            // BGM 시작 전에 빠져나가야 선택 BGM이 한순간 울렸다 끊기지 않는다.
+            if (this.getAvailableOpponents().length === 0) {
+                this.goToEnding();
+                return;
+            }
+
+            // 후보가 남아 있을 때만 룰렛 스핀으로 상대를 선정
             this.currentState = this.STATE_CPU_SELECT;
-            this.cpuTimer = 0;
         }
+
+        Assets.playMusic('audio/bgm_chrsel');
+
+        this.updateP1Portrait();
+        this.updateCpuPortrait();
     },
 
     updateP1Portrait: function () {
