@@ -141,8 +141,7 @@ const BattleEngine = {
             this.cpu.maxHp = 99999;
         }
 
-        this.activeFX = [];
-        // 타이머는 위 timers.clear()에서 이미 비웠다.
+        // 타이머는 위 timers.clear()에서 이미 비웠다. (activeFX 는 씬 소유 — 엔진엔 없음)
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         this.currentState = this.STATE_INIT;

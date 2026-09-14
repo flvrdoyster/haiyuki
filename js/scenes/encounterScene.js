@@ -206,7 +206,7 @@ const EncounterScene = {
         // 타일 배경: 매 프레임 패턴 객체를 새로 만들지 않고 캐시 사용
         const bg = Assets.get('bg/CHRBAK.png');
         if (bg) {
-            ctx.fillStyle = Assets.getPattern(ctx, bg, 'repeat');
+            ctx.fillStyle = UIWidgets.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, 640, 480);
         }
 
@@ -376,7 +376,7 @@ const EncounterScene = {
 
         const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
         if (bg) {
-            ctx.fillStyle = Assets.getPattern(ctx, bg, 'repeat');
+            ctx.fillStyle = UIWidgets.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, w, h);
         } else {
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';

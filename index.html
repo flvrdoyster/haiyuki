@@ -112,6 +112,9 @@
     <script src="js/logic/autoPlay.js"></script>
     <script src="js/logic/skillRegistry.js"></script>
     <script src="js/logic/battleSequencer.js"></script>
+    <!-- Assets에서 분리한 캔버스 드로잉 유틸 — Assets.get()만 쓰므로 core 뒤, 첫 사용자(uiHelpers) 앞 -->
+    <script src="js/views/bitmapFont.js"></script>
+    <script src="js/views/uiWidgets.js"></script>
     <script src="js/views/uiHelpers.js"></script>
     <script src="js/scenes/loadingScene.js"></script>
     <script src="js/scenes/titleScene.js"></script>
@@ -120,6 +123,9 @@
     <script src="js/views/portraitCharacter.js"></script>
     <script src="js/views/battleDialogue.js"></script>
 
+    <!-- 좌표의 단일 출처. 렌더러(그리기)와 battleScene(클릭 판정)이 둘 다 이걸 본다 -->
+    <script src="js/views/battleLayout.js"></script>
+    <script src="js/views/fxSystem.js"></script>
     <script src="js/views/battleRenderer.js"></script>
     <script src="js/logic/battleEngine.js"></script>
     <script src="js/core/debug.js"></script>

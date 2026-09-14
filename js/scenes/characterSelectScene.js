@@ -277,14 +277,14 @@ const CharacterSelectScene = {
     draw: function (ctx) {
         const bg = Assets.get(SelectConfig.BACKGROUND.path);
         if (bg) {
-            const pattern = Assets.getPattern(ctx, bg, 'repeat');
+            const pattern = UIWidgets.getPattern(ctx, bg, 'repeat');
             ctx.fillStyle = pattern;
             ctx.fillRect(0, 0, 640, 480);
         }
 
         const titleText = "CHARACTER SELECT";
         const titleX = (640 - (titleText.length * 32)) / 2;
-        Assets.drawAlphabet(ctx, titleText, titleX, SelectConfig.TITLE.y, 'yellow');
+        BitmapFont.drawAlphabet(ctx, titleText, titleX, SelectConfig.TITLE.y, 'yellow');
 
         const vs = Assets.get(SelectConfig.VS_LOGO.path);
         if (vs) {
@@ -362,12 +362,12 @@ const CharacterSelectScene = {
             const cursorH = cursorImg.height;
 
             const pr = this.getIconRect(this.playerIndex);
-            Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+            UIWidgets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                 pr.x + (pr.w - cursorW) / 2, pr.y + (pr.h - cursorH) / 2, 0, cursorW, cursorH);
 
             if (this.currentState >= this.STATE_CPU_SELECT) {
                 const cr = this.getIconRect(this.cpuIndex);
-                Assets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+                UIWidgets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                     cr.x + (cr.w - cursorW) / 2, cr.y + (cr.h - cursorH) / 2, 1, cursorW, cursorH);
             }
         }

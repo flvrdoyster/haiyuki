@@ -196,8 +196,9 @@ const SkillFlows = {
         engine.rouletteFinished = true;
         engine.rouletteFinishTimer = 0;
         engine.rouletteResultTile = resultTile;
-
-        engine.events.push({ type: 'SOUND', id: 'audio/system_enter' });
+        // 룰렛 결과 확정음은 없다. 예전엔 'audio/system_enter'를 밀어 넣었지만 그 id는
+        // 매니페스트에 등록된 적이 없어 애초에 무음이었고, 원본에서 어떤 소리였는지
+        // 확정할 수 없어 호출 자체를 뺐다.
     },
 
     resolveRouletteResult: function (engine) {

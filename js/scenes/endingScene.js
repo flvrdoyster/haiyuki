@@ -87,8 +87,8 @@ const EndingScene = {
         if (this.challengerIntro) {
             const color = (Math.floor(this.challengerTimer / 10) % 2 === 0) ? 'yellow' : 'orange';
             const opt = { color: color, align: 'center', spaceWidth: 16 };
-            Assets.drawAlphabet(ctx, 'HERE COMES A', 320, 200, opt);
-            Assets.drawAlphabet(ctx, 'NEW CHALLENGER', 320, 232, opt);
+            BitmapFont.drawAlphabet(ctx, 'HERE COMES A', 320, 200, opt);
+            BitmapFont.drawAlphabet(ctx, 'NEW CHALLENGER', 320, 232, opt);
         }
     },
 

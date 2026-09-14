@@ -85,7 +85,7 @@ const BattleRenderer = {
         const tileH = BattleConfig.HAND.tileHeight;
         const gap = BattleConfig.HAND.tileGap;
 
-        const cpuMetrics = this.getVisualMetrics(state.cpu, 0, 'cpu');
+        const cpuMetrics = BattleLayout.getVisualMetrics(state.cpu, 0, 'cpu');
         const cpuStartX = cpuMetrics.handStartX;
         const cpuCount = state.cpu.hand.length;
 
@@ -106,11 +106,11 @@ const BattleRenderer = {
         const groupSize = state.lastDrawGroupSize || 0;
         const hasGap = (groupSize > 0) && (state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_BATTLE_MENU);
 
-        const metrics = this.getVisualMetrics(state.p1, hasGap ? groupSize : 0, 'p1');
+        const metrics = BattleLayout.getVisualMetrics(state.p1, hasGap ? groupSize : 0, 'p1');
         const pStartX = metrics.handStartX;
 
         for (let i = 0; i < pCount; i++) {
-            const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
+            const pos = BattleLayout.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y;
             const isHover = ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && i === state.hoverIndex);
 
@@ -147,7 +147,7 @@ const BattleRenderer = {
 
         if ((state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_TILE_EXCHANGE) && state.hoverIndex >= 0 && state.hoverIndex < pCount) {
             const i = state.hoverIndex;
-            const pos = this.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
+            const pos = BattleLayout.getPlayerHandPosition(i, pCount, hasGap ? groupSize : 0, pStartX);
             let y = pos.y + BattleConfig.HAND.hoverYOffset;
 
             const sideImg = Assets.get('tiles/side-top.png');
@@ -234,11 +234,11 @@ const BattleRenderer = {
 
     drawRoulette: function (ctx, state) {
         // groupSize=1 로 가상 설정하여 드로우 갭 위치 계산
-        const metrics = this.getVisualMetrics(state.p1, 1, 'p1');
+        const metrics = BattleLayout.getVisualMetrics(state.p1, 1, 'p1');
         const pStartX = metrics.handStartX;
         const pCount = state.p1.hand.length;
 
-        const pos = this.getPlayerHandPosition(pCount, pCount + 1, 1, pStartX);
+        const pos = BattleLayout.getPlayerHandPosition(pCount, pCount + 1, 1, pStartX);
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
 
@@ -362,62 +362,6 @@ const BattleRenderer = {
         }
 
         ctx.restore();
-    },
-
-    getVisualMetrics: function (character, groupSize, target) {
-        const m = { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 };
-
-        const tileW = BattleConfig.HAND.tileWidth;
-        const gap = BattleConfig.HAND.tileGap;
-        // 세트 간 간격은 tileGap과 동일 (extra gap 제거됨)
-        const internalSetGap = BattleConfig.HAND.tileGap;
-        const drawGap = BattleConfig.HAND.drawGap;
-        const sectionGap = BattleConfig.HAND.sectionGap;
-
-        const handSize = character.hand.length;
-        let handW = handSize * (tileW + gap);
-        if (handSize > 0) handW -= gap;
-        if (groupSize > 0) handW += drawGap;
-
-        let openW = 0;
-        if (character.openSets && character.openSets.length > 0) {
-            character.openSets.forEach(set => {
-                openW += (set.tiles.length * tileW) + ((set.tiles.length - 1) * gap) + internalSetGap;
-            });
-            openW -= internalSetGap;
-        }
-
-        let totalW = handW;
-        if (openW > 0) totalW += sectionGap + openW;
-
-        const startX = (640 - totalW) / 2;
-
-        m.totalW = totalW;
-        m.startX = startX;
-        m.handStartX = startX;
-        m.openStartX = startX + handW + sectionGap;
-        m.handW = handW;
-        m.openW = openW;
-
-        return m;
-    },
-
-    _tempPos: { x: 0, y: 0 },
-
-    getPlayerHandPosition: function (index, count, groupSize, startX) {
-        const tileW = BattleConfig.HAND.tileWidth;
-        const gap = BattleConfig.HAND.tileGap;
-        const drawGap = BattleConfig.HAND.drawGap;
-
-        let x = startX + index * (tileW + gap);
-        if (groupSize > 0 && index >= count - groupSize) {
-            x += drawGap;
-        }
-
-        // GC 압박 최소화: 매 프레임 객체 재사용
-        this._tempPos.x = x;
-        this._tempPos.y = BattleConfig.HAND.playerY;
-        return this._tempPos;
     },
 
     drawTile: function (ctx, tile, x, y, w, h, options = {}) {
@@ -752,7 +696,7 @@ const BattleRenderer = {
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        Assets.drawWindow(ctx, rx, ry, rw, rh);
+        UIWidgets.drawWindow(ctx, rx, ry, rw, rh);
 
         const info = state.resultInfo;
         if (!info) return;
@@ -775,7 +719,7 @@ const BattleRenderer = {
 
                 const s = info.yakuScore || 0;
                 // scale 0.6: 스프라이트 높이 ~40px 기준 렌더 크기 ~24px
-                Assets.drawNumberBig(ctx, s, conf.scoreListX, currentY - 12, {
+                BitmapFont.drawNumberBig(ctx, s, conf.scoreListX, currentY - 12, {
                     align: 'right',
                     scale: 0.6,
                     spacing: 1,
@@ -799,7 +743,7 @@ const BattleRenderer = {
 
                     // 나가리 텐파이/노텐은 문자열로 올 수 있음
                     if (typeof bonus.score === 'number') {
-                        Assets.drawNumberBig(ctx, bonus.score, conf.scoreListX, currentY - 12, {
+                        BitmapFont.drawNumberBig(ctx, bonus.score, conf.scoreListX, currentY - 12, {
                             align: 'right',
                             scale: 0.6,
                             spacing: 1,
@@ -858,7 +802,7 @@ const BattleRenderer = {
                 }
             }
 
-            Assets.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
+            BitmapFont.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
                 align: 'right',
                 scale: 0.6,
                 spacing: 1,
@@ -892,25 +836,12 @@ const BattleRenderer = {
     // Menu layout metrics. Height is dynamic (grows with item count) and the menu
     // is bottom-anchored at conf.y + conf.h, so the always-listed declaration
     // commands (아가리/펑/리치) push the window UP rather than off the canvas bottom.
-    _menuMetrics: function (menuItems) {
-        const conf = BattleConfig.BATTLE_MENU;
-        const lineHeight = conf.fixedLineHeight || 28;
-        const topOffset = conf.padding + 7;
-        let contentH = 0;
-        menuItems.forEach(item => {
-            contentH += (item.type === 'SEPARATOR') ? (conf.separatorHeight || 4) : lineHeight;
-        });
-        const h = topOffset + contentH + conf.padding;
-        const y = (conf.y + conf.h) - h; // keep the bottom edge fixed; grow upward
-        return { x: conf.x, y, w: conf.w, h, startX: conf.x + conf.padding, startY: y + topOffset, lineHeight };
-    },
-
     drawBattleMenu: function (ctx, state) {
         const conf = BattleConfig.BATTLE_MENU;
-        const m = this._menuMetrics(BattleMenuSystem.menuItems);
+        const m = BattleLayout._menuMetrics(BattleMenuSystem.menuItems);
         const x = m.x, y = m.y, w = m.w, h = m.h;
 
-        Assets.drawWindow(ctx, x, y, w, h);
+        UIWidgets.drawWindow(ctx, x, y, w, h);
 
         const startX = m.startX;
         const startY = m.startY;
@@ -1012,7 +943,7 @@ const BattleRenderer = {
         this._actionRect = r;
         this._actionKey = key;
         const isHovered = state ? !!state.actionHover : false;
-        Assets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
+        UIWidgets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
             cursorColor: conf.cursor
         });
@@ -1023,64 +954,6 @@ const BattleRenderer = {
         return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
 
-
-    getHandTileAt: function (x, y, player, groupSize) {
-        const handSize = player.hand.length;
-        const metrics = this.getVisualMetrics(player, groupSize);
-        const tileW = BattleConfig.HAND.tileWidth;
-        const tileH = BattleConfig.HAND.tileHeight;
-
-        // 엣지 오클릭 방지: 패 면적의 15%/10% 안쪽만 히트
-        const xPad = tileW * 0.15;
-        const yPad = tileH * 0.1;
-
-        const handY = BattleConfig.HAND.playerY;
-        if (y < handY + yPad || y > handY + tileH - yPad) return -1;
-
-        for (let i = 0; i < handSize; i++) {
-            const pos = this.getPlayerHandPosition(i, handSize, groupSize, metrics.startX);
-            if (x >= pos.x + xPad && x < pos.x + tileW - xPad) {
-                return i;
-            }
-        }
-        return -1;
-    },
-
-    getMenuItemAt: function (mouseX, mouseY, menuItems) {
-        const conf = BattleConfig.BATTLE_MENU;
-        const m = this._menuMetrics(menuItems);
-        const x = m.x, y = m.y, w = m.w, h = m.h;
-        const startX = m.startX;
-        const startY = m.startY;
-
-        if (mouseX < x || mouseX > x + w || mouseY < y || mouseY > y + h) return -1;
-
-        const lineHeight = m.lineHeight;
-        const getItemHeight = (item) => {
-            if (item.type === 'SEPARATOR') return conf.separatorHeight || 4;
-            return lineHeight;
-        };
-
-        let currentY = startY;
-
-        for (let i = 0; i < menuItems.length; i++) {
-            const item = menuItems[i];
-            const itemH = getItemHeight(item);
-
-            if (item.type === 'SEPARATOR') {
-                currentY += itemH;
-                continue;
-            }
-
-            if (mouseY >= currentY && mouseY < currentY + itemH) {
-                if (mouseX >= startX && mouseX <= startX + (w - conf.padding * 2)) {
-                    return i;
-                }
-            }
-            currentY += itemH;
-        }
-        return -1;
-    },
 
     drawExchangeWindow: function (ctx, state) {
         const conf = BattleConfig.CONFIRM;
@@ -1108,7 +981,7 @@ const BattleRenderer = {
         const x = (640 - w) / 2;
         const y = (conf.y !== undefined) ? conf.y : (480 - h) / 2;
 
-        Assets.drawWindow(ctx, x, y, w, h);
+        UIWidgets.drawWindow(ctx, x, y, w, h);
 
         const count = state.exchangeIndices ? state.exchangeIndices.length : 0;
 
@@ -1127,7 +1000,7 @@ const BattleRenderer = {
         const label = (count === 0 ? lab.cancel : lab.confirm) + keyHint;
 
         const isHover = state.exchangeButtonHover;
-        Assets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
+        UIWidgets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
 
         if (count > 0) {
             this.drawMpPreview(ctx, state, count);

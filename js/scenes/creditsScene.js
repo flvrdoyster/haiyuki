@@ -166,7 +166,7 @@ const CreditsScene = {
     _buildPools: function () {
         const pools = { kr: [], an: [], jp: [] };
         const seen = {};
-        (Assets.STAFF_FONT_ROWS || []).forEach(row => {
+        (BitmapFont.STAFF_FONT_ROWS || []).forEach(row => {
             for (const ch of Array.from(row)) {
                 const s = this._scriptOf(ch);
                 if (s && !seen[ch]) { seen[ch] = 1; pools[s].push(ch); }
@@ -292,13 +292,13 @@ const CreditsScene = {
                     const ft = Math.max(0, fallT - tile.fallDelay);
                     const y = tile.ty + 0.5 * C.FALL_G * ft * ft;
                     if (y > C.SCREEN_H + 80) continue;
-                    Assets.drawStaffGlyph(ctx, tile.ch, tile.finalX, y, tile.scale);
+                    BitmapFont.drawStaffGlyph(ctx, tile.ch, tile.finalX, y, tile.scale);
                     continue;
                 }
                 const st = this._tileState(tile, sec);
                 if (!st) continue;
                 if (st.alpha < 1) ctx.globalAlpha = st.alpha;
-                Assets.drawStaffGlyph(ctx, st.ch, st.x, st.y, tile.scale);
+                BitmapFont.drawStaffGlyph(ctx, st.ch, st.x, st.y, tile.scale);
                 if (st.alpha < 1) ctx.globalAlpha = 1;
             }
         }

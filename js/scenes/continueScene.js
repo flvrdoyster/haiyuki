@@ -113,13 +113,13 @@ const ContinueScene = {
         const charW = 32 * (title.scale || 1);
         const textW = titleText.length * charW;
         const titleX = 320 - (textW / 2);
-        Assets.drawAlphabet(ctx, titleText, titleX, title.y - 20, { color: title.color, scale: title.scale || 1 });
+        BitmapFont.drawAlphabet(ctx, titleText, titleX, title.y - 20, { color: title.color, scale: title.scale || 1 });
 
         const sub = ContinueConfig.SUBTITLE;
         const subText = sub.text;
         const subW = subText.length * 32;
         const subX = 320 - (subW / 2);
-        Assets.drawAlphabet(ctx, subText, subX, sub.y - 20, sub.color);
+        BitmapFont.drawAlphabet(ctx, subText, subX, sub.y - 20, sub.color);
 
         const opts = ContinueConfig.OPTIONS;
 
@@ -127,18 +127,18 @@ const ContinueScene = {
         const yesColor = (this.selectedOption === 0) ? 'yellow' : 'orange';
         const yesW = yesText.length * 32;
         const yesX = opts.YES.x - (yesW / 2);
-        Assets.drawAlphabet(ctx, yesText, yesX, opts.YES.y - 16, yesColor);
+        BitmapFont.drawAlphabet(ctx, yesText, yesX, opts.YES.y - 16, yesColor);
 
         const noText = opts.NO.text;
         const noColor = (this.selectedOption === 1) ? 'yellow' : 'orange';
         const noW = noText.length * 32;
         const noX = opts.NO.x - (noW / 2);
-        Assets.drawAlphabet(ctx, noText, noX, opts.NO.y - 16, noColor);
+        BitmapFont.drawAlphabet(ctx, noText, noX, opts.NO.y - 16, noColor);
 
         const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
         const targetY = (this.selectedOption === 0) ? opts.YES.y : opts.NO.y;
         const pointerX = 320 - opts.cursorOffset;
-        Assets.drawFrame(ctx, 'ui/pointer.png', pointerX, targetY - 16, frameIndex, 32, 32);
+        UIWidgets.drawFrame(ctx, 'ui/pointer.png', pointerX, targetY - 16, frameIndex, 32, 32);
 
         const info = ContinueConfig.INFO;
         ctx.fillStyle = info.color;

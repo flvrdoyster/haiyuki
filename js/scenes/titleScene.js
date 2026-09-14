@@ -205,17 +205,17 @@ const TitleScene = {
             const text1 = TitleConfig.MENU.ITEM1.text;
             const color1 = (this.menuIndex === 0) ? 'yellow' : 'orange';
             const x1 = (640 - (text1.length * 32)) / 2;
-            Assets.drawAlphabet(ctx, text1, x1, TitleConfig.MENU.ITEM1.y, color1);
+            BitmapFont.drawAlphabet(ctx, text1, x1, TitleConfig.MENU.ITEM1.y, color1);
 
             const text2 = TitleConfig.MENU.ITEM2.text;
             const color2 = (this.menuIndex === 1) ? 'yellow' : 'orange';
             const x2 = (640 - (text2.length * 32)) / 2;
-            Assets.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
+            BitmapFont.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
 
             const text3 = TitleConfig.MENU.ITEM3.text;
             const color3 = (this.menuIndex === 2) ? 'yellow' : 'orange';
             const x3 = (640 - (text3.length * 32)) / 2;
-            Assets.drawAlphabet(ctx, text3, x3, TitleConfig.MENU.ITEM3.y, color3);
+            BitmapFont.drawAlphabet(ctx, text3, x3, TitleConfig.MENU.ITEM3.y, color3);
 
             let targetText, targetY, targetX;
             if (this.menuIndex === 0) {
@@ -231,7 +231,7 @@ const TitleScene = {
             targetX = (640 - (targetText.length * 32)) / 2;
 
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
-            Assets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
+            UIWidgets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
         }
 
         const copy = Assets.get(TitleConfig.COPYRIGHT.path);
