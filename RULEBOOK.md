@@ -1,133 +1,126 @@
-# Haiyuki Game Rules (Rulebook)
+# 환세패유기 규칙서
 
-> [!IMPORTANT]
-> **Priority Directive**: Haiyuki is based on Mahjong but follows its own distinct rules.
-> **This document is the absolute source of truth.**
-> If a rule is not strictly defined here, **DO NOT** invent or assume it based on standard Mahjong rules.
-> Follow the logic defined below above all else.
+마작을 바탕으로 하되 독자 규칙을 따른다. 여기 정의되지 않은 것은 일반 마작 규칙로 추정하지 않는다. 코드 변경은 이 문서에 대조한다. 테스트(`tests/battle*.spec.ts`)가 절 번호(§)로 인용하므로 번호를 바꾸지 말 것.
 
-This document serves as the single source of truth for the game's rules and logic. 
-**ALL** future code changes must verify against this rulebook.
+## 1. 진행 흐름
+- **턴 제한**: 라운드당 최대 **20턴**. 20턴에 나가리.
+- **매치 종료**: 한쪽 HP가 0이 되면 종료. 라운드 수 제한은 없다.
+- **패 구성**:
+  - **종류**: 13종(캐릭터 6, 무기 3, 눈썹 4).
+  - **개수**: 종류당 **9장**, 총 **117장**.
+  - **도라 제외**: 도라 표시패는 117장에 포함되지 않는다. 따로 존재.
+- **턴 단계**:
+  1. **드로우**: 1장 뽑는다. (손패 12)
+  2. **액션**: 셀프 액션(쯔모, 리치) 확인.
+  3. **버림**: 1장 버린다. (손패 11)
+  4. **반응**: 상대가 반응(론, 펑) 확인.
 
-## 1. General Gameplay Flow
-- **Turn Limit**: The game lasts for a maximum of **20 Turns** per round. (Nagari occurs at Turn 20).
-- **Round Limit**: The match ends when one side's HP reaches 0 or after a set number of rounds (e.g., 3 rounds).
-- **Tile Set**: 
-  - **Types**: 13 Types (6 Characters, 3 Weapons, 4 Brows).
-  - **Count**: **9 Tiles** per type. Total **117 Tiles**.
-  - **Dora Exclusion**: Dora Indicator tiles are **NOT** included in the 117 playable tiles. They exist separately.
-- **Turn Phase**:
-  1. **Draw Phase**: Active player draws 1 tile. (Total Hand: 12)
-  2. **Action Phase**: Check for Self-Actions (Tsumo, Riichi).
-  3. **Discard Phase**: Active player discards 1 tile. (Total Hand: 11)
-  4. **Reaction Phase**: Opponent checks for reactions (Ron, Pon).
+## 2. 손패
+- **최대 손패**: 11장 보유, 12번째가 뽑은/승리 패.
+- **펑 후**: 펑을 부른 직후엔 드로우를 건너뛴다. (11 → 버림 → 11)
 
-## 2. Hand Structure
-- **Max Hand Size**: 11 tiles held, 12th tile is the drawn/winning tile.
-- **Pon Mechanics**: A player (or CPU) must skip the Draw phase immediately after calling Pon. (Hand stays at 11 -> Discard -> 11).
+## 3. 리치 (독자 규칙)
+- **조건**:
+  - **멘젠**(오픈 세트 없음).
+  - **텐파이**(1장 남음).
+  - 남은 턴이 충분할 것(예: 20턴 미만).
+- **효과**:
+  - **BGM 변경**: 음악이 격해진다.
+  - **손패 고정**: 손패 구성을 바꿀 수 없다.
+  - **비용**: **0점**(1000점 공탁 없음).
+- **수동 버림**:
+  - **선언 턴**: 리치 선언 시 버릴 패를 **직접 고를 수 있다**.
+  - **이후 턴**: 리치 성립 후엔 **자동 모드**(쯔모기리) — 쯔모 승리가 아니면 뽑은 패를 자동으로 버린다.
+  - **제약**: 선언 턴에 고른 버림패는 텐파이를 **유지**해야 한다.
+  - **검증**: 텐파이를 깨는 버림은 **막힌다**.
+  - **표시**: 고를 수 없는 패는 어둡게 표시.
 
-## 3. Riichi Mechanics (Custom)
-- **Condition**: 
-  - Player must be **Menzen** (Closed Hand / No Open Sets).
-  - Player must be **Tenpai** (Ready Hand: 1 tile away from winning).
-  - Remaining turns must be sufficient (e.g., < 20 turns).
-- **Effect**:
-  - **BGM Changes**: Music intensifies.
-  - **Locked Hand**: Hand composition generally cannot be changed.
-  - **Cost**: Declaring Riichi costs **0 points** (No 1000 point deposit required).
-- **Manual Discard (User Requirement)**:
-  - **Declaration Turn**: When declaring Riichi, the player **CAN** manually choose which tile to discard.
-  - **Subsequent Turns**: After Riichi is established, the game enters **Auto Mode** (Tsumogiri) where drawn tiles are automatically discarded unless a Tsumo win occurs.
-  - **Constraint**: The chosen discard during declaration **MUST** maintain the Tenpai status.
-  - **Validation**: If a chosen discard would break Tenpai, it is **blocked** (invalid).
-  - **Visuals**: Invalid tiles are darkened/tinted to indicate they cannot be selected.
+## 4. 승리 조건
+- **역 필수**: 유효한 역(예: 콤비네이션, 올스타, 마유, 삼연격)이 있어야 승리.
 
-## 4. Winning Conditions
-- **Yaku Required**: A valid Yaku (e.g., Combination, All Stars, Mayu, Sam-Yeon-Gyeok) is required to win.
+### 쯔모
+- 뽑은 패로 역이 완성되면 선언 가능.
+- **자동 처리**: 리치 상태에서 쯔모 가능하면 대개 자동 실행(또는 최우선).
 
-### Tsumo (Self-Draw Win)
-- Can be declared if the drawn tile completes the hand with a Yaku.
-- **Auto-Action**: In Riichi state, if Tsumo is available, it is often auto-executed (or highly prioritized).
+### 론 — **핵심 독자 규칙**
+- **제약**: **리치 상태에서만** 론 가능.
+  - 다마텐(무음 텐파이)으로는 론 불가.
+  - 펑을 불렀으면 론 불가(오픈 손패는 리치 불가이므로).
+- 일반 마작과 다른 의도적 규칙(밸런스/디자인).
+- **후리텐 없음**: 자기가 버린 패로도 리치 중이면 론 가능. 버림 이력은 무관.
 
-### Ron (Discard Win) - **CRITICAL CUSTOM RULE**
-- **Constraint**: A player (or CPU) can **ONLY** declare Ron if they are in **Riichi** state.
-  - *Implication*: You cannot Ron with a Damaten (Silent Tenpai) hand.
-  - *Implication*: You cannot Ron if you have called Pon (since Open Hands cannot Riichi).
-- **Exception**: This is a strict deviation from standard Mahjong rules, implemented for gameplay balance/design reasons.
-- **No Furiten**: The "Furiten" rule (cannot Ron if you previously discarded the winning tile) **does not exist**. You can Ron on any valid tile if you are in Riichi, regardless of your discard history.
+## 5. 부르기 (나키)
+### 펑
+- **조건**: 손에 같은 패 2장 + 상대 버림패.
+- **효과**:
+  - 버림패를 가져온다.
+  - 손패가 **오픈**된다(멘젠 상실).
+  - **리치 불가**.
+  - **론 불가**(론은 리치 필수이므로). 쯔모로만 승리 가능.
+- **턴 흐름**: 펑 후 드로우를 건너뛰고 즉시 버린다.
 
-## 5. Called Actions (Naki)
-### Pon
-- **Condition**: Pair in hand matches opponent's discard.
-- **Effect**:
-  - Discard is taken.
-  - Hand becomes **Open** (Menzen Lost).
-  - **Riichi Disabled**: Since hand is open, Riichi is impossible.
-  - **Ron Disabled**: Since Ron requires Riichi (per Custom Rule), calling Pon effectively removes the ability to win by Ron. You can only win by Tsumo.
-- **Turn Flow**: After Pon, the player skips the Draw phase and must discard immediately.
+### 없는 액션
+- **치**: 없음.
+- **깡**: 없음.
 
-### Unavailable Actions
-- **Chi (치)**: Does not exist in this game ruleset.
-- **Kan (깡)**: Does not exist in this game ruleset.
+## 6. 나가리
+- 20턴까지 승자가 없으면 발생.
+- 텐파이/노텐 판정으로 결과 결정(또는 단순 무승부).
 
-## 6. Draw Game (Nagari)
-- Occurs if Turn Count reaches 20 without a winner.
-- Hand verification (Tenpai/Noten) determines the result (or simple Draw).
+## 7. AI 참고
+- **버림 우선순위**: 텐파이 유지 우선.
+- **리치**: 조건 충족 + 프로필 허용 시 선언.
+- **펑**: 같은 패 2장 보유 + 프로필/난이도가 권장하면 부른다.
 
-## 7. AI Logic Note
-- **Discard Priority**: AI prioritizes keeping Tenpai.
-- **Riichi Priority**: AI will declare Riichi if conditions are met and profile allows.
-- **Pon Logic**: AI will Pon if it has a pair and the profile/difficulty settings encourage it.
+## 8. 점수와 데미지
+- **직접 데미지**: 손패 최종 점수가 그대로 상대 HP 데미지.
+- **오픈 페널티**: 승리 손패가 **오픈**이면 점수 **75%**.
+- **대칭**: 모든 규칙(점수, 리치 조건, 오픈 페널티 등)이 **플레이어와 CPU에 동일** 적용.
 
-## 8. Scoring & Damage
-- **Direct Damage**: The final score of a hand is applied directly as damage to the opponent's HP.
-- **Open Hand Penalty**: If the winning hand is **Open** (not Menzen), the total score is reduced to **75%**.
-- **Symmetry**: ALL rules (Scoring, Riichi conditions, Open Hand penalties, etc.) apply identically to both the **Player** and the **CPU**.
+## 9. 보너스
+- **도라**: 보이는 도라와 일치하는 패 1장당 +1.
+- **우라도라**: 숨은 도라와 일치하는 패 1장당 +1.
+  - **조건**: 승자가 **리치** 상태일 때만.
+  - **참고**: 우라도라는 보이는 도라와 같은 패(색+종류)일 수 있다. 무작위 생성.
+- **특수 보너스(800점)**:
+  - **텐호**: 첫 턴 쯔모 승리.
+  - **하이테이**: 마지막 턴(20턴) 쯔모 승리.
+  - **호테이**: 마지막 턴(20턴) 론 승리.
 
-## 9. Bonuses
-- **Dora**: +1 Bonus count per matching visible Dora tile.
-- **Ura Dora**: +1 Bonus count per matching hidden Dora tile.
-  - **Condition**: Only applies if the winner is in **Riichi** state.
-  - **Note**: The Ura Dora tile **CAN** be the same as the visible Dora tile type (Color + Type). It is generated randomly.
-- **Special Bonuses (800 pts)**:
-  - **Tenho**: Winning by Tsumo on the very first turn.
-  - **Haitei**: Winning by Tsumo on the last turn (Turn 20).
-  - **Houtei**: Winning by Ron on the last turn (Turn 20).
+## 10. 캐릭터 스킬
+- **MP**: 최대 100. 스킬 사용 시 소모.
+- **분류**:
+  - **ACTIVE**: 내 메인 페이즈(액션 선택, 버림 전)에 사용.
+  - **REACTIVE**: 특정 이벤트(승리, 패배, 라운드 종료)에 자동 또는 선택 발동.
+  - **SETUP**: 라운드 시작 시 초기 손패 조작.
 
-## 10. Character Skill System
-- **MP (Mana Points)**: Characters have MP (Max 100). Using skills consumes MP.
-- **Skill Categories**:
-  - **ACTIVE**: Used during the player's Main Phase (Action Select, before Discard).
-  - **REACTIVE**: Triggered automatically or by user choice in response to specific events (Win, Loss, Round End).
-  - **SETUP**: Used at the start of a round to manipulate the initial hand.
+### 액티브
+- **제약**: 턴당 **1개**.
+- **목록**:
+  - `TIGER_STRIKE` (아타호): 텐파이면 다음 드로우가 쯔모 패 확정. (20턴 이후 불가)
+  - `HELL_PILE` (아타호): 상대가 3턴간 쓸모없는 패를 뽑게 한다.
+  - `RECOVERY` (화린): HP 소량 회복. (예외: 턴당 여러 번 가능)
+  - `DISCARD_GUARD` (화린): 5턴간 내 버림패에 상대가 론·펑 불가.
+  - `WATER_MIRROR` (린샹): 상대 승리 데미지 25% 감소. (해당 라운드, 데미지 계산 시 적용)
+  - `CRITICAL` (페톰): 내 승리 데미지 25% 증가. (해당 라운드, 데미지 계산 시 적용)
+  - `SPIRIT_RIICHI` (유리): 사용 가능하면 5턴 뒤 쯔모 승리 확정.
 
-### Active Skills
-- **Constraint**: Only **1 Active Skill** can be used per turn.
-- **List**:
-  - `TIGER_STRIKE` (Ataho): If Tenpai, the next draw is guaranteed to be a Tsumo tile. (Cannot use after Turn 20).
-  - `HELL_PILE` (Ataho): Forces the opponent to draw useless tiles for 3 turns.
-  - `RECOVERY` (Fari): Restores a small amount of HP. (Exception: Can be used multiple times per turn).
-  - `DISCARD_GUARD` (Fari): The opponent cannot call Ron or Pon on your discards for 5 turns.
-  - `WATER_MIRROR` (Rinxiang): Reduces damage taken from an opponent's win by 25%. (Applied for the current Round, checked at damage calculation).
-  - `CRITICAL` (Petum): Increases damage dealt by your win by 25%. (Applied for the current Round, checked at damage calculation).
-  - `SPIRIT_RIICHI` (Yuri): If usable, guarantees a Tsumo win after 5 turns.
+### 리액티브
+- **발동**: 상대 론, 자기 승리, 나가리 등.
+- **목록**:
+  - `DORA_BOMB` (린샹): 리치 승리 시 숨은 도라 표시패를 손패로 변환(점수 상승).
+  - `EXCHANGE_RON` (스마슈): 상대 론 선언 시 버린 패를 손패의 다른 패와 바꿔 취소.
+  - `SUPER_IAI` (유리): 상대 론 선언 시 버린 패를 파괴해 취소(론 완전 무효).
+  - `LAST_CHANCE` (페톰): 텐파이 상태로 나가리 시 실제 **남은 덱**으로 룰렛.
+    - 뽑힌 패가 승리 패면 쯔모 승리.
+    - 실제 남은 산(`this.deck`)을 쓴다 — 20턴 시점 약 50장 이상.
 
-### Reactive Skills
-- **Trigger**: Specific conditions like Opponent Ron, Self Win, or Nagari.
-- **List**:
-  - `DORA_BOMB` (Rinxiang): When winning with Riichi, converts Hidden Dora indicators into tiles in your hand (Score Boost).
-  - `EXCHANGE_RON` (Smash): When opponent declares Ron, cancel it by swapping the discarded tile with another tile from your hand.
-  - `SUPER_IAI` (Yuri): When opponent declares Ron, cancel it by destroying the discarded tile (Invalidates the Ron completely).
-  - `LAST_CHANCE` (Petum): If Nagari (Draw) occurs while Tenpai, trigger a Roulette of the actual **Remaining Deck**.
-    - If the picked tile is a winning tile, trigger Tsumo Win.
-    - Uses the actual physical state of the remaining Wall (`this.deck`) which contains ~50+ tiles at Turn 20.
+### 셋업
+- **발동**: 라운드 시작(배패).
+- **목록**:
+  - `EXCHANGE_TILE` (스마슈): 초기 손패를 새 패로 교환. (패당 비용)
+  - `PAINT_TILE` (마유): 초기 손패를 새 패로 교환. (MP 비용 감소)
 
-### Setup Skills
-- **Trigger**: Round Start (Dealing Phase).
-- **List**:
-  - `EXCHANGE_TILE` (Smash): Swap tiles from your initial hand for new ones. (Cost is per tile).
-  - `PAINT_TILE` (Mayu): Swap tiles from your initial hand for new ones. (Reduced MP cost).
-
-### Buffs & Status Effects
-- **Turn-Based**: Effects like `DISCARD_GUARD` or `HELL_PILE` last for a specific number of turns.
-- **Decrement**: Buff timers decrease at the start of the owner's turn.
+### 버프·상태
+- **턴 기반**: `DISCARD_GUARD`, `HELL_PILE` 등은 정해진 턴 수 지속.
+- **감소**: 버프 타이머는 소유자 턴 시작 시 감소.
