@@ -231,7 +231,7 @@ const TitleScene = {
             targetX = (640 - (targetText.length * 32)) / 2;
 
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
-            UIWidgets.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
+            UIDraw.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
         }
 
         const copy = Assets.get(TitleConfig.COPYRIGHT.path);

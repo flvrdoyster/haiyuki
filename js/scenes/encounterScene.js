@@ -206,7 +206,7 @@ const EncounterScene = {
         // 타일 배경: 매 프레임 패턴 객체를 새로 만들지 않고 캐시 사용
         const bg = Assets.get('bg/CHRBAK.png');
         if (bg) {
-            ctx.fillStyle = UIWidgets.getPattern(ctx, bg, 'repeat');
+            ctx.fillStyle = UIDraw.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, 640, 480);
         }
 
@@ -298,13 +298,7 @@ const EncounterScene = {
         this.drawDialogueBubble(ctx, currentLine.text, speakerSide);
     },
 
-    // 대사 말풍선(박스 + 꼬리 + 본문).
-    //
-    // 여기와 drawChallengerMonologue 가 같은 코드를 복붙해 쓰고 있었다 —
-    // 박스 스케일·위치, 줄바꿈, baseline 보정(lineHeight * 0.7)까지 전부 동일하고
-    // **꼬리 위치만** 달랐다. 그 차이만 tail 인자로 남기고 하나로 합쳤다.
-    //
-    // tail: 'none'(꼬리 없음) | 'p1'(왼쪽) | 'cpu'(오른쪽, 좌우 반전) | 'center'(가운데)
+    // tail: 'none' | 'p1'(왼쪽) | 'cpu'(오른쪽, 좌우 반전) | 'center'
     drawDialogueBubble: function (ctx, text, tail) {
         const W = 640, H = 480;
         const box = Assets.get('ui/long_bubble.png');
@@ -376,7 +370,7 @@ const EncounterScene = {
 
         const bg = Assets.get(ChallengerConfig.UNKNOWN.BG);
         if (bg) {
-            ctx.fillStyle = UIWidgets.getPattern(ctx, bg, 'repeat');
+            ctx.fillStyle = UIDraw.getPattern(ctx, bg, 'repeat');
             ctx.fillRect(0, 0, w, h);
         } else {
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
@@ -391,7 +385,6 @@ const EncounterScene = {
         }
 
         const currentLine = this.dialogueSequence[this.currentLineIndex] || {};
-        // 난입 모놀로그는 말하는 쪽이 화면에 없으므로 꼬리를 가운데에 둔다.
         this.drawDialogueBubble(ctx, currentLine.text, 'center');
     }
 };

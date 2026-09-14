@@ -63,16 +63,12 @@ const CharacterSelectScene = {
         if (this.mode === 'NEXT_MATCH') {
             this.playerIndex = data.playerIndex;
 
-            // 마지막 상대까지 격파해 후보가 없으면 룰렛을 돌리지 않고 엔딩으로 직행.
-            // 돌려봤자 뽑을 상대가 없어 60프레임을 헛돈 뒤 goToEnding으로 빠지므로,
-            // 플레이어에겐 히든 보스 난입 직전에 룰렛이 도는 것처럼 보였다.
-            // BGM 시작 전에 빠져나가야 선택 BGM이 한순간 울렸다 끊기지 않는다.
+            // 남은 상대가 없으면 룰렛 없이 엔딩으로. BGM 시작 전에 빠져나가야 한다.
             if (this.getAvailableOpponents().length === 0) {
                 this.goToEnding();
                 return;
             }
 
-            // 후보가 남아 있을 때만 룰렛 스핀으로 상대를 선정
             this.currentState = this.STATE_CPU_SELECT;
         }
 
@@ -277,7 +273,7 @@ const CharacterSelectScene = {
     draw: function (ctx) {
         const bg = Assets.get(SelectConfig.BACKGROUND.path);
         if (bg) {
-            const pattern = UIWidgets.getPattern(ctx, bg, 'repeat');
+            const pattern = UIDraw.getPattern(ctx, bg, 'repeat');
             ctx.fillStyle = pattern;
             ctx.fillRect(0, 0, 640, 480);
         }
@@ -362,12 +358,12 @@ const CharacterSelectScene = {
             const cursorH = cursorImg.height;
 
             const pr = this.getIconRect(this.playerIndex);
-            UIWidgets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+            UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                 pr.x + (pr.w - cursorW) / 2, pr.y + (pr.h - cursorH) / 2, 0, cursorW, cursorH);
 
             if (this.currentState >= this.STATE_CPU_SELECT) {
                 const cr = this.getIconRect(this.cpuIndex);
-                UIWidgets.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
+                UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                     cr.x + (cr.w - cursorW) / 2, cr.y + (cr.h - cursorH) / 2, 1, cursorW, cursorH);
             }
         }

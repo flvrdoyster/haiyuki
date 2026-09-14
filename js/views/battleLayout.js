@@ -1,17 +1,6 @@
-// 전투 화면 레이아웃 계산 + 그것에 기반한 히트테스트.
-//
-// battleRenderer 안에 그리기와 섞여 있던 것을 옮겼다. 히트테스트가 렌더링과 **같은 좌표
-// 계산**을 봐야 클릭이 그림과 어긋나지 않는데, 둘이 한 파일에 있으면 어느 쪽이 진실
-// 출처인지 흐려진다. 여기가 좌표의 단일 출처고, 렌더러는 이걸 불러서 그린다.
-//
-//   레이아웃: getVisualMetrics(손패·펑 세트 전체 폭과 시작 x) · getPlayerHandPosition · _menuMetrics
-//   히트테스트: getHandTileAt · getMenuItemAt  — 전부 순수 함수(그리기 없이 호출 가능)
-//
-// 렌더러에 남긴 것: checkActionButton / checkExchangeButton. 이 둘은 draw 가 measureText 로
-// 계산해 캐시한 rect(_actionRect / _exchangeBtnRect)를 읽으므로 그리기에 묶여 있다 —
-// 한 프레임도 안 그렸으면 항상 false. 그 의존을 여기로 끌어오면 오히려 감춰지므로 draw 옆에 뒀다.
+// 전투 화면 좌표의 단일 출처 — 렌더러(그리기)와 battleScene(클릭 판정)이 둘 다 이걸 본다.
 const BattleLayout = {
-    getVisualMetrics: function (character, groupSize, target) {
+    getVisualMetrics: function (character, groupSize) {
         const m = { totalW: 0, startX: 0, handStartX: 0, openStartX: 0, handW: 0, openW: 0 };
 
         const tileW = BattleConfig.HAND.tileWidth;
@@ -49,8 +38,6 @@ const BattleLayout = {
         return m;
     },
 
-    _tempPos: { x: 0, y: 0 },
-
     getPlayerHandPosition: function (index, count, groupSize, startX) {
         const tileW = BattleConfig.HAND.tileWidth;
         const gap = BattleConfig.HAND.tileGap;
@@ -61,13 +48,10 @@ const BattleLayout = {
             x += drawGap;
         }
 
-        // GC 압박 최소화: 매 프레임 객체 재사용
-        this._tempPos.x = x;
-        this._tempPos.y = BattleConfig.HAND.playerY;
-        return this._tempPos;
+        return { x: x, y: BattleConfig.HAND.playerY };
     },
 
-    _menuMetrics: function (menuItems) {
+    getMenuMetrics: function (menuItems) {
         const conf = BattleConfig.BATTLE_MENU;
         const lineHeight = conf.fixedLineHeight || 28;
         const topOffset = conf.padding + 7;
@@ -104,7 +88,7 @@ const BattleLayout = {
 
     getMenuItemAt: function (mouseX, mouseY, menuItems) {
         const conf = BattleConfig.BATTLE_MENU;
-        const m = this._menuMetrics(menuItems);
+        const m = this.getMenuMetrics(menuItems);
         const x = m.x, y = m.y, w = m.w, h = m.h;
         const startX = m.startX;
         const startY = m.startY;

@@ -120,13 +120,7 @@ const Input = {
         return this.isRightMouseDown && !this.prevRightMouseDown;
     },
 
-    // 확인/진행 키. Z(Space) 통일 키맵 — Enter·NumpadEnter는 init에서 KeyZ로 정규화된다.
-    //
-    // **마우스는 일부러 포함하지 않는다.** 확인 동작의 마우스 처리는 곳마다 조건이 달라서다 —
-    // 드로우 버튼은 `onButton` 히트테스트가 필요하고, 캐릭터 선택은 호버 중인 칸이 있어야 하며,
-    // 확인 다이얼로그는 아예 마우스를 안 받는다. 여기에 마우스를 섞으면
-    // "아무 데나 클릭해도 확정"이 돼버린다. 호출부가 각자 붙이는 게 맞다.
-    // 같은 이유로 `|| Game.isAutoTest`(오토플레이가 통과해야 하는 대기 화면에만 붙는다)도 제외.
+    // 확인키 = Z(Space). 마우스·isAutoTest 는 호출부 조건이 제각각이라 여기 넣지 않는다.
     isConfirmKey: function () {
         return this.isJustPressed(this.Z) || this.isJustPressed(this.SPACE);
     }

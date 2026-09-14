@@ -1,13 +1,5 @@
-// UI 위젯과 그 재료가 되는 스프라이트/패턴 프리미티브.
-//
-// Assets 객체 안에 섞여 있던 것을 옮겼다(BitmapFont 와 같은 이유). 이미지는
-// Assets.get()으로 받는다 — 로딩은 여전히 Assets 담당.
-//
-//   프리미티브: drawFrame(수평 스트립 스프라이트) · getPattern(패턴 캐시) · drawTiled
-//   위젯:       drawUIFrame(9-slice 테두리) · drawWindow · drawButton
-//
-// getPattern 은 패턴을 이미지 객체(img._patterns)에 캐시한다 — ctx 마다 다시 만들 필요 없음.
-const UIWidgets = {
+// UI 그리기 헬퍼 — 스프라이트 프레임·타일 패턴·9-slice 프레임·창·버튼. 이미지는 Assets.get()으로.
+const UIDraw = {
     drawFrame: function (ctx, filename, x, y, frameIndex, frameWidth, frameHeight) {
         const img = Assets.get(filename);
         if (!img) return;

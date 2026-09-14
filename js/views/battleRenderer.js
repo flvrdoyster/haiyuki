@@ -696,7 +696,7 @@ const BattleRenderer = {
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
-        UIWidgets.drawWindow(ctx, rx, ry, rw, rh);
+        UIDraw.drawWindow(ctx, rx, ry, rw, rh);
 
         const info = state.resultInfo;
         if (!info) return;
@@ -838,10 +838,10 @@ const BattleRenderer = {
     // commands (아가리/펑/리치) push the window UP rather than off the canvas bottom.
     drawBattleMenu: function (ctx, state) {
         const conf = BattleConfig.BATTLE_MENU;
-        const m = BattleLayout._menuMetrics(BattleMenuSystem.menuItems);
+        const m = BattleLayout.getMenuMetrics(BattleMenuSystem.menuItems);
         const x = m.x, y = m.y, w = m.w, h = m.h;
 
-        UIWidgets.drawWindow(ctx, x, y, w, h);
+        UIDraw.drawWindow(ctx, x, y, w, h);
 
         const startX = m.startX;
         const startY = m.startY;
@@ -943,7 +943,7 @@ const BattleRenderer = {
         this._actionRect = r;
         this._actionKey = key;
         const isHovered = state ? !!state.actionHover : false;
-        UIWidgets.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
+        UIDraw.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
             cursorColor: conf.cursor
         });
@@ -981,7 +981,7 @@ const BattleRenderer = {
         const x = (640 - w) / 2;
         const y = (conf.y !== undefined) ? conf.y : (480 - h) / 2;
 
-        UIWidgets.drawWindow(ctx, x, y, w, h);
+        UIDraw.drawWindow(ctx, x, y, w, h);
 
         const count = state.exchangeIndices ? state.exchangeIndices.length : 0;
 
@@ -1000,7 +1000,7 @@ const BattleRenderer = {
         const label = (count === 0 ? lab.cancel : lab.confirm) + keyHint;
 
         const isHover = state.exchangeButtonHover;
-        UIWidgets.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
+        UIDraw.drawButton(ctx, btnX, btnY, btnW, btnH, label, isHover, { noBorder: true });
 
         if (count > 0) {
             this.drawMpPreview(ctx, state, count);

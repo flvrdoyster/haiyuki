@@ -1,11 +1,5 @@
 // 오토 플레이 — Game.isAutoTest일 때 P1을 AI가 대신 둔다.
-//
-// 실제 대국 규칙이 아니라 테스트·자동 주파용 코드라 BattleEngine 밖에 둔다.
-// (BattleEngine.performAutoTurn으로 엔진 한가운데 78줄 박혀 있던 것을 옮긴 것)
-//
-// **P1은 항상 skill 0.7 고정, aiProfile 없이 둔다.** tests/_ai_fingerprint가
-// P1을 "성격 없는 중립 베이스라인"으로 놓고 CPU 캐릭터별 행동 지문을 재기 때문에,
-// 이 값을 바꾸면 캐릭터별 측정치가 전부 흔들린다. 난이도 설정과도 무관해야 한다.
+// P1은 aiProfile 없이 skill 0.7 고정. tests/_ai_fingerprint가 이 값을 중립 베이스라인으로 쓴다.
 const AutoPlay = {
     performTurn: function (e) {
         if (e.currentState !== e.STATE_PLAYER_TURN) {

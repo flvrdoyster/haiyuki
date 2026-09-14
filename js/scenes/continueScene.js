@@ -138,7 +138,7 @@ const ContinueScene = {
         const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
         const targetY = (this.selectedOption === 0) ? opts.YES.y : opts.NO.y;
         const pointerX = 320 - opts.cursorOffset;
-        UIWidgets.drawFrame(ctx, 'ui/pointer.png', pointerX, targetY - 16, frameIndex, 32, 32);
+        UIDraw.drawFrame(ctx, 'ui/pointer.png', pointerX, targetY - 16, frameIndex, 32, 32);
 
         const info = ContinueConfig.INFO;
         ctx.fillStyle = info.color;

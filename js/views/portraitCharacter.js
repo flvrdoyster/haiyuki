@@ -320,7 +320,7 @@ class PortraitCharacter {
                 const destW = globalBaseW * scale;
                 const destH = 280 * scale;
                 if (this.config.align === 'right') dx -= destW;
-                UIWidgets.drawFrame(ctx, this.data.face, dx, dy, this.isCpu ? 1 : 0, destW, destH);
+                UIDraw.drawFrame(ctx, this.data.face, dx, dy, this.isCpu ? 1 : 0, destW, destH);
             }
             return;
         }

@@ -9,7 +9,7 @@ const BattleScene = {
         BattleEngine.init(data, this);
         BattleRenderer.reset();
         this.initPortraits();
-        this.activeFX = [];
+        this.fx = FXSystem.create();
         this.confirmData = null;
         this._confirmLayout = null;
     },
@@ -188,7 +188,7 @@ const BattleScene = {
                     continue;
                 }
 
-                const isBlocked = FXSystem.isBlocking(this.activeFX);
+                const isBlocked = this.fx.isBlocking();
                 if (!isBlocked) {
                     if (evt.type === 'FX') {
                         if (evt.options && evt.options.popupType) {
@@ -197,7 +197,7 @@ const BattleScene = {
                                 Assets.playSound(conf.sound);
                             }
                         }
-                        FXSystem.spawn(this.activeFX, evt.asset, evt.x, evt.y, evt.options);
+                        this.fx.spawn(evt.asset, evt.x, evt.y, evt.options);
                     }
                     engine.events.splice(i, 1);
                     continue;
@@ -221,14 +221,14 @@ const BattleScene = {
         }
 
         this.processEvents(BattleEngine);
-        FXSystem.update(this.activeFX, dt);
+        this.fx.update(dt);
         BattleDialogue.update(dt);
 
         // 블로킹 FX 중에도 포트레이트 애니메이션은 계속 실행
         if (this.p1Character) this.p1Character.update(dt);
         if (this.cpuCharacter) this.cpuCharacter.update(dt);
 
-        const isBlocking = FXSystem.isBlocking(this.activeFX);
+        const isBlocking = this.fx.isBlocking();
         if (isBlocking) {
             return;
         }
@@ -400,7 +400,7 @@ const BattleScene = {
     },
 
     draw: function (ctx) {
-        BattleRenderer.draw(ctx, BattleEngine, this.activeFX);
+        BattleRenderer.draw(ctx, BattleEngine, this.fx.list);
 
         if (this.confirmData) {
             this.drawConfirm(ctx);

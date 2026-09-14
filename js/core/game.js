@@ -312,11 +312,7 @@ const Game = {
         const elapsed = currentTime - Game.lastTime;
         Game.lastTime = currentTime;
 
-        // 화면이 가려져 있으면 게임을 진행시키지 않는다. 백그라운드에서도 rAF가
-        // 스로틀된 채 계속 돌면 대국이 혼자 진행되고, 그동안 쌓인 사운드가
-        // 복귀 시 몰아치는 원인이 된다. lastTime은 위에서 이미 갱신했으므로
-        // 복귀 첫 프레임에 누적 점프가 생기지 않는다.
-        // 자동 테스트는 백그라운드 탭에서도 끝까지 돌아야 하므로 예외.
+        // 백그라운드에선 진행하지 않는다(대국이 혼자 진행되며 사운드가 쌓이는 것 방지). 자동 테스트는 예외.
         if (!Game.isAutoTest && typeof document !== 'undefined' && document.hidden) {
             requestAnimationFrame(Game.loop);
             return;

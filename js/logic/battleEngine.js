@@ -26,7 +26,6 @@ const BattleEngine = {
     stateTimer: 0,
     lastState: -1,
 
-    // 로직 틱(dt) 기반 타임아웃 — 구현은 core/timers.js.
     timers: TickTimers.create(),
 
     DELAY_DRAW: 60,
@@ -141,7 +140,6 @@ const BattleEngine = {
             this.cpu.maxHp = 99999;
         }
 
-        // 타이머는 위 timers.clear()에서 이미 비웠다. (activeFX 는 씬 소유 — 엔진엔 없음)
         this.sequencing = { active: false, steps: [], currentStep: 0, timer: 0 };
 
         this.currentState = this.STATE_INIT;

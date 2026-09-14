@@ -1,12 +1,4 @@
-// 이미지 폰트 렌더링 — 아틀라스 PNG에서 글자 셀을 잘라 그린다.
-//
-// Assets 객체 안에 섞여 있던 것을 옮겼다. "에셋 로더"와 "캔버스 드로잉"이 한 이름 뒤에
-// 숨어 있어 Assets.drawAlphabet 이 어디 있는지 파일 이름만으론 짐작할 수 없었다.
-// 이미지는 Assets.get()으로 받는다 — 로딩은 여전히 Assets 담당.
-//
-//   drawAlphabet  ui/alphabet.png     A-Z ?.,!  32px 그리드, orange/yellow 2행
-//   drawStaffGlyph ending/staff.png   크레딧 전용 16열×8행 40×64, 한자·가나·한글 포함
-//   drawNumberBig ui/number_big.png   0-9 10등분
+// 이미지 폰트 — drawAlphabet(ui/alphabet.png) · drawStaffGlyph(ending/staff.png) · drawNumberBig(ui/number_big.png).
 const BitmapFont = {
     drawAlphabet: function (ctx, text, x, y, options = {}) {
         const img = Assets.get('ui/alphabet.png');

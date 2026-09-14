@@ -242,7 +242,7 @@ const BattleSequencer = {
             }
         },
         WAIT_FX: function (engine) {
-            if (engine.scene && engine.scene.activeFX && engine.scene.activeFX.length > 0) {
+            if (engine.scene && engine.scene.fx && engine.scene.fx.list.length > 0) {
                 return;
             }
             BattleSequencer.advance(engine);

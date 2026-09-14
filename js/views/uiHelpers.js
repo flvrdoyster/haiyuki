@@ -50,7 +50,7 @@ const UIHelpers = {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 640, 480);
 
-        UIWidgets.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
+        UIDraw.drawWindow(ctx, layout.box.x, layout.box.y, layout.box.w, layout.box.h);
 
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.regular : 'sans-serif';
@@ -67,8 +67,8 @@ const UIHelpers = {
         const yes = layout.yesBtn;
         const no = layout.noBtn;
 
-        UIWidgets.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, selectedIndex === 0, { noBorder: true });
-        UIWidgets.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, selectedIndex === 1, { noBorder: true });
+        UIDraw.drawButton(ctx, yes.x, yes.y, yes.w, yes.h, yesLabel, selectedIndex === 0, { noBorder: true });
+        UIDraw.drawButton(ctx, no.x, no.y, no.w, no.h, noLabel, selectedIndex === 1, { noBorder: true });
 
         ctx.restore();
     }
