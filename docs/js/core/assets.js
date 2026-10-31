@@ -59,6 +59,7 @@ const Assets = {
     // iOS: 백그라운드 복귀 시 AudioContext와 BGM 요소가 일시정지 상태로 남음 — 둘 다 재개.
     _resumeAudioOnReturn: function () {
         if (!this._audioUnlocked) return;
+        if (typeof Game !== 'undefined' && Game.paused) return;
         const ctx = this.audioContext;
         if (ctx && ctx.state !== 'running') ctx.resume().catch(() => { });
         const bgm = this.currentMusic;
@@ -379,6 +380,7 @@ const Assets = {
         }
         // 화면이 가려진 동안의 효과음은 버린다(쌓아뒀다 복귀 시 한꺼번에 터지는 것 방지).
         if (typeof document !== 'undefined' && document.hidden) return;
+        if (typeof Game !== 'undefined' && Game.paused) return;
 
         const ctx = this._getAudioContext();
         const play = () => {
@@ -428,12 +430,14 @@ const Assets = {
         audio.volume = 0.5;
         audio.muted = false; // _unlockAudio에서 muted된 상태 해제
         this.currentMusic = audio;
+        if (typeof Game !== 'undefined' && Game.paused) return;
 
         // 즉시 재생 시도하고 컨텍스트 재개를 병렬로 수행. iOS가 거부하면 _wireResumeHandlers의 제스처 핸들러가 재시도.
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume().catch(() => { });
         const retry = () => {
-            if (this.currentBgmId === id && this.currentMusic === audio && audio.paused) {
+            if (this.currentBgmId === id && this.currentMusic === audio && audio.paused &&
+                !(typeof Game !== 'undefined' && Game.paused)) {
                 ctx.resume().then(() => audio.play().catch(() => { })).catch(() => { });
             }
         };

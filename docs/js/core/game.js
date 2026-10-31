@@ -142,6 +142,13 @@ const Game = {
 
         }
 
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !this.isAutoTest) {
+                this.pause();
+                this._skipDt = true;
+            }
+        });
+
         this.lastTime = performance.now();
         this.changeScene(LoadingScene);
         this.loop(this.lastTime);
@@ -318,18 +325,70 @@ const Game = {
     },
 
     lastTime: 0,
+    paused: false,
+    _skipDt: false,
+
+    pause: function () {
+        if (this.paused || this.isAutoTest) return;
+        if (!this.currentScene || this.currentScene === LoadingScene) return;
+        this.paused = true;
+        Input.keys = {};
+        Input.isMouseDown = false;
+        Input.isRightMouseDown = false;
+        Input.update();
+        if (Assets.currentMusic && !Assets.currentMusic.paused) Assets.currentMusic.pause();
+    },
+
+    resume: function () {
+        if (!this.paused) return;
+        this.paused = false;
+        this._skipDt = true;
+        Assets._resumeAudioOnReturn();
+    },
+
+    _drawPause: function () {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        const k = 48 / 539.42;
+        ctx.translate(320 - 298.15 * k / 2, 216);
+        ctx.scale(k, k);
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 86.88, 539.42, 43.44);
+        ctx.roundRect(211.27, 0, 86.88, 539.42, 43.44);
+        ctx.fill();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.restore();
+    },
+
     loop: function (currentTime) {
         const elapsed = currentTime - Game.lastTime;
         Game.lastTime = currentTime;
 
-        // 백그라운드에선 진행하지 않는다(대국이 혼자 진행되며 사운드가 쌓이는 것 방지). 자동 테스트는 예외.
         if (!Game.isAutoTest && typeof document !== 'undefined' && document.hidden) {
+            Game.pause();
+            Game._skipDt = true;
             requestAnimationFrame(Game.loop);
             return;
         }
 
-        let dt = elapsed / (1000 / 60);
-        // 탭 전환 등으로 인한 큰 점프를 막기 위해 최대 15프레임으로 제한
+        if (Game.paused) {
+            if (Input.isJustPressed(Input.Z) || Input.isJustPressed(Input.SPACE) || Input.isMouseJustPressed()) {
+                Game.resume();
+            }
+            Input.update();
+            if (Game.paused) {
+                Game.draw();
+                Game._drawPause();
+                requestAnimationFrame(Game.loop);
+                return;
+            }
+        }
+
+        let dt = Game._skipDt ? 0 : elapsed / (1000 / 60);
+        Game._skipDt = false;
         dt = Math.min(15, dt);
 
         const iterations = Game.isAutoTest ? 10 : 1;
