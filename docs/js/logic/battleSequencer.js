@@ -97,7 +97,7 @@ const BattleSequencer = {
             callback: () => {
                 const winnerHand = (who === 'P1') ? engine.getFullHand(engine.p1) : engine.getFullHand(engine.cpu);
 
-                const bonusResult = engine.calculateBonuses(winnerHand, type, isRiichi);
+                const bonusResult = engine.calculateBonuses(winnerHand, type, isRiichi, who);
                 let totalScore = finalScore + bonusResult.score;
                 totalScore = Math.round(totalScore / 10) * 10;
 

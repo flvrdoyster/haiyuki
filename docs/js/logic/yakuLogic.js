@@ -569,11 +569,12 @@ const YakuLogic = {
         return potentialYakus.size > 0 ? Array.from(potentialYakus) : false;
     },
 
-    // 화료 보너스(텐호/해저·하저/도라). ctx={discardCount,doras,uraDoras}. discardCount는 승리 시점까지 양쪽이 버린 수.
+    // 화료 보너스(텐호/해저·하저/도라). ctx={discardCount,doras,uraDoras,winner}. discardCount는 승리 시점까지 양쪽이 버린 수.
     calculateBonuses: function (hand, winType, isRiichi, ctx) {
         let totalBonus = 0;
         const details = [];
         const n = ctx.discardCount;
+        const cpuWon = ctx.winner === 'CPU';
 
         if (n <= 1 && winType === 'TSUMO') {
             const s = 800;
@@ -585,11 +586,11 @@ const YakuLogic = {
             details.push({ name: '텐호 보너스', score: s });
         }
 
-        if (n >= 39 && winType === 'TSUMO') {
+        if (n >= (cpuWon ? 39 : 38) && winType === 'TSUMO') {
             const s = 800;
             totalBonus += s;
             details.push({ name: '해저 보너스', score: s });
-        } else if (n >= 40 && winType === 'RON') {
+        } else if (n >= (cpuWon ? 39 : 40) && winType === 'RON') {
             const s = 800;
             totalBonus += s;
             details.push({ name: '하저 보너스', score: s });
