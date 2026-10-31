@@ -37,13 +37,20 @@ const LoadingScene = {
         // 동시에 재생. 오디오는 제스처 전이면 브라우저가 막을 수 있지만, Assets.load()가
         // 이미 걸어둔 전역 unlock/resume 핸들러가 첫 입력 시 currentMusic을 자동 재시도한다
         // (기존 TitleScene의 bgm_title도 같은 방식으로 동작).
+        this.failed = null;
         Assets.load(() => {
             this.isLoaded = true;
+        }, (failed) => {
+            this.failed = failed;
+            const reload = () => window.location.reload();
+            window.addEventListener('keydown', reload, { once: true });
+            window.addEventListener('pointerdown', reload, { once: true });
         });
     },
 
     update: function (dt) {
         dt = dt || 1.0;
+        if (this.failed) return;
 
         const mode = new URLSearchParams(window.location.search).get('mode');
         if (mode === 'story' || mode === 'watch' || Game.isAutoTest) {
@@ -91,7 +98,17 @@ const LoadingScene = {
     draw: function (ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fillRect(0, 0, Game.canvas.width, Game.canvas.height);
+        if (this.failed) { this._drawError(ctx); return; }
         if (!this.compileDone) this._drawCompile(ctx);
+    },
+
+    _drawError: function (ctx) {
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = "16px 'KoddiUDOnGothic', sans-serif";
+        ctx.fillText(`자원 ${this.failed.length}개를 불러오지 못했습니다`, 320, 220);
+        ctx.fillText('아무 키나 눌러 다시 시도', 320, 250);
+        ctx.textAlign = 'left';
     },
 
     _drawCompile: function (ctx) {

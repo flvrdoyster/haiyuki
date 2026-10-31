@@ -32,8 +32,3 @@
 - EndingScene/CreditsScene/EncounterScene 확인키는 실제 키 입력 테스트 없음(씬을 `update()` 직접 호출로만 구동).
 - 연출 타임라인 재생(조각 위치·대기·건너뛰기)을 직접 단언하는 테스트 없음. 전투 테스트가 스폰과 `isBlocking` 게이팅을 간접적으로 지날 뿐.
 - 전체 스위트 간헐 실패의 기전 미확정(`retries: 1`로 실용 대응). 조사한다면 30분 타임박스.
-
-## 7. 로딩 — 잔여
-측정은 `tests/perf/load.spec.ts`(대역폭 제한, `PERF_BLOCK`으로 폰트·iframe 차단 비교), 결과 해석은 `tests/perf/REPORT.md`.
-- 폰트(`index.html` `preload`, KoddiUDOnGothic woff 두 벌)가 게임 자원과 대역폭을 나눠 쓴다. woff2 전환이나 쓰는 글자만 담은 서브셋(자가 호스팅)으로 줄이는 것을 검토. 실제로 얼마나 줄어드는지는 아직 안 쟀다.
-- 느린 회선 측정에서 한 번, 요청 대부분이 0바이트로 실패한 채 `onComplete`가 불려 자원이 빠진 상태로 타이틀에 갔다. 원인(개발 서버·CDP 에뮬레이션·브라우저) 미확인. 실패한 자원도 `done()`으로 세므로(`assets.js`) 진짜 원인이 브라우저 쪽이면 재시도나 오류 표시가 필요하다.
