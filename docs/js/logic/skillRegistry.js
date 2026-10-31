@@ -95,6 +95,19 @@ const SkillFlows = {
         }
     },
 
+    pickRonExchangeTile: function (hand, returned) {
+        const key = t => t.type + '|' + t.color;
+        const counts = {};
+        hand.forEach(t => { counts[key(t)] = (counts[key(t)] || 0) + 1; });
+        const cands = hand.filter(t => t !== returned);
+        const pick = pred => cands.filter(t => pred(counts[key(t)]));
+        let pool = pick(n => n === 1);
+        if (pool.length === 0) pool = pick(n => n === 2);
+        if (pool.length === 0) pool = pick(n => n > 3);
+        if (pool.length === 0) pool = cands;
+        return pool[Math.floor(Math.random() * pool.length)];
+    },
+
     // REACTIVE: 위험한 버림패를 손으로 되가져온다 — 같은 플레이어가 다시 버린다.
     activateRonTileExchange: function (engine, who) {
         const badTile = engine.discards.pop();
@@ -116,6 +129,7 @@ const SkillFlows = {
         } else {
             engine.currentState = engine.STATE_CPU_TURN;
             engine.cpu.needsToDiscard = true;
+            engine.cpu.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
             engine.timer = 0;
             engine.cpu.declaringRiichi = false;
         }
