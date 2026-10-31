@@ -26,7 +26,3 @@
 - EndingScene/CreditsScene/EncounterScene 확인키는 실제 키 입력 테스트 없음(씬을 `update()` 직접 호출로만 구동).
 - FX 이징·수명을 직접 단언하는 테스트 없음. 전투 테스트가 스폰과 `isBlocking` 게이팅을 간접적으로 지날 뿐.
 - 전체 스위트 간헐 실패의 기전 미확정(`retries: 1`로 실용 대응). 조사한다면 30분 타임박스.
-
-## 6. 로딩 — 잔여
-측정은 `tests/perf/load.spec.ts`(대역폭 제한, `PERF_BLOCK`으로 폰트·iframe 차단 비교), 결과 해석은 `tests/perf/REPORT.md`.
-- 폰트 글리프 서브셋은 라이선스(서체 파일 데이터 수정·개작 제한)상 저작권자 허락 없이는 하지 않는다. 허락을 받으면 woff2 두 벌(약 1.76MB)을 더 줄일 수 있다.

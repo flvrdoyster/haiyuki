@@ -17,7 +17,7 @@
 + **`assets/`** — 원본 에셋 ↔ 웹 에셋 대응표(`INVENTORY.md`)와 추출 스크립트(`extract.sh`).
 + **`extracted/`** — 원본에서 추출한 그림·소리, 스크립트 덤프 (저장소에는 없음, `.gitignore`).
 
-해설서(`haiyuki_manual`)는 [atah.io](https://atah.io/haiyuki_manual/)에 있고, 게임의 역 일람 패널이 그 페이지를 불러온다. 공용 푸터·폰트(`footer.js`·`footer.css`·`fonts.css`)도 `atah.io`에서 가져온다.
+해설서(`haiyuki_manual`)는 [atah.io](https://atah.io/haiyuki_manual/)에 있고, 게임의 역 일람 패널이 그 페이지를 불러온다. 공용 푸터(`footer.js`·`footer.css`)도 `atah.io`에서 가져온다.
 
 ---
 
