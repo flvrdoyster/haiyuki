@@ -1,10 +1,10 @@
-"""usamain.sq 선언·나가리 연출을 fxtrace로 실행해 조각별 틱 좌표를 haiyuki_web/js/data/fxTimelines.js로 내보낸다.
+"""usamain.sq 선언·나가리 연출을 fxtrace로 실행해 조각별 틱 좌표를 docs/js/data/fxTimelines.js로 내보낸다.
 
 좌표는 원본 조각(셀)의 중심, 화면 픽셀. 각 경로 항목 [틱, cx, cy]는 다음 항목까지 유지된다.
 anchor는 기준 틱(ref)에서 조각들을 합친 글자 영역의 중심이다. 웹은 자기 글자 조각을 이 중심에 맞춰 놓고
 원본 조각의 기준 틱 대비 이동량을 그대로 더한다.
 
-python3 fxexport.py /Users/oyster/GitHub/ataho/haiyuki_web/js/data/fxTimelines.js
+python3 fxexport.py docs/js/data/fxTimelines.js
 """
 import json
 import os

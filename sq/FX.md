@@ -215,7 +215,7 @@
 
 ## 5. 웹과의 차이
 
-기준 파일: `haiyuki_web/js/data/battleConfig.js`(`POPUP`, `FX`, `SHAKE`), `views/fxSystem.js`, `logic/battleSequencer.js`, `logic/skillRegistry.js`.
+기준 파일: `docs/js/data/battleConfig.js`(`POPUP`, `FX`, `SHAKE`), `views/fxSystem.js`, `logic/battleSequencer.js`, `logic/skillRegistry.js`.
 
 | 연출 | 원본 | 웹 |
 |---|---|---|
