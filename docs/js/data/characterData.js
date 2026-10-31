@@ -130,9 +130,9 @@ const CharacterData = [
         aiProfile: { type: 'BALANCED', value: 0.50, speed: 0.45, defense: 0.50, colorBias: 0.35, greed: 0.80, luck: 0.25 },
     },
     {
-        id: 'fari', name: '화린', face: 'face/FARI_base.png', selectIcon: 'face/select_FARI.png', rival: 'petum', skills: ['RECOVERY', 'DISCARD_GUARD'], skillOffset: -0.15, riichiEager: true, battleOffsetX: 0, battleOffsetY: 0,
+        id: 'fari', name: '화린', face: 'face/FARI_base.png', selectIcon: 'face/select_FARI.png', rival: 'petum', skills: ['RECOVERY', 'DISCARD_GUARD'], battleOffsetX: 0, battleOffsetY: 0,
         // 운 좋아 초반부터 리치, 상대 리치엔 잘 접고 버팀.
-        aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.40 },
+        aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.30 },
     },
     {
         id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], skillOffset: -0.10, battleOffsetX: 5, battleOffsetY: 0,

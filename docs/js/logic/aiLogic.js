@@ -187,8 +187,7 @@ const AILogic = {
         return score;
     },
 
-    shouldRiichi: function (hand, skill, profile, eager) {
-        if (eager) return true;
+    shouldRiichi: function (hand, skill, profile) {
         if (skill == null) skill = 0.5;
         // 론=리치 전제라 텐파이면 리치가 정답(성격 축 아님). 실력으로만 게이팅.
         return Math.random() <= (0.6 + 0.4 * skill);

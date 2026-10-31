@@ -119,7 +119,6 @@ const BattleEngine = {
             this.cpu.name = cpuData.name;
             this.cpu.aiProfile = cpuData.aiProfile || null;
             this.cpu.skillOffset = cpuData.skillOffset || 0;
-            this.cpu.riichiEager = !!cpuData.riichiEager;
             this.cpu.skills = cpuData.skills || [];
         }
 
@@ -926,7 +925,7 @@ const BattleEngine = {
                 }
             }
 
-            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, this.cpu.riichiEager)) {
+            if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile)) {
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true;
 
