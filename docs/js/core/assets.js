@@ -430,12 +430,14 @@ const Assets = {
         audio.volume = 0.5;
         audio.muted = false; // _unlockAudio에서 muted된 상태 해제
         this.currentMusic = audio;
+        if (typeof Game !== 'undefined' && Game.paused) return;
 
         // 즉시 재생 시도하고 컨텍스트 재개를 병렬로 수행. iOS가 거부하면 _wireResumeHandlers의 제스처 핸들러가 재시도.
         const ctx = this._getAudioContext();
         if (ctx.state !== 'running') ctx.resume().catch(() => { });
         const retry = () => {
-            if (this.currentBgmId === id && this.currentMusic === audio && audio.paused) {
+            if (this.currentBgmId === id && this.currentMusic === audio && audio.paused &&
+                !(typeof Game !== 'undefined' && Game.paused)) {
                 ctx.resume().then(() => audio.play().catch(() => { })).catch(() => { });
             }
         };
