@@ -229,24 +229,51 @@ const SkillFlows = {
         }
     },
 
-    // 라운드 시작 시 CPU 자동 패 교환. 가장 안 쓸모 있는 패부터 교체(실제 yaku 평가).
+    // 라운드 시작 시 CPU 자동 패 교환(원본 6.4·6.5: 칸을 무작위 순서로 훑으며 MP 예산이 남는 동안 교환 표시).
     executeCpuTileExchange: function (engine, skillId) {
         const skill = SkillData[skillId];
         if (!skill) return;
 
-        const hand = engine.cpu.hand, charId = engine.cpu.id;
+        const hand = engine.cpu.hand;
         if (hand.length === 0) return;
 
-        const ranked = hand.map((tile, i) => {
-            const rest = hand.slice(0, i).concat(hand.slice(i + 1));
-            return { i, keep: YakuLogic.rateTileForHand(rest, tile, charId, rest, {}) };
-        }).sort((a, b) => a.keep - b.keep);
+        const isPaint = skillId === 'PAINT_TILE';
+        const keepTypes = isPaint
+            ? ['mayu_red', 'mayu_yellow', 'mayu_blue', 'mayu_purple']
+            : ['rin', 'fari', 'smash', 'yuri'];
 
-        const count = Math.min(3, Math.floor(engine.cpu.mp / skill.cost), ranked.length);
-        if (count === 0) return;
+        if (!isPaint) {
+            let seen = 0, used = false;
+            for (const tile of hand) {
+                if (keepTypes.indexOf(tile.type) >= 0) seen++;
+                if (seen < 6 && Math.random() < 0.7) { used = true; break; }
+            }
+            if (!used) return;
+        }
 
-        engine.consumeMp('CPU', count * skill.cost);
-        engine.exchangeTiles(engine.cpu, ranked.slice(0, count).map(r => r.i));
+        const typeCount = {};
+        hand.forEach(t => { typeCount[t.type] = (typeCount[t.type] || 0) + 1; });
+
+        const order = hand.map((_, i) => i);
+        for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [order[i], order[j]] = [order[j], order[i]];
+        }
+
+        let budget = engine.cpu.mp;
+        const picked = [];
+        for (const i of order) {
+            if (budget < skill.cost) break;
+            const t = hand[i].type;
+            if (keepTypes.indexOf(t) >= 0) continue;
+            if (!isPaint && typeCount[t] >= 2) continue;
+            picked.push(i);
+            budget -= skill.cost;
+        }
+        if (picked.length === 0) return;
+
+        engine.consumeMp('CPU', picked.length * skill.cost);
+        engine.exchangeTiles(engine.cpu, picked);
 
         engine.events.push({ type: 'SOUND', id: 'audio/flip' });
         engine.triggerDialogue(skillId, 'cpu');

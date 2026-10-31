@@ -137,7 +137,7 @@ const CharacterData = [
     {
         id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 5, battleOffsetY: 0,
         // 펑 적극, 빠르고 싸게. 큰 손·도라·색 욕심 없음.
-        aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.20, colorBias: 0.20, greed: 0.15, luck: 0.25 },
+        aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.50, colorBias: 0.20, greed: 0.15, luck: 0.25 },
     },
     {
         id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/select_PET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20,
