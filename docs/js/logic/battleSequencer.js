@@ -11,7 +11,7 @@ const BattleSequencer = {
         const activeBuffs = [];
         const isRiichi = (who === 'P1') ? engine.p1.isRiichi : engine.cpu.isRiichi;
 
-        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
+        if (BattleConfig.RULES.SKILLS_ENABLED && (who === 'CPU' || engine.symmetric) && isRiichi && attacker.id === 'rinxiang') {
             SkillFlows.applyDoraBomb(engine, attacker, who);
         }
 
@@ -49,7 +49,7 @@ const BattleSequencer = {
         ];
 
         // 도라폭진 사용 확인(플레이어 한정).
-        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && isRiichi && attacker.id === 'rinxiang') {
+        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && !engine.symmetric && isRiichi && attacker.id === 'rinxiang') {
             const skillId = 'DORA_BOMB';
             const skill = SkillData[skillId];
             if (skill && attacker.mp >= skill.cost) {
@@ -173,6 +173,11 @@ const BattleSequencer = {
                         if (engine.checkSkillCost(skill, 'P1')) {
                             engine.sequencing.active = false;
 
+                            if (engine.symmetric) {
+                                engine.activateLastChance('P1');
+                                return;
+                            }
+
                             if (engine.scene && engine.scene.showConfirm) {
                                 engine.scene.showConfirm(
                                     (BattleConfig.MESSAGES && BattleConfig.MESSAGES.SKILL_CONFIRM && BattleConfig.MESSAGES.SKILL_CONFIRM[skillId]) ?
@@ -188,6 +193,17 @@ const BattleSequencer = {
                                 engine.sequencing.active = true;
                             }
                         }
+                    }
+                }
+            },
+            {
+                type: 'CALLBACK', callback: () => {
+                    if (!engine.symmetric || engine.currentState !== engine.STATE_FX_PLAYING) return;
+                    const skillId = 'LAST_CHANCE';
+                    if (BattleConfig.RULES.SKILLS_ENABLED && cpuTenpai && engine.cpu.skills && engine.cpu.skills.includes(skillId)
+                        && engine.checkSkillCost(SkillData[skillId], 'CPU')) {
+                        engine.sequencing.active = false;
+                        engine.activateLastChance('CPU');
                     }
                 }
             },

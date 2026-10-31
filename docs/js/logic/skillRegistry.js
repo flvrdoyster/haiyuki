@@ -17,18 +17,20 @@ function _aggressiveSkillScore(ctx) {
 function _defensiveSkillScore(engine, ctx) {
     let score = 0;
     if (ctx.isPlayerRiichi) score += 1.0;
-    if (engine.cpu.hp < engine.cpu.maxHp * 0.3) score += 0.4;
+    const me = engine.getPlayer(ctx.who || 'CPU');
+    if (me.hp < me.maxHp * 0.3) score += 0.4;
     score += ctx.profile.defense * 0.5;
     return score;
 }
 
 // CPU 현재 손패가 도달 가능한 최고 역점수(value 인지 스킬용 — CRITICAL은 큰 손에서만 값어치).
 // 12패(버림 전)·11패(텐파이) 모두 처리.
-function _cpuBestYaku(engine) {
-    const hand = engine.getFullHand(engine.cpu), charId = engine.cpu.id, open = engine.isOpen(engine.cpu);
+function _cpuBestYaku(engine, who) {
+    const me = engine.getPlayer(who || 'CPU');
+    const hand = engine.getFullHand(me), charId = me.id, open = engine.isOpen(me);
     let best = 0;
     if (hand.length === 12) {
-        for (let i = 0; i < engine.cpu.hand.length; i++) {
+        for (let i = 0; i < me.hand.length; i++) {
             const rs = YakuLogic.getRiichiScore(hand, charId, i, open);
             if (rs.maxScore > best) best = rs.maxScore;
         }
@@ -63,6 +65,7 @@ const SkillFlows = {
         if (sorted.length === 0) return;
 
         engine.consumeMp(who, skill.cost);
+        console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
 
         for (let i = 0; i < engine.uraDoras.length; i++) {
             const targetTile = sorted[0].tile;
@@ -126,6 +129,7 @@ const SkillFlows = {
             const returnedIndex = engine.p1.hand.indexOf(badTile);
             engine.hoverIndex = returnedIndex !== -1 ? returnedIndex : engine.p1.hand.length - 1;
             engine.p1.declaringRiichi = false;
+            if (engine.symmetric) engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
         } else {
             engine.currentState = engine.STATE_CPU_TURN;
             engine.cpu.needsToDiscard = true;
@@ -140,9 +144,11 @@ const SkillFlows = {
         const skillId = 'LAST_CHANCE';
         const skill = SkillData[skillId];
         engine.consumeMp(who, skill.cost);
+        console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
         engine.showPopup('SKILL', { text: skill.name, blocking: false });
         engine.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
 
+        engine.rouletteWho = who;
         const player = engine.getPlayer(who);
         const hand = engine.getFullHand(player);
 
@@ -196,7 +202,7 @@ const SkillFlows = {
             engine.rouletteTileType = PaiData.TYPES[engine.rouletteIndex].id;
         }
 
-        if (Input.isConfirmKey() || Input.isMouseJustPressed()) {
+        if (engine.symmetric || Input.isConfirmKey() || Input.isMouseJustPressed()) {
             SkillFlows.finishRoulette(engine);
         }
     },
@@ -216,7 +222,8 @@ const SkillFlows = {
         const resultTile = engine.rouletteResultTile;
         if (!resultTile) return;
 
-        const player = engine.p1;
+        const who = engine.rouletteWho || 'P1';
+        const player = engine.getPlayer(who);
         const hand = engine.getFullHand(player);
 
         const winTile = { type: resultTile.type, color: resultTile.color, img: resultTile.img };
@@ -228,11 +235,11 @@ const SkillFlows = {
 
             player.hand.push(winTile);
             engine.winningYaku = winYaku;
-            const score = engine.calculateScore(winYaku.score, player.isMenzen, player, engine.cpu);
+            const score = engine.calculateScore(winYaku.score, player.isMenzen, player, engine.getOpponent(who));
 
             engine.sequencing.active = false;
-            engine.pendingDamage = { target: 'CPU', amount: score };
-            BattleSequencer.startWinSequence(engine, 'TSUMO', 'P1', score);
+            engine.pendingDamage = { target: engine.opponentOf(who), amount: score };
+            BattleSequencer.startWinSequence(engine, 'TSUMO', who, score);
         } else {
             engine.showPopup('MISS', { blocking: false });
 
@@ -244,11 +251,13 @@ const SkillFlows = {
     },
 
     // 라운드 시작 시 CPU 자동 패 교환(원본 6.4·6.5: 칸을 무작위 순서로 훑으며 MP 예산이 남는 동안 교환 표시).
-    executeCpuTileExchange: function (engine, skillId) {
+    executeCpuTileExchange: function (engine, skillId, who) {
+        who = who || 'CPU';
+        const me = engine.getPlayer(who);
         const skill = SkillData[skillId];
         if (!skill) return;
 
-        const hand = engine.cpu.hand;
+        const hand = me.hand;
         if (hand.length === 0) return;
 
         const isPaint = skillId === 'PAINT_TILE';
@@ -274,7 +283,7 @@ const SkillFlows = {
             [order[i], order[j]] = [order[j], order[i]];
         }
 
-        let budget = engine.cpu.mp;
+        let budget = me.mp;
         const picked = [];
         for (const i of order) {
             if (budget < skill.cost) break;
@@ -286,11 +295,11 @@ const SkillFlows = {
         }
         if (picked.length === 0) return;
 
-        engine.consumeMp('CPU', picked.length * skill.cost);
-        engine.exchangeTiles(engine.cpu, picked);
+        engine.consumeMp(who, picked.length * skill.cost);
+        engine.exchangeTiles(me, picked);
 
         engine.events.push({ type: 'SOUND', id: 'audio/flip' });
-        engine.triggerDialogue(skillId, 'cpu');
+        engine.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
 
         engine.timer = -15;
     }
@@ -336,7 +345,8 @@ const SkillRegistry = {
         // HP 낮을수록 강하게.
         aiScore: (engine, ctx) => {
             let score = 0;
-            const hpPct = engine.cpu.hp / engine.cpu.maxHp;
+            const me = engine.getPlayer(ctx.who || 'CPU');
+            const hpPct = me.hp / me.maxHp;
             if (hpPct < 0.6) score += 0.5;
             if (hpPct < 0.3) score += 0.5;
             score += ctx.profile.defense * 0.4;
@@ -363,7 +373,7 @@ const SkillRegistry = {
         aiScore: (engine, ctx) => {
             if (!ctx.isTenpai) return 0;
             let score = 0.25;
-            score += Math.min(_cpuBestYaku(engine) / 8000, 1) * 0.6;
+            score += Math.min(_cpuBestYaku(engine, ctx.who) / 8000, 1) * 0.6;
             score += ((ctx.profile.value != null ? ctx.profile.value : 0.5)) * 0.3;
             return score;
         }
