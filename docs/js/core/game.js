@@ -341,24 +341,18 @@ const Game = {
 
     _drawPause: function () {
         const ctx = this.ctx;
-        const conf = BattleConfig.RESULT;
         ctx.save();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.font = `bold 16px ${FONTS.bold}`;
-        ctx.textAlign = 'center';
         const k = 48 / 539.42;
-        ctx.translate(320 - 298.15 * k / 2, 186);
+        ctx.translate(320 - 298.15 * k / 2, 216);
         ctx.scale(k, k);
         ctx.beginPath();
         ctx.roundRect(0, 0, 86.88, 539.42, 43.44);
         ctx.roundRect(211.27, 0, 86.88, 539.42, 43.44);
         ctx.fill();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        if (Math.floor(performance.now() / 500) % 2 === 0) {
-            ctx.fillText(conf.TEXTS.pressSpace, 320, 270);
-        }
         ctx.restore();
     },
 
