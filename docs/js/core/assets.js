@@ -234,7 +234,11 @@ const Assets = {
     bootBgm: ['audio/bgm_compile', 'audio/bgm_title'],
     loadedCount: 0,
 
-    load: function (onComplete) {
+    maxAttempts: 4,
+    retryDelayMs: 600,
+    failed: [],
+
+    load: function (onComplete, onError) {
         if (window.location.protocol === 'file:') {
             console.warn('[Assets] file:// 환경에서는 SFX(XHR + Web Audio) 로드가 차단되어 효과음이 재생되지 않습니다. 로컬 서버(npx serve 등)로 열어주세요.');
         }
@@ -251,16 +255,21 @@ const Assets = {
 
         this._wireResumeHandlers();
 
-        // 각 항목은 성공/실패 어느 쪽이든 정확히 한 번 settled. 이중 settled를 방지하여
-        // 카운트가 total을 초과해 onComplete를 건너뛰는 버그를 막음.
         const total = this.toLoad.length;
         this.loadedCount = 0;
+        this.failed = [];
         let settled = 0;
         let completed = false;
         const finishOne = () => {
             settled++;
             this.loadedCount = settled;
-            if (!completed && settled >= total) { completed = true; onComplete(); }
+            if (completed || settled < total) return;
+            completed = true;
+            if (this.failed.length > 0) {
+                if (onError) onError(this.failed.slice());
+            } else {
+                onComplete();
+            }
         };
 
         this.toLoad.forEach(item => {
@@ -280,59 +289,74 @@ const Assets = {
                 if (item.type) type = item.type;
             }
 
-            if (type === 'audio') {
-                if (id.includes('bgm')) {
-                    const audio = new Audio();
-                    if (this.bootBgm.includes(id)) {
-                        audio.addEventListener('canplaythrough', () => {
-                            if (!this.audio[id]) {
-                                this.audio[id] = audio;
-                                done();
-                            }
-                        }, { once: true });
+            const attempt = (n) => {
+                let attemptSettled = false;
+                const ok = () => { if (attemptSettled) return; attemptSettled = true; done(); };
+                const fail = (reason) => {
+                    if (attemptSettled) return;
+                    attemptSettled = true;
+                    if (itemSettled) return;
+                    if (n < this.maxAttempts) {
+                        console.warn(`[Assets] retry ${n}/${this.maxAttempts - 1}: ${src} (${reason})`);
+                        setTimeout(() => attempt(n + 1), this.retryDelayMs * n);
                     } else {
-                        this.audio[id] = audio;
+                        console.error(`[Assets] failed: ${src} (${reason})`);
+                        this.failed.push(id);
                         done();
                     }
-                    audio.addEventListener('error', () => {
-                        console.error(`Failed to load BGM: ${src}`);
-                        done();
-                    });
-                    audio.src = src;
-                    audio.load();
-                } else {
-                    // SFX: Web Audio API — 한 번 디코딩 후 지연 없이 재생
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', src, true);
-                    xhr.responseType = 'arraybuffer';
-                    xhr.onload = () => {
-                        if (xhr.status === 200 || xhr.status === 0) {
-                            this._getAudioContext().decodeAudioData(
-                                xhr.response,
-                                (audioBuffer) => { this.sfxBuffers[id] = audioBuffer; done(); },
-                                (e) => { console.error(`Failed to decode SFX: ${src}`, e); done(); }
-                            );
-                        } else {
-                            console.error(`Failed to fetch SFX (${xhr.status}): ${src}`);
-                            done();
-                        }
-                    };
-                    xhr.onerror = () => { console.error(`Network error for SFX: ${src}`); done(); };
-                    xhr.send();
-                }
-            } else {
-                const img = new Image();
-                img.src = src;
-                img.onload = () => {
-                    this.images[id] = img;
-                    done();
                 };
-                img.onerror = () => {
-                    console.error(`Failed to load: ${src}`);
-                    done();
-                };
-            }
+                this._loadOne(id, src, type, ok, fail);
+            };
+            attempt(1);
         });
+    },
+
+    _loadOne: function (id, src, type, ok, fail) {
+        if (type === 'audio') {
+            if (id.includes('bgm')) {
+                const audio = new Audio();
+                if (this.bootBgm.includes(id)) {
+                    audio.addEventListener('canplaythrough', () => {
+                        if (!this.audio[id]) {
+                            this.audio[id] = audio;
+                            ok();
+                        }
+                    }, { once: true });
+                } else {
+                    this.audio[id] = audio;
+                    ok();
+                }
+                audio.addEventListener('error', () => fail('bgm error'));
+                audio.src = src;
+                audio.load();
+            } else {
+                // SFX: Web Audio API — 한 번 디코딩 후 지연 없이 재생
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', src, true);
+                xhr.responseType = 'arraybuffer';
+                xhr.onload = () => {
+                    if (xhr.status === 200 || xhr.status === 0) {
+                        this._getAudioContext().decodeAudioData(
+                            xhr.response,
+                            (audioBuffer) => { this.sfxBuffers[id] = audioBuffer; ok(); },
+                            () => fail('decode')
+                        );
+                    } else {
+                        fail(`status ${xhr.status}`);
+                    }
+                };
+                xhr.onerror = () => fail('network');
+                xhr.send();
+            }
+        } else {
+            const img = new Image();
+            img.onload = () => {
+                this.images[id] = img;
+                ok();
+            };
+            img.onerror = () => fail('image error');
+            img.src = src;
+        }
     },
 
     get: function (id) {
