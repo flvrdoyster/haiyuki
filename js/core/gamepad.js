@@ -1,40 +1,55 @@
-// 터치용 가상 패드. window keydown/keyup(e.code)에 합성 이벤트를 발사한다.
-// 확인 버튼은 KeyZ — Enter는 플레이어 턴 타패를 무시하므로 KeyZ로 통일.
 (function () {
     'use strict';
 
     var KEY_MAP = {
-        ArrowUp: { code: 'ArrowUp', keyCode: 38 },
-        ArrowDown: { code: 'ArrowDown', keyCode: 40 },
-        ArrowLeft: { code: 'ArrowLeft', keyCode: 37 },
-        ArrowRight: { code: 'ArrowRight', keyCode: 39 },
-        KeyZ: { code: 'KeyZ', keyCode: 90 },     // 확인 / 선택 / 타패
-        Escape: { code: 'Escape', keyCode: 27 }  // 메뉴
+        ArrowUp: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
+        ArrowDown: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
+        ArrowLeft: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+        ArrowRight: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+        KeyZ: { key: 'z', code: 'KeyZ', keyCode: 90 },
+        Escape: { key: 'Escape', code: 'Escape', keyCode: 27 }
     };
+
+    var canvas = null;
+    var active = false;
 
     function dispatchKey(name, type) {
         var p = KEY_MAP[name];
         if (!p) return;
-        // canvas에서 bubble → window까지 도달하도록 canvas를 발사 기점으로 쓴다.
-        var target = document.getElementById('game-canvas') || document;
+        var target = canvas || document;
         target.dispatchEvent(new KeyboardEvent(type, {
-            key: p.code, code: p.code, keyCode: p.keyCode, which: p.keyCode,
+            key: p.key, code: p.code, keyCode: p.keyCode, which: p.keyCode,
             bubbles: true, cancelable: true
         }));
     }
 
-    function shouldShow() {
+    function activate() {
+        if (active) return;
+        active = true;
+        document.body.classList.add('gamepad-on');
+        (window.dataLayer = window.dataLayer || []).push({ event: 'gamepad_activate', game: 'haiyuki' });
+    }
+
+    function updateUrl() {
+        var params = new URLSearchParams(location.search);
+        params.delete('gamepad');
+        var rest = params.toString().replace(/=(?=&|$)/g, '');
+        history.replaceState(null, '', location.pathname + (rest ? '?gamepad&' + rest : '?gamepad') + location.hash);
+    }
+
+    function shouldAutoActivate() {
         if (new URLSearchParams(location.search).has('gamepad')) return true;
-        return ('ontouchstart' in window) && window.innerWidth <= 768;
+        return ('ontouchstart' in window) && window.innerWidth <= 680;
     }
 
     function init() {
+        canvas = document.getElementById('game-canvas');
+
         var pad = document.getElementById('virtual-gamepad');
         if (!pad) return;
 
         pad.querySelectorAll('button').forEach(function (b) { b.setAttribute('tabindex', '-1'); });
 
-        // 동시 입력 없음(대각선·코드 미지원) — 게임이 단방향 탐색만 사용하므로.
         var activeKey = null;
         function release() {
             if (!activeKey) return;
@@ -53,9 +68,9 @@
         }
 
         pad.addEventListener('touchstart', function (e) {
+            e.preventDefault();
             var btn = e.target.closest('[data-key]');
             if (!btn) return;
-            e.preventDefault();
             press(btn.dataset.key);
         }, { passive: false });
         pad.addEventListener('touchend', function (e) { e.preventDefault(); release(); }, { passive: false });
@@ -69,7 +84,16 @@
         });
         window.addEventListener('mouseup', release);
 
-        if (shouldShow()) document.body.classList.add('gamepad-on');
+        if (shouldAutoActivate()) activate();
+
+        var toggleBtn = document.getElementById('gamepad-btn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function () {
+                activate();
+                updateUrl();
+                toggleBtn.blur();
+            });
+        }
     }
 
     if (document.readyState === 'loading') {

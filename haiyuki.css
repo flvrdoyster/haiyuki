@@ -82,9 +82,23 @@ a:hover {
     gap: 20px;
 }
 
-#fullscreen-btn {
+.toolbar-right {
     grid-column: 3;
     justify-self: end;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .toolbar-icon-btn.btn-touch-only {
+        display: none;
+    }
+}
+
+body.gamepad-on .toolbar-icon-btn.btn-touch-only {
+    display: none;
 }
 
 #play-area {
@@ -452,7 +466,7 @@ body.gamepad-on #virtual-gamepad {
     bottom: 0;
     width: 100%;
     box-sizing: border-box;
-    padding: 14px 18px;
+    padding: 16px;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -468,9 +482,6 @@ body.gamepad-on #virtual-gamepad {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'KoddiUDOnGothic', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
     touch-action: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -515,15 +526,18 @@ body.gamepad-on #virtual-gamepad {
     pointer-events: none;
 }
 
-/* 확인/메뉴 글리프(ESC·Enter)는 가로로 길어 D-pad 화살표보다 작게 */
 #virtual-gamepad .gamepad-buttons button svg {
     height: 30%;
+}
+
+#virtual-gamepad .gamepad-dpad button svg {
+    height: 40%;
 }
 
 /* Action buttons (에뮬레이터 페이지와 동일) */
 .gamepad-buttons {
     display: flex;
-    gap: 16px;
+    gap: 6px;
     align-items: center;
 }
 
@@ -531,4 +545,9 @@ body.gamepad-on #virtual-gamepad {
     min-width: 48px;
     height: 48px;
     padding: 0 10px;
+}
+
+.gamepad-buttons button.gamepad-btn-enter {
+    width: 72px;
+    min-width: 72px;
 }
