@@ -11,7 +11,7 @@ const BattleSequencer = {
         const activeBuffs = [];
         const isRiichi = (who === 'P1') ? engine.p1.isRiichi : engine.cpu.isRiichi;
 
-        if (who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
+        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'CPU' && isRiichi && attacker.id === 'rinxiang') {
             SkillFlows.applyDoraBomb(engine, attacker, who);
         }
 
