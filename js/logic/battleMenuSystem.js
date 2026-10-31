@@ -80,7 +80,7 @@ const BattleMenuSystem = {
                 if (isHidden) {
                     const iframe = document.getElementById('yaku-frame');
                     if (iframe) {
-                        iframe.src = iframe.src;
+                        iframe.src = iframe.dataset.src;
                     }
                 }
             } else {

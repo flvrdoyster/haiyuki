@@ -231,6 +231,7 @@ const Assets = {
         'ending/theend.png',
         'ending/staff.png' // 스탭롤 이미지 폰트 아틀라스 (16×8, 셀 40×64)
     ],
+    bootBgm: ['audio/bgm_compile', 'audio/bgm_title'],
     loadedCount: 0,
 
     load: function (onComplete) {
@@ -281,14 +282,18 @@ const Assets = {
 
             if (type === 'audio') {
                 if (id.includes('bgm')) {
-                    // BGM: HTMLAudioElement(스트리밍)
                     const audio = new Audio();
-                    audio.addEventListener('canplaythrough', () => {
-                        if (!this.audio[id]) {
-                            this.audio[id] = audio;
-                            done();
-                        }
-                    }, { once: true });
+                    if (this.bootBgm.includes(id)) {
+                        audio.addEventListener('canplaythrough', () => {
+                            if (!this.audio[id]) {
+                                this.audio[id] = audio;
+                                done();
+                            }
+                        }, { once: true });
+                    } else {
+                        this.audio[id] = audio;
+                        done();
+                    }
                     audio.addEventListener('error', () => {
                         console.error(`Failed to load BGM: ${src}`);
                         done();

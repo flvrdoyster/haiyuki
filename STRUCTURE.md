@@ -6,6 +6,8 @@
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
 - `battleSequencer`가 `engine.scene.fx.list`를 직접 읽는다.
 - 매니페스트(`assets.js` `toLoad`)에 없는 id로 `playSound`를 부르면 조용히 무음. 테스트 헬퍼 `getMissingSfx()`로 잡는다.
+- `Assets.load`는 `window.onload` 뒤 `Game.init`에서 시작하므로, 페이지 `load` 이벤트를 늦추는 것은 모두 게임 자원 요청을 늦춘다. 그래서 역 일람 iframe은 `data-src`만 두고 처음 열 때 `src`를 채운다(`game.js` 역 일람 버튼, `battleMenuSystem.js` HELP 둘 다).
+- BGM은 `Assets.bootBgm`(로딩 징글·타이틀)만 `canplaythrough`까지 기다리고, 나머지는 요소만 등록해 뒤에서 받는다. 덜 받은 BGM을 `playMusic`해도 버퍼가 차면 재생이 시작된다. 로딩·타이틀 장면이 새 BGM을 쓰게 되면 `bootBgm`에 넣는다.
 - 역 판정(`yakuLogic.js`)은 손패를 13종류 개수 벡터(`countsOf`, `PaiData.TYPES` 순서)로 바꿔 `_evalCounts`에서 메모한다(키 = 13진수×2 + 오픈 여부, 상한 `MEMO_MAX`면 비움). 오픈 손패는 `CLOSED_ONLY` 역을 건너뛰므로 `checkYaku`·`checkTenpai`에 `open`(= `engine.isOpen(player)`)을 넘겨야 하고, 전체 손패는 `getFullHand`로 만든다. 패 색은 종류에 묶여 있다는 전제이고, 종류와 색이 어긋난 패가 들어오면 `countsOf`가 null을 돌려 `checkYaku`만 옛 경로(`analyzeHand`)로 간다. AI(`aiLogic.js`)의 수용 패·리치 점수 탐색은 배열 복사 없이 이 벡터를 증감하며 돈다 — 한 CPU 차례에 `checkYaku` 1.5만 회가 거의 전부 메모 적중으로 바뀌어 롱태스크가 사라졌다(`tests/perf/REPORT.md`).
 
 ## 전투 연출
