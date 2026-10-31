@@ -37,6 +37,10 @@ const YakuLogic = {
         IP_E_DAM: 12800
     },
 
+    CLOSED_ONLY: new Set(['ALL_STARS', 'SAM_YEON_GYEOK', 'JIN_MAYU', 'CROSS_COMBINATION', 'MAGU_DDAERIGI', 'CHO_IL_SAEK',
+        'NAM_TANG', 'YEO_TANG', 'CHWI_HO_JEON', 'PO_MUL_JANG', 'JAYU_BAKAE_PYEONGDEUNG', 'PIL_SAL_GI', 'SA_CHEON_YO_RI',
+        'BI_O_UI', 'PAL_BO_CHAE']),
+
     _kinds: null,
     _memo: new Map(),
     _tenpaiMemo: new Map(),
@@ -72,12 +76,12 @@ const YakuLogic = {
         return { counts: piles };
     },
 
-    _evalCounts: function (counts) {
-        const key = this._keyOf(counts);
+    _evalCounts: function (counts, open) {
+        const key = this._keyOf(counts) * 2 + (open ? 1 : 0);
         const hit = this._memo.get(key);
         if (hit !== undefined) return hit;
         if (this._memo.size >= this.MEMO_MAX) this._memo.clear();
-        const r = this._evalAnalysis(this._analysisFromCounts(counts));
+        const r = this._evalAnalysis(this._analysisFromCounts(counts), open);
         this._memo.set(key, r);
         return r;
     },
@@ -88,18 +92,19 @@ const YakuLogic = {
         return { score: r.score, yaku: [this.resolveYakuName(r.key, r.meta, characterId)] };
     },
 
-    checkYaku: function (hand, characterId) {
+    // open: 오픈 세트가 있는 손패(닫힌 패 전용 역 제외).
+    checkYaku: function (hand, characterId, open) {
         if (!hand || hand.length !== 12) return null;
         const counts = this.countsOf(hand);
-        if (!counts) return this._format(this._evalAnalysis(this.analyzeHand(hand)), characterId);
-        return this._format(this._evalCounts(counts), characterId);
+        if (!counts) return this._format(this._evalAnalysis(this.analyzeHand(hand), open), characterId);
+        return this._format(this._evalCounts(counts, open), characterId);
     },
 
-    checkYakuCounts: function (counts, characterId) {
-        return this._format(this._evalCounts(counts), characterId);
+    checkYakuCounts: function (counts, characterId, open) {
+        return this._format(this._evalCounts(counts, open), characterId);
     },
 
-    _evalAnalysis: function (a) {
+    _evalAnalysis: function (a, open) {
         const matches = [];
 
         // 결과가 boolean이거나 { match, meta } 객체일 수 있음(역명 변형은 meta로 결정).
@@ -113,7 +118,7 @@ const YakuLogic = {
                 meta = result.meta || {};
             }
 
-            if (match) matches.push({ key: key, meta: meta, score: score });
+            if (match && !(open && this.CLOSED_ONLY.has(key))) matches.push({ key: key, meta: meta, score: score });
         };
 
         pushIfMatch(this.isIpEDam(a), 'IP_E_DAM', this.SCORES.IP_E_DAM);
@@ -529,24 +534,24 @@ const YakuLogic = {
     },
 
     // 텐파이: 11패에 어떤 종류 1장을 더해 화료가 되면 텐파이. returnDetails면 가능 역명 목록 반환.
-    checkTenpai: function (hand, returnDetails) {
+    checkTenpai: function (hand, returnDetails, open) {
         const counts = this.countsOf(hand);
-        return counts ? this.checkTenpaiCounts(counts, returnDetails) : false;
+        return counts ? this.checkTenpaiCounts(counts, returnDetails, open) : false;
     },
 
-    checkTenpaiCounts: function (counts, returnDetails) {
+    checkTenpaiCounts: function (counts, returnDetails, open) {
         let total = 0;
         for (let i = 0; i < counts.length; i++) total += counts[i];
         if (total !== 11) return false;
 
         if (!returnDetails) {
-            const key = this._keyOf(counts);
+            const key = this._keyOf(counts) * 2 + (open ? 1 : 0);
             const hit = this._tenpaiMemo.get(key);
             if (hit !== undefined) return hit;
             let tenpai = false;
             for (let i = 0; i < counts.length && !tenpai; i++) {
                 counts[i]++;
-                if (this._evalCounts(counts)) tenpai = true;
+                if (this._evalCounts(counts, open)) tenpai = true;
                 counts[i]--;
             }
             if (this._tenpaiMemo.size >= this.MEMO_MAX) this._tenpaiMemo.clear();
@@ -557,34 +562,37 @@ const YakuLogic = {
         const potentialYakus = new Set();
         for (let i = 0; i < counts.length; i++) {
             counts[i]++;
-            const win = this._format(this._evalCounts(counts));
+            const win = this._format(this._evalCounts(counts, open));
             counts[i]--;
             if (win) potentialYakus.add(win.yaku[0]);
         }
         return potentialYakus.size > 0 ? Array.from(potentialYakus) : false;
     },
 
-    // 화료 보너스(텐호/해저·하저/도라). 라운드 상태는 ctx={turnCount,doras,uraDoras}로 전달.
+    // 화료 보너스(텐호/해저·하저/도라). ctx={discardCount,doras,uraDoras}. discardCount는 승리 시점까지 양쪽이 버린 수.
     calculateBonuses: function (hand, winType, isRiichi, ctx) {
         let totalBonus = 0;
         const details = [];
+        const n = ctx.discardCount;
 
-        if (ctx.turnCount <= 1 && winType === 'TSUMO') {
+        if (n <= 1 && winType === 'TSUMO') {
             const s = 800;
+            totalBonus += s;
+            details.push({ name: '텐호 보너스', score: s });
+        } else if (n === 1 && winType === 'RON') {
+            const s = 400;
             totalBonus += s;
             details.push({ name: '텐호 보너스', score: s });
         }
 
-        if (ctx.turnCount >= 20) {
-            if (winType === 'TSUMO') {
-                const s = 800;
-                totalBonus += s;
-                details.push({ name: '해저 보너스', score: s });
-            } else if (winType === 'RON') {
-                const s = 800;
-                totalBonus += s;
-                details.push({ name: '하저 보너스', score: s });
-            }
+        if (n >= 39 && winType === 'TSUMO') {
+            const s = 800;
+            totalBonus += s;
+            details.push({ name: '해저 보너스', score: s });
+        } else if (n >= 40 && winType === 'RON') {
+            const s = 800;
+            totalBonus += s;
+            details.push({ name: '하저 보너스', score: s });
         }
 
         // 우라도라는 리치일 때만 계산.

@@ -53,7 +53,7 @@ const QADebug = (() => {
             const hand = engine.getFullHand(player);
             // 11장 미만이면 아직 배패 중
             if (!hand || hand.length < 11) return false;
-            return !!engine.checkTenpai(hand);
+            return !!engine.checkTenpai(hand, false, engine.isOpen(player));
         } catch (_) {
             return false;
         }

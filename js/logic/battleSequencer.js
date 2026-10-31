@@ -140,8 +140,8 @@ const BattleSequencer = {
         engine.currentState = engine.STATE_FX_PLAYING;
         engine.events.push({ type: 'STOP_MUSIC' });
 
-        const p1Tenpai = engine.checkTenpai(engine.getFullHand(engine.p1), false);
-        const cpuTenpai = engine.checkTenpai(engine.getFullHand(engine.cpu), false);
+        const p1Tenpai = engine.checkTenpai(engine.getFullHand(engine.p1), false, engine.isOpen(engine.p1));
+        const cpuTenpai = engine.checkTenpai(engine.getFullHand(engine.cpu), false, engine.isOpen(engine.cpu));
 
         const damageResult = engine.calculateTenpaiDamage(p1Tenpai, cpuTenpai);
         const damageMsg = damageResult.msg;

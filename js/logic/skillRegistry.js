@@ -17,7 +17,7 @@ function _aggressiveSkillScore(ctx) {
 function _defensiveSkillScore(engine, ctx) {
     let score = 0;
     if (ctx.isPlayerRiichi) score += 1.0;
-    if (engine.cpu.hp < 3000) score += 0.4;
+    if (engine.cpu.hp < engine.cpu.maxHp * 0.3) score += 0.4;
     score += ctx.profile.defense * 0.5;
     return score;
 }
@@ -135,7 +135,7 @@ const SkillFlows = {
         const winningTiles = [];
         PaiData.TYPES.forEach(type => {
             const testHand = [...hand, { type: type.id, color: type.color, img: type.img }];
-            if (YakuLogic.checkYaku(testHand, player.id)) {
+            if (YakuLogic.checkYaku(testHand, player.id, engine.isOpen(player))) {
                 winningTiles.push(type);
             }
         });
@@ -207,7 +207,7 @@ const SkillFlows = {
 
         const winTile = { type: resultTile.type, color: resultTile.color, img: resultTile.img };
         const testHand = [...hand, winTile];
-        const winYaku = YakuLogic.checkYaku(testHand, player.id);
+        const winYaku = YakuLogic.checkYaku(testHand, player.id, engine.isOpen(player));
 
         if (winYaku) {
             engine.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
@@ -289,7 +289,7 @@ const SkillRegistry = {
         multiUse: true,
         canUse: (engine, who, user) => user.hp < user.maxHp,
         execute: (engine, who) => {
-            engine.heal(who, 3000);
+            engine.heal(who, 1600);
             engine.playFX('fx/heal', BattleConfig.PORTRAIT[who].x + 100, 300, { scale: 1.5 });
         },
         // HP 낮을수록 강하게.

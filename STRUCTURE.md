@@ -6,7 +6,7 @@
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
 - `battleSequencer`가 `engine.scene.fx.list`를 직접 읽는다.
 - 매니페스트(`assets.js` `toLoad`)에 없는 id로 `playSound`를 부르면 조용히 무음. 테스트 헬퍼 `getMissingSfx()`로 잡는다.
-- 역 판정(`yakuLogic.js`)은 손패를 13종류 개수 벡터(`countsOf`, `PaiData.TYPES` 순서)로 바꿔 `_evalCounts`에서 메모한다(키 = 13진수, 상한 `MEMO_MAX`면 비움). 패 색은 종류에 묶여 있다는 전제이고, 종류와 색이 어긋난 패가 들어오면 `countsOf`가 null을 돌려 `checkYaku`만 옛 경로(`analyzeHand`)로 간다. AI(`aiLogic.js`)의 수용 패·리치 점수 탐색은 배열 복사 없이 이 벡터를 증감하며 돈다 — 한 CPU 차례에 `checkYaku` 1.5만 회가 거의 전부 메모 적중으로 바뀌어 롱태스크가 사라졌다(`tests/perf/REPORT.md`).
+- 역 판정(`yakuLogic.js`)은 손패를 13종류 개수 벡터(`countsOf`, `PaiData.TYPES` 순서)로 바꿔 `_evalCounts`에서 메모한다(키 = 13진수×2 + 오픈 여부, 상한 `MEMO_MAX`면 비움). 오픈 손패는 `CLOSED_ONLY` 역을 건너뛰므로 `checkYaku`·`checkTenpai`에 `open`(= `engine.isOpen(player)`)을 넘겨야 하고, 전체 손패는 `getFullHand`로 만든다. 패 색은 종류에 묶여 있다는 전제이고, 종류와 색이 어긋난 패가 들어오면 `countsOf`가 null을 돌려 `checkYaku`만 옛 경로(`analyzeHand`)로 간다. AI(`aiLogic.js`)의 수용 패·리치 점수 탐색은 배열 복사 없이 이 벡터를 증감하며 돈다 — 한 CPU 차례에 `checkYaku` 1.5만 회가 거의 전부 메모 적중으로 바뀌어 롱태스크가 사라졌다(`tests/perf/REPORT.md`).
 
 ## 가상 게임패드·상단바
 

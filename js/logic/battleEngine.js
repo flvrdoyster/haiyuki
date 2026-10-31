@@ -205,8 +205,8 @@ const BattleEngine = {
     },
 
     calculateTenpaiDamage: function (p1Tenpai, cpuTenpai) {
-        if (p1Tenpai === undefined) p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false);
-        if (cpuTenpai === undefined) cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false);
+        if (p1Tenpai === undefined) p1Tenpai = this.checkTenpai(this.getFullHand(this.p1), false, this.isOpen(this.p1));
+        if (cpuTenpai === undefined) cpuTenpai = this.checkTenpai(this.getFullHand(this.cpu), false, this.isOpen(this.cpu));
 
         let damage = 0;
         let damageMsg = "데미지 없음";
@@ -559,11 +559,9 @@ const BattleEngine = {
 
         if (who && count === 1 && this.deck.length > 0) {
             if (who.buffs && who.buffs.guaranteedWin) {
+                const fullHand = this.getFullHand(who);
                 const winningTileIdx = this.deck.findIndex(tile => {
-                    // Check if this tile completes the hand
-                    const testHand = [...who.hand, tile];
-                    // Our YakuLogic.checkYaku checks patterns.
-                    return YakuLogic.checkYaku(testHand, who.id);
+                    return YakuLogic.checkYaku([...fullHand, tile], who.id, this.isOpen(who));
                 });
 
                 if (winningTileIdx !== -1) {
@@ -901,15 +899,13 @@ const BattleEngine = {
         this.manageBuffs(this.cpu);
         this.checkCpuActiveSkills();
 
-        if (YakuLogic.checkYaku(this.cpu.hand, this.cpu.id)) {
-            this.winningYaku = YakuLogic.checkYaku(this.cpu.hand, this.cpu.id);
-            if (this.winningYaku) {
-                this.showPopup('TSUMO', { blocking: true });
-                const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
-                this.pendingDamage = { target: 'P1', amount: score };
-                BattleSequencer.startWinSequence(this, 'TSUMO', 'CPU', score);
-                return;
-            }
+        this.winningYaku = YakuLogic.checkYaku(this.getFullHand(this.cpu), this.cpu.id, this.isOpen(this.cpu));
+        if (this.winningYaku) {
+            this.showPopup('TSUMO', { blocking: true });
+            const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
+            this.pendingDamage = { target: 'P1', amount: score };
+            BattleSequencer.startWinSequence(this, 'TSUMO', 'CPU', score);
+            return;
         }
 
         if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
@@ -1088,7 +1084,7 @@ const BattleEngine = {
 
             const threshold = 0.6;
             const ctx = {
-                isTenpai: this.checkTenpai(this.cpu.hand, this.cpu.id),
+                isTenpai: this.checkTenpai(this.getFullHand(this.cpu), false, this.isOpen(this.cpu)),
                 isPlayerRiichi: this.p1.isRiichi,
                 turn: this.turnCount,
                 profile: cpuProfile
@@ -1147,7 +1143,7 @@ const BattleEngine = {
 
         // 론은 리치 선언 시에만 허용(펑 이후 오픈패 방지와 동일 규칙).
         const checkHand = [...this.getFullHand(this.cpu), discardedTile];
-        const win = YakuLogic.checkYaku(checkHand, this.cpu.id);
+        const win = YakuLogic.checkYaku(checkHand, this.cpu.id, this.isOpen(this.cpu));
         if (win && this.cpu.isRiichi) {
             const reactiveSkillId = this.p1 && this.p1.skills ? this.p1.skills.find(id => {
                 const s = SkillData[id];
@@ -1186,7 +1182,7 @@ const BattleEngine = {
             if (t.type === discardedTile.type && t.color === discardedTile.color) pairCount++;
         });
 
-        if (pairCount >= 2 && !this.cpu.isRiichi && this.cpu.hand.length >= 3) {
+        if (pairCount >= 2 && this.canPon(this.cpu) && this.cpu.hand.length >= 3) {
             const context = { isMenzen: this.cpu.isMenzen, turnCount: this.turnCount };
             if (AILogic.shouldPon(this.cpu.hand, discardedTile, this.cpuSkill, this.cpu.aiProfile, context)) {
                 this.executeCpuPon(discardedTile);
@@ -1240,14 +1236,14 @@ const BattleEngine = {
         hand.forEach(t => {
             if (t.type === discardedTile.type) matchCount++;
         });
-        if (matchCount >= 2 && this.turnCount !== 1 && this.turnCount < 20 && !this.p1.isRiichi && hand.length >= 3) {
+        if (matchCount >= 2 && this.canPon(this.p1) && hand.length >= 3) {
             const ponAction = { type: 'PON', label: '펑', targetTile: discardedTile };
             this.possibleActions.push(ponAction);
         }
 
         // 론은 리치 선언 시에만 허용(펑 후 오픈패 방지와 동일).
         const tempHand = [...fullHand, discardedTile];
-        if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand, this.p1.id)) {
+        if (this.p1.isRiichi && YakuLogic.checkYaku(tempHand, this.p1.id, this.isOpen(this.p1))) {
             this.possibleActions.push({ type: 'RON', label: '론' });
         }
 
@@ -1270,7 +1266,7 @@ const BattleEngine = {
         const hand = this.p1.hand;
         const fullHand = this.getFullHand(this.p1);
 
-        const yakuResult = YakuLogic.checkYaku(fullHand, this.p1.id);
+        const yakuResult = YakuLogic.checkYaku(fullHand, this.p1.id, this.isOpen(this.p1));
 
         if (yakuResult) {
             this.possibleActions.push({ type: 'TSUMO', label: '쯔모' });
@@ -1403,7 +1399,7 @@ const BattleEngine = {
             this.showPopup('TSUMO', { blocking: true });
             this.setExpressions('smile', 'shocked');
 
-            this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id);
+            this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id, this.isOpen(this.p1));
 
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen, this.p1, this.cpu);
@@ -1442,7 +1438,7 @@ const BattleEngine = {
             const winningTile = this.discards[this.discards.length - 1];
             const finalHand = [...fullHand, winningTile];
 
-            this.winningYaku = YakuLogic.checkYaku(finalHand, this.p1.id);
+            this.winningYaku = YakuLogic.checkYaku(finalHand, this.p1.id, this.isOpen(this.p1));
             if (this.winningYaku) {
                 const score = this.calculateScore(this.winningYaku.score, this.p1.isMenzen, this.p1, this.cpu);
                 this.pendingDamage = { target: 'CPU', amount: score };
@@ -1463,6 +1459,16 @@ const BattleEngine = {
             tiles = tiles.concat(set.tiles);
         });
         return tiles;
+    },
+
+    isOpen: function (player) {
+        return player.openSets.length > 0;
+    },
+
+    // 펑 가능: 리치 아님, 오픈 세트 3개 미만, 양쪽 버림 수(지금 버린 패 포함) 2~37.
+    canPon: function (player) {
+        return !player.isRiichi && player.openSets.length < 3 &&
+            this.discards.length >= 2 && this.discards.length <= 37;
     },
 
     getPlayer: function (who) {
@@ -1559,8 +1565,8 @@ const BattleEngine = {
 
 
 
-    checkTenpai: function (hand, returnDetails) {
-        return YakuLogic.checkTenpai(hand, returnDetails);
+    checkTenpai: function (hand, returnDetails, open) {
+        return YakuLogic.checkTenpai(hand, returnDetails, open);
     },
 
     updateBattleMusic: function () {
@@ -1584,7 +1590,7 @@ const BattleEngine = {
 
     calculateBonuses: function (hand, winType, isRiichi) {
         return YakuLogic.calculateBonuses(hand, winType, isRiichi, {
-            turnCount: this.turnCount,
+            discardCount: this.discards.length,
             doras: this.doras,
             uraDoras: this.uraDoras
         });
