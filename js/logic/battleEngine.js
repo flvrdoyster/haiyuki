@@ -580,7 +580,7 @@ const BattleEngine = {
                     let worstScore = Infinity;
                     for (let i = 0; i < peek; i++) {
                         const tile = this.deck[this.deck.length - 1 - i];
-                        const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {});
+                        const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {}, this.isOpen(who));
                         if (s < worstScore) { worstScore = s; worstOffset = i; }
                     }
                     if (worstOffset > 0) {
@@ -604,7 +604,7 @@ const BattleEngine = {
             for (let i = 0; i < peek; i++) {
                 const tile = this.deck[this.deck.length - 1 - i];
                 const detail = {};
-                const score = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, detail);
+                const score = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, detail, this.isOpen(who));
                 if (score > bestScore) { bestScore = score; bestOffset = i; Object.assign(bestDetail, detail); }
             }
             const chosen = this.deck[this.deck.length - 1 - bestOffset];
@@ -631,7 +631,7 @@ const BattleEngine = {
             let pickScore = want ? -Infinity : Infinity;
             for (let i = 0; i < peek; i++) {
                 const tile = this.deck[this.deck.length - 1 - i];
-                const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {});
+                const s = YakuLogic.rateTileForHand(who.hand, tile, who.id, fullHand, {}, this.isOpen(who));
                 if (want ? (s > pickScore) : (s < pickScore)) { pickScore = s; pickOffset = i; }
             }
             if (pickOffset > 0) {
@@ -1418,7 +1418,7 @@ const BattleEngine = {
                 }) : null;
 
                 if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
-                    if (this.cpu.hp < 8000 || Math.random() < 0.8) {
+                    if (this.cpu.hp < this.cpu.maxHp * 0.8 || Math.random() < 0.8) {
                         if (this.useSkill(reactiveSkillId, 'CPU', true)) {
                             if (reactiveSkillId === 'SUPER_IAI') {
                                 SkillFlows.activateSuperIaido(this, 'CPU');

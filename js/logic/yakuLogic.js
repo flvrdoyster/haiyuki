@@ -619,21 +619,21 @@ const YakuLogic = {
     },
 
     // discardIdx를 버린 뒤(텐파이 가정) 도달 가능한 최고/평균 역점수와 대기 종류 수.
-    getRiichiScore: function (hand, charId, discardIdx) {
+    getRiichiScore: function (hand, charId, discardIdx, open) {
         const counts = this.countsOf(hand);
         if (!counts) return { maxScore: 0, avgScore: 0, waitCount: 0 };
         counts[PaiData.INDEX[hand[discardIdx].type]]--;
-        return this.riichiScoreCounts(counts);
+        return this.riichiScoreCounts(counts, open);
     },
 
-    riichiScoreCounts: function (counts) {
+    riichiScoreCounts: function (counts, open) {
         let maxScore = 0;
         let totalScore = 0;
         let waitCount = 0;
 
         for (let i = 0; i < counts.length; i++) {
             counts[i]++;
-            const r = this._evalCounts(counts);
+            const r = this._evalCounts(counts, open);
             counts[i]--;
             if (r) {
                 const score = r === 'RIICHI_ONLY' ? 0 : r.score;
@@ -653,7 +653,7 @@ const YakuLogic = {
     // 후보 타일이 손패를 얼마나 개선하는지 실제 yaku 테이블로 평가(드로우 어시스트용). 3단계:
     //   ① 지금 화료 → 100000+역점수  ② 버림 후 텐파이 → 10000+도달 최고역  ③ 그 외 → 빌드업 휴리스틱.
     // out(선택): {tier,yaku,score}로 어떤 역을 노리는지 보고.
-    rateTileForHand: function (hand, tile, charId, fullHand, out) {
+    rateTileForHand: function (hand, tile, charId, fullHand, out, open) {
         const report = (tier, yaku, score) => {
             if (out) { out.tier = tier; out.yaku = yaku || null; out.score = score || 0; }
         };
@@ -668,7 +668,7 @@ const YakuLogic = {
         if (counts && ti !== undefined) {
             counts[ti]++;
 
-            const win = this.checkYakuCounts(counts, charId);
+            const win = this.checkYakuCounts(counts, charId, open);
             if (win) {
                 report('complete', win.yaku && win.yaku[0], win.score);
                 return 100000 + win.score;
@@ -687,7 +687,7 @@ const YakuLogic = {
                 counts[di]--;
                 for (let k = 0; k < counts.length; k++) {
                     counts[k]++;
-                    const w = this.checkYakuCounts(counts, charId);
+                    const w = this.checkYakuCounts(counts, charId, open);
                     counts[k]--;
                     if (w && w.score > best) { best = w.score; bestYaku = w.yaku && w.yaku[0]; }
                 }

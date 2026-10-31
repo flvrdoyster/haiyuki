@@ -25,16 +25,16 @@ function _defensiveSkillScore(engine, ctx) {
 // CPU 현재 손패가 도달 가능한 최고 역점수(value 인지 스킬용 — CRITICAL은 큰 손에서만 값어치).
 // 12패(버림 전)·11패(텐파이) 모두 처리.
 function _cpuBestYaku(engine) {
-    const hand = engine.cpu.hand, charId = engine.cpu.id;
+    const hand = engine.getFullHand(engine.cpu), charId = engine.cpu.id, open = engine.isOpen(engine.cpu);
     let best = 0;
     if (hand.length === 12) {
-        for (let i = 0; i < hand.length; i++) {
-            const rs = YakuLogic.getRiichiScore(hand, charId, i);
+        for (let i = 0; i < engine.cpu.hand.length; i++) {
+            const rs = YakuLogic.getRiichiScore(hand, charId, i, open);
             if (rs.maxScore > best) best = rs.maxScore;
         }
     } else {
         for (const t of PaiData.TYPES) {
-            const w = YakuLogic.checkYaku([...hand, { type: t.id, color: t.color, img: t.img }], charId);
+            const w = YakuLogic.checkYaku([...hand, { type: t.id, color: t.color, img: t.img }], charId, open);
             if (w && w.score > best) best = w.score;
         }
     }
