@@ -1,5 +1,5 @@
 import sys,re
-src=open('/Users/oyster/GitHub/haiyuki-re/extracted/sq/ghidra/decomp/all.c',encoding='utf8',errors='replace').read()+open('/Users/oyster/GitHub/haiyuki-re/extracted/sq/ghidra/decomp/handlers.c',encoding='utf8',errors='replace').read()
+src=open('/Users/oyster/GitHub/haiyuki/extracted/sq/ghidra/decomp/all.c',encoding='utf8',errors='replace').read()+open('/Users/oyster/GitHub/haiyuki/extracted/sq/ghidra/decomp/handlers.c',encoding='utf8',errors='replace').read()
 parts=re.split(r'^// ==== ',src,flags=re.M)
 F={}
 for p in parts[1:]:
