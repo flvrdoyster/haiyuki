@@ -348,9 +348,16 @@ const Game = {
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.font = `bold 16px ${FONTS.bold}`;
         ctx.textAlign = 'center';
-        ctx.fillText('일시정지', 320, 230);
+        const k = 48 / 539.42;
+        ctx.translate(320 - 298.15 * k / 2, 186);
+        ctx.scale(k, k);
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 86.88, 539.42, 43.44);
+        ctx.roundRect(211.27, 0, 86.88, 539.42, 43.44);
+        ctx.fill();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (Math.floor(performance.now() / 500) % 2 === 0) {
-            ctx.fillText(conf.TEXTS.pressSpace, 320, 260);
+            ctx.fillText(conf.TEXTS.pressSpace, 320, 270);
         }
         ctx.restore();
     },
