@@ -53,13 +53,14 @@ const AILogic = {
         const value = (profile.value != null) ? profile.value : 0.5;
 
         // 닫힌 손패(12)만 실제 yaku 평가가 성립; 펑 손패는 휴리스틱 폴백.
-        const smart = (hand.length === 12);
 
         const greed = (profile.greed != null) ? profile.greed : 0.3;
         let domColor = null, domCount = 0; const byColor = {};
         for (const t of hand) { byColor[t.color] = (byColor[t.color] || 0) + 1; if (byColor[t.color] > domCount) { domCount = byColor[t.color]; domColor = t.color; } }
         const doraSet = new Set((doras || []).map(d => d.type + '_' + d.color));
 
+        const counts = YakuLogic.countsOf(hand);
+        const smart = (hand.length === 12) && !!counts;
         const candidates = [];
         for (let i = 0; i < hand.length; i++) {
             const tile = hand[i];
@@ -68,17 +69,20 @@ const AILogic = {
 
             let score;
             if (smart) {
-                const reach = YakuLogic.getRiichiScore(hand, charId, i);
+                const ki = PaiData.INDEX[tile.type];
+                counts[ki]--;
+                const reach = YakuLogic.riichiScoreCounts(counts);
                 if (reach.waitCount > 0) {
                     score = this.TENPAI_TIER
                         + (reach.maxScore / this.MAX_YAKU) * this.YAKU_REACH_W
                         + Math.min(reach.waitCount, 12) * this.WAIT_W;
                     if (value > 0) score += reach.maxScore * value * this.VALUE_WEIGHT;
                 } else {
-                    const acc = this.acceptanceInfo(remainingHand, charId);
+                    const acc = this.acceptanceInfoCounts(counts, remainingHand);
                     score = (acc.accept > 0 ? this.SHANTEN_TIER : 0) + acc.accept * this.ACCEPT_W;
                     if (value > 0 && acc.bestYaku > 0) score += (acc.bestYaku / this.MAX_YAKU) * value * this.VALUE_BUILD_W;
                 }
+                counts[ki]++;
                 score += this.calculateHandPotential(remainingHand, profile, doras, 1) * this.STYLE_W;
 
                 if (domCount >= 5 && tile.color !== domColor) score += profile.colorBias * this.COLOR_W;
@@ -100,25 +104,36 @@ const AILogic = {
 
     // 비텐파이 11패: ukeire(accept) + 한 수 앞 도달 가능 최고 역(bestYaku, value 스티어용).
     acceptanceInfo: function (hand11, charId) {
+        const counts = YakuLogic.countsOf(hand11);
+        return counts ? this.acceptanceInfoCounts(counts, hand11) : { accept: 0, bestYaku: 0 };
+    },
+
+    // 버림 후보는 손패 순서대로(같은 종류는 한 번), 마지막에 뽑은 패 D.
+    acceptanceInfoCounts: function (counts, hand11) {
+        const order = [];
+        for (const t of hand11) {
+            const k = PaiData.INDEX[t.type];
+            if (k !== undefined && order.indexOf(k) < 0) order.push(k);
+        }
         let accept = 0, bestYaku = 0;
-        for (const D of PaiData.TYPES) {
-            const h12 = [...hand11, { type: D.id, color: D.color, img: D.img }];
-            const tried = new Set();
+        for (let D = 0; D < counts.length; D++) {
+            counts[D]++;
             let foundJ = -1;
-            for (let j = 0; j < h12.length && foundJ < 0; j++) {
-                const d = h12[j];
-                const k = d.type + '_' + d.color;
-                if (tried.has(k)) continue;
-                tried.add(k);
-                const h11b = [...h12];
-                h11b.splice(j, 1);
-                if (YakuLogic.checkTenpai(h11b)) foundJ = j;
+            for (let n = 0; n <= order.length && foundJ < 0; n++) {
+                const j = n < order.length ? order[n] : D;
+                if (n === order.length && order.indexOf(D) >= 0) break;
+                counts[j]--;
+                if (YakuLogic.checkTenpaiCounts(counts, false)) foundJ = j;
+                counts[j]++;
             }
             if (foundJ >= 0) {
                 accept++;
-                const rs = YakuLogic.getRiichiScore(h12, charId, foundJ);
+                counts[foundJ]--;
+                const rs = YakuLogic.riichiScoreCounts(counts);
+                counts[foundJ]++;
                 if (rs.maxScore > bestYaku) bestYaku = rs.maxScore;
             }
+            counts[D]--;
         }
         return { accept, bestYaku };
     },

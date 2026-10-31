@@ -37,10 +37,69 @@ const YakuLogic = {
         IP_E_DAM: 12800
     },
 
+    _kinds: null,
+    _memo: new Map(),
+    _tenpaiMemo: new Map(),
+    MEMO_MAX: 100000,
+
+    kinds: function () {
+        if (!this._kinds) this._kinds = PaiData.TYPES.map(t => ({ type: t.id, color: t.color, img: t.img }));
+        return this._kinds;
+    },
+
+    countsOf: function (hand) {
+        const counts = new Array(PaiData.TYPES.length).fill(0);
+        for (const tile of hand) {
+            const i = PaiData.INDEX[tile.type];
+            if (i === undefined || PaiData.TYPES[i].color !== tile.color) return null;
+            counts[i]++;
+        }
+        return counts;
+    },
+
+    _keyOf: function (counts) {
+        let k = 0;
+        for (let i = 0; i < counts.length; i++) k = k * 13 + counts[i];
+        return k;
+    },
+
+    _analysisFromCounts: function (counts) {
+        const kinds = this.kinds();
+        const piles = {};
+        for (let i = 0; i < counts.length; i++) {
+            if (counts[i] > 0) piles[`${kinds[i].color}_${kinds[i].type}`] = { tile: kinds[i], count: counts[i] };
+        }
+        return { counts: piles };
+    },
+
+    _evalCounts: function (counts) {
+        const key = this._keyOf(counts);
+        const hit = this._memo.get(key);
+        if (hit !== undefined) return hit;
+        if (this._memo.size >= this.MEMO_MAX) this._memo.clear();
+        const r = this._evalAnalysis(this._analysisFromCounts(counts));
+        this._memo.set(key, r);
+        return r;
+    },
+
+    _format: function (r, characterId) {
+        if (!r) return null;
+        if (r === 'RIICHI_ONLY') return { score: 0, yaku: ['RIICHI_ONLY'] };
+        return { score: r.score, yaku: [this.resolveYakuName(r.key, r.meta, characterId)] };
+    },
+
     checkYaku: function (hand, characterId) {
         if (!hand || hand.length !== 12) return null;
+        const counts = this.countsOf(hand);
+        if (!counts) return this._format(this._evalAnalysis(this.analyzeHand(hand)), characterId);
+        return this._format(this._evalCounts(counts), characterId);
+    },
 
-        const a = this.analyzeHand(hand);
+    checkYakuCounts: function (counts, characterId) {
+        return this._format(this._evalCounts(counts), characterId);
+    },
+
+    _evalAnalysis: function (a) {
         const matches = [];
 
         // 결과가 boolean이거나 { match, meta } 객체일 수 있음(역명 변형은 meta로 결정).
@@ -54,10 +113,7 @@ const YakuLogic = {
                 meta = result.meta || {};
             }
 
-            if (match) {
-                const name = this.resolveYakuName(key, meta, characterId);
-                matches.push({ name: name, score: score });
-            }
+            if (match) matches.push({ key: key, meta: meta, score: score });
         };
 
         pushIfMatch(this.isIpEDam(a), 'IP_E_DAM', this.SCORES.IP_E_DAM);
@@ -97,18 +153,10 @@ const YakuLogic = {
         pushIfMatch(this.isSamYeonGyeok(a), 'SAM_YEON_GYEOK', this.SCORES.SAM_YEON_GYEOK);
 
         if (matches.length === 0) {
-            // 역은 없지만 기본 형(4세트)을 이루면 리치 전용 화료.
-            if (this.isBasicShape(a)) {
-                return { score: 0, yaku: ['RIICHI_ONLY'] };
-            }
-            return null;
+            return this.isBasicShape(a) ? 'RIICHI_ONLY' : null;
         }
         matches.sort((a, b) => b.score - a.score);
-
-        return {
-            score: matches[0].score,
-            yaku: [matches[0].name]
-        };
+        return matches[0];
     },
 
     resolveYakuName: function (key, meta, charId) {
@@ -179,13 +227,13 @@ const YakuLogic = {
         const n8 = Object.values(a.counts).find(c => c.count >= 8);
         if (!n8) return false;
 
-        const type8 = PaiData.TYPES.find(t => t.id === n8.tile.type);
+        const type8 = PaiData.BY_ID[n8.tile.type];
         if (type8.category !== 'character') return false;
 
         const n4 = Object.values(a.counts).find(c => c.count >= 4 && c !== n8);
         if (!n4) return false;
 
-        const type4 = PaiData.TYPES.find(t => t.id === n4.tile.type);
+        const type4 = PaiData.BY_ID[n4.tile.type];
         return type4.category === 'weapon' && n4.tile.color === n8.tile.color;
     },
 
@@ -207,8 +255,8 @@ const YakuLogic = {
                 const s2 = sixes[j];
                 if (s1.tile.color !== s2.tile.color) continue;
 
-                const t1 = PaiData.TYPES.find(t => t.id === s1.tile.type);
-                const t2 = PaiData.TYPES.find(t => t.id === s2.tile.type);
+                const t1 = PaiData.BY_ID[s1.tile.type];
+                const t2 = PaiData.BY_ID[s2.tile.type];
                 if ((t1.category === 'character' && t2.category === 'weapon') ||
                     (t1.category === 'weapon' && t2.category === 'character')) return true;
             }
@@ -241,7 +289,7 @@ const YakuLogic = {
         const byColor = {};
         Object.values(a.counts).forEach(c => {
             const numSets = Math.floor(c.count / 4);
-            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            const cat = PaiData.BY_ID[c.tile.type].category;
             for (let k = 0; k < numSets; k++) (byColor[c.tile.color] = byColor[c.tile.color] || []).push({ id: c.tile.type, cat });
         });
 
@@ -317,7 +365,7 @@ const YakuLogic = {
         const byColor = {};
         Object.values(a.counts).forEach(c => {
             if (c.count < 4) return;
-            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            const cat = PaiData.BY_ID[c.tile.type].category;
             const e = byColor[c.tile.color] = byColor[c.tile.color] || { chars: new Set(), weps: new Set() };
             if (cat === 'character') e.chars.add(c.tile.type);
             else if (cat === 'weapon') e.weps.add(c.tile.type);
@@ -329,7 +377,7 @@ const YakuLogic = {
         let wepSets = 0;
         Object.values(a.counts).forEach(c => {
             if (c.count >= 4) {
-                const t = PaiData.TYPES.find(x => x.id === c.tile.type);
+                const t = PaiData.BY_ID[c.tile.type];
                 if (t.category === 'weapon') {
                     wepSets += Math.floor(c.count / 4);
                 }
@@ -347,8 +395,8 @@ const YakuLogic = {
         for (let i = 0; i < threes.length; i++) {
             for (let j = i + 1; j < threes.length; j++) {
                 if (threes[i].tile.color !== threes[j].tile.color) continue;
-                const t1 = PaiData.TYPES.find(t => t.id === threes[i].tile.type);
-                const t2 = PaiData.TYPES.find(t => t.id === threes[j].tile.type);
+                const t1 = PaiData.BY_ID[threes[i].tile.type];
+                const t2 = PaiData.BY_ID[threes[j].tile.type];
                 if (t1.category === 'character' && t2.category === 'weapon') return { match: true, meta: { char: threes[i].tile.type } };
                 if (t1.category === 'weapon' && t2.category === 'character') return { match: true, meta: { char: threes[j].tile.type } };
             }
@@ -368,7 +416,7 @@ const YakuLogic = {
         const byColor = {};
         Object.values(a.counts).forEach(c => {
             if (c.count < 3) return;
-            const cat = PaiData.TYPES.find(t => t.id === c.tile.type).category;
+            const cat = PaiData.BY_ID[c.tile.type].category;
             const e = byColor[c.tile.color] = byColor[c.tile.color] || { chars: new Set(), weps: new Set() };
             if (cat === 'character') e.chars.add(c.tile.type);
             else if (cat === 'weapon') e.weps.add(c.tile.type);
@@ -399,8 +447,8 @@ const YakuLogic = {
 
         ['red', 'blue', 'yellow'].forEach(col => {
             const colSets = threes.filter(c => c.tile.color === col);
-            const chars = colSets.filter(c => PaiData.TYPES.find(t => t.id === c.tile.type).category === 'character');
-            const weps = colSets.filter(c => PaiData.TYPES.find(t => t.id === c.tile.type).category === 'weapon');
+            const chars = colSets.filter(c => PaiData.BY_ID[c.tile.type].category === 'character');
+            const weps = colSets.filter(c => PaiData.BY_ID[c.tile.type].category === 'weapon');
             if (chars.length >= 1 && weps.length >= 1) pairs.push(col);
         });
         return pairs.length >= 2;
@@ -430,7 +478,7 @@ const YakuLogic = {
         const femaleTypes = new Set();
         Object.values(a.counts).forEach(c => {
             if (c.count < 3) return;
-            const t = PaiData.TYPES.find(x => x.id === c.tile.type);
+            const t = PaiData.BY_ID[c.tile.type];
             if (t.category === 'character' && t.gender === 'female') femaleTypes.add(c.tile.type);
         });
         return femaleTypes.size >= 3;
@@ -466,8 +514,8 @@ const YakuLogic = {
         const pairs = Object.values(a.counts).filter(c => c.count >= 2);
 
         const checkColor = (col) => {
-            const hasChar = pairs.some(c => c.tile.color === col && PaiData.TYPES.find(t => t.id === c.tile.type).category === 'character');
-            const hasWep = pairs.some(c => c.tile.color === col && PaiData.TYPES.find(t => t.id === c.tile.type).category === 'weapon');
+            const hasChar = pairs.some(c => c.tile.color === col && PaiData.BY_ID[c.tile.type].category === 'character');
+            const hasWep = pairs.some(c => c.tile.color === col && PaiData.BY_ID[c.tile.type].category === 'weapon');
             return hasChar && hasWep;
         };
 
@@ -482,29 +530,38 @@ const YakuLogic = {
 
     // 텐파이: 11패에 어떤 종류 1장을 더해 화료가 되면 텐파이. returnDetails면 가능 역명 목록 반환.
     checkTenpai: function (hand, returnDetails) {
-        const potentialYakus = new Set();
-        let isTenpai = false;
+        const counts = this.countsOf(hand);
+        return counts ? this.checkTenpaiCounts(counts, returnDetails) : false;
+    },
 
-        for (const type of PaiData.TYPES) {
-            const tile = { type: type.id, color: type.color, img: type.img };
-            const tempHand = [...hand, tile];
+    checkTenpaiCounts: function (counts, returnDetails) {
+        let total = 0;
+        for (let i = 0; i < counts.length; i++) total += counts[i];
+        if (total !== 11) return false;
 
-            const win = this.checkYaku(tempHand);
-            if (win) {
-                isTenpai = true;
-                if (returnDetails) {
-                    potentialYakus.add(win.yaku[0]);
-                } else {
-                    return true;
-                }
+        if (!returnDetails) {
+            const key = this._keyOf(counts);
+            const hit = this._tenpaiMemo.get(key);
+            if (hit !== undefined) return hit;
+            let tenpai = false;
+            for (let i = 0; i < counts.length && !tenpai; i++) {
+                counts[i]++;
+                if (this._evalCounts(counts)) tenpai = true;
+                counts[i]--;
             }
+            if (this._tenpaiMemo.size >= this.MEMO_MAX) this._tenpaiMemo.clear();
+            this._tenpaiMemo.set(key, tenpai);
+            return tenpai;
         }
 
-        if (returnDetails && isTenpai) {
-            return Array.from(potentialYakus);
+        const potentialYakus = new Set();
+        for (let i = 0; i < counts.length; i++) {
+            counts[i]++;
+            const win = this._format(this._evalCounts(counts));
+            counts[i]--;
+            if (win) potentialYakus.add(win.yaku[0]);
         }
-
-        return isTenpai;
+        return potentialYakus.size > 0 ? Array.from(potentialYakus) : false;
     },
 
     // 화료 보너스(텐호/해저·하저/도라). 라운드 상태는 ctx={turnCount,doras,uraDoras}로 전달.
@@ -555,22 +612,28 @@ const YakuLogic = {
 
     // discardIdx를 버린 뒤(텐파이 가정) 도달 가능한 최고/평균 역점수와 대기 종류 수.
     getRiichiScore: function (hand, charId, discardIdx) {
-        const tempHand = [...hand];
-        tempHand.splice(discardIdx, 1);
+        const counts = this.countsOf(hand);
+        if (!counts) return { maxScore: 0, avgScore: 0, waitCount: 0 };
+        counts[PaiData.INDEX[hand[discardIdx].type]]--;
+        return this.riichiScoreCounts(counts);
+    },
 
+    riichiScoreCounts: function (counts) {
         let maxScore = 0;
         let totalScore = 0;
         let waitCount = 0;
 
-        PaiData.TYPES.forEach(type => {
-            const testHand = [...tempHand, { type: type.id, color: type.color, img: type.img }];
-            const result = this.checkYaku(testHand, charId);
-            if (result) {
+        for (let i = 0; i < counts.length; i++) {
+            counts[i]++;
+            const r = this._evalCounts(counts);
+            counts[i]--;
+            if (r) {
+                const score = r === 'RIICHI_ONLY' ? 0 : r.score;
                 waitCount++;
-                if (result.score > maxScore) maxScore = result.score;
-                totalScore += result.score;
+                if (score > maxScore) maxScore = score;
+                totalScore += score;
             }
-        });
+        }
 
         return {
             maxScore: maxScore,
@@ -592,10 +655,12 @@ const YakuLogic = {
         const sameColor = hand.filter(t => t.color === tile.color).length;
         const building = (sameType * sameType * 10) + sameColor;
 
-        if (fullHand && fullHand.length === 11) {
-            const fullPlus = [...fullHand, tile];
+        const counts = (fullHand && fullHand.length === 11) ? this.countsOf(fullHand) : null;
+        const ti = PaiData.INDEX[tile.type];
+        if (counts && ti !== undefined) {
+            counts[ti]++;
 
-            const win = this.checkYaku(fullPlus, charId);
+            const win = this.checkYakuCounts(counts, charId);
             if (win) {
                 report('complete', win.yaku && win.yaku[0], win.score);
                 return 100000 + win.score;
@@ -606,17 +671,19 @@ const YakuLogic = {
             let bestYaku = null;
             const tried = new Set();
             for (const d of [...hand, tile]) {
-                const key = d.type + '_' + d.color;
-                if (tried.has(key)) continue;
-                tried.add(key);
+                let di = PaiData.INDEX[d.type];
+                if (di === undefined || tried.has(di)) continue;
+                tried.add(di);
+                if (counts[di] === 0) di = ti;
 
-                const kept = [...fullPlus];
-                kept.splice(kept.findIndex(x => x.type === d.type && x.color === d.color), 1);
-
-                for (const t of PaiData.TYPES) {
-                    const w = this.checkYaku([...kept, { type: t.id, color: t.color, img: t.img }], charId);
+                counts[di]--;
+                for (let k = 0; k < counts.length; k++) {
+                    counts[k]++;
+                    const w = this.checkYakuCounts(counts, charId);
+                    counts[k]--;
                     if (w && w.score > best) { best = w.score; bestYaku = w.yaku && w.yaku[0]; }
                 }
+                counts[di]++;
             }
             if (best > 0) {
                 report('tenpai', bestYaku, best);

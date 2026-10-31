@@ -38,7 +38,10 @@ const PaiData = {
     ],
 
     getImg: function (typeId) {
-        const type = this.TYPES.find(t => t.id === typeId);
+        const type = this.BY_ID[typeId];
         return type ? type.img : null;
     }
 };
+PaiData.BY_ID = {};
+PaiData.INDEX = {};
+PaiData.TYPES.forEach((t, i) => { PaiData.BY_ID[t.id] = t; PaiData.INDEX[t.id] = i; });
