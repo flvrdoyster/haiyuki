@@ -118,6 +118,7 @@ const BattleEngine = {
             this.cpu.id = cpuData.id;
             this.cpu.name = cpuData.name;
             this.cpu.aiProfile = cpuData.aiProfile || null;
+            this.cpu.skillOffset = cpuData.skillOffset || 0;
             this.cpu.skills = cpuData.skills || [];
         }
 
@@ -158,7 +159,8 @@ const BattleEngine = {
 
         // cpuSkill: 역량(0..1). aiProfile: 플레이 스타일(별도).
         this.difficulty = data.difficulty || 'normal';
-        this.cpuSkill = this.computeCpuSkill(this.difficulty, this.defeatedOpponents.length);
+        this.cpuSkill = this.applySkillOffset(
+            this.computeCpuSkill(this.difficulty, this.defeatedOpponents.length), this.cpu.skillOffset);
 
         // easy 전용 드로우 어시스트(플레이어만, drawTiles 참조).
         this.drawAssistChance = (data.difficulty === 'easy')
@@ -183,6 +185,10 @@ const BattleEngine = {
         const band = this.DIFFICULTY_BANDS[difficulty] || this.DIFFICULTY_BANDS.normal;
         const t = Math.max(0, Math.min(1, defeatedCount / this.TOURNAMENT_LENGTH));
         return band[0] + (band[1] - band[0]) * t;
+    },
+
+    applySkillOffset: function (skill, offset) {
+        return Math.max(0, Math.min(1, skill + (offset || 0)));
     },
 
     playFX: function (type, x, y, options = {}) {
@@ -902,7 +908,10 @@ const BattleEngine = {
             return;
         }
 
-        if (!this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
+        const exchangeTile = this.cpu.exchangeDiscard;
+        this.cpu.exchangeDiscard = null;
+
+        if (!exchangeTile && !this.cpu.isRiichi && this.cpu.isMenzen && this.cpu.hand.length >= 2 && this.turnCount < 20) {
             let canRiichi = false;
             let riichiDiscardIndex = -1;
 
@@ -949,7 +958,9 @@ const BattleEngine = {
         }
 
         let discardIdx;
-        if (this.cpu.isRiichi) {
+        if (exchangeTile && this.cpu.hand.indexOf(exchangeTile) !== -1) {
+            discardIdx = this.cpu.hand.indexOf(exchangeTile);
+        } else if (this.cpu.isRiichi) {
             discardIdx = this.cpu.hand.length - 1;
         } else {
             const context = {
