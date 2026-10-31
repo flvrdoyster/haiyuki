@@ -677,10 +677,6 @@ const BattleRenderer = {
     drawFX: function (ctx, fxList) {
         if (!fxList) return;
         ctx.save();
-        if (fxList.some(fx => fx.wash)) {
-            ctx.fillStyle = BattleConfig.POPUP.WASH;
-            ctx.fillRect(0, 0, BattleConfig.SCREEN.width, BattleConfig.SCREEN.height);
-        }
         fxList.forEach(fx => {
             if (fx.timeline) {
                 fx.pieces.forEach(pc => {

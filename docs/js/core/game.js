@@ -200,6 +200,7 @@ const Game = {
             this.currentScene.update(dt);
         }
         this._updateFade(dt);
+        this._updateShake(dt);
         // 씬 업데이트 후 호출해야 'just pressed' 감지가 정확함
         Input.update();
     },
@@ -253,24 +254,24 @@ const Game = {
         ctx.restore();
     },
 
-    _shakeTimer: 0,
+    _shakeT: 0,
     _shakeDur: 0,
     _shakeAmp: 0,
     _shakeBuf: null,
 
-    // amp: 세로 진폭(px), frames: 지속 프레임. 매 프레임 +A, 0, -A, 0 사각파, 감쇠 없음.
-    // 밀려난 줄은 반대편으로 돌아온다(순환 스크롤).
     shake: function (amp, frames) {
         this._shakeAmp = amp;
-        this._shakeTimer = frames;
+        this._shakeT = 0;
         this._shakeDur = frames;
     },
 
+    _updateShake: function (dt) {
+        if (this._shakeT < this._shakeDur) this._shakeT += dt;
+    },
+
     _applyShake: function () {
-        if (this._shakeTimer <= 0) return;
-        const step = this._shakeDur - this._shakeTimer;
-        const dy = [this._shakeAmp, 0, -this._shakeAmp, 0][step % 4];
-        this._shakeTimer--;
+        if (this._shakeT >= this._shakeDur) return;
+        const dy = [this._shakeAmp, 0, -this._shakeAmp, 0][Math.floor(this._shakeT) % 4];
         if (dy === 0) return;
         const w = this.canvas.width, h = this.canvas.height;
         if (!this._shakeBuf) {

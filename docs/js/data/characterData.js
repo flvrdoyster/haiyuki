@@ -132,17 +132,17 @@ const CharacterData = [
     {
         id: 'fari', name: '화린', face: 'face/FARI_base.png', selectIcon: 'face/select_FARI.png', rival: 'petum', skills: ['RECOVERY', 'DISCARD_GUARD'], battleOffsetX: 0, battleOffsetY: 0,
         // 운 좋아 초반부터 리치, 상대 리치엔 잘 접고 버팀.
-        aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.35 },
+        aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.30 },
     },
     {
         id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 5, battleOffsetY: 0,
         // 펑 적극, 빠르고 싸게. 큰 손·도라·색 욕심 없음.
-        aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.50, colorBias: 0.20, greed: 0.15, luck: 0.25 },
+        aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.20, colorBias: 0.20, greed: 0.15, luck: 0.25 },
     },
     {
         id: 'petum', name: '페톰', face: 'face/PET_base.png', selectIcon: 'face/select_PET.png', rival: 'fari', skills: ['CRITICAL', 'LAST_CHANCE'], battleOffsetX: 0, battleOffsetY: 0, cpuOffsetX: 20,
         // 무방비 전돌(거의 안 접음). luck=0: 음수로 두면 CPU가 약해져 난이도↓가 돼 0으로 유지.
-        aiProfile: { type: 'TRICKY_ATTACK', value: 0.80, speed: 0.50, defense: 0.15, colorBias: 0.55, greed: 0.55, luck: 0.15 },
+        aiProfile: { type: 'TRICKY_ATTACK', value: 0.80, speed: 0.50, defense: 0.15, colorBias: 0.55, greed: 0.55, luck: 0.20 },
     },
     {
         id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/select_YURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], battleOffsetX: 0, battleOffsetY: 0,

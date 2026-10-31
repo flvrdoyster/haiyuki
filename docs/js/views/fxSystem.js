@@ -22,39 +22,24 @@ const FXSystem = {
                 });
             },
 
-            // options.timeline: FXTimelines 키. options.glyph: [left, right] 이미지 안 글자 가로 범위,
-            // options.split: 조각 경계 열(없으면 한 조각). options.labels: {top, bottom} 라벨 에셋 id.
+            // options.timeline: FXTimelines 키. options.labels: {top, bottom} 라벨 에셋 id.
             spawnTimeline: function (img, options) {
                 const tl = FXTimelines[options.timeline];
                 if (!tl) return;
-                const glyph = options.glyph || [0, img.width];
-                const cuts = [glyph[0]];
-                if (options.split != null && tl.pieces.length > 1) cuts.push(options.split);
-                cuts.push(glyph[1]);
-                const assembledCx = (glyph[0] + glyph[1]) / 2;
-                const assembledCy = img.height / 2;
 
-                const pieces = [];
-                for (let k = 0; k < tl.pieces.length; k++) {
-                    const sx = cuts[Math.min(k, cuts.length - 2)];
-                    const ex = cuts[Math.min(k + 1, cuts.length - 1)];
-                    const path = tl.pieces[k].path;
-                    const ref = this.sample(path, tl.ref);
-                    const restCx = tl.anchor[0] + ((sx + ex) / 2 - assembledCx);
-                    const restCy = tl.anchor[1] + (img.height / 2 - assembledCy);
-                    pieces.push({
-                        img: img, sx: sx, sy: 0, sw: ex - sx, sh: img.height,
-                        path: path,
-                        dx: restCx - ref[1], dy: restCy - ref[2],
-                        x: 0, y: 0, visible: false
-                    });
-                }
+                const pieces = tl.pieces.map(p => ({
+                    img: img, sx: p.src[0], sy: p.src[1], sw: p.src[2], sh: p.src[3],
+                    path: p.path, dx: p.off[0], dy: p.off[1],
+                    x: 0, y: 0, visible: false
+                }));
 
                 const labels = [];
                 if (tl.labels && options.labels) {
                     for (const lb of tl.labels) {
-                        const limg = Assets.get(options.labels[lb.slot]);
-                        if (limg) labels.push({ img: limg, tick: lb.tick, x: lb.center[0], y: lb.center[1], visible: false });
+                        const id = options.labels[lb.slot];
+                        const limg = Assets.get(id);
+                        const off = lb.off[id];
+                        if (limg && off) labels.push({ img: limg, tick: lb.tick, x: lb.pos[0] + off[0], y: lb.pos[1] + off[1], visible: false });
                     }
                 }
 
@@ -62,7 +47,7 @@ const FXSystem = {
                     type: options.timeline, timeline: tl,
                     pieces: pieces, labels: labels,
                     t: 0, holdLeft: 0, holdDone: !tl.hold, nextShake: 0,
-                    wash: true, blocking: options.blocking || false,
+                    blocking: options.blocking || false,
                     skipRequested: false
                 });
             },
@@ -73,6 +58,19 @@ const FXSystem = {
                     if (path[i][0] <= t) p = path[i]; else break;
                 }
                 return p;
+            },
+
+            MAX_LERP_GAP: 4,
+            sampleSmooth: function (path, t) {
+                let i = -1;
+                for (let k = 0; k < path.length; k++) {
+                    if (path[k][0] <= t) i = k; else break;
+                }
+                if (i < 0) return null;
+                const a = path[i], b = path[i + 1];
+                if (!b || b[0] - a[0] > this.MAX_LERP_GAP) return [a[1], a[2]];
+                const u = (t - a[0]) / (b[0] - a[0]);
+                return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
             },
 
             skipHold: function () {
@@ -122,9 +120,9 @@ const FXSystem = {
                 }
 
                 for (const pc of fx.pieces) {
-                    const p = this.sample(pc.path, fx.t);
+                    const p = this.sampleSmooth(pc.path, fx.t);
                     pc.visible = !!p;
-                    if (p) { pc.x = p[1] + pc.dx; pc.y = p[2] + pc.dy; }
+                    if (p) { pc.x = p[0] + pc.dx; pc.y = p[1] + pc.dy; }
                 }
                 for (const lb of fx.labels) lb.visible = fx.t >= lb.tick;
             },

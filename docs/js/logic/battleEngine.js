@@ -66,8 +66,6 @@ const BattleEngine = {
 
         const finalOptions = {
             timeline: options.timeline || typeConf.timeline,
-            glyph: typeConf.glyph,
-            split: typeConf.split,
             labels: options.labels,
             blocking: options.blocking,
             popupType: type

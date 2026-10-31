@@ -153,16 +153,15 @@ const BattleConfig = {
             DRAW_BAD: 0.7
         }
     },
-    // timeline = FXTimelines 키(원본 틱 좌표). glyph = 이미지 안 글자 가로 범위, split = 조각 경계 열.
+    // timeline = FXTimelines 키(원본 틱 좌표와 조각 배치).
     POPUP: {
         TYPES: {
-            'RIICHI': { timeline: 'riichi', glyph: [166, 472], sound: 'audio/riichi' },
-            'PON': { timeline: 'pon', glyph: [242, 397], split: 320, sound: 'audio/pon' },
-            'RON': { timeline: 'ron', glyph: [238, 402], split: 320, sound: 'audio/gong' },
-            'TSUMO': { timeline: 'tsumo', glyph: [160, 479], split: 318, sound: 'audio/gong' },
-            'NAGARI': { timeline: 'nagari', glyph: [89, 550], split: 393, sound: 'audio/deal' }
-        },
-        WASH: 'rgba(255, 255, 255, 0.6)'
+            'RIICHI': { timeline: 'riichi', sound: 'audio/riichi' },
+            'PON': { timeline: 'pon', sound: 'audio/pon' },
+            'RON': { timeline: 'ron', sound: 'audio/gong' },
+            'TSUMO': { timeline: 'tsumo', sound: 'audio/gong' },
+            'NAGARI': { timeline: 'nagari', sound: 'audio/deal' }
+        }
     },
 
     // 어떤 버튼이 활성인지는 BattleRenderer.getActiveAction(state)가 단일 결정
