@@ -7,6 +7,14 @@
 - `battleSequencer`가 `engine.scene.fx.list`를 직접 읽는다.
 - 매니페스트(`assets.js` `toLoad`)에 없는 id로 `playSound`를 부르면 조용히 무음. 테스트 헬퍼 `getMissingSfx()`로 잡는다.
 
+## 가상 게임패드·상단바
+
+- `core/gamepad.js`와 `haiyuki.css`의 게임패드 부분은 gensei-pc98·suiko-web-v2 것을 바탕으로 한다(모양·토글 버튼·`gamepad_activate` 이벤트). 바꿀 땐 그쪽과 함께 맞춘다.
+- 패유기만 다른 점: 확인 버튼은 `KeyZ`를 보낸다(Enter를 보내도 `input.js`가 Z로 정규화해서 동작은 같다). 마우스로도 눌린다(`input.spec`이 `page.click`으로 누른다). 켜짐 표시는 `body.gamepad-on`. 패드는 캔버스 위에 뜨지 않고 `padding-bottom: 180px`로 자리를 비운다.
+- D-pad 버튼의 `padding: 6px 14px` — 에뮬레이터 페이지는 전역 `button` 패딩을 상속해서 아이콘이 그 크기로 보인다. 패유기엔 전역 규칙이 없어 D-pad에만 같은 값을 준다.
+- `.btn-touch-only` 숨김은 `.toolbar-icon-btn.btn-touch-only`로 쓴다. `.toolbar-icon-btn`이 뒤에서 `display: flex`를 줘서, 같은 명시도면 숨김이 진다.
+- `#toolbar-row`는 3열 그리드(왼쪽 음소거, 가운데 게임 옵션, 오른쪽 게임패드·전체 화면)이고 폭을 캔버스 640px에 맞춰 양끝 아이콘이 캔버스 가장자리와 맞는다.
+
 ## 테스트 (`tests/`, gitignore)
 
 - 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` (112개, ~4분).
