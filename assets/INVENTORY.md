@@ -2,7 +2,7 @@
 
 원본 추출본(`graph/`, `audio/`)은 `extracted/assets/` 아래에 두며 저장소에 넣지 않는다(`.gitignore`). `extract.sh`로 다시 만든다. 아래 표의 경로는 `extracted/assets/` 기준.
 
-원본: `haiyuki_win_kr/` (Compile, 1998, Windows판 한글화). 웹: `ataho/haiyuki_web/assets/`.
+원본: `haiyuki_win_kr/` (Compile, 1998, Windows판 한글화). 웹: `docs/assets/`.
 
 ## 추출 방법과 읽는 법
 
