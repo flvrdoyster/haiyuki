@@ -330,7 +330,7 @@ const Game = {
 
     pause: function () {
         if (this.paused || this.isAutoTest) return;
-        if (typeof BattleScene === 'undefined' || this.currentScene !== BattleScene) return;
+        if (!this.currentScene || this.currentScene === LoadingScene) return;
         this.paused = true;
         Input.keys = {};
         Input.isMouseDown = false;
