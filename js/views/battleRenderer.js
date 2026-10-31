@@ -677,12 +677,27 @@ const BattleRenderer = {
     drawFX: function (ctx, fxList) {
         if (!fxList) return;
         ctx.save();
+        if (fxList.some(fx => fx.wash)) {
+            ctx.fillStyle = BattleConfig.POPUP.WASH;
+            ctx.fillRect(0, 0, BattleConfig.SCREEN.width, BattleConfig.SCREEN.height);
+        }
         fxList.forEach(fx => {
-            if (fx.img) {
+            if (fx.timeline) {
+                fx.pieces.forEach(pc => {
+                    if (!pc.visible) return;
+                    ctx.drawImage(pc.img, pc.sx, pc.sy, pc.sw, pc.sh,
+                        Math.round(pc.x - pc.sw / 2), Math.round(pc.y - pc.sh / 2), pc.sw, pc.sh);
+                });
+                fx.labels.forEach(lb => {
+                    if (!lb.visible) return;
+                    ctx.drawImage(lb.img, Math.round(lb.x - lb.img.width / 2), Math.round(lb.y - lb.img.height / 2));
+                });
+            } else if (fx.img) {
                 ctx.globalAlpha = fx.alpha;
                 const w = fx.img.width * fx.scale;
                 const h = fx.img.height * fx.scale;
                 ctx.drawImage(fx.img, fx.x - w / 2, fx.y - h / 2, w, h);
+                ctx.globalAlpha = 1;
             }
         });
         ctx.restore();
@@ -696,6 +711,12 @@ const BattleRenderer = {
         const rw = conf.w || 520;
         const rh = conf.h || 320;
 
+        // 창이 세로 중심에서 위아래로 펼쳐진 뒤에 내용을 그린다.
+        const unfoldH = Math.min(rh, 16 + state.stateTimer * conf.unfoldPerTick);
+        if (unfoldH < rh) {
+            UIDraw.drawWindow(ctx, rx, ry + (rh - unfoldH) / 2, rw, unfoldH);
+            return;
+        }
         UIDraw.drawWindow(ctx, rx, ry, rw, rh);
 
         const info = state.resultInfo;

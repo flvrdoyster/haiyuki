@@ -195,7 +195,10 @@ const BattleSequencer = {
                 type: 'CALLBACK', callback: () => {
                     // 라스트찬스 승리로 중단되지 않았을 때만 나가리 진행.
                     if (engine.currentState === engine.STATE_FX_PLAYING) {
-                        engine.showPopup('NAGARI', { blocking: true });
+                        engine.showPopup('NAGARI', {
+                            blocking: true,
+                            labels: { bottom: p1Tenpai ? 'fx/tenpai' : 'fx/noten', top: cpuTenpai ? 'fx/tenpai' : 'fx/noten' }
+                        });
                         const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
                         if (sound) engine.events.push({ type: 'SOUND', id: sound });
                     }
@@ -248,13 +251,7 @@ const BattleSequencer = {
             BattleSequencer.advance(engine);
         },
         FX: function (engine, step) {
-            engine.playFX(step.asset, step.x, step.y, { scale: step.scale, slideFrom: step.slideFrom, popupType: step.popupType, blocking: step.blocking });
-            BattleSequencer.advance(engine);
-        },
-        FX_PARALLEL: function (engine, step) {
-            step.items.forEach(item => {
-                engine.playFX(item.asset, item.x, item.y, { scale: item.scale, slideFrom: item.slideFrom });
-            });
+            engine.playFX(step.asset, step.x, step.y, { scale: step.scale, life: step.life, blocking: step.blocking });
             BattleSequencer.advance(engine);
         },
         REVEAL_HAND: function (engine) {

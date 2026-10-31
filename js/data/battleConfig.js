@@ -51,16 +51,7 @@ const BattleConfig = {
     },
     FX: {
         fadeInDuration: 4,
-        fadeOutDuration: 12,
-        slideDuration: 20,
-        zoomPopDuration: 16,
-        zoomOvershoot: 2.0,
-        bounceDropDuration: 10,
-        bounceUpDuration: 10,
-        bounceStartOffsetX: -200,
-        bounceStartOffsetY: -200,
-        bounceImpactOffsetX: -30,
-        bounceFloorOffsetY: 80
+        fadeOutDuration: 12
     },
 
     HAND: {
@@ -162,19 +153,16 @@ const BattleConfig = {
             DRAW_BAD: 0.7
         }
     },
+    // timeline = FXTimelines 키(원본 틱 좌표). glyph = 이미지 안 글자 가로 범위, split = 조각 경계 열.
     POPUP: {
-        x: 320,
-        y: 200,
-        scale: 1.0,
-        life: 45,
-        align: 'center',
         TYPES: {
-            'RIICHI': { life: 80, anim: 'SLIDE', scale: 1.0, sound: 'audio/riichi' },
-            'PON': { life: 50, scale: 1.0, anim: 'BOUNCE_UP', sound: 'audio/pon' },
-            'RON': { life: 50, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'TSUMO': { life: 50, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/gong' },
-            'NAGARI': { life: 80, scale: 1.0, anim: 'ZOOM_IN', sound: 'audio/deal' }
-        }
+            'RIICHI': { timeline: 'riichi', glyph: [166, 472], sound: 'audio/riichi' },
+            'PON': { timeline: 'pon', glyph: [242, 397], split: 320, sound: 'audio/pon' },
+            'RON': { timeline: 'ron', glyph: [238, 402], split: 320, sound: 'audio/gong' },
+            'TSUMO': { timeline: 'tsumo', glyph: [160, 479], split: 318, sound: 'audio/gong' },
+            'NAGARI': { timeline: 'nagari', glyph: [89, 550], split: 393, sound: 'audio/deal' }
+        },
+        WASH: 'rgba(255, 255, 255, 0.6)'
     },
 
     // 어떤 버튼이 활성인지는 BattleRenderer.getActiveAction(state)가 단일 결정
@@ -196,8 +184,13 @@ const BattleConfig = {
             cursor: 'rgba(255, 105, 180, 0.5)'
         }
     },
-    // mag=최대 진폭(CSS px), frames=지속 프레임; 진폭 선형 감쇠(Game.shake)
-    SHAKE: { mag: 10, frames: 10 },
+    // 피해량 하한 순. amp=세로 진폭(px), frames=지속 틱(사각파 +A,0,-A,0; Game.shake)
+    SHAKE: [
+        { min: 6400, amp: 16, frames: 20 },
+        { min: 3201, amp: 12, frames: 16 },
+        { min: 0, amp: 8, frames: 12 }
+    ],
+    ROUND_FADE: { outDur: 40, inDur: 40 },
     BATTLE_MENU: {
         w: 140,
         h: 150,
@@ -279,6 +272,7 @@ const BattleConfig = {
     },
     RESULT: {
         x: 120, y: 90, w: 400, h: 300,
+        unfoldPerTick: 16,
         windowColor: 'rgba(0, 0, 0, 0.85)',
         borderColor: 'rgba(255, 255, 255, 1)',
         borderWidth: 2,

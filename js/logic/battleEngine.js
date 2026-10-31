@@ -61,25 +61,18 @@ const BattleEngine = {
         this._lastPopupType = type;
         this._lastPopupTime = this.totalTicks;
 
-        const conf = BattleConfig.POPUP;
         const asset = `fx/${type.toLowerCase()}`;
-        const typeConf = conf.TYPES[type] || {};
-
-        const fAnim = options.anim || typeConf.anim;
-        const fSlide = options.slideFrom || typeConf.slideFrom;
-        const fLife = options.life || typeConf.life || 45;
-        const fScale = options.scale || typeConf.scale || conf.scale;
+        const typeConf = BattleConfig.POPUP.TYPES[type] || {};
 
         const finalOptions = {
-            scale: fScale,
-            slideFrom: fSlide,
-            life: fLife,
-            anim: fAnim,
-            blocking: options.blocking // blocking usually passed by logic context
+            timeline: options.timeline || typeConf.timeline,
+            glyph: typeConf.glyph,
+            split: typeConf.split,
+            labels: options.labels,
+            blocking: options.blocking,
+            popupType: type
         };
-
-        finalOptions.popupType = type;
-        this.playFX(asset, conf.x, conf.y, finalOptions);
+        this.playFX(asset, 0, 0, finalOptions);
     },
 
     playerIndex: 0,
@@ -791,6 +784,9 @@ const BattleEngine = {
                     if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
                         this.currentState = this.STATE_MATCH_OVER;
                         this.matchOver(this.p1.hp > 0 ? 'P1' : 'CPU');
+                    } else if (this.scene && this.scene.fadeRound) {
+                        this.currentState = this.STATE_FX_PLAYING;
+                        this.scene.fadeRound(() => this.startNextRound());
                     } else {
                         this.startNextRound();
                     }
@@ -938,7 +934,7 @@ const BattleEngine = {
                     timer: 0,
                     currentStep: 0,
                     steps: [
-                        { type: 'FX', asset: 'fx/riichi', x: BattleConfig.POPUP.x, y: BattleConfig.POPUP.y, anim: 'SLIDE', slideFrom: 'RIGHT', scale: 1.0, popupType: 'RIICHI', blocking: true },
+                        { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { timeline: 'riichi_r', blocking: true }) },
                         { type: 'MUSIC', id: 'audio/bgm_tension', loop: true },
                         { type: 'WAIT', duration: 60 },
                         {
@@ -1356,7 +1352,7 @@ const BattleEngine = {
             this.p1.declaringRiichi = true;
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
 
-            this.showPopup('RIICHI', { slideFrom: 'LEFT' });
+            this.showPopup('RIICHI', { blocking: true });
 
             const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
             this.triggerDialogue(riichiKey, 'p1');

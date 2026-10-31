@@ -253,28 +253,37 @@ const Game = {
         ctx.restore();
     },
 
-    // CSS transform으로 #game-container 전체를 흔들어 캔버스 엣지 노출 없이 진동
     _shakeTimer: 0,
-    _shakeDur: 1,
-    _shakeMag: 0,
+    _shakeDur: 0,
+    _shakeAmp: 0,
+    _shakeBuf: null,
 
-    // mag: 최대 진폭(CSS px), frames: 지속 프레임; 진폭 0까지 선형 감쇠
-    shake: function (mag, frames) {
-        this._shakeMag = mag;
+    // amp: 세로 진폭(px), frames: 지속 프레임. 매 프레임 +A, 0, -A, 0 사각파, 감쇠 없음.
+    // 밀려난 줄은 반대편으로 돌아온다(순환 스크롤).
+    shake: function (amp, frames) {
+        this._shakeAmp = amp;
         this._shakeTimer = frames;
         this._shakeDur = frames;
     },
 
     _applyShake: function () {
         if (this._shakeTimer <= 0) return;
-        const el = this.canvas && this.canvas.parentElement;
-        if (!el) return;
-        // 매 프레임 상하 방향을 반전하여 짧게 부르르 떨리는 효과
-        const amp = this._shakeMag * (this._shakeTimer / this._shakeDur);
-        const dy = (this._shakeTimer % 2 === 0) ? amp : -amp;
-        el.style.transform = `translate(0px, ${dy.toFixed(2)}px)`;
+        const step = this._shakeDur - this._shakeTimer;
+        const dy = [this._shakeAmp, 0, -this._shakeAmp, 0][step % 4];
         this._shakeTimer--;
-        if (this._shakeTimer <= 0) el.style.transform = '';
+        if (dy === 0) return;
+        const w = this.canvas.width, h = this.canvas.height;
+        if (!this._shakeBuf) {
+            this._shakeBuf = document.createElement('canvas');
+            this._shakeBuf.width = w;
+            this._shakeBuf.height = h;
+        }
+        const bctx = this._shakeBuf.getContext('2d');
+        bctx.clearRect(0, 0, w, h);
+        bctx.drawImage(this.canvas, 0, 0);
+        this.ctx.clearRect(0, 0, w, h);
+        this.ctx.drawImage(this._shakeBuf, 0, dy);
+        this.ctx.drawImage(this._shakeBuf, 0, dy > 0 ? dy - h : dy + h);
     },
 
     draw: function () {

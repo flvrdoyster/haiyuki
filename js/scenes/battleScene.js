@@ -18,6 +18,10 @@ const BattleScene = {
         Game.fadeTo(() => this.proceedFromMatchOver());
     },
 
+    fadeRound: function (action) {
+        Game.fadeTo(action, BattleConfig.ROUND_FADE);
+    },
+
     proceedFromMatchOver: function () {
         const e = BattleEngine;
 
@@ -170,7 +174,8 @@ const BattleScene = {
                         Assets.playSound(BattleConfig.AUDIO.DAMAGE);
                     }
 
-                    Game.shake(BattleConfig.SHAKE.mag, BattleConfig.SHAKE.frames);
+                    const tier = BattleConfig.SHAKE.find(t => evt.amount >= t.min) || BattleConfig.SHAKE[BattleConfig.SHAKE.length - 1];
+                    Game.shake(tier.amp, tier.frames);
 
                     engine.events.splice(i, 1);
                     continue;
@@ -230,6 +235,7 @@ const BattleScene = {
 
         const isBlocking = this.fx.isBlocking();
         if (isBlocking) {
+            if (Input.isConfirmKey() || Input.isMouseJustPressed()) this.fx.skipHold();
             return;
         }
 
