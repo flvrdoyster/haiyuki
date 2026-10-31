@@ -142,6 +142,13 @@ const Game = {
 
         }
 
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !this.isAutoTest) {
+                this.pause();
+                this._skipDt = true;
+            }
+        });
+
         this.lastTime = performance.now();
         this.changeScene(LoadingScene);
         this.loop(this.lastTime);
