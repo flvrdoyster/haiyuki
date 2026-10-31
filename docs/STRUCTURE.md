@@ -20,6 +20,12 @@
 - 결과 창은 `RESULT.unfoldPerTick`으로 세로 중심에서 펼쳐진 뒤 내용을 그린다(원본 역 패널 8px/틱 양방향). 라운드 전환 페이드는 `ROUND_FADE` 40/40틱.
 - 효과음은 아직 웹 것 그대로(원본 SFX 9·13·승리 징글 미반영). 스킬 연출·패 이동·손패 공개는 원본 쪽이 미해결이라 웹 그대로.
 
+## 페이지 스타일
+
+- 색은 gensei-pc98 `docs/style.css`의 `:root` 토큰을 그대로 복사해 쓴다(역할과 쓰임은 gensei-pc98 `docs/NOTES.md` "색상 토큰"). 그쪽 토큰이 바뀌면 같이 바꾼다. 예외: 역 일람 iframe 칸(해설서가 밝은 페이지라 밝은 바탕)과 가상 게임패드(유리 재질 자체 값).
+- 푸터 레이아웃·글자 크기는 공유 `https://atah.io/footer.css`, 색·그라디언트 윗선·여백은 gensei-pc98 `#footer`와 같게 `#main-wrapper #footer`(아이디 둘)로 덮는다. 공유 `footer.css`의 `opacity: 0.8`은 1로 되돌린다. 모바일에선 저작권과 버전을 한 줄로 둔다 — 에뮬레이터 크레딧이 없어 둘째 줄에 버전만 남기 때문.
+- `theme-color`는 `--bg`와 같은 값이라 모바일 브라우저 상단이 페이지 바탕과 이어진다.
+
 ## 가상 게임패드·상단바
 
 - `core/gamepad.js`와 `haiyuki.css`의 게임패드 부분은 gensei-pc98·suiko-web-v2 것을 바탕으로 한다(모양·토글 버튼·`gamepad_activate` 이벤트). 바꿀 땐 그쪽과 함께 맞춘다.
