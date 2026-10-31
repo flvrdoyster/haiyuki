@@ -1,0 +1,4 @@
+extracted/
+__pycache__/
+.DS_Store
+docs/tests/
