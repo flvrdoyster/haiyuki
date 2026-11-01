@@ -283,9 +283,7 @@ const SkillFlows = {
             [order[i], order[j]] = [order[j], order[i]];
         }
 
-        const paintMode = isPaint && typeof Game !== 'undefined' ? Game.paintMode : null;
-        if (paintMode === 'off') return;
-        let budget = paintMode === 'half' ? Math.floor(me.mp / 2) : me.mp;
+        let budget = me.mp;
         const picked = [];
         for (const i of order) {
             if (budget < skill.cost) break;

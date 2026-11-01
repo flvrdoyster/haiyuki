@@ -150,7 +150,7 @@ const CharacterData = [
         aiProfile: { type: 'ELITE', value: 0.65, speed: 0.50, defense: 0.85, colorBias: 0.50, greed: 0.55, luck: 0.25 },
     },
     {
-        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: -24,
+        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], skillOffset: 0.25, battleOffsetX: 0, battleOffsetY: -24,
         // 보스: 전부 강함 — 빠르고 잘 막고 운도 좋고 실수 거의 없음.
         aiProfile: { type: 'GOD', value: 0.80, speed: 0.80, defense: 0.90, colorBias: 0.55, greed: 0.65, luck: 0.45 },
     }
