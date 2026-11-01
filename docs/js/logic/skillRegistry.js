@@ -115,8 +115,11 @@ const SkillFlows = {
     activateRonTileExchange: function (engine, who) {
         const badTile = engine.discards.pop();
 
-        const hand = engine.getPlayer(who).hand;
+        const player = engine.getPlayer(who);
+        const hand = player.hand;
         badTile.owner = who === 'P1' ? 'p1' : 'cpu';
+        player.declaringRiichi = !!badTile.isRiichi;
+        player.riichiSilent = true;
         delete badTile.isRiichi;
         hand.push(badTile);
         engine.sortHand(hand);
@@ -128,14 +131,12 @@ const SkillFlows = {
             engine.currentState = engine.STATE_PLAYER_TURN;
             const returnedIndex = engine.p1.hand.indexOf(badTile);
             engine.hoverIndex = returnedIndex !== -1 ? returnedIndex : engine.p1.hand.length - 1;
-            engine.p1.declaringRiichi = false;
             if (engine.symmetric) engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
         } else {
             engine.currentState = engine.STATE_CPU_TURN;
             engine.cpu.needsToDiscard = true;
             engine.cpu.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
             engine.timer = 0;
-            engine.cpu.declaringRiichi = false;
         }
     },
 

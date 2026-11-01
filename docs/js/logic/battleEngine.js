@@ -352,6 +352,8 @@ const BattleEngine = {
         this.cpu.hand = [];
         this.p1.declaringRiichi = false;
         this.cpu.declaringRiichi = false;
+        this.p1.riichiSilent = false;
+        this.cpu.riichiSilent = false;
         this.validRiichiDiscardIndices = null;
         this.narration = null;
 
@@ -1198,6 +1200,7 @@ const BattleEngine = {
         if (this.cpu.declaringRiichi) {
             discarded.isRiichi = true;
             this.cpu.declaringRiichi = false;
+            this.cpu.riichiSilent = false;
         }
 
         if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !this.cpu.isRiichi) {
@@ -1363,7 +1366,7 @@ const BattleEngine = {
 
         this.possibleActions = [];
 
-        if (this.p1.declaringRiichi) {
+        if (this.p1.declaringRiichi && !this.p1.riichiSilent) {
             const sp = BattleConfig.SPEED;
             const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
             this.riichiTargetIndex = index;
@@ -1404,6 +1407,7 @@ const BattleEngine = {
         if (this.p1.declaringRiichi) {
             discarded.isRiichi = true;
             this.p1.declaringRiichi = false;
+            this.p1.riichiSilent = false;
             this.riichiTargetIndex = -1;
             this.validRiichiDiscardIndices = null;
         }
@@ -1784,11 +1788,11 @@ const BattleEngine = {
         return false;
     },
 
-    // 스킬용 리치 잠금(TIGER_STRIKE/SPIRIT_RIICHI). 팝업/FX 없이 리치만 커밋. P1 전용 유효버림 인덱스도 갱신.
     declareRiichiLock: function (who) {
         const p = this.getPlayer(who);
         p.isRiichi = true;
         p.declaringRiichi = true;
+        p.riichiSilent = true;
         if (who === 'P1') {
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
         }
@@ -1871,13 +1875,15 @@ const BattleEngine = {
     updateBattleMusic: function () {
         // 우선순위: showdown(양측 리치) > tension(CPU만) > basic. 양측 리치 중 tension이면 유지.
         let targetBgm = 'audio/bgm_basic';
+        const p1Riichi = this.p1.isRiichi && !this.p1.declaringRiichi;
+        const cpuRiichi = this.cpu.isRiichi && !this.cpu.declaringRiichi;
 
-        if (this.p1.isRiichi && this.cpu.isRiichi) {
+        if (p1Riichi && cpuRiichi) {
             if (this.currentBgm === 'audio/bgm_tension') targetBgm = 'audio/bgm_tension';
             else targetBgm = 'audio/bgm_showdown';
-        } else if (this.cpu.isRiichi) {
+        } else if (cpuRiichi) {
             targetBgm = 'audio/bgm_tension';
-        } else if (this.p1.isRiichi) {
+        } else if (p1Riichi) {
             targetBgm = 'audio/bgm_showdown';
         }
 
