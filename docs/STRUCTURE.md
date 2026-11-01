@@ -15,9 +15,9 @@
 ## CPU 스킬
 
 - CPU의 라운드 시작 패 교환(스마슈 `EXCHANGE_TILE`·눈썹개 `PAINT_TILE`)은 원본 규칙(`sq/RULES.md` 6.4·6.5)을 따른다. `SkillFlows.executeCpuTileExchange`가 손패를 무작위 순서로 훑으며 현재 MP 전부를 예산으로 장당 비용(6/4)씩 빼고, 보존 종류(스마슈: 린샹·화린·스마슈·유리, 눈썹개: 눈썹개 4종)가 아닌 패를 교환한다. 장수 상한은 없다. 스마슈는 사용 여부도 칸마다 독립 70%로 굴린다.
-- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.10). CPU 전용 보정이라 캐릭터의 강약이 아니며, 대전 툴에서는 없어진다.
+- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.10, 유리 +0.25 → 항상 1.0). 캐릭터 설정의 일부라 대칭 모드에서도 양쪽에 같이 적용된다.
 - CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(`cpu.exchangeDiscard`, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
-- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`shouldAiReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 `cpuSkill` = `SYMMETRIC_SKILL`(0.85), `luck`·`skillOffset`·드로우 어시스트는 0. `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
+- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`shouldAiReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 `cpuSkill` = `SYMMETRIC_SKILL`(0.85)에 각자 `skillOffset`을 더한 값, `luck`·드로우 어시스트는 0. `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
 
 ## 전투 연출
 

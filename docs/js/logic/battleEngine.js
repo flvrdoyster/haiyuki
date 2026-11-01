@@ -184,8 +184,9 @@ const BattleEngine = {
         this.p1.exchangeDiscard = this.cpu.exchangeDiscard = null;
         this.p1Skill = this.cpuSkill;
         if (this.symmetric) {
-            this.cpu.skillOffset = 0;
-            this.cpuSkill = this.p1Skill = this.SYMMETRIC_SKILL;
+            this.p1.skillOffset = p1Data && p1Data.skillOffset || 0;
+            this.p1Skill = this.applySkillOffset(this.SYMMETRIC_SKILL, this.p1.skillOffset);
+            this.cpuSkill = this.applySkillOffset(this.SYMMETRIC_SKILL, this.cpu.skillOffset);
             this.drawAssistChance = 0;
             this.cpuLuck = 0;
             this.p1.aiProfile = p1Data && p1Data.aiProfile || null;

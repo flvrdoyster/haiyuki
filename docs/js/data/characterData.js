@@ -145,7 +145,7 @@ const CharacterData = [
         aiProfile: { type: 'TRICKY_ATTACK', value: 0.80, speed: 0.50, defense: 0.15, colorBias: 0.55, greed: 0.55, luck: 0.20 },
     },
     {
-        id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/select_YURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], battleOffsetX: 0, battleOffsetY: 0,
+        id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/select_YURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], skillOffset: 0.25, battleOffsetX: 0, battleOffsetY: 0,
         // 엘리트: 공격하되 상대 리치엔 확실히 안전패로 접는 단단한 방어.
         aiProfile: { type: 'ELITE', value: 0.65, speed: 0.50, defense: 0.85, colorBias: 0.50, greed: 0.55, luck: 0.25 },
     },
