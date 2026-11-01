@@ -187,13 +187,13 @@ const BattleRenderer = {
             const rH = rImg.height * rScale;
             const cx = BattleConfig.SCREEN.centerX;
 
-            if (state.p1.isRiichi) {
+            if (state.p1.isRiichi && !state.p1.declaringRiichi) {
                 // 중앙선 왼쪽: 오른쪽 끝이 offset 위치에 닿도록
                 const rx = cx - rOff - rW;
                 ctx.drawImage(rImg, rx, rY, rW, rH);
             }
 
-            if (state.cpu.isRiichi) {
+            if (state.cpu.isRiichi && !state.cpu.declaringRiichi) {
                 const rx = cx + rOff;
                 ctx.drawImage(rImg, rx, rY, rW, rH);
             }
