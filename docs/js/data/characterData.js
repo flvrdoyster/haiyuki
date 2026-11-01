@@ -125,7 +125,7 @@ const CharacterData = [
         aiProfile: { type: 'POWER', value: 0.85, speed: 0.15, defense: 0.40, colorBias: 0.85, greed: 0.60, luck: 0.25 },
     },
     {
-        id: 'rinxiang', name: '린샹', face: 'face/RIN_base.png', selectIcon: 'face/select_RIN.png', rival: 'ataho', skills: ['WATER_MIRROR', 'DORA_BOMB'], battleOffsetX: 0, battleOffsetY: 0,
+        id: 'rinxiang', name: '린샹', face: 'face/RIN_base.png', selectIcon: 'face/select_RIN.png', rival: 'ataho', skills: ['WATER_MIRROR', 'DORA_BOMB'], skillOffset: 0.05, battleOffsetX: 0, battleOffsetY: 0,
         // 평균 밸런스 + 도라 욕심으로 점수 축적.
         aiProfile: { type: 'BALANCED', value: 0.50, speed: 0.45, defense: 0.50, colorBias: 0.35, greed: 0.80, luck: 0.25 },
     },
@@ -135,7 +135,7 @@ const CharacterData = [
         aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.30 },
     },
     {
-        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], skillOffset: -0.20, battleOffsetX: 5, battleOffsetY: 0,
+        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], skillOffset: -0.15, battleOffsetX: 5, battleOffsetY: 0,
         // 펑 적극, 빠르고 싸게. 큰 손·도라·색 욕심 없음.
         aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.50, colorBias: 0.20, greed: 0.15, luck: 0.25 },
     },

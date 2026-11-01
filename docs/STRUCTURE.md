@@ -16,7 +16,7 @@
 ## CPU 스킬
 
 - CPU의 라운드 시작 패 교환(스마슈 `EXCHANGE_TILE`·눈썹개 `PAINT_TILE`)은 원본 규칙(`sq/RULES.md` 6.4·6.5)을 따른다. `SkillFlows.executeCpuTileExchange`가 손패를 무작위 순서로 훑으며 현재 MP 전부를 예산으로 장당 비용(6/4)씩 빼고, 보존 종류(스마슈: 린샹·화린·스마슈·유리, 눈썹개: 눈썹개 4종)가 아닌 패를 교환한다. 장수 상한은 없다. 스마슈는 사용 여부도 칸마다 독립 70%로 굴린다.
-- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.20, 화린 −0.10, 유리 +0.10, 페톰 +0.15, 나머지 0). CPU 난이도 보정이라 대칭 모드(실력 고정 1.0)에서는 0으로 둔다.
+- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(린샹 +0.05, 스마슈 −0.15, 화린 −0.10, 유리 +0.10, 페톰 +0.15, 나머지 0). CPU 난이도 보정이라 대칭 모드(실력 고정 1.0)에서는 0으로 둔다.
 - `aiProfile.luck`은 캐릭터 특성이다: `drawTiles`가 뽑는 쪽(`who`)의 캐릭터 luck(`BattleEngine.luckOf`)만큼 덱 상단 몇 장 중 유리한 패(음수면 불리한 패)를 올린다. 사람 P1·CPU 어느 쪽이 그 캐릭터를 잡든 같고, 튜토리얼에서만 `luckEnabled`로 끈다. easy 드로우 어시스트는 별개의 P1 전용 난이도 기능.
 - 눈썹개 버림패 AI(`AILogic.scoreDiscards`, `charId === 'mayu'`, 닫힌 12장 평가 한정)는 눈썹개 4종을 눈썹개 역에 필요한 장수(빨·노·파 4장, 보라 3장)까지는 버리지 않도록 `MAYU_KEEP_W`만큼 감점한다. 텐파이 단계 점수(`TENPAI_TIER`)보다 작아 텐파이는 깨지 않는다.
 - CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(`cpu.exchangeDiscard`, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
