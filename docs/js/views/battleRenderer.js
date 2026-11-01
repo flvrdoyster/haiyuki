@@ -130,7 +130,10 @@ const BattleRenderer = {
             }
 
             const options = {};
-            if (state.p1.isRiichi) {
+            if (state.tutorial) {
+                const choosing = state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_BATTLE_MENU;
+                if (choosing && !state.tutorialCanDiscard(i)) options.tint = 'rgba(0, 0, 0, 0.6)';
+            } else if (state.p1.isRiichi) {
                 // 리치 후 버릴 수 없는 패 어둡게
                 const validIndices = state.validRiichiDiscardIndices;
                 if (validIndices && !validIndices.includes(i)) {
@@ -172,7 +175,7 @@ const BattleRenderer = {
 
         this.drawDora(ctx, state.doras, state.uraDoras, state.uraDoraRevealed);
 
-        this.drawInfo(ctx, state.turnCount, state.currentRound);
+        this.drawInfo(ctx, state.turnCount, state.currentRound, !!state.tutorial);
 
         const riichiConf = BattleConfig.RIICHI_STICK;
         if (riichiConf && Assets.get(riichiConf.path)) {
@@ -223,6 +226,10 @@ const BattleRenderer = {
         }
 
         this.drawActionButton(ctx, state);
+
+        if (state.narration) {
+            this.drawNarration(ctx, state);
+        }
 
         if (state.currentState === state.STATE_TILE_EXCHANGE) {
             this.drawExchangeWindow(ctx, state);
@@ -573,10 +580,10 @@ const BattleRenderer = {
         }
     },
 
-    drawInfo: function (ctx, turn, round) {
+    drawInfo: function (ctx, turn, round, isLesson) {
         const tConf = BattleConfig.INFO;
         const turnImg = Assets.get(tConf.labels.turnPath);
-        const roundImg = Assets.get(tConf.labels.roundPath);
+        const roundImg = Assets.get(isLesson ? tConf.labels.lessonPath : tConf.labels.roundPath);
 
         const cx = 320;
         const tx = cx - tConf.turnLabel.offset;
@@ -915,6 +922,71 @@ const BattleRenderer = {
 
             currentY += h;
         });
+    },
+
+    drawNarration: function (ctx, state) {
+        const box = Assets.get('ui/long_bubble.png');
+        if (!box) return;
+        const text = EncounterLayout.DIALOGUE.text;
+        const x = (BattleConfig.SCREEN.width - box.width) / 2;
+        const y = BattleConfig.NARRATION.bottom - box.height;
+
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(box, x, y);
+        ctx.globalAlpha = 1;
+
+        ctx.font = text.font;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        const lines = this._wrapNarration(ctx, state.narration.pages[state.narration.index], box.width - text.xPadding * 2);
+        const top = y + box.height / 2 - (lines.length * text.lineHeight) / 2 + text.lineHeight * 0.7 + text.baselineCorrection;
+        lines.forEach((line, i) => {
+            let cx = x + text.xPadding;
+            line.forEach(c => {
+                ctx.fillStyle = c.highlight ? BattleConfig.NARRATION.highlight : 'rgba(255, 255, 255, 1)';
+                ctx.fillText(c.ch, cx, top + i * text.lineHeight);
+                cx += c.w;
+            });
+        });
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        if (state.narration.age > 10 && Math.floor(state.narration.age / 30) % 2 === 0) {
+            const tx = x + box.width - text.xPadding;
+            const ty = y + box.height - 24;
+            ctx.beginPath();
+            ctx.moveTo(tx - 12, ty - 8);
+            ctx.lineTo(tx, ty - 8);
+            ctx.lineTo(tx - 6, ty);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+    },
+
+    _wrapNarration: function (ctx, text, maxWidth) {
+        const lines = [[]];
+        let width = 0;
+        let highlight = false;
+        for (const ch of text) {
+            if (ch === '{' || ch === '}') {
+                highlight = ch === '{';
+                continue;
+            }
+            if (ch === '\n') {
+                lines.push([]);
+                width = 0;
+                continue;
+            }
+            const w = ctx.measureText(ch).width;
+            if (width + w > maxWidth && lines[lines.length - 1].length > 0) {
+                lines.push([]);
+                width = 0;
+            }
+            lines[lines.length - 1].push({ ch, w, highlight });
+            width += w;
+        }
+        return lines;
     },
 
     // 츠모만 선택 가능 (론은 리치 필수, 리치는 자동 승리)

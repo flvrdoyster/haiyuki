@@ -6,12 +6,24 @@ const BattleScene = {
         if (!data.difficulty) {
             data.difficulty = (Game.saveData && Game.saveData.difficulty) || 'normal';
         }
+        if (data.tutorial) {
+            this.skillsBeforeTutorial = BattleConfig.RULES.SKILLS_ENABLED;
+            BattleConfig.RULES.SKILLS_ENABLED = false;
+        }
         BattleEngine.init(data, this);
         BattleRenderer.reset();
         this.initPortraits();
         this.fx = FXSystem.create();
         this.confirmData = null;
         this._confirmLayout = null;
+    },
+
+    exitTutorial: function () {
+        BattleConfig.RULES.SKILLS_ENABLED = this.skillsBeforeTutorial;
+        BattleEngine.tutorial = null;
+        BattleEngine.narration = null;
+        Assets.stopMusic();
+        Game.changeScene(TitleScene);
     },
 
     endMatch: function () {
@@ -232,6 +244,15 @@ const BattleScene = {
         // 블로킹 FX 중에도 포트레이트 애니메이션은 계속 실행
         if (this.p1Character) this.p1Character.update(dt);
         if (this.cpuCharacter) this.cpuCharacter.update(dt);
+
+        const narration = BattleEngine.narration;
+        if (narration) {
+            narration.age += dt;
+            if (narration.age > 10 && (Input.isConfirmKey() || Input.isMouseJustPressed())) {
+                BattleEngine.advanceNarration();
+            }
+            return;
+        }
 
         const isBlocking = this.fx.isBlocking();
         if (isBlocking) {

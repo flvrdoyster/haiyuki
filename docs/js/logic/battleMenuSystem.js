@@ -25,6 +25,15 @@ const BattleMenuSystem = {
             this.menuItems.push({ id: decl.id, label: decl.label, type: 'ACTION', action: action, disabled: !action });
         });
 
+        if (this.engine.tutorial) {
+            this.menuItems.push(
+                { type: 'SEPARATOR' },
+                { id: 'HELP', label: '역 일람' },
+                { id: 'QUIT_TUTORIAL', label: '타이틀로' }
+            );
+            return;
+        }
+
         const layout = BattleConfig.BATTLE_MENU.layout;
 
         const p1Data = CharacterData.find(c => c.index === this.engine.playerIndex) || CharacterData[this.engine.playerIndex];
@@ -56,7 +65,7 @@ const BattleMenuSystem = {
             this.constructMenu();
             this.lastStateBeforeMenu = this.engine.currentState;
             this.engine.currentState = this.engine.STATE_BATTLE_MENU;
-            this.selectedMenuIndex = 0;
+            this.selectedMenuIndex = this.engine.tutorial ? Math.max(0, this.menuItems.findIndex(item => item.type !== 'SEPARATOR' && !item.disabled)) : 0;
         }
     },
 
@@ -86,6 +95,11 @@ const BattleMenuSystem = {
             } else {
                 window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
             }
+        } else if (selectedId === 'QUIT_TUTORIAL') {
+            const scene = this.engine.scene;
+            this.engine.currentState = this.engine.STATE_FX_PLAYING;
+            Game.fadeTo(() => scene.exitTutorial());
+            return;
         } else if (selectedItem.type === 'SKILL') {
             if (selectedItem.disabled) {
                 return;

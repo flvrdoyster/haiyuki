@@ -220,6 +220,7 @@ const Assets = {
         'ui/number_yellow.png',
         'ui/turn.png',
         'ui/round.png',
+        'ui/lesson.png',
         'ui/dora.png',
         'ui/riichi.png',
         'ui/bar_blue.png',
