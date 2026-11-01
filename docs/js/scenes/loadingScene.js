@@ -53,12 +53,14 @@ const LoadingScene = {
         if (this.failed) return;
 
         const mode = new URLSearchParams(window.location.search).get('mode');
-        if (mode === 'story' || mode === 'watch' || Game.isAutoTest) {
+        if (mode === 'story' || mode === 'watch' || mode === 'tutorial' || Game.isAutoTest) {
             if (!this.isLoaded) return;
             this.delayTimer += dt;
             if (this.delayTimer > 30) {
                 if (mode === 'story' || mode === 'watch') {
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
+                } else if (mode === 'tutorial') {
+                    TitleScene.startTutorial();
                 } else {
                     Game.changeScene(TitleScene);
                 }
