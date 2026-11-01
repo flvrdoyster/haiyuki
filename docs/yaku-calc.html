@@ -126,27 +126,27 @@
         .winner .penalty { font-size: 12px; color: var(--dim); margin-top: 2px; }
         .winner.none .yk { font-size: 15px; color: var(--dim); font-weight: 700; }
 
-        .yaku-list { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--faint) transparent; }
-        .yaku-list::-webkit-scrollbar { width: 6px; }
-        .yaku-list::-webkit-scrollbar-track { background: transparent; }
-        .yaku-list::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
-        .yaku-list::-webkit-scrollbar-thumb:hover { background: var(--dim); }
-        .yk-item { padding: 0 8px; border-bottom: 1px solid var(--row-line); cursor: pointer; color: var(--dim); }
-        .yk-item:hover { background: #0c0c4a; }
-        .yk-item.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--yellow); }
-        .yk-item.tenpai { color: var(--text); }
-        .yk-item.match { color: var(--gold); }
-        .yk-head { display: flex; align-items: center; gap: 6px; height: 30px; font-size: 12.5px; }
-        .yk-group { width: 44px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid var(--faint); flex-shrink: 0; }
-        .yk-item.tenpai .yk-group { border-color: var(--text); }
-        .yk-item.match .yk-group { border-color: var(--gold); }
-        .yk-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .yk-base { color: var(--dim); font-weight: 400; font-size: 11px; }
-        .yk-tag { font-size: 10px; font-weight: 700; color: #000; background: var(--gold); padding: 0 6px; flex-shrink: 0; }
-        .yk-state { margin-left: auto; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
-        .yk-score { font-size: 11.5px; flex-shrink: 0; min-width: 44px; text-align: right; }
-        .yk-rule { display: none; color: var(--text); font-size: 12px; padding: 0 0 8px 50px; }
-        .yk-item.sel .yk-rule { display: block; }
+        .list { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--faint) transparent; }
+        .list::-webkit-scrollbar { width: 6px; }
+        .list::-webkit-scrollbar-track { background: transparent; }
+        .list::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+        .list::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+        .row { padding: 0 8px; border-bottom: 1px solid var(--row-line); cursor: pointer; color: var(--dim); }
+        .row:hover { background: #0c0c4a; }
+        .row.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--yellow); }
+        .row.tenpai { color: var(--text); }
+        .row.win { color: var(--gold); }
+        .row-head { display: flex; align-items: center; gap: 6px; height: 30px; font-size: 12.5px; }
+        .r-group { width: 44px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid var(--faint); flex-shrink: 0; }
+        .row.tenpai .r-group { border-color: var(--text); }
+        .row.win .r-group { border-color: var(--gold); }
+        .r-name { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .r-base { color: var(--dim); font-weight: 400; font-size: 11px; }
+        .r-tag { font-size: 10px; font-weight: 700; color: #000; background: var(--gold); padding: 0 6px; flex-shrink: 0; }
+        .r-state { margin-left: auto; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+        .r-score { font-size: 11.5px; flex-shrink: 0; min-width: 44px; text-align: right; }
+        .r-rule { display: none; color: var(--dim); font-size: 12px; padding: 0 0 8px 50px; }
+        .row.sel .r-rule { display: block; }
 
         @media (max-width: 720px) {
             body { padding: 14px 12px 30px; }
@@ -166,25 +166,6 @@
         .sortbar { display: flex; gap: 6px; flex-shrink: 0; }
         .sortbar .btn { flex: 1; font-size: 11.5px; padding: 4px 0; }
         .live-main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 6px; }
-        .live-list { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--faint) transparent; }
-        .live-list::-webkit-scrollbar { width: 6px; }
-        .live-list::-webkit-scrollbar-track { background: transparent; }
-        .live-list::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
-        .live-list::-webkit-scrollbar-thumb:hover { background: var(--dim); }
-        .lv-row {
-            display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 28px; cursor: pointer;
-            border-bottom: 1px solid var(--row-line); font-size: 12.5px; color: var(--dim);
-        }
-        .lv-row:hover { background: #0c0c4a; }
-        .lv-row.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--yellow); }
-        .lv-row.tenpai { color: var(--text); }
-        .lv-row.win { color: var(--gold); }
-        .lv-group { width: 44px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid var(--faint); flex-shrink: 0; }
-        .lv-row.tenpai .lv-group { border-color: var(--text); }
-        .lv-row.win .lv-group { border-color: var(--gold); }
-        .lv-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lv-state { margin-left: auto; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
-        .lv-score { font-size: 11.5px; flex-shrink: 0; min-width: 38px; text-align: right; }
         .detail { padding: 6px 8px; font-size: 12px; min-height: 104px; flex-shrink: 0; border-top: 2px solid var(--frame); }
         .detail .d-head { display: flex; align-items: baseline; gap: 8px; }
         .detail .d-name { font-size: 14px; font-weight: 800; color: var(--gold); }
@@ -217,7 +198,7 @@
 <body>
     <div class="wrap">
         <div class="head">
-            <h1 class="title">역 계산기</h1>
+            <h1 class="title">환세패유기 역 계산기</h1>
             <div class="back"><a href="https://atah.io/haiyuki_manual/index.html">← 해설서로 돌아가기</a></div>
         </div>
 
@@ -249,7 +230,7 @@
                 <div class="panel col-panel">
                     <div class="winner" id="winner"></div>
                     <div class="divider"></div>
-                    <div class="yaku-list" id="yakuRows"></div>
+                    <div class="list" id="yakuRows"></div>
                 </div>
             </div>
         </div>
@@ -262,7 +243,7 @@
             <button class="btn" data-sort="asc">점수 낮은 순</button>
         </div>
         <div class="live-main panel">
-            <div class="live-list" id="liveList"></div>
+            <div class="list" id="liveList"></div>
             <div class="detail" id="liveDetail"></div>
         </div>
         <div class="handbar" id="liveHand"></div>
@@ -274,36 +255,36 @@
     <script src="js/logic/yakuDistance.js"></script>
     <script>
         const RULES = {
-            IP_E_DAM: '뭐든지 1종류의 패를 9개 (+ 아무거나 3개씩 1벌)',
-            BI_O_UI: '같은 색의 캐릭터 패 8개 + 무기 패 4개',
-            O_UI: '같은 색의 캐릭터패와 무기패를 6장씩',
-            JIN_MAYU: '빨·파·노의 눈썹개패를 4장씩',
-            CROSS_COMBINATION: '같은 색의 캐릭터패 2종류와 무기패를 4장씩',
-            MAGU_DDAERIGI: '무기패를 4개씩 3벌',
-            PAL_BO_CHAE: '뭐든지 1종류의 패를 8개 (+ 아무거나 4개씩 1벌)',
-            SPECIAL_COMBINATION: '같은 색으로 4종류를 3개씩',
-            CHO_IL_SAEK: '같은 색의 패를 4개씩 (3벌)',
-            PO_MUL_JANG: '포물장 3인(화린·스마슈·유리)을 4개씩',
-            CHWI_HO_JEON: '취호전 3인(아타호·린샹·스마슈)을 4개씩',
-            NAM_TANG: '남성 캐릭터패 3종류를 4개씩',
-            YEO_TANG: '여성 캐릭터패 3종류를 4개씩',
-            JU_HO: '아타호와 페톰을 6개씩',
-            CHO_MAYU: '눈썹개패를 3장씩 4색',
-            BYEON_TAE_GAE: '스마슈와 여성 캐릭터패 3종류를 3개씩',
-            JAYU_BAKAE_PYEONGDEUNG: '네 색 중 세 색에서 한 종류씩 4장 (보라 눈썹개도 한 색)',
-            SUN_IL_SAEK: '같은 색만으로 2종류를 3개씩, 다른 1종류는 6개',
-            PIL_SAL_GI: '같은 색의 캐릭터 1종류와 무기를 4개씩 (+ 아무거나 4개씩 1벌)',
-            YUK_BEOP_JEON_SEO: '2종류의 패를 6개씩',
-            MAYU: '빨·파·노의 눈썹개패를 3개씩 (+ 아무거나 3개씩 1벌)',
-            IL_SAEK: '같은 색의 패로 3종류를 3개씩 + 보라 눈썹개 3개',
-            DOUBLE_COMBINATION: '캐릭터패와 무기패를 3개씩, 2색',
-            COMBINATION: '같은 색의 캐릭터패 2종류와 무기패를 3개씩 (+ 아무거나 3개씩 1벌)',
-            SAEK_HANA_SSIK: '4색의 패를 각각 3개씩',
-            SA_CHEON_YO_RI: '뭐든지 4개씩 (3벌)',
-            JANG_GI: '같은 색의 캐릭터 1종류와 무기를 3개씩 (+ 아무거나 3개씩 2벌)',
-            SAM_DO_RIP: '뭐든지 3개씩 4벌',
-            ALL_STARS: '눈썹개 외 모든 캐릭터패를 2개씩',
-            SAM_YEON_GYEOK: '캐릭터패와 무기패를 2개씩, 3색'
+            IP_E_DAM: '뭐든지 1종류의 패를 9개 모은다. (아무 거나 3개씩 1벌 더)',
+            BI_O_UI: '같은 색의 캐릭터 패 8개와 무기 패 4개를 모은다.',
+            O_UI: '같은 색의 캐릭터패와 무기패를 6장씩 모은다.',
+            JIN_MAYU: '빨강·노랑·파랑의 눈썹개패를 4장씩 모은다.',
+            CROSS_COMBINATION: '같은 색의 캐릭터패 2종류와 무기패를 4장씩 모은다.',
+            MAGU_DDAERIGI: '무기패를 4개씩 3벌 모은다.',
+            PAL_BO_CHAE: '뭐든지 1종류의 패를 8개 모은다. (아무 거나 4개씩 1벌 더)',
+            SPECIAL_COMBINATION: '같은 색으로 4종류를 3개씩 모은다.',
+            CHO_IL_SAEK: '같은 색의 패를 4개씩 모은다.',
+            PO_MUL_JANG: '포물장의 캐릭터 3인(화린, 스마슈, 유리와카마루)을 4개씩 모은다.',
+            CHWI_HO_JEON: '취호전의 캐릭터 3인(아타호, 린샹, 스마슈)을 4개씩 모은다.',
+            NAM_TANG: '남성 캐릭터패 3종류를 4개씩 모은다.',
+            YEO_TANG: '여성 캐릭터패 3종류를 4개씩 모은다.',
+            JU_HO: '아타호와 페톰을 6개씩 모은다.',
+            CHO_MAYU: '눈썹개패를 3장씩, 4색을 모은다.',
+            BYEON_TAE_GAE: '스마슈와 여성 캐릭터패 3종류를 3개씩 모은다.',
+            JAYU_BAKAE_PYEONGDEUNG: '4색 가운데 3색에서 한 종류씩 4장을 모은다. 보라색 눈썹개도 한 색으로 센다.',
+            SUN_IL_SAEK: '같은 색 패만으로 2종류를 3개씩, 다른 1종류는 6개 모은다.',
+            PIL_SAL_GI: '같은 색의 캐릭터패 1종류와 무기패를 4개씩 모은다. (아무 거나 4개씩 1벌 더)',
+            YUK_BEOP_JEON_SEO: '2종류의 패를 6개씩 모은다.',
+            MAYU: '빨강·노랑·파랑의 눈썹개패를 3개씩 모은다. (아무 거나 3개씩 1벌 더)',
+            IL_SAEK: '같은 색의 패로 3종류를 3개씩, 보라색 눈썹개패를 3개 모은다.',
+            DOUBLE_COMBINATION: '캐릭터패와 무기패를 3개씩, 2색을 모은다.',
+            COMBINATION: '같은 색의 캐릭터패 2종류와 무기패를 3개씩 모은다. (아무 거나 3개씩 1벌 더)',
+            SAEK_HANA_SSIK: '4색의 패를 각각 3개씩 모은다.',
+            SA_CHEON_YO_RI: '뭐든지 좋으니까 4개씩 모은다.',
+            JANG_GI: '같은 색의 캐릭터패 한 종류와 무기패를 3개씩 모은다. (아무 거나 3개씩 2벌 더)',
+            SAM_DO_RIP: '뭐든지 좋으니까 각각 3개씩 모두 4벌 모은다.',
+            ALL_STARS: '눈썹개 이외의 모든 캐릭터 패를 2개씩 모은다.',
+            SAM_YEON_GYEOK: '캐릭터패와 무기패를 2개씩, 3색을 모은다.'
         };
 
         const COLOR_ORDER = ['red', 'blue', 'yellow', 'purple'];
@@ -311,12 +292,13 @@
         const tileById = (id) => PaiData.BY_ID[id];
         const toTile = (id) => { const t = tileById(id); return { type: t.id, color: t.color, img: t.img }; };
         const scoreOf = (key) => YakuLogic.SCORES[key];
-        const baseName = (key) => YakuLogic.resolveYakuName(key, null, null);
+        const BASE_NAMES = { IL_SAEK: '일색', CHO_IL_SAEK: '초 일색', SUN_IL_SAEK: '순 일색' };
+        const baseName = (key) => BASE_NAMES[key] || YakuLogic.resolveYakuName(key, null, null);
         const nameOf = (r) => YakuLogic.resolveYakuName(r.key, r.meta, null);
         const nameHtml = (r) => {
             const base = baseName(r.key);
             const resolved = nameOf(r);
-            return resolved !== base ? `${resolved} <span class="yk-base">(${base})</span>` : base;
+            return resolved !== base ? `${resolved} <span class="r-base">(${base})</span>` : base;
         };
 
         const params = new URLSearchParams(location.search);
@@ -418,20 +400,20 @@
                     const res = hand.length === 12 && r.missing === 0;
                     let isWin = false;
                     if (res && !winnerMarked && winnerName && nameOf(r) === winnerName) { isWin = true; winnerMarked = true; }
-                    const state = hand.length === 0 ? '' : res ? '성립' : r.missing === 1 && hand.length >= 11 ? '텐파이' : r.missing + '장 부족';
+                    const state = hand.length === 0 ? '' : res ? '완성' : r.missing === 1 && hand.length >= 11 ? '텐파이' : r.missing + '장 부족';
                     const item = document.createElement('div');
-                    item.className = 'yk-item' + (res ? ' match' : (state === '텐파이' ? ' tenpai' : '')) + (i === selected ? ' sel' : '');
+                    item.className = 'row' + (res ? ' win' : (state === '텐파이' ? ' tenpai' : '')) + (i === selected ? ' sel' : '');
                     item.title = r.key;
                     item.onclick = () => { selected = (selected === i) ? -1 : i; render(); };
                     item.innerHTML =
-                        `<div class="yk-head">` +
-                        `<span class="yk-group">${YakuDistance.YAKU[i].group}개 역</span>` +
-                        `<span class="yk-name">${res ? nameHtml(r) : baseName(r.key)}</span>` +
-                        (isWin ? `<span class="yk-tag">최종</span>` : '') +
-                        `<span class="yk-state">${state}</span>` +
-                        `<span class="yk-score">${scoreOf(r.key)}</span>` +
+                        `<div class="row-head">` +
+                        `<span class="r-group">${YakuDistance.YAKU[i].group}개 역</span>` +
+                        `<span class="r-name">${res ? nameHtml(r) : baseName(r.key)}</span>` +
+                        (isWin ? `<span class="r-tag">최종</span>` : '') +
+                        `<span class="r-state">${state}</span>` +
+                        `<span class="r-score">${scoreOf(r.key)}</span>` +
                         `</div>` +
-                        `<div class="yk-rule">${RULES[r.key]}</div>`;
+                        `<div class="r-rule">${RULES[r.key]}</div>`;
                     list.appendChild(item);
                 });
 
@@ -442,7 +424,7 @@
                 } else if (!result) {
                     w.className = 'winner none';
                     w.innerHTML = `<div class="label">완성된 역</div><div class="yk">역 없음 — 날 수 없습니다</div>
-                        <div class="penalty">12장이지만 어떤 역도 성립하지 않습니다.</div>`;
+                        <div class="penalty">12장이지만 완성된 역이 없습니다.</div>`;
                 } else {
                     w.className = 'winner';
                     const open = Math.round(result.score * 0.75);
@@ -450,7 +432,7 @@
                         `<div class="label">완성된 역</div>` +
                         `<div class="yk">${result.yaku[0]}</div>` +
                         `<div class="sc">기본 ${result.score}점</div>` +
-                        `<div class="penalty">오픈 핸드(펑 후)는 75% → ${open}점</div>`;
+                        `<div class="penalty">펑을 해서 나면 3/4 → ${open}점</div>`;
                 }
             }
 
@@ -467,7 +449,7 @@
 
             let sortMode = 'easy';
             let selected = 0;
-            let hand = [], openSets = [], dist = null, lastKey = null, hadHand = false;
+            let hand = [], openSets = [], dist = null, lastKey = null, hadHand = false, unseen = null, reach = null;
 
             const source = () => {
                 try {
@@ -491,18 +473,21 @@
                 rows.forEach(i => {
                     const r = dist[i];
                     const row = document.createElement('div');
-                    row.className = 'lv-row' + (i === selected ? ' sel' : '') + (r.missing === 0 ? ' win' : r.missing === 1 ? ' tenpai' : '');
+                    row.className = 'row' + (i === selected ? ' sel' : '') + (r.missing === 0 ? ' win' : r.missing === 1 ? ' tenpai' : '');
                     row.dataset.index = i;
-                    const state = r.missing === 0 ? '성립' : r.missing === 1 ? '텐파이' : (hand.length ? r.missing + '장 부족' : '');
+                    const blocked = (YakuDistance.YAKU[i].closed && openSets.length > 0) || (reach && !reach[i]);
+                    const state = !hand.length ? '' : blocked ? '완성 불가' : r.missing === 0 ? '완성' : r.missing === 1 ? '텐파이' : r.missing + '장 부족';
                     row.innerHTML =
-                        `<span class="lv-group">${YakuDistance.YAKU[i].group}개 역</span>` +
-                        `<span class="lv-name">${nameOf(r)}</span>` +
-                        `<span class="lv-state">${state}</span>` +
-                        `<span class="lv-score">${scoreOf(r.key)}</span>`;
+                        `<div class="row-head">` +
+                        `<span class="r-group">${YakuDistance.YAKU[i].group}개 역</span>` +
+                        `<span class="r-name">${nameOf(r)}</span>` +
+                        `<span class="r-state">${state}</span>` +
+                        `<span class="r-score">${scoreOf(r.key)}</span>` +
+                        `</div>`;
                     row.onclick = () => { selected = i; renderList(); renderDetail(); renderHand(); };
                     listEl.appendChild(row);
                 });
-                const sel = listEl.querySelector('.lv-row.sel');
+                const sel = listEl.querySelector('.row.sel');
                 if (sel) sel.scrollIntoView({ block: 'nearest' });
             }
 
@@ -517,11 +502,12 @@
                 const ex = YakuDistance.exampleTiles(selected).map(id => id ? tileImg(id) : '<span class="any">?</span>').join('');
                 let need = '';
                 if (hand.length === 0) need = '';
-                else if (r.missing === 0) need = '<span class="done">성립</span>';
+                else if (r.missing === 0) need = '<span class="done">완성</span>';
                 else {
-                    const kinds = YakuDistance.helpfulKinds(hand, openSets, selected);
+                    const kinds = YakuDistance.helpfulKinds(hand, openSets, selected, unseen);
                     need = `<span class="lb">${r.missing}장 부족 · 필요한 패</span>` + kinds.map(id => tileImg(id)).join('');
-                    if (y.closed && openSets.length) need = '<span class="lb">펑한 손패로는 만들 수 없음</span>';
+                    if (y.closed && openSets.length) need = '<span class="lb">펑을 하면 완성할 수 없음</span>';
+                    else if (reach && !reach[selected]) need = '<span class="lb">필요한 패가 더 남아 있지 않음</span>';
                 }
                 detailEl.innerHTML =
                     `<div class="d-head"><span class="d-name">${nameOf(r)}</span><span class="d-score">${scoreOf(y.key)}점</span></div>` +
@@ -543,18 +529,23 @@
                 handEl.innerHTML = html;
             }
 
-            function apply(rawHand, rawOpen) {
+            function apply(rawHand, rawOpen, rawDiscards, rawCpuOpen) {
                 let nh = [], no = [];
+                const copySets = (sets) => (sets || []).map(s => ({ tiles: s.tiles.map(t => ({ type: t.type, color: t.color })) }));
                 if (rawHand && rawHand.length >= 11 - 3 * (rawOpen || []).length) {
                     nh = rawHand.filter(t => t).map(t => ({ type: t.type, color: t.color }));
-                    no = (rawOpen || []).map(s => ({ tiles: s.tiles.map(t => ({ type: t.type, color: t.color })) }));
+                    no = copySets(rawOpen);
                 }
-                const key = nh.map(t => t.type).join(',') + '|' + no.map(s => s.tiles[0].type).join(',');
+                const nd = (rawDiscards || []).filter(t => t).map(t => ({ type: t.type, color: t.color }));
+                const nc = copySets(rawCpuOpen);
+                const key = nh.map(t => t.type).join(',') + '|' + no.map(s => s.tiles[0].type).join(',') + '|' + nd.length + '|' + nc.length;
                 if (key === lastKey) return;
                 lastKey = key;
                 hand = nh;
                 openSets = no;
                 dist = YakuDistance.evaluate(hand, openSets);
+                unseen = hand.length ? YakuDistance.unseenCounts(hand, openSets, nd, nc) : null;
+                reach = unseen ? YakuDistance.reachable(hand, openSets, unseen) : null;
                 if (!hadHand && hand.length) { hadHand = true; selected = order()[0]; }
                 renderList();
                 renderDetail();
@@ -571,17 +562,18 @@
             });
 
             window.addEventListener('message', (e) => {
-                if (e.data && e.data.type === 'haiyuki-hand') apply(e.data.hand, e.data.openSets);
+                if (e.data && e.data.type === 'haiyuki-hand') apply(e.data.hand, e.data.openSets, e.data.discards, e.data.cpuOpenSets);
             });
 
             function poll() {
                 const src = source();
                 if (!src) return;
                 const snap = src.__haiyuki__;
-                apply(snap && snap.p1 ? snap.p1.hand : null, snap && snap.p1 ? snap.p1.openSets : null);
+                if (!snap || !snap.p1) { apply(null, null, null, null); return; }
+                apply(snap.p1.hand, snap.p1.openSets, snap.board.discards, snap.cpu.openSets);
             }
 
-            apply(null, null);
+            apply(null, null, null, null);
             poll();
             setInterval(poll, 200);
             const owner = (window.parent !== window) ? window.parent : window.opener;

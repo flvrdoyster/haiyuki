@@ -90,10 +90,13 @@ const QADebug = (() => {
         const p = snap && snap.p1;
         const hand = p ? p.hand.filter(t => t) : [];
         const openSets = p ? p.openSets : [];
-        const key = hand.map(t => t.type).join(',') + '|' + openSets.map(s => s.tiles[0] && s.tiles[0].type).join(',');
+        const discards = snap ? snap.board.discards : [];
+        const cpuOpenSets = snap ? snap.cpu.openSets : [];
+        const key = hand.map(t => t.type).join(',') + '|' + openSets.map(s => s.tiles[0] && s.tiles[0].type).join(',')
+            + '|' + discards.length + '|' + cpuOpenSets.length;
         if (key === _panel.key) return;
         _panel.key = key;
-        const msg = { type: 'haiyuki-hand', hand, openSets };
+        const msg = { type: 'haiyuki-hand', hand, openSets, discards, cpuOpenSets };
         panelTargets().forEach(w => { try { w.postMessage(msg, '*'); } catch (_) { } });
     }
 

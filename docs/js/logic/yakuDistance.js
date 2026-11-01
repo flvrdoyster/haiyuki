@@ -408,12 +408,26 @@ const YakuDistance = (() => {
         return { hand, open };
     }
 
-    function helpfulKinds(handTiles, openSets, index) {
+    function unseenCounts(handTiles, openSets, discards, cpuOpenSets) {
+        const left = new Array(KINDS).fill(PaiData.TILE_COUNT_PER_TYPE);
+        for (const t of handTiles.concat(discards || [])) { const k = kindOf(t); if (k >= 0) left[k]--; }
+        for (const s of (openSets || []).concat(cpuOpenSets || [])) { const k = kindOf(s.tiles[0]); if (k >= 0) left[k] -= s.tiles.length; }
+        return left.map(n => Math.max(0, n));
+    }
+
+    function reachable(handTiles, openSets, unseen) {
+        const { C, meldKinds } = countsOf(handTiles, openSets);
+        const pot = C.map((c, k) => c + unseen[k]);
+        return evaluateCounts(pot, meldKinds).map(r => r.missing === 0);
+    }
+
+    function helpfulKinds(handTiles, openSets, index, unseen) {
         const { C, meldKinds } = countsOf(handTiles, openSets);
         const base = evaluateCounts(C, meldKinds)[index].missing;
         const out = [];
         for (let k = 0; k < KINDS; k++) {
             if (C[k] + (meldKinds.includes(k) ? 3 : 0) >= PaiData.TILE_COUNT_PER_TYPE) continue;
+            if (unseen && unseen[k] <= 0) continue;
             C[k]++;
             const m = evaluateCounts(C, meldKinds)[index].missing;
             C[k]--;
@@ -426,5 +440,5 @@ const YakuDistance = (() => {
         return YAKU[index].example.map(k => k === ANY ? null : KIND_IDS[k]);
     }
 
-    return { YAKU, KIND_IDS, ANY, evaluate, evaluateCounts, markSlots, helpfulKinds, exampleTiles };
+    return { YAKU, KIND_IDS, ANY, evaluate, evaluateCounts, markSlots, helpfulKinds, exampleTiles, unseenCounts, reachable };
 })();
