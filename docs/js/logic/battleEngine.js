@@ -1106,9 +1106,23 @@ const BattleEngine = {
         return true;
     },
 
-    shouldAiReact: function (who) {
+    shouldAiReact: function (who, skillId) {
+        if (skillId === 'SUPER_IAI') return true;
         const me = this.getPlayer(who);
         return me.hp < me.maxHp * 0.8 || Math.random() < 0.8;
+    },
+
+    canReachTenpai: function (who) {
+        const me = this.getPlayer(who);
+        const full = this.getFullHand(me);
+        const open = this.isOpen(me);
+        if (full.length === 11) return !!this.checkTenpai(full, false, open);
+        for (let i = 0; i < me.hand.length; i++) {
+            const tmp = [...full];
+            tmp.splice(tmp.indexOf(me.hand[i]), 1);
+            if (this.checkTenpai(tmp, false, open)) return true;
+        }
+        return false;
     },
 
     checkActiveSkills: function (who) {
@@ -1137,7 +1151,7 @@ const BattleEngine = {
             const threshold = 0.6;
             const ctx = {
                 who: who,
-                isTenpai: this.checkTenpai(this.getFullHand(me), false, this.isOpen(me)),
+                isTenpai: this.canReachTenpai(who),
                 isPlayerRiichi: opp.isRiichi,
                 turn: this.turnCount,
                 profile: cpuProfile
@@ -1208,7 +1222,7 @@ const BattleEngine = {
                 const canAfford = this.checkSkillCost(SkillData[reactiveSkillId]);
 
                 if (canAfford && this.symmetric) {
-                    if (this.shouldAiReact('P1') && this.useSkill(reactiveSkillId, 'P1', true)) {
+                    if (this.shouldAiReact('P1', reactiveSkillId) && this.useSkill(reactiveSkillId, 'P1', true)) {
                         if (reactiveSkillId === 'SUPER_IAI') {
                             SkillFlows.activateSuperIaido(this, 'P1');
                         } else {
@@ -1480,7 +1494,7 @@ const BattleEngine = {
                 }) : null;
 
                 if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
-                    if (this.shouldAiReact('CPU')) {
+                    if (this.shouldAiReact('CPU', reactiveSkillId)) {
                         if (this.useSkill(reactiveSkillId, 'CPU', true)) {
                             if (reactiveSkillId === 'SUPER_IAI') {
                                 SkillFlows.activateSuperIaido(this, 'CPU');

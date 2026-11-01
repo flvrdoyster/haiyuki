@@ -327,6 +327,9 @@ const SkillRegistry = {
         },
         // 상대 드로우 저주(공격 디버프) — 선제로 깔수록 누적 방해. 중반·상대 리치 시 가중.
         aiScore: (engine, ctx) => {
+            const me = engine.getPlayer(ctx.who || 'CPU');
+            const tiger = SkillData.TIGER_STRIKE;
+            if (me.skills.includes('TIGER_STRIKE') && me.mp >= tiger.cost && ctx.turn <= 12) return 0;
             let score = 0.45;
             if (ctx.isPlayerRiichi) score += 0.4;
             if (ctx.turn >= 3 && ctx.turn <= 12) score += 0.2;
