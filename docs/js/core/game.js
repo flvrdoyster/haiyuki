@@ -37,6 +37,7 @@ const Game = {
         const skillsBtn = document.getElementById('skills-btn');
         if (skillsBtn) {
             skillsBtn.onclick = () => {
+                if (BattleEngine.tutorial) return;
                 BattleConfig.RULES.SKILLS_ENABLED = !BattleConfig.RULES.SKILLS_ENABLED;
 
                 const isEnabled = BattleConfig.RULES.SKILLS_ENABLED;

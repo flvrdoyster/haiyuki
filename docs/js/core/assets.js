@@ -220,6 +220,7 @@ const Assets = {
         'ui/number_yellow.png',
         'ui/turn.png',
         'ui/round.png',
+        'ui/lesson.png',
         'ui/dora.png',
         'ui/riichi.png',
         'ui/bar_blue.png',
@@ -331,6 +332,7 @@ const Assets = {
                 audio.src = src;
                 audio.load();
             } else {
+                if (window.location.protocol === 'file:') { ok(); return; }
                 // SFX: Web Audio API — 한 번 디코딩 후 지연 없이 재생
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', src, true);

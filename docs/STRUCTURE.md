@@ -15,13 +15,28 @@
 ## CPU 스킬
 
 - CPU의 라운드 시작 패 교환(스마슈 `EXCHANGE_TILE`·눈썹개 `PAINT_TILE`)은 원본 규칙(`sq/RULES.md` 6.4·6.5)을 따른다. `SkillFlows.executeCpuTileExchange`가 손패를 무작위 순서로 훑으며 현재 MP 전부를 예산으로 장당 비용(6/4)씩 빼고, 보존 종류(스마슈: 린샹·화린·스마슈·유리, 눈썹개: 눈썹개 4종)가 아닌 패를 교환한다. 장수 상한은 없다. 스마슈는 사용 여부도 칸마다 독립 70%로 굴린다.
-- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.10, 유리 +0.10, 눈썹개 +0.25). 캐릭터 설정의 일부라 대칭 모드에서도 양쪽에 같이 적용된다.
+- 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.10, 유리 +0.10, 눈썹개 +0.25). CPU 난이도 보정이라 대칭 모드(실력 고정 1.0)에서는 0으로 둔다.
+- `aiProfile.luck`은 캐릭터 특성이다: `drawTiles`가 뽑는 쪽(`who`)의 캐릭터 luck(`BattleEngine.luckOf`)만큼 덱 상단 몇 장 중 유리한 패(음수면 불리한 패)를 올린다. 사람 P1·CPU 어느 쪽이 그 캐릭터를 잡든 같고, 튜토리얼에서만 `luckEnabled`로 끈다. easy 드로우 어시스트는 별개의 P1 전용 난이도 기능.
 - 눈썹개 버림패 AI(`AILogic.scoreDiscards`, `charId === 'mayu'`, 닫힌 12장 평가 한정)는 눈썹개 4종을 눈썹개 역에 필요한 장수(빨·노·파 4장, 보라 3장)까지는 버리지 않도록 `MAYU_KEEP_W`만큼 감점한다. 텐파이 단계 점수(`TENPAI_TIER`)보다 작아 텐파이는 깨지 않는다.
 - CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(`cpu.exchangeDiscard`, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
-- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`shouldAiReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 `cpuSkill` = `SYMMETRIC_SKILL`(0.85)에 각자 `skillOffset`을 더한 값, `luck`·드로우 어시스트는 0. `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
+- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`shouldAiReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 실력 `SYMMETRIC_SKILL`(1.0), `skillOffset` 0, 드로우 어시스트 0(`luck`은 캐릭터 특성이라 그대로 걸린다). `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
+
+## 튜토리얼
+
+- 타이틀 `TUTORIAL` → `BattleScene`을 `{ tutorial: true, lessonIndex }`로 연다(플레이어·상대는 눈썹개를 뺀 무작위 서로 다른 캐릭터). 엔진은 `BattleEngine.tutorial`(null이면 본편)이 있을 때만 갈라진다. 레슨 데이터·나레이션은 `data/tutorialData.js`.
+- 레슨 `plan`(플레이어 뽑기·버림·펑·론과 단계별 텐파이/역)이 단일 출처다: 뽑기 순서, 버릴 수 있는 패(버림 횟수째 한 종류), 검증 spec이 모두 여기서 나온다. `cpuDraws`는 CPU 뽑기 = 버림 순서.
+- 판 준비: `startRound`가 `tutorialBuildDeck`으로 배패 순서를 덱 끝에 깔고 도라·우라도라를 레슨 값으로 고정. `drawTiles`는 큐에서 꺼내고 비면 덱에서 뽑는다. easy 어시스트 0, `luckEnabled` false, `BattleConfig.RULES.SKILLS_ENABLED`는 시작 때 끄고 `BattleScene.exitTutorial`이 복구(툴바 비기 버튼은 튜토리얼 중 무시).
+- 리치 선언은 `needRiichi` 레슨에서만 뜬다(`checkSelfActions`가 다른 레슨에서 RIICHI를 걸러 냄).
+- CPU: 뽑은 패를 그대로 버리고 쯔모·리치·펑·론·비기 없음(`checkCpuActions` 즉시 false), `triggerDialogue` 전부 무시.
+- 버림 제한: `discardTile`이 `tutorialCanDiscard`로 거르고(틀리면 `audio/wrong`), 렌더러가 같은 함수로 못 버리는 패를 어둡게 칠한다. 리치를 걸어야 하는 차례(`tutorialWantsAction`)에는 리치 전까지 모든 패를 막는다. `needPon` 레슨에서 펑 가능 때 패를 가져오면 `tutorialFail` → 실패 나레이션 뒤 그 레슨 처음부터.
+- 나레이션: 레슨 `script`의 `{ on, say }`를 순서대로 소비한다(엔진이 `tutorialEvent(이름)`을 부르고, 현재 가리키는 항목의 `on`과 같을 때만 발동. 항목에 `discards: n`이 있으면 플레이어가 n번째 패를 버린 뒤에만). 이벤트: `wait`·`drawn`·`discarded`·`tsumoChance`·`ponChance`·`afterPon`·`riichi`·`ron`·`win`(결과 창이 펼쳐진 뒤, `NARRATION.resultDelay`틱)·`afterResult`. 대사 안의 `\n`은 줄바꿈, `{…}`로 감싼 부분은 `NARRATION.highlight`(노란색)로 그린다. 떠 있는 동안 `engine.narration`이 `updateLogic`과 `BattleScene` 입력을 막고 확인키·클릭으로 넘긴다. 쯔모·론이 자동으로 나가는 지점(리치 중)은 `tutorialEvent`의 `onDone`으로 나레이션 뒤에 실행한다.
+- 라운드 라벨은 `ui/lesson.png`(`INFO.labels.lessonPath`)로 바꾸고 숫자는 레슨 번호(`startRound`가 `currentRound`를 맞춤).
+- 라운드 끝: `DAMAGE_ANIMATION`에서 HP는 본편처럼 깎되(레슨 1~4 합계로 상대 HP가 마지막 론에서 0이 됨) `matchOver` 대신 `tutorialNext`(다음 레슨 판 / 마지막이면 타이틀). `matchOver`·저장·컨티뉴 횟수는 건드리지 않는다. 전투 메뉴는 아가리·펑·리치·역 일람·타이틀로만 둔다.
+- 테스트: `tests/tutorial.spec.ts`(회귀 스위트 포함) — 레슨 데이터 판정 단언 + 타이틀에서 레슨 1~4 끝까지 + 펑 넘김 재시작 + 메뉴 타이틀로.
 
 ## 전투 연출
 
+- `file://`로 열면 효과음(XHR + Web Audio)은 브라우저가 막으므로 건너뛰고(무음) 나머지는 그대로 로드해 타이틀까지 간다. 효과음까지 들으려면 `docs/`를 서버로 띄운다.
 - 선언(리치·펑·론·쯔모)·나가리 연출은 원본 `usamain.sq`의 틱 좌표를 그대로 쓴다. `js/data/fxTimelines.js`는 생성 파일 — `../sq/tools/fxexport.py`가 스크립트 VM 시뮬레이터(`fxtrace.py`)로 뽑는다. 손으로 고치지 말 것. 경로 항목은 원본 셀 좌상단의 화면 좌표이고 다음 항목까지 유지(2틱 단위 스텝 이동이 원본 그대로). 조각마다 웹 이미지의 `src` 사각형과 셀 좌상단에서 그릴 중심까지의 `off`가 들어 있다.
 - 원본은 두 글자를 조각 2개로 움직인다. 웹은 글자 모양과 상관없이 이미지를 가운데 열에서 세로로 반 갈라 두 조각으로 쓴다. `off`는 웹 조각 글자의 가로 중심을 원본 셀 안 글자 중심에 맞추고, 세로는 한 이미지의 반쪽이라 두 조각이 같은 값(원본 두 글자 영역의 세로 중심)을 쓴다. 원본은 정지 때 두 글자 사이가 벌어지지만 웹은 맞붙게 한다: `fxexport.py`의 `JOIN_TICK`(펑 낙하 시작, 론·쯔모 정지, 나가리 착지 뒤)에 두 조각을 같은 거리만큼 서로 반대로 옮기고, 쯔모는 첫 틱에 글자가 원본처럼 화면 밖에 있도록 이 이동을 입장 동안 틱에 비례해 늘린다(`JOIN_RAMP_FROM`).
 - 글자 에셋(`assets/fx/*.png`)은 원본처럼 투명·검정·흰색 3색 인덱스 PNG다. 글자 높이는 원본 단어 높이와 ±7% 안이라 크기는 맞추지 않았다. 에셋을 바꾸면 `fxexport.py`를 다시 돌린다(글자 범위를 이미지에서 읽는다).
@@ -30,8 +45,13 @@
 - 론·쯔모·나가리의 `hold`는 원본 `waitkey`(확인키 또는 120틱). `BattleScene.update`가 블로킹 중 확인키로 `fx.skipHold()`를 부르고, `Game.isAutoTest`면 바로 건너뛴다.
 - 원본은 선언 중 판·UI를 숨기고 조각마다 셀 크기의 흰색 60% 탈색판을 달고 움직인다. 웹은 넣지 않는다(사용자 결정).
 - 피해 흔들림(`SHAKE`)은 피해량 3단계, 세로 사각파 `+A,0,-A,0` 감쇠 없음, 밀린 줄이 반대편으로 돌아오는 순환 스크롤(`Game._applyShake`가 오프스크린에 복사해 두 번 그린다). 진행은 그리기 횟수가 아니라 `dt`로 세서 120Hz 화면에서도 틱 길이가 같다. 나가리 조각 착지 때는 타임라인의 `shakes`로 ±4px 8틱.
-- 결과 창은 `RESULT.unfoldPerTick`으로 세로 중심에서 펼쳐진 뒤 내용을 그린다(원본 역 패널 8px/틱 양방향). 라운드 전환 페이드는 `ROUND_FADE` 40/40틱.
+- 결과 창은 `RESULT.unfoldPerTick`으로 세로 중심에서 펼쳐진 뒤 내용을 그린다(원본 역 패널 8px/틱 양방향). 역 줄에는 깎기 전 원점수(`resultInfo.yakuScore`)를 쓰고, 오픈 페널티(75%)나 수경·크리티컬 보정이 있으면 데미지 숫자가 원점수+보너스에서 최종값으로 굴러간다(`baseScore`는 페널티 적용 후·버프 전 값). 라운드 전환 페이드는 `ROUND_FADE` 40/40틱.
 - 효과음은 아직 웹 것 그대로(원본 SFX 9·13·승리 징글 미반영). 스킬 연출·패 이동·손패 공개는 원본 쪽이 미해결이라 웹 그대로.
+
+## 턴 진행 타이밍
+
+- 원본 `usamain.sq`를 fxtrace로 실행해 센 틱에 맞춘다(`SPEED`): 사람 버림 → CPU 뽑기 21, CPU 뽑기 → 버림 22, CPU 버림 → 사람 뽑기 입력 가능 22(`DRAW_INPUT_DELAY`, 키·마우스 모두), 리치 중 사람은 CPU 버림 22틱 뒤 자동으로 뽑고(`RIICHI_AUTO_DRAW`) 50틱 뒤 자동 버림(원본은 자동 없음 — 웹 선택).
+- 리치 선언 순서는 원본대로 "대사(20틱) → 상대 대답(120틱, 확인키·클릭으로 넘김) → 배너(82틱) → 버림". 사람은 리치 버튼 뒤 버릴 패를 고른 순간 이 시퀀스가 돌고 배너가 끝나야 패가 놓인다(`discardTile` → `commitDiscard`). CPU는 뽑은 뒤 21틱(`CPU_RIICHI_THINK`)에 시작한다. 시퀀서 스텝 `DIALOGUE`·`WAIT_KEY`가 이를 맡고, 키로 넘기면 `BattleDialogue.hideAll`로 말풍선을 닫는다. 튜토리얼은 대사 없이 배너만.
 
 ## 페이지 스타일
 
@@ -54,7 +74,7 @@
 
 ## 테스트 (`tests/`, gitignore)
 
-- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` (112개, ~4분).
+- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial`.
 - `_` 접두사 5개는 단언 없는 측정 도구.
 - `startBattle` 헬퍼는 기본으로 `SKILLS_ENABLED = false`로 전투를 시작한다(회귀 스펙 전제). 승률·행동 측정은 스킬이 켜져야 하므로 `_ai_fingerprint`는 `skills: true`로 시작한다.
 - CPU 승률·행동 지문 측정은 `_ai_fingerprint.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts _ai_fingerprint`, 서버 포트 `PORT` 기본 3100 — 회귀용 :3000과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `docs/tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.

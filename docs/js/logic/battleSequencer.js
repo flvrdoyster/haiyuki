@@ -6,6 +6,7 @@ const BattleSequencer = {
         engine.events.push({ type: 'STOP_MUSIC' });
 
         let finalScore = score;
+        const rawScore = engine.winningYaku ? engine.winningYaku.score : score;
         const attacker = engine.getPlayer(who);
         const defender = engine.getOpponent(who);
         const activeBuffs = [];
@@ -118,7 +119,7 @@ const BattleSequencer = {
                     score: totalScore,
                     finalDamage: totalScore,
                     yakuName: engine.winningYaku ? engine.winningYaku.yaku[0] : '',
-                    yakuScore: engine.winningYaku ? engine.winningYaku.score : 0,
+                    yakuScore: rawScore,
                     bonuses: bonusResult.details,
                     bonusScore: bonusResult.score,
                     activeBuffs: activeBuffs
@@ -259,6 +260,19 @@ const BattleSequencer = {
                 engine.sequencing.timer = 0;
                 BattleSequencer.advance(engine);
             }
+        },
+        WAIT_KEY: function (engine, step, dt) {
+            engine.sequencing.timer += dt;
+            const pressed = typeof Input !== 'undefined' && (Input.isConfirmKey() || Input.isMouseJustPressed());
+            if (engine.isAutoTest() || pressed || engine.sequencing.timer >= step.duration) {
+                engine.sequencing.timer = 0;
+                if (pressed && typeof BattleDialogue !== 'undefined') BattleDialogue.hideAll();
+                BattleSequencer.advance(engine);
+            }
+        },
+        DIALOGUE: function (engine, step) {
+            engine.triggerDialogue(step.key, step.who, step.fallbackKey);
+            BattleSequencer.advance(engine);
         },
         WAIT_FX: function (engine) {
             if (engine.scene && engine.scene.fx && engine.scene.fx.list.length > 0) {

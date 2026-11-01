@@ -53,7 +53,13 @@ const BattleEngine = {
         return this.isAutoTest() && typeof Game !== 'undefined' && !!Game.symmetric;
     },
 
-    SYMMETRIC_SKILL: 0.85,
+    SYMMETRIC_SKILL: 1.0,
+
+    luckOf: function (who) {
+        if (!this.luckEnabled) return 0;
+        const c = CharacterData.find(ch => ch.id === who.id);
+        return (c && c.aiProfile && c.aiProfile.luck) || 0;
+    },
 
     skillOf: function (who) {
         return who === 'P1' ? this.p1Skill : this.cpuSkill;
@@ -177,19 +183,24 @@ const BattleEngine = {
             ? BattleConfig.RULES.DRAW_ASSIST.chance : 0;
         this.lastDrawAssist = null;
 
-        // CPU 성격 편향: luck>0이면 유리한 패, luck<0이면 불리한 패 쪽으로 드로우 확률 기울임.
-        this.cpuLuck = (this.cpu.aiProfile && this.cpu.aiProfile.luck) || 0;
+        this.luckEnabled = true;
 
         this.symmetric = this.isSymmetric();
         this.p1.exchangeDiscard = this.cpu.exchangeDiscard = null;
         this.p1Skill = this.cpuSkill;
         if (this.symmetric) {
-            this.p1.skillOffset = p1Data && p1Data.skillOffset || 0;
-            this.p1Skill = this.applySkillOffset(this.SYMMETRIC_SKILL, this.p1.skillOffset);
-            this.cpuSkill = this.applySkillOffset(this.SYMMETRIC_SKILL, this.cpu.skillOffset);
+            this.p1.skillOffset = this.cpu.skillOffset = 0;
+            this.cpuSkill = this.p1Skill = this.SYMMETRIC_SKILL;
             this.drawAssistChance = 0;
-            this.cpuLuck = 0;
             this.p1.aiProfile = p1Data && p1Data.aiProfile || null;
+        }
+
+        this.narration = null;
+        this.tutorial = null;
+        if (data.tutorial) {
+            this.drawAssistChance = 0;
+            this.luckEnabled = false;
+            this.tutorialLoad(data.lessonIndex || 0);
         }
 
         this.startRound();
@@ -254,10 +265,18 @@ const BattleEngine = {
     },
 
     confirmResult: function () {
-        this.currentState = this.STATE_DAMAGE_ANIMATION;
-        this.timer = 0;
-        this.stateTimer = 0;
-        this._damageEffectTriggered = false;
+        if (this.narration) return;
+        const proceed = () => {
+            this.currentState = this.STATE_DAMAGE_ANIMATION;
+            this.timer = 0;
+            this.stateTimer = 0;
+            this._damageEffectTriggered = false;
+        };
+        if (this.tutorial) {
+            this.tutorialEvent('afterResult', proceed);
+        } else {
+            proceed();
+        }
     },
     matchOver: function (winner) {
         this.currentState = this.STATE_MATCH_OVER;
@@ -300,6 +319,7 @@ const BattleEngine = {
         console.log(`[Difficulty] ${this.difficulty} | 격파 ${this.defeatedOpponents.length}/${this.TOURNAMENT_LENGTH} | band [${_band[0]}~${_band[1]}] | cpuSkill=${this.cpuSkill.toFixed(3)}`);
 
         this.turnCount = 1;
+        if (this.tutorial) this.currentRound = this.tutorial.index + 1;
         this.winningYaku = null;
         this.discards = [];
         // 이전 라운드의 리치 RON 등 잔여 액션이 새 패 배분으로 누출되지 않도록 초기화.
@@ -326,10 +346,14 @@ const BattleEngine = {
 
         this.exchangeIndices = [];
 
-        this.deck = this.generateDeck();
+        this.deck = this.tutorial ? this.tutorialBuildDeck() : this.generateDeck();
 
         this.p1.hand = [];
         this.cpu.hand = [];
+        this.p1.declaringRiichi = false;
+        this.cpu.declaringRiichi = false;
+        this.validRiichiDiscardIndices = null;
+        this.narration = null;
 
         this.p1.isFaceDown = true;
         this.cpu.isRevealed = false;
@@ -362,11 +386,11 @@ const BattleEngine = {
         this.uraDoras = [];
         this.uraDoraRevealed = false;
 
-        const d1 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        const d1 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.dora] : PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
         this.doras.push({ type: d1.id, color: d1.color, img: d1.img });
 
         // 우라도라는 표 도라와 중복 가능(기획 확인).
-        const d2 = PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        const d2 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.uraDora] : PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
 
         this.uraDoras.push({ type: d2.id, color: d2.color, img: d2.img });
 
@@ -389,6 +413,117 @@ const BattleEngine = {
 
 
 
+
+    tutorialLoad: function (index) {
+        const lesson = TutorialData.LESSONS[index];
+        this.tutorial = {
+            index: index,
+            lesson: lesson,
+            ptr: 0,
+            discardCount: 0,
+            draws: {
+                p1: lesson.plan.filter(s => s.draw).map(s => s.draw),
+                cpu: [...lesson.cpuDraws]
+            },
+            discards: lesson.plan.filter(s => s.discard).map(s => s.discard)
+        };
+    },
+
+    tutorialStartLesson: function (index) {
+        this.tutorialLoad(index);
+        this._cachedSelfActionsKey = null;
+        this.pendingDamage = null;
+        this.startRound();
+    },
+
+    tutorialNext: function () {
+        const next = this.tutorial.index + 1;
+        this.currentState = this.STATE_FX_PLAYING;
+        if (next < TutorialData.LESSONS.length) {
+            this.scene.fadeRound(() => this.tutorialStartLesson(next));
+        } else {
+            Game.fadeTo(() => this.scene.exitTutorial());
+        }
+    },
+
+    tutorialFail: function () {
+        const index = this.tutorial.index;
+        this.tutorialSay([this.tutorial.lesson.failSay], () => {
+            this.currentState = this.STATE_FX_PLAYING;
+            this.scene.fadeRound(() => this.tutorialStartLesson(index));
+        });
+    },
+
+    tutorialTile: function (id) {
+        const t = PaiData.BY_ID[id];
+        return { type: t.id, color: t.color, img: t.img };
+    },
+
+    tutorialNextDraw: function (who) {
+        const queue = this.tutorial.draws[who];
+        return queue.length > 0 ? queue.shift() : null;
+    },
+
+    tutorialBuildDeck: function () {
+        const deck = this.generateDeck();
+        const mine = [];
+        Object.keys(this.tutorial.lesson.hand).forEach(id => {
+            for (let i = 0; i < this.tutorial.lesson.hand[id]; i++) mine.push(this.tutorialTile(id));
+        });
+        const cpu = deck.splice(0, mine.length);
+        const deal = [];
+        let at = 0;
+        [4, 4, 2, 1].forEach(count => {
+            deal.push(...mine.slice(at, at + count), ...cpu.slice(at, at + count));
+            at += count;
+        });
+        return deck.concat(deal.reverse());
+    },
+
+    tutorialCanDiscard: function (index) {
+        if (this.tutorialWantsAction() && !this.p1.isRiichi) return false;
+        const tile = this.p1.hand[index];
+        const allowed = this.tutorial.discards[this.tutorial.discardCount];
+        return !!tile && tile.type === allowed;
+    },
+
+    tutorialWantsAction: function () {
+        if (!this.tutorial) return false;
+        if (this.possibleActions.some(a => a.type === 'TSUMO')) return true;
+        return !!this.tutorial.lesson.needRiichi && !this.p1.isRiichi &&
+            this.possibleActions.some(a => a.type === 'RIICHI');
+    },
+
+    tutorialEvent: function (name, onDone) {
+        const t = this.tutorial;
+        const entry = t && t.lesson.script[t.ptr];
+        if (entry && entry.on === name && (entry.discards === undefined || entry.discards === t.discardCount)) {
+            t.ptr++;
+            this.tutorialSay(entry.say, onDone);
+            return true;
+        }
+        if (onDone) onDone();
+        return false;
+    },
+
+    tutorialSay: function (pages, onDone) {
+        if (this.isAutoTest() || pages.length === 0) {
+            if (onDone) onDone();
+            return;
+        }
+        this.narration = { pages: pages, index: 0, age: 0, onDone: onDone };
+    },
+
+    advanceNarration: function () {
+        const n = this.narration;
+        if (!n) return;
+        n.index++;
+        n.age = 0;
+        if (n.index >= n.pages.length) {
+            this.narration = null;
+            if (n.onDone) n.onDone();
+        }
+    },
 
     skillsUsedThisTurn: false,
 
@@ -572,6 +707,11 @@ const BattleEngine = {
     },
 
     drawTiles: function (count, who) {
+        if (this.tutorial && who && count === 1) {
+            const id = this.tutorialNextDraw(who === this.p1 ? 'p1' : 'cpu');
+            if (id) return [this.tutorialTile(id)];
+        }
+
         // 스킬 버프(guaranteedWin/curseDraw)는 easy 어시스트보다 우선해야 하므로 먼저 확인.
         const buffActive = who && who.buffs &&
             (who.buffs.guaranteedWin || who.buffs.curseDraw > 0);
@@ -640,10 +780,11 @@ const BattleEngine = {
             }
         }
 
-        // CPU 성격 편향 드로우(cpuLuck): 덱 상단 재정렬만, 패 구성 불변.
-        if (!buffActive && who === this.cpu && count === 1 && this.cpuLuck && this.deck.length >= 2 &&
-            Math.random() < Math.abs(this.cpuLuck)) {
-            const want = this.cpuLuck > 0;
+        // 캐릭터 특성 luck(뽑는 쪽 캐릭터 기준, 양쪽 적용): 덱 상단 재정렬만, 패 구성 불변.
+        const luck = who ? this.luckOf(who) : 0;
+        if (!buffActive && who && count === 1 && luck && this.deck.length >= 2 &&
+            Math.random() < Math.abs(luck)) {
+            const want = luck > 0;
             const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
             const fullHand = this.getFullHand(who);
             let pickOffset = 0;
@@ -671,6 +812,7 @@ const BattleEngine = {
         this.totalTicks += dt;
 
         this.timers.update(dt);
+        if (this.narration) return;
 
         if (this.currentState !== this.lastState) {
             this.stateTimer = 0;
@@ -749,6 +891,7 @@ const BattleEngine = {
                         } else {
                             this.currentState = this.STATE_WAIT_FOR_DRAW;
                             this.timer = 0;
+                            this.tutorialEvent('wait');
                         }
                     } else {
                         this.currentState = this.STATE_WAIT_FOR_DRAW;
@@ -762,8 +905,10 @@ const BattleEngine = {
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
-                if ((window.Input && Input.isMouseJustPressed() && this.timer > 8) || (this.isAutoTest() && this.timer > 3)) {
+                if (this.isAutoTest() && this.timer > 3) {
                     if (this.symmetric && this.tryP1AiPon()) break;
+                    this.confirmDraw();
+                } else if (this.p1.isRiichi && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DRAW) {
                     this.confirmDraw();
                 }
                 break;
@@ -782,6 +927,7 @@ const BattleEngine = {
 
             case this.STATE_WIN:
             case this.STATE_LOSE:
+                if (this.tutorial && this.stateTimer > BattleConfig.NARRATION.resultDelay && this.tutorialEvent('win')) break;
                 // 롤링 애니메이션(160프레임) 종료 후 입력 수신.
                 if (this.stateTimer > 160 && (Input.isMouseJustPressed() || Input.isConfirmKey())) {
                     this.confirmResult();
@@ -813,7 +959,9 @@ const BattleEngine = {
 
                 if (this.timer > (this.isAutoTest() ? 5 : 30)) {
                     this.pendingDamage = null;
-                    if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
+                    if (this.tutorial) {
+                        this.tutorialNext();
+                    } else if (this.p1.hp <= 0 || this.cpu.hp <= 0) {
                         this.currentState = this.STATE_MATCH_OVER;
                         this.matchOver(this.p1.hp > 0 ? 'P1' : 'CPU');
                     } else if (this.scene && this.scene.fadeRound) {
@@ -893,15 +1041,23 @@ const BattleEngine = {
         if (this.checkSelfActions() && this.p1.isRiichi) {
             const tsumoAction = this.possibleActions.find(a => a.type === 'TSUMO');
             if (tsumoAction) {
-                this.executeAction(tsumoAction);
+                if (this.tutorial) {
+                    this.tutorialEvent('tsumoChance', () => this.executeAction(tsumoAction));
+                } else {
+                    this.executeAction(tsumoAction);
+                }
                 return;
             }
         }
 
         this.currentState = this.STATE_PLAYER_TURN;
         this.hoverIndex = this.p1.hand.length - 1;
-        this.actionFocused = false;
+        this.actionFocused = this.tutorialWantsAction();
         this.timer = 0;
+        if (this.tutorial) {
+            this.tutorialEvent('drawn');
+            if (this.possibleActions.some(a => a.type === 'TSUMO')) this.tutorialEvent('tsumoChance');
+        }
     },
 
     cpuDraw: function () {
@@ -923,6 +1079,12 @@ const BattleEngine = {
         }
 
         this.dialogueTriggeredThisTurn = false;
+
+        if (this.tutorial) {
+            this.winningYaku = null;
+            this.scheduleCpuDiscard(this.cpu.hand.length - 1);
+            return;
+        }
 
         this.manageBuffs(this.cpu);
         this.checkCpuActiveSkills();
@@ -962,16 +1124,20 @@ const BattleEngine = {
                 this.currentState = this.STATE_FX_PLAYING;
 
                 const riichiKey = this.p1.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
-                this.triggerDialogue(riichiKey, 'cpu');
+                const sp = BattleConfig.SPEED;
 
                 this.sequencing = {
                     active: true,
                     timer: 0,
                     currentStep: 0,
                     steps: [
+                        { type: 'WAIT', duration: sp.CPU_RIICHI_THINK },
+                        { type: 'DIALOGUE', key: riichiKey, who: 'cpu' },
+                        { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                        { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'p1' },
+                        { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
                         { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { timeline: 'riichi_r', blocking: true }) },
                         { type: 'MUSIC', id: 'audio/bgm_tension', loop: true },
-                        { type: 'WAIT', duration: 60 },
                         {
                             type: 'CALLBACK', callback: () => {
                                 this.sequencing.active = false;
@@ -1008,7 +1174,11 @@ const BattleEngine = {
             discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
         }
 
-        // 드로우한 패를 잠깐 보여주고 버림(FX_PLAYING으로 CPU_TURN 재발화 차단). autotest는 0.
+        this.scheduleCpuDiscard(discardIdx);
+    },
+
+    // 드로우한 패를 잠깐 보여주고 버림(FX_PLAYING으로 CPU_TURN 재발화 차단). autotest는 0.
+    scheduleCpuDiscard: function (discardIdx) {
         const hold = this.isAutoTest() ? 0 : BattleConfig.SPEED.CPU_DISCARD_HOLD;
         if (hold > 0) {
             this.currentState = this.STATE_FX_PLAYING;
@@ -1054,7 +1224,11 @@ const BattleEngine = {
         if (this.checkPlayerActions(discarded) && this.p1.isRiichi) {
             const ronAction = this.possibleActions.find(a => a.type === 'RON');
             if (ronAction) {
-                this.executeAction(ronAction);
+                if (this.tutorial) {
+                    this.tutorialEvent('ron', () => this.executeAction(ronAction));
+                } else {
+                    this.executeAction(ronAction);
+                }
                 return;
             }
         }
@@ -1066,12 +1240,10 @@ const BattleEngine = {
             this.currentState === this.STATE_FX_PLAYING ||
             this.turnCount > 20) return;
 
-        if (this.p1.isRiichi) {
-            this.currentState = this.STATE_PLAYER_TURN;
-            this.playerDraw();
-        } else {
-            this.currentState = this.STATE_WAIT_FOR_DRAW;
-            this.timer = 0;
+        this.currentState = this.STATE_WAIT_FOR_DRAW;
+        this.timer = 0;
+        if (this.tutorial && !this.p1.isRiichi) {
+            this.tutorialEvent(this.possibleActions.some(a => a.type === 'PON') ? 'ponChance' : 'wait');
         }
     },
     sortHand: function (hand) {
@@ -1181,8 +1353,51 @@ const BattleEngine = {
             return;
         }
 
+        if (this.tutorial) {
+            if (!this.tutorialCanDiscard(index)) {
+                Assets.playSound('audio/wrong');
+                return;
+            }
+            this.tutorial.discardCount++;
+        }
+
         this.possibleActions = [];
 
+        if (this.p1.declaringRiichi) {
+            const sp = BattleConfig.SPEED;
+            const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
+            this.riichiTargetIndex = index;
+            this.currentState = this.STATE_FX_PLAYING;
+            const talk = this.tutorial ? [] : [
+                { type: 'DIALOGUE', key: riichiKey, who: 'p1' },
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'cpu' },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
+            ];
+            this.sequencing = {
+                active: true,
+                timer: 0,
+                currentStep: 0,
+                steps: [
+                    ...talk,
+                    { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { blocking: true }) },
+                    { type: 'MUSIC', id: 'audio/bgm_showdown', loop: true },
+                    {
+                        type: 'CALLBACK', callback: () => {
+                            this.sequencing.active = false;
+                            this.currentBgm = 'audio/bgm_showdown';
+                            this.currentState = this.STATE_PLAYER_TURN;
+                            this.commitDiscard(index);
+                        }
+                    }
+                ]
+            };
+            return;
+        }
+        this.commitDiscard(index);
+    },
+
+    commitDiscard: function (index) {
         this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1';
@@ -1208,10 +1423,11 @@ const BattleEngine = {
 
         this.currentState = this.STATE_CPU_TURN;
         this.timer = 0;
-
+        if (this.tutorial) this.tutorialEvent('discarded');
     },
 
     checkCpuActions: function (discardedTile) {
+        if (this.tutorial) return false;
         if (this.p1.buffs && this.p1.buffs.discardGuard > 0) {
             return false;
         }
@@ -1391,6 +1607,10 @@ const BattleEngine = {
             }
         }
 
+        if (this.tutorial && !this.tutorial.lesson.needRiichi) {
+            this.possibleActions = this.possibleActions.filter(a => a.type !== 'RIICHI');
+        }
+
         // Tiger Strike/Spirit Riichi 활성 시 리치 강제.
         if (this.p1.buffs && (this.p1.buffs.guaranteedWin || this.p1.buffs.spiritTimer > 0)) {
             if (!this.p1.isRiichi) {
@@ -1428,28 +1648,18 @@ const BattleEngine = {
 
                 this.timers.add(() => {
                     this.triggerDialogue('PON_REPLY', 'cpu');
-                }, BattleConfig.DIALOGUE.replyDelay);
+                }, BattleConfig.SPEED.DIALOGUE_SPEAK);
 
                 this.currentState = this.STATE_PLAYER_TURN;
                 this.possibleActions = [];
                 this.timer = 0;
                 this.hoverIndex = this.p1.hand.length - 1;
+                this.tutorialEvent('afterPon');
             }, BattleConfig.SPEED.ACTION_WAIT);
         } else if (action.type === 'RIICHI') {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true;
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
-
-            this.showPopup('RIICHI', { blocking: true });
-
-            const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
-            this.triggerDialogue(riichiKey, 'p1');
-            this.timers.add(() => {
-                this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, BattleConfig.DIALOGUE.replyDelay);
-
-            this.currentBgm = 'audio/bgm_showdown';
-            this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
 
             this.setExpression('P1', 'smile');
 
@@ -1477,6 +1687,7 @@ const BattleEngine = {
 
             this.updateBattleMusic();
             this.currentState = this.STATE_PLAYER_TURN;
+            this.tutorialEvent('riichi');
 
         } else if (action.type === 'TSUMO') {
             const fullHand = this.getFullHand(this.p1);
@@ -1644,6 +1855,10 @@ const BattleEngine = {
 
     confirmDraw: function () {
         if (this.currentState !== this.STATE_WAIT_FOR_DRAW) return;
+        if (this.tutorial && this.tutorial.lesson.needPon && this.possibleActions.some(a => a.type === 'PON')) {
+            this.tutorialFail();
+            return;
+        }
         this.playerDraw();
     },
 
@@ -1703,6 +1918,7 @@ const BattleEngine = {
 
     // fallbackKey: 캐릭터에 key가 없으면 같은 캐릭터의 fallbackKey → 전체 default 순으로 탐색.
     triggerDialogue: function (key, owner, fallbackKey) {
+        if (this.tutorial) return;
         if (!DialogueData || !DialogueData.BATTLE) return;
 
         const charId = (owner === 'p1' || owner === 'P1') ? this.p1.id : this.cpu.id;

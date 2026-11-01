@@ -117,7 +117,7 @@ const SkillData = {
 //   colorBias — 순일색·초일색 등 단색 대역 추구
 //   greed     — 도라 수집·보호
 //   defense   — 상대 리치 시 안전패(겐부쓰) 우선도
-//   luck      — CPU 쯔모 패질 보정 (+좋음 / 0 이하=나쁨). 선택 아닌 플레이버.
+//   luck      — 쯔모 패질 보정(캐릭터 특성, 사람·CPU 어느 쪽이 잡아도 적용) (+좋음 / 0 이하=나쁨). 선택 아닌 플레이버.
 const CharacterData = [
     {
         id: 'ataho', name: '아타호', face: 'face/ATA_base.png', selectIcon: 'face/select_ATA.png', rival: 'rinxiang', skills: ['TIGER_STRIKE', 'HELL_PILE'], battleOffsetX: 0, battleOffsetY: 0,

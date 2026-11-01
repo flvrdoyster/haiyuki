@@ -26,6 +26,13 @@ const BattleDialogue = {
         state.texture = this._generateTexture(text, owner);
     },
 
+    hideAll: function () {
+        ['P1', 'CPU'].forEach(owner => {
+            this.states[owner].active = false;
+            this.states[owner].texture = null;
+        });
+    },
+
     update: function (dt = 1.0) {
         ['P1', 'CPU'].forEach(owner => {
             const state = this.states[owner];
