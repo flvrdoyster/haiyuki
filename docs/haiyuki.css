@@ -336,7 +336,7 @@ a {
     border: 1px solid var(--border);
 
     /* Visual */
-    background: rgba(240, 240, 240, 1);
+    background: rgba(0, 92, 80, 1);
     box-shadow: 0 0 10px var(--shadow);
 }
 
@@ -353,7 +353,7 @@ a {
     border: none;
 
     /* Visual */
-    background: rgba(255, 255, 255, 1);
+    background: rgba(0, 92, 80, 1);
 }
 
 #game-container:fullscreen {

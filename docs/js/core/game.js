@@ -84,7 +84,7 @@ const Game = {
         if (yakuBtn && yakuContainer) {
             yakuBtn.onclick = () => {
                 if (window.innerWidth <= 768) {
-                    window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank');
+                    window.__yakuPopup = window.open('yaku-calc.html?live', '_blank');
                     yakuBtn.blur();
                     return;
                 }

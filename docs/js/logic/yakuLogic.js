@@ -269,6 +269,7 @@ const YakuLogic = {
         return false;
     },
     // 순일색: 한 색(빨/파/노)만으로 종류별 [6,3,3], 합 12. 보라 제외. meta.color로 역명 결정.
+    // 순일색: 같은 색만으로, 최다 종류 6장 + 남은 패에서 3장 묶음 둘(한 종류에서 여러 묶음 가능).
     isSunIlSaek(a) {
         const byColor = {};
         Object.values(a.counts).forEach(c => {
@@ -278,10 +279,10 @@ const YakuLogic = {
         for (const color in byColor) {
             const counts = byColor[color].slice().sort((x, y) => y - x);
             const total = counts.reduce((s, n) => s + n, 0);
-            if (total === 12 && counts.length === 3 &&
-                counts[0] === 6 && counts[1] === 3 && counts[2] === 3) {
-                return { match: true, meta: { color } };
-            }
+            if (total !== 12) continue;
+            counts[0] -= 6;
+            const groups = counts.reduce((g, n) => g + Math.floor(n / 3), 0);
+            if (groups >= 2) return { match: true, meta: { color } };
         }
         return false;
     },
@@ -307,10 +308,9 @@ const YakuLogic = {
         return false;
     },
     // 자유박애평등: 3색(빨/파/노) × 4장씩. 보라 제외.
+    // 자유 박애 평등: 네 색(보라 포함) 중 세 색에서 한 종류씩 4장.
     isJaYuBakAePyeongDeung(a) {
-        const VALID_COLORS = ['red', 'blue', 'yellow'];
-        const fours = Object.values(a.counts).filter(c => c.count >= 4 && VALID_COLORS.includes(c.tile.color));
-        const colors = new Set(fours.map(c => c.tile.color));
+        const colors = new Set(Object.values(a.counts).filter(c => c.count >= 4).map(c => c.tile.color));
         return colors.size >= 3;
     },
     // targetIds 종류가 각각 count개 이상인지(색+종류 더미 기준).
@@ -378,17 +378,12 @@ const YakuLogic = {
         return Object.values(byColor).some(e => e.chars.size >= 2 && e.weps.size >= 1);
     },
     // 마구때리기: 무기 3종 × 4.
+    // 일제공격: 무기 세 종류가 각각 4장 이상.
     isMaGuTtaeRiGi(a) {
-        let wepSets = 0;
-        Object.values(a.counts).forEach(c => {
-            if (c.count >= 4) {
-                const t = PaiData.BY_ID[c.tile.type];
-                if (t.category === 'weapon') {
-                    wepSets += Math.floor(c.count / 4);
-                }
-            }
+        return ['punch', 'sword', 'wand'].every(id => {
+            const c = a.counts[`${PaiData.BY_ID[id].color}_${id}`];
+            return !!c && c.count >= 4;
         });
-        return wepSets >= 3;
     },
 
     isSamDoRip(a) { return this.checkCounts(a, 3, 4); },
@@ -429,17 +424,17 @@ const YakuLogic = {
         return Object.values(byColor).some(e => e.chars.size >= 2 && e.weps.size >= 1);
     },
     // 일색: 같은 색 3종 × 3 + 보라 눈썹개 3.
+    // 일색: 보라 눈썹개 3장 + 같은 색에서 3장 묶음 셋(한 종류에서 여러 묶음 가능).
     isIlSaek(a) {
-        const threes = Object.values(a.counts).filter(c => c.count >= 3);
-        const hasPurpleMayu = threes.some(c => c.tile.type === 'mayu_purple');
-        if (!hasPurpleMayu) return false;
+        const purple = a.counts['purple_mayu_purple'];
+        if (!purple || purple.count < 3) return false;
 
-        const byColor = { red: 0, blue: 0, yellow: 0 };
-        threes.forEach(c => {
-            if (byColor[c.tile.color] !== undefined) byColor[c.tile.color]++;
+        const groups = { red: 0, blue: 0, yellow: 0 };
+        Object.values(a.counts).forEach(c => {
+            if (groups[c.tile.color] !== undefined) groups[c.tile.color] += Math.floor(c.count / 3);
         });
 
-        const matchedColor = Object.keys(byColor).find(color => byColor[color] >= 3);
+        const matchedColor = Object.keys(groups).find(color => groups[color] >= 3);
         if (matchedColor) {
             return { match: true, meta: { color: matchedColor } };
         }

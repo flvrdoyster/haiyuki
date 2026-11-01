@@ -76,9 +76,38 @@ const QADebug = (() => {
         });
     }
 
+    const _panel = { key: null };
+
+    function panelTargets() {
+        const out = [];
+        const f = document.getElementById('yaku-frame');
+        if (f && f.src && f.contentWindow) out.push(f.contentWindow);
+        if (window.__yakuPopup && !window.__yakuPopup.closed) out.push(window.__yakuPopup);
+        return out;
+    }
+
+    function publishHand(snap) {
+        const p = snap && snap.p1;
+        const hand = p ? p.hand.filter(t => t) : [];
+        const openSets = p ? p.openSets : [];
+        const key = hand.map(t => t.type).join(',') + '|' + openSets.map(s => s.tiles[0] && s.tiles[0].type).join(',');
+        if (key === _panel.key) return;
+        _panel.key = key;
+        const msg = { type: 'haiyuki-hand', hand, openSets };
+        panelTargets().forEach(w => { try { w.postMessage(msg, '*'); } catch (_) { } });
+    }
+
+    window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'haiyuki-hand-request') {
+            _panel.key = null;
+            publishHand(window.__haiyuki__ || null);
+        }
+    });
+
     function sync(engine) {
         if (!engine || engine.currentState === undefined) {
             window.__haiyuki__ = null;
+            publishHand(null);
             return;
         }
 
@@ -136,11 +165,13 @@ const QADebug = (() => {
                 })
                 : null,
         });
+        publishHand(window.__haiyuki__);
     }
 
     function reset() {
         _tenpai = { p1: false, cpu: false, lastTick: -Infinity };
         window.__haiyuki__ = null;
+        publishHand(null);
     }
 
     return { sync, reset };

@@ -215,7 +215,7 @@ const BattleConfig = {
             { type: 'SEPARATOR' },
             { id: 'SKILLS_PLACEHOLDER' }, // Insert Skills Here
             { type: 'SEPARATOR' },
-            { id: 'HELP', label: '역 일람' }
+            { id: 'HELP', label: '역 계산기' }
         ]
     },
 

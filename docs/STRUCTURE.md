@@ -6,7 +6,9 @@
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
 - `battleSequencer`가 `engine.scene.fx.list`를 직접 읽는다.
 - 매니페스트(`assets.js` `toLoad`)에 없는 id로 `playSound`를 부르면 조용히 무음. 테스트 헬퍼 `getMissingSfx()`로 잡는다.
-- `Assets.load`는 `window.onload` 뒤 `Game.init`에서 시작하므로, 페이지 `load` 이벤트를 늦추는 것은 모두 게임 자원 요청을 늦춘다. 그래서 역 일람 iframe은 `data-src`만 두고 처음 열 때 `src`를 채운다(`game.js` 역 일람 버튼, `battleMenuSystem.js` HELP 둘 다).
+- `Assets.load`는 `window.onload` 뒤 `Game.init`에서 시작하므로, 페이지 `load` 이벤트를 늦추는 것은 모두 게임 자원 요청을 늦춘다. 그래서 역 계산기 iframe은 `data-src`만 두고 처음 열 때 `src`를 채운다(`game.js` 역 계산기 버튼, `battleMenuSystem.js` HELP 둘 다).
+- 역 계산기 `yaku-calc.html`은 한 페이지가 두 모드다. `?live`(게임 iframe·모바일 새 창)는 원본 헬프 화면(`../sq/RULES.md` 4.4): 정렬 3종, 선택한 역의 조건·예시 패·부족한 장수를 줄이는 패, 손패에서 그 역에 쓰이는 패 들어 올리기. 파라미터 없이 열면 해설서에 있던 역 판정 테스터를 이은 단독 페이지(패를 직접 골라 판정). 판정은 `logic/yakuDistance.js`(원본 30개 함수의 부족 장수·사용 장수 포팅, 게임 판정 `yakuLogic.js`와는 별개)이고 이름·점수는 `BattleConfig.YAKU_NAMES`·`YakuLogic.SCORES`를 쓴다.
+- 손패는 `QADebug.sync`가 `window.__haiyuki__`를 만들 때마다 `publishHand`로 iframe(`#yaku-frame`)과 새 창(`window.__yakuPopup`)에 `postMessage({type:'haiyuki-hand'})`로 밀어 준다(손패·오픈 세트가 바뀔 때만). `file://`에서는 iframe이 부모를 직접 못 읽어 이 경로가 필수이고, 같은 출처(http)에서는 패널이 `parent.__haiyuki__`를 직접 읽는 폴링도 겸한다. 패널은 열리면 `haiyuki-hand-request`를 보내 현재 손패를 받는다.
 - BGM은 `Assets.bootBgm`(로딩 징글·타이틀)만 `canplaythrough`까지 기다리고, 나머지는 요소만 등록해 뒤에서 받는다. 덜 받은 BGM을 `playMusic`해도 버퍼가 차면 재생이 시작된다. 로딩·타이틀 장면이 새 BGM을 쓰게 되면 `bootBgm`에 넣는다.
 - 폰트는 KODDI 공식 배포 웹폰트(`KoddiUDOnGothic-Regular/Bold.woff2`)를 `docs/fonts/`에 그대로 두고 `haiyuki.css`의 `@font-face`로 쓴다. `index.html`은 공용 `atah.io/fonts.css`를 링크하지 않고 이 두 파일만 `preload`한다. `Game.init`은 폰트 로드(최대 3초)를 기다리므로 폰트 용량이 곧 시작 지연이다.
 - URL 파라미터: `?mode=story`(=`watch`)는 스토리 온리 캐릭터 선택으로, `?mode=tutorial`은 튜토리얼로 로딩 직후 바로 간다(스플래시·타이틀 생략, `LoadingScene`). `?debug`는 디버그 패널, `?gamepad`는 가상 패드(토글 시 URL에 남긴다).
@@ -29,7 +31,7 @@
 - 버림 제한: `discardTile`이 `tutorialCanDiscard`로 거르고(틀리면 `audio/wrong`), 렌더러가 같은 함수로 못 버리는 패를 어둡게 칠한다. 리치를 걸어야 하는 차례(`tutorialWantsAction`)에는 리치 전까지 모든 패를 막는다. `needPon` 레슨에서 펑 가능 때 패를 가져오면 `tutorialFail` → 실패 나레이션 뒤 그 레슨 처음부터.
 - 나레이션: 레슨 `script`의 `{ on, say }`를 순서대로 소비한다(엔진이 `tutorialEvent(이름)`을 부르고, 현재 가리키는 항목의 `on`과 같을 때만 발동. 항목에 `discards: n`이 있으면 플레이어가 n번째 패를 버린 뒤에만). 이벤트: `wait`·`drawn`·`discarded`·`tsumoChance`·`ponChance`·`afterPon`·`riichi`·`ron`·`win`(결과 창이 펼쳐진 뒤, `NARRATION.resultDelay`틱)·`afterResult`. 대사 안의 `\n`은 줄바꿈, `{…}`로 감싼 부분은 `NARRATION.highlight`(노란색)로 그린다. 떠 있는 동안 `engine.narration`이 `updateLogic`과 `BattleScene` 입력을 막고 확인키·클릭으로 넘긴다. 쯔모·론이 자동으로 나가는 지점(리치 중)은 `tutorialEvent`의 `onDone`으로 나레이션 뒤에 실행한다.
 - 라운드 라벨은 `ui/lesson.png`(`INFO.labels.lessonPath`)로 바꾸고 숫자는 레슨 번호(`startRound`가 `currentRound`를 맞춤).
-- 라운드 끝: `DAMAGE_ANIMATION`에서 HP는 본편처럼 깎되(레슨 1~4 합계로 상대 HP가 마지막 론에서 0이 됨) `matchOver` 대신 `tutorialNext`(다음 레슨 판 / 마지막이면 타이틀). `matchOver`·저장·컨티뉴 횟수는 건드리지 않는다. 전투 메뉴는 아가리·펑·리치·역 일람·타이틀로만 둔다.
+- 라운드 끝: `DAMAGE_ANIMATION`에서 HP는 본편처럼 깎되(레슨 1~4 합계로 상대 HP가 마지막 론에서 0이 됨) `matchOver` 대신 `tutorialNext`(다음 레슨 판 / 마지막이면 타이틀). `matchOver`·저장·컨티뉴 횟수는 건드리지 않는다. 전투 메뉴는 아가리·펑·리치·역 계산기·타이틀로만 둔다.
 - 테스트: `tests/tutorial.spec.ts`(회귀 스위트 포함) — 레슨 데이터 판정 단언 + 타이틀에서 레슨 1~4 끝까지 + 펑 넘김 재시작 + 메뉴 타이틀로.
 
 ## 전투 연출
@@ -53,7 +55,7 @@
 
 ## 페이지 스타일
 
-- 색은 gensei-pc98 `docs/style.css`의 `:root` 토큰을 그대로 복사해 쓴다(역할과 쓰임은 gensei-pc98 `docs/NOTES.md` "색상 토큰"). 그쪽 토큰이 바뀌면 같이 바꾼다. 예외: 역 일람 iframe 칸(해설서가 밝은 페이지라 밝은 바탕)과 가상 게임패드(유리 재질 자체 값).
+- 색은 gensei-pc98 `docs/style.css`의 `:root` 토큰을 그대로 복사해 쓴다(역할과 쓰임은 gensei-pc98 `docs/NOTES.md` "색상 토큰"). 그쪽 토큰이 바뀌면 같이 바꾼다. 예외: 역 계산기 iframe 칸(`yaku-calc.html`과 같은 원본 헬프 화면의 녹색 바탕 `#005c50`)과 가상 게임패드(유리 재질 자체 값). `yaku-calc.html`의 색은 원본 `graph/jp/helpbg`·`help`에서 가져온 자체 토큰(녹색 바탕, 남색 패널, 연보라 입체 버튼)이고, 패널 틀은 게임 창과 같은 `ui/frame/` 조각(모서리 4개·선 4개)을 CSS 배경 레이어로 깐 것이며 글자는 게임과 같은 KoddiUD 폰트다.
 - 푸터 레이아웃·글자 크기는 공유 `https://atah.io/footer.css`, 색·그라디언트 윗선·여백은 gensei-pc98 `#footer`와 같게 `#main-wrapper #footer`(아이디 둘)로 덮는다. 공유 `footer.css`의 `opacity: 0.8`은 1로 되돌린다. 모바일에선 저작권과 버전을 한 줄로 둔다 — 에뮬레이터 크레딧이 없어 둘째 줄에 버전만 남기 때문.
 - `theme-color`는 `--bg`와 같은 값이라 모바일 브라우저 상단이 페이지 바탕과 이어진다.
 
@@ -68,7 +70,7 @@
 ## 일시정지
 
 - 탭이 숨겨지면(`document.hidden`, 모바일 앱 전환 포함) 로딩 장면을 뺀 모든 장면에서 `Game.pause()`로 멈춘다: 로직 틱·효과음·BGM 정지, 입력 초기화. 돌아와도 자동 재개하지 않고 캔버스에 일시정지 아이콘(높이 48px, kaisin `src/input.ts`의 `ICONS.pause` 모양)만 띄운 채 Z/Space/탭·클릭으로 재개하며, 재개 첫 프레임 dt는 0이다. 로딩 중에는 멈추지 않는다. 자동 테스트는 제외.
-- `blur`는 쓰지 않는다: 역 일람 iframe을 누르거나 다른 창을 보며 둘 때도 포커스가 빠져 데스크톱에서 과하게 멈춘다. 모바일 앱 전환은 `hidden`이 함께 온다.
+- `blur`는 쓰지 않는다: 역 계산기 iframe을 누르거나 다른 창을 보며 둘 때도 포커스가 빠져 데스크톱에서 과하게 멈춘다. 모바일 앱 전환은 `hidden`이 함께 온다.
 
 ## 테스트 (`tests/`, gitignore)
 

@@ -28,7 +28,7 @@ const BattleMenuSystem = {
         if (this.engine.tutorial) {
             this.menuItems.push(
                 { type: 'SEPARATOR' },
-                { id: 'HELP', label: '역 일람' },
+                { id: 'HELP', label: '역 계산기' },
                 { id: 'QUIT_TUTORIAL', label: '타이틀로' }
             );
             return;
@@ -93,7 +93,7 @@ const BattleMenuSystem = {
                     }
                 }
             } else {
-                window.open('https://atah.io/haiyuki_manual/index.html#yaku', '_blank', 'width=640,height=800,status=no,toolbar=no');
+                window.__yakuPopup = window.open('yaku-calc.html?live', '_blank', 'width=380,height=480,status=no,toolbar=no');
             }
         } else if (selectedId === 'QUIT_TUTORIAL') {
             const scene = this.engine.scene;
