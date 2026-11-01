@@ -151,11 +151,12 @@
         @media (max-width: 720px) {
             body { padding: 14px 12px 30px; }
             .head .title { font-size: 19px; }
-            .layout { flex-direction: column; gap: 14px; }
+            .layout { flex-direction: column; align-items: stretch; gap: 14px; }
             .col.left, .col.right { flex: none; }
             .col-panel { flex-shrink: 0; }
             .col.left .col-panel { height: auto; }
             .col.right .col-panel { height: 480px; }
+            .full .palette-area, .full .palette-divider { display: none; }
         }
 
         /* 게임 옆 패널(380x480) */
@@ -219,7 +220,7 @@
                         <div class="hand" id="hand"></div>
                         <div class="hint">손패의 패를 클릭하면 제거됩니다.<br>역을 고르면 그 역에 쓰이는 패만 올라갑니다.</div>
                     </div>
-                    <div class="divider"></div>
+                    <div class="divider palette-divider"></div>
                     <div class="palette-area">
                         <div class="palette" id="palette"></div>
                     </div>
@@ -388,6 +389,7 @@
                 cnt.textContent = `손패 ${hand.length} / 12`;
                 cnt.className = 'count-badge ' + (hand.length === 12 ? 'good' : '');
 
+                document.body.classList.toggle('full', hand.length === 12);
                 document.querySelectorAll('#palette .tile-btn').forEach(b => {
                     const used = hand.filter(x => x === b.dataset.tid).length;
                     b.classList.toggle('disabled', hand.length >= 12 || used >= PaiData.TILE_COUNT_PER_TYPE);
