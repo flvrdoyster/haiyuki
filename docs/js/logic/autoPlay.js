@@ -19,8 +19,8 @@ const AutoPlay = {
         }
 
         if (e.p1.isRiichi) {
-            if (e.p1.declaringRiichi && e.p1.validRiichiDiscardIndices) {
-                e.discardTile(e.p1.validRiichiDiscardIndices[0]);
+            if (e.p1.declaringRiichi && e.validRiichiDiscardIndices && e.validRiichiDiscardIndices.length > 0) {
+                e.discardTile(e.validRiichiDiscardIndices[0]);
             } else {
                 e.discardTile(e.p1.hand.length - 1);
             }
