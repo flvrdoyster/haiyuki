@@ -92,11 +92,12 @@ const QADebug = (() => {
         const openSets = p ? p.openSets : [];
         const discards = snap ? snap.board.discards : [];
         const cpuOpenSets = snap ? snap.cpu.openSets : [];
-        const key = hand.map(t => t.type).join(',') + '|' + openSets.map(s => s.tiles[0] && s.tiles[0].type).join(',')
+        const round = snap ? snap.state.round : 0;
+        const key = round + '|' + hand.map(t => t.type).join(',') + '|' + openSets.map(s => s.tiles[0] && s.tiles[0].type).join(',')
             + '|' + discards.length + '|' + cpuOpenSets.length;
         if (key === _panel.key) return;
         _panel.key = key;
-        const msg = { type: 'haiyuki-hand', hand, openSets, discards, cpuOpenSets };
+        const msg = { type: 'haiyuki-hand', round, hand, openSets, discards, cpuOpenSets };
         panelTargets().forEach(w => { try { w.postMessage(msg, '*'); } catch (_) { } });
     }
 
@@ -177,7 +178,7 @@ const QADebug = (() => {
         publishHand(null);
     }
 
-    return { sync, reset };
+    return { sync, reset, clearPanel: () => publishHand(null) };
 })();
 
 const DebugCheats = {

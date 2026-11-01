@@ -188,6 +188,7 @@ const Game = {
 
     changeScene: function (scene, data) {
         this.currentScene = scene;
+        if (typeof BattleScene !== 'undefined' && scene !== BattleScene) QADebug.clearPanel();
 
         // 난이도는 BattleScene.init에서 1회 적용 → 전투 중 변경 불가(혼란 방지), 종료 후 자동 해제
         const diffBtn = document.getElementById('difficulty-btn');

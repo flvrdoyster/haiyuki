@@ -455,7 +455,7 @@
 
             let sortMode = 'easy';
             let selected = 0;
-            let hand = [], openSets = [], dist = null, lastKey = null, hadHand = false, unseen = null, reach = null;
+            let hand = [], openSets = [], dist = null, lastKey = null, lastRound = null, unseen = null, reach = null;
 
             const source = () => {
                 try {
@@ -535,7 +535,7 @@
                 handEl.innerHTML = html;
             }
 
-            function apply(rawHand, rawOpen, rawDiscards, rawCpuOpen) {
+            function apply(rawHand, rawOpen, rawDiscards, rawCpuOpen, round) {
                 let nh = [], no = [];
                 const copySets = (sets) => (sets || []).map(s => ({ tiles: s.tiles.map(t => ({ type: t.type, color: t.color })) }));
                 if (rawHand && rawHand.length >= 11 - 3 * (rawOpen || []).length) {
@@ -544,7 +544,7 @@
                 }
                 const nd = (rawDiscards || []).filter(t => t).map(t => ({ type: t.type, color: t.color }));
                 const nc = copySets(rawCpuOpen);
-                const key = nh.map(t => t.type).join(',') + '|' + no.map(s => s.tiles[0].type).join(',') + '|' + nd.length + '|' + nc.length;
+                const key = round + '|' + nh.map(t => t.type).join(',') + '|' + no.map(s => s.tiles[0].type).join(',') + '|' + nd.length + '|' + nc.length;
                 if (key === lastKey) return;
                 lastKey = key;
                 hand = nh;
@@ -552,7 +552,7 @@
                 dist = YakuDistance.evaluate(hand, openSets);
                 unseen = hand.length ? YakuDistance.unseenCounts(hand, openSets, nd, nc) : null;
                 reach = unseen ? YakuDistance.reachable(hand, openSets, unseen) : null;
-                if (!hadHand && hand.length) { hadHand = true; selected = order()[0]; }
+                if (hand.length && round !== lastRound) { lastRound = round; selected = order()[0]; }
                 renderList();
                 renderDetail();
                 renderHand();
@@ -568,18 +568,18 @@
             });
 
             window.addEventListener('message', (e) => {
-                if (e.data && e.data.type === 'haiyuki-hand') apply(e.data.hand, e.data.openSets, e.data.discards, e.data.cpuOpenSets);
+                if (e.data && e.data.type === 'haiyuki-hand') apply(e.data.hand, e.data.openSets, e.data.discards, e.data.cpuOpenSets, e.data.round);
             });
 
             function poll() {
                 const src = source();
                 if (!src) return;
                 const snap = src.__haiyuki__;
-                if (!snap || !snap.p1) { apply(null, null, null, null); return; }
-                apply(snap.p1.hand, snap.p1.openSets, snap.board.discards, snap.cpu.openSets);
+                if (!snap || !snap.p1) { apply(null, null, null, null, null); return; }
+                apply(snap.p1.hand, snap.p1.openSets, snap.board.discards, snap.cpu.openSets, snap.state.round);
             }
 
-            apply(null, null, null, null);
+            apply(null, null, null, null, null);
             poll();
             setInterval(poll, 200);
             const owner = (window.parent !== window) ? window.parent : window.opener;
