@@ -990,6 +990,13 @@ const BattleEngine = {
             discardIdx = this.cpu.hand.indexOf(exchangeTile);
         } else if (this.cpu.isRiichi) {
             discardIdx = this.cpu.hand.length - 1;
+            if (this.cpu.declaringRiichi) {
+                for (let i = 0; i < this.cpu.hand.length; i++) {
+                    const tempHand = [...this.cpu.hand];
+                    tempHand.splice(i, 1);
+                    if (this.checkTenpai(tempHand)) { discardIdx = i; break; }
+                }
+            }
         } else {
             const context = {
                 discards: this.discards,
