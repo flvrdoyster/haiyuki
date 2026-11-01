@@ -18,6 +18,19 @@
 - 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(스마슈 −0.10). CPU 전용 보정이라 캐릭터의 강약이 아니며, 대전 툴에서는 없어진다.
 - CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(`cpu.exchangeDiscard`, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
 
+## 튜토리얼
+
+- 타이틀 `TUTORIAL` → `BattleScene`을 `{ tutorial: true, lessonIndex }`로 연다(플레이어·상대는 눈썹개를 뺀 무작위 서로 다른 캐릭터). 엔진은 `BattleEngine.tutorial`(null이면 본편)이 있을 때만 갈라진다. 레슨 데이터·나레이션은 `data/tutorialData.js`.
+- 레슨 `plan`(플레이어 뽑기·버림·펑·론과 단계별 텐파이/역)이 단일 출처다: 뽑기 순서, 버릴 수 있는 패(버림 횟수째 한 종류), 검증 spec이 모두 여기서 나온다. `cpuDraws`는 CPU 뽑기 = 버림 순서.
+- 판 준비: `startRound`가 `tutorialBuildDeck`으로 배패 순서를 덱 끝에 깔고 도라·우라도라를 레슨 값으로 고정. `drawTiles`는 큐에서 꺼내고 비면 덱에서 뽑는다. easy 어시스트·`cpuLuck` 0, `BattleConfig.RULES.SKILLS_ENABLED`는 시작 때 끄고 `BattleScene.exitTutorial`이 복구(툴바 비기 버튼은 튜토리얼 중 무시).
+- 리치 선언은 `needRiichi` 레슨에서만 뜬다(`checkSelfActions`가 다른 레슨에서 RIICHI를 걸러 냄).
+- CPU: 뽑은 패를 그대로 버리고 쯔모·리치·펑·론·비기 없음(`checkCpuActions` 즉시 false), `triggerDialogue` 전부 무시.
+- 버림 제한: `discardTile`이 `tutorialCanDiscard`로 거르고(틀리면 `audio/wrong`), 렌더러가 같은 함수로 못 버리는 패를 어둡게 칠한다. 리치를 걸어야 하는 차례(`tutorialWantsAction`)에는 리치 전까지 모든 패를 막는다. `needPon` 레슨에서 펑 가능 때 패를 가져오면 `tutorialFail` → 실패 나레이션 뒤 그 레슨 처음부터.
+- 나레이션: 레슨 `script`의 `{ on, say }`를 순서대로 소비한다(엔진이 `tutorialEvent(이름)`을 부르고, 현재 가리키는 항목의 `on`과 같을 때만 발동. 항목에 `discards: n`이 있으면 플레이어가 n번째 패를 버린 뒤에만). 이벤트: `wait`·`drawn`·`discarded`·`tsumoChance`·`ponChance`·`afterPon`·`riichi`·`ron`·`win`(결과 창이 펼쳐진 뒤, `NARRATION.resultDelay`틱)·`afterResult`. 대사 안의 `\n`은 줄바꿈, `{…}`로 감싼 부분은 `NARRATION.highlight`(노란색)로 그린다. 떠 있는 동안 `engine.narration`이 `updateLogic`과 `BattleScene` 입력을 막고 확인키·클릭으로 넘긴다. 쯔모·론이 자동으로 나가는 지점(리치 중)은 `tutorialEvent`의 `onDone`으로 나레이션 뒤에 실행한다.
+- 라운드 라벨은 `ui/lesson.png`(`INFO.labels.lessonPath`)로 바꾸고 숫자는 레슨 번호(`startRound`가 `currentRound`를 맞춤).
+- 라운드 끝: `DAMAGE_ANIMATION`에서 HP는 본편처럼 깎되(레슨 1~4 합계로 상대 HP가 마지막 론에서 0이 됨) `matchOver` 대신 `tutorialNext`(다음 레슨 판 / 마지막이면 타이틀). `matchOver`·저장·컨티뉴 횟수는 건드리지 않는다. 전투 메뉴는 아가리·펑·리치·역 일람·타이틀로만 둔다.
+- 테스트: `tests/tutorial.spec.ts`(회귀 스위트 포함) — 레슨 데이터 판정 단언 + 타이틀에서 레슨 1~4 끝까지 + 펑 넘김 재시작 + 메뉴 타이틀로.
+
 ## 전투 연출
 
 - 선언(리치·펑·론·쯔모)·나가리 연출은 원본 `usamain.sq`의 틱 좌표를 그대로 쓴다. `js/data/fxTimelines.js`는 생성 파일 — `../sq/tools/fxexport.py`가 스크립트 VM 시뮬레이터(`fxtrace.py`)로 뽑는다. 손으로 고치지 말 것. 경로 항목은 원본 셀 좌상단의 화면 좌표이고 다음 항목까지 유지(2틱 단위 스텝 이동이 원본 그대로). 조각마다 웹 이미지의 `src` 사각형과 셀 좌상단에서 그릴 중심까지의 `off`가 들어 있다.
@@ -52,7 +65,7 @@
 
 ## 테스트 (`tests/`, gitignore)
 
-- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` (112개, ~4분).
+- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial`.
 - `_` 접두사 5개는 단언 없는 측정 도구.
 - `startBattle` 헬퍼는 기본으로 `SKILLS_ENABLED = false`로 전투를 시작한다(회귀 스펙 전제). 승률·행동 측정은 스킬이 켜져야 하므로 `_ai_fingerprint`는 `skills: true`로 시작한다.
 - CPU 승률·행동 지문 측정은 `_ai_fingerprint.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts _ai_fingerprint`, 서버 포트 `PORT` 기본 3100 — 회귀용 :3000과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `docs/tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.

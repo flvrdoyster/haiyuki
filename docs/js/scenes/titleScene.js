@@ -27,12 +27,11 @@ const TitleConfig = {
     WAVE_SETTLE: 70,    // 리플이 멈추기까지 걸리는 프레임
     PUSH_KEY: { path: 'ui/pushok.png', y: 360 },
     COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 432 },
-    MENU: {
-        ITEM1: { text: "BATTLE", y: 300 },
-        ITEM2: { text: "STORY ONLY", y: 340 },
-        ITEM3: { text: "RESET", y: 380 }
-    },
-    RESET_CONFIRM_MSG: '클리어 기록을 리셋할까요?\\n해금된 캐릭터가 사라집니다.'
+    MENU: [
+        { id: 'BATTLE', text: "BATTLE", y: 300 },
+        { id: 'TUTORIAL', text: "TUTORIAL", y: 340 },
+        { id: 'STORY_ONLY', text: "STORY ONLY", y: 380 }
+    ]
 };
 
 const TitleScene = {
@@ -55,20 +54,11 @@ const TitleScene = {
         this.menuIndex = 0;
         this.pointerTimer = 0;
 
-        this.confirmActive = false;
-        this.confirmSelected = 0;
-        this.confirmTimer = 0;
-
         Assets.playMusic('audio/bgm_title');
     },
 
     update: function (dt = 1.0) {
         dt = dt || 1.0;
-        if (this.confirmActive) {
-            this.updateConfirm(dt);
-            return;
-        }
-
         this.introTimer += dt;
         this.blinkTimer += dt;
         this.pointerTimer += dt;
@@ -87,105 +77,44 @@ const TitleScene = {
             const my = Input.mouseY;
             const prevIndex = this.menuIndex;
 
-            const checkHover = (text, y, index) => {
-                const w = text.length * 32;
-                const h = 32;
+            const count = TitleConfig.MENU.length;
+            const hovered = TitleConfig.MENU.findIndex(item => {
+                const w = item.text.length * 32;
                 const x = (640 - w) / 2;
-                if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
-                    return true;
-                }
-                return false;
-            };
-
-            const t1 = TitleConfig.MENU.ITEM1.text;
-            const t2 = TitleConfig.MENU.ITEM2.text;
-            const t3 = TitleConfig.MENU.ITEM3.text;
-
-            if (checkHover(t1, TitleConfig.MENU.ITEM1.y, 0)) {
-                if (Input.hasMouseMoved()) this.menuIndex = 0;
-            } else if (checkHover(t2, TitleConfig.MENU.ITEM2.y, 1)) {
-                if (Input.hasMouseMoved()) this.menuIndex = 1;
-            } else if (checkHover(t3, TitleConfig.MENU.ITEM3.y, 2)) {
-                if (Input.hasMouseMoved()) this.menuIndex = 2;
-            }
+                return mx >= x && mx <= x + w && my >= item.y && my <= item.y + 32;
+            });
+            if (hovered !== -1 && Input.hasMouseMoved()) this.menuIndex = hovered;
 
             if (Input.isJustPressed(Input.UP)) {
-                this.menuIndex = (this.menuIndex - 1 + 3) % 3;
+                this.menuIndex = (this.menuIndex - 1 + count) % count;
             }
             if (Input.isJustPressed(Input.DOWN)) {
-                this.menuIndex = (this.menuIndex + 1) % 3;
+                this.menuIndex = (this.menuIndex + 1) % count;
             }
 
             if (this.menuIndex !== prevIndex) Assets.playSound('audio/tick');
 
             if (Input.isConfirmKey() || Input.isMouseJustPressed() || Game.isAutoTest) {
-                if (this.menuIndex === 0) {
+                const selected = TitleConfig.MENU[this.menuIndex].id;
+                if (selected === 'BATTLE') {
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
-                } else if (this.menuIndex === 1) {
+                } else if (selected === 'STORY_ONLY') {
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
-                } else if (this.menuIndex === 2) {
-                    this.confirmActive = true;
-                    this.confirmSelected = 1;
-                    this.confirmTimer = 10;
+                } else if (selected === 'TUTORIAL') {
+                    this.startTutorial();
                 }
             }
         }
     },
 
-    updateConfirm: function (dt = 1.0) {
-        if (this.confirmTimer > 0) {
-            this.confirmTimer -= dt;
-            return;
-        }
-
-        const layout = UIHelpers.getConfirmLayout(TitleConfig.RESET_CONFIRM_MSG, { centerY: true });
-
-        const mx = Input.mouseX;
-        const my = Input.mouseY;
-
-        const yes = layout.yesBtn;
-        const no = layout.noBtn;
-
-        const isOverYes = (mx >= yes.x && mx <= yes.x + yes.w && my >= yes.y && my <= yes.y + yes.h);
-        const isOverNo = (mx >= no.x && mx <= no.x + no.w && my >= no.y && my <= no.y + no.h);
-
-        if (isOverYes) {
-            if (Input.hasMouseMoved()) this.confirmSelected = 0;
-            if (Input.isMouseJustPressed()) {
-                this.resetSaveData();
-                this.confirmActive = false;
-                return;
-            }
-        } else if (isOverNo) {
-            if (Input.hasMouseMoved()) this.confirmSelected = 1;
-            if (Input.isMouseJustPressed()) {
-                this.confirmActive = false;
-                return;
-            }
-        }
-
-        if (Input.isJustPressed(Input.LEFT) || Input.isJustPressed(Input.RIGHT) ||
-            Input.isJustPressed(Input.UP) || Input.isJustPressed(Input.DOWN)) {
-            this.confirmSelected = (this.confirmSelected === 0) ? 1 : 0;
-        }
-
-        if (Input.isConfirmKey()) {
-            if (this.confirmSelected === 0) {
-                this.resetSaveData();
-            }
-            this.confirmActive = false;
-        }
-        // ESC 없음 — 방향키로 NO 선택 후 Z(Space)로 닫는다(키맵 일치).
-    },
-
-    resetSaveData: function () {
-        Game.saveData = { unlocked: [], clearedOpponents: [], difficulty: Game.saveData.difficulty || 'normal' };
-        Game.continueCount = 0;
-        Game.save();
-        Assets.playSound('audio/riichi');
-        console.log("Save data reset");
+    startTutorial: function () {
+        const pool = CharacterData.map((c, i) => ({ id: c.id, index: i })).filter(c => c.id !== 'mayu');
+        const player = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+        const cpu = pool[Math.floor(Math.random() * pool.length)];
+        Assets.stopMusic();
+        Game.changeScene(BattleScene, { playerIndex: player.index, cpuIndex: cpu.index, tutorial: true, lessonIndex: 0 });
     },
 
     draw: function (ctx) {
@@ -202,45 +131,20 @@ const TitleScene = {
                 }
             }
         } else if (this.currentState === this.STATE_MODE_SELECT) {
-            const text1 = TitleConfig.MENU.ITEM1.text;
-            const color1 = (this.menuIndex === 0) ? 'yellow' : 'orange';
-            const x1 = (640 - (text1.length * 32)) / 2;
-            BitmapFont.drawAlphabet(ctx, text1, x1, TitleConfig.MENU.ITEM1.y, color1);
+            TitleConfig.MENU.forEach((item, i) => {
+                const color = (this.menuIndex === i) ? 'yellow' : 'orange';
+                BitmapFont.drawAlphabet(ctx, item.text, (640 - item.text.length * 32) / 2, item.y, color);
+            });
 
-            const text2 = TitleConfig.MENU.ITEM2.text;
-            const color2 = (this.menuIndex === 1) ? 'yellow' : 'orange';
-            const x2 = (640 - (text2.length * 32)) / 2;
-            BitmapFont.drawAlphabet(ctx, text2, x2, TitleConfig.MENU.ITEM2.y, color2);
-
-            const text3 = TitleConfig.MENU.ITEM3.text;
-            const color3 = (this.menuIndex === 2) ? 'yellow' : 'orange';
-            const x3 = (640 - (text3.length * 32)) / 2;
-            BitmapFont.drawAlphabet(ctx, text3, x3, TitleConfig.MENU.ITEM3.y, color3);
-
-            let targetText, targetY, targetX;
-            if (this.menuIndex === 0) {
-                targetText = text1;
-                targetY = TitleConfig.MENU.ITEM1.y;
-            } else if (this.menuIndex === 1) {
-                targetText = text2;
-                targetY = TitleConfig.MENU.ITEM2.y;
-            } else {
-                targetText = text3;
-                targetY = TitleConfig.MENU.ITEM3.y;
-            }
-            targetX = (640 - (targetText.length * 32)) / 2;
-
+            const target = TitleConfig.MENU[this.menuIndex];
+            const targetX = (640 - target.text.length * 32) / 2;
             const frameIndex = Math.floor(this.pointerTimer / 10) % 2;
-            UIDraw.drawFrame(ctx, 'ui/pointer.png', targetX - 48, targetY, frameIndex, 32, 32);
+            UIDraw.drawFrame(ctx, 'ui/pointer.png', targetX - 48, target.y, frameIndex, 32, 32);
         }
 
         const copy = Assets.get(TitleConfig.COPYRIGHT.path);
         if (copy) {
             ctx.drawImage(copy, (640 - copy.width) / 2, TitleConfig.COPYRIGHT.y);
-        }
-
-        if (this.confirmActive) {
-            this.drawConfirm(ctx);
         }
     },
 
@@ -383,10 +287,5 @@ const TitleScene = {
         const p = t / C.TILE_FALL;
         const e = p * (2 - p);
         return { x: C.TILE_ORIGIN_X + (tx - C.TILE_ORIGIN_X) * e, y: C.TILE_ORIGIN_Y + (ty - C.TILE_ORIGIN_Y) * e };
-    },
-
-    drawConfirm: function (ctx) {
-        const layout = UIHelpers.getConfirmLayout(TitleConfig.RESET_CONFIRM_MSG, { centerY: true });
-        UIHelpers.drawConfirmDialog(ctx, layout, this.confirmSelected);
     }
 };

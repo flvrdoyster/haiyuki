@@ -134,7 +134,8 @@ const BattleConfig = {
         numbers: { path: 'ui/number.png', w: 14, gap: 2 },
         labels: {
             turnPath: 'ui/turn.png',
-            roundPath: 'ui/round.png'
+            roundPath: 'ui/round.png',
+            lessonPath: 'ui/lesson.png'
         }
     },
     DIALOGUE: {
@@ -215,6 +216,7 @@ const BattleConfig = {
         ]
     },
 
+    NARRATION: { bottom: 384, resultDelay: 30, highlight: 'rgba(255, 255, 0, 1)' },
     CONFIRM: {
         y: 200,
         minWidth: 200,
