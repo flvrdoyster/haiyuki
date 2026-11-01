@@ -159,13 +159,18 @@
         }
 
         /* 게임 옆 패널(380x480) */
-        body.live { padding: 0; height: 100vh; overflow: hidden; }
+        body.live { padding: 0; overflow: hidden; }
         .live .wrap { display: none; }
         #live { display: none; }
-        .live #live { display: flex; flex-direction: column; height: 100%; padding: 6px; gap: 6px; }
+        .live #live {
+            position: fixed; inset: 0;
+            display: flex; flex-direction: column; gap: 6px;
+            padding: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+        }
         .sortbar { display: flex; gap: 6px; flex-shrink: 0; }
         .sortbar .btn { flex: 1; font-size: 11.5px; padding: 4px 0; }
-        .live-main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 6px; }
+        .live-main { flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; padding: 6px; }
+        .live-main .list { flex: 1 1 0; min-height: 0; }
         .detail { padding: 6px 8px; font-size: 12px; min-height: 104px; flex-shrink: 0; border-top: 2px solid var(--frame); }
         .detail .d-head { display: flex; align-items: baseline; gap: 8px; }
         .detail .d-name { font-size: 14px; font-weight: 800; color: var(--gold); }
@@ -183,6 +188,20 @@
         .handbar img.use { transform: translateY(-10px); opacity: 1; }
         .handbar .open { display: flex; gap: 1px; margin-left: 6px; padding-left: 6px; border-left: 1px solid var(--dim); }
         .handbar .msg { color: var(--text); font-size: 12px; align-self: center; }
+
+        /* 세로로 긴 화면(모바일 새 탭): 목록은 절반까지만, 설명·손패를 크게 */
+        @media (min-height: 600px) {
+            .live .detail { font-size: 14px; padding: 10px; min-height: 0; }
+            .live .detail .d-name { font-size: 18px; }
+            .live .detail .d-rule { margin-top: 4px; }
+            .live .detail .d-need { margin-top: 10px; }
+            .live .detail .d-need .lb { font-size: 13px; }
+            .live .ex-tiles { margin-top: 10px; gap: 2px; }
+            .live .ex-tiles img, .live .ex-tiles .any, .live .detail .d-need img { width: 28px; height: 37px; }
+            .live .handbar { height: auto; flex-wrap: wrap; padding: 18px 4px 10px; gap: 2px; }
+            .live .handbar img { width: 32px; height: 42px; }
+            .live .handbar .msg { font-size: 14px; }
+        }
     </style>
     <!-- Google Tag Manager -->
     <script>if (location.protocol !== 'file:') {
