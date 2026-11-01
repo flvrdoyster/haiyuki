@@ -286,9 +286,10 @@ const BattleScene = {
             const onButton = BattleRenderer.checkActionButton(Input.mouseX, Input.mouseY);
             engine.actionHover = engine.actionFocused || onButton;
 
-            if (Input.isConfirmKey()) {
+            const ready = engine.timer > BattleConfig.SPEED.DRAW_INPUT_DELAY;
+            if (ready && Input.isConfirmKey()) {
                 engine.confirmDraw();
-            } else if (Input.isMouseJustPressed() && onButton) {
+            } else if (ready && Input.isMouseJustPressed() && onButton) {
                 engine.confirmDraw();
             }
         } else if (engine.currentState === engine.STATE_WIN ||

@@ -245,6 +245,19 @@ const BattleSequencer = {
                 BattleSequencer.advance(engine);
             }
         },
+        WAIT_KEY: function (engine, step, dt) {
+            engine.sequencing.timer += dt;
+            const pressed = typeof Input !== 'undefined' && (Input.isConfirmKey() || Input.isMouseJustPressed());
+            if (engine.isAutoTest() || pressed || engine.sequencing.timer >= step.duration) {
+                engine.sequencing.timer = 0;
+                if (pressed && typeof BattleDialogue !== 'undefined') BattleDialogue.hideAll();
+                BattleSequencer.advance(engine);
+            }
+        },
+        DIALOGUE: function (engine, step) {
+            engine.triggerDialogue(step.key, step.who, step.fallbackKey);
+            BattleSequencer.advance(engine);
+        },
         WAIT_FX: function (engine) {
             if (engine.scene && engine.scene.fx && engine.scene.fx.list.length > 0) {
                 return;

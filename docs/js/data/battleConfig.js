@@ -26,10 +26,14 @@ const BattleConfig = {
         // AI 실력은 여기 없음 — BattleEngine.computeCpuSkill / AILogic에서 연속값(0..1)으로 산출.
     },
     SPEED: {
-        // ~50 ticks ≈ 0.85s @60fps — 리치 자동 버림 전 드로 패 인지 여유
         RIICHI_AUTO_DISCARD: 50,
-        CPU_THINK_TIME: 24,      // CPU 드로 전 간격 (~0.4s)
-        CPU_DISCARD_HOLD: 36,    // CPU 드로→버림 간격 (~0.6s); autotest에선 0
+        RIICHI_AUTO_DRAW: 22,
+        DRAW_INPUT_DELAY: 22,
+        CPU_THINK_TIME: 21,
+        CPU_DISCARD_HOLD: 22,
+        CPU_RIICHI_THINK: 21,
+        DIALOGUE_SPEAK: 20,
+        DIALOGUE_REPLY: 120,
         ACTION_WAIT: 30,
         WIN_WAIT: 80
     },
@@ -144,7 +148,6 @@ const BattleConfig = {
         color: 'rgba(255, 255, 255, 1)',
         lineHeight: 20,
         life: 120,
-        replyDelay: 0,
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
         CHANCE: {

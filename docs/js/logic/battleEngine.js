@@ -874,7 +874,9 @@ const BattleEngine = {
                 break;
 
             case this.STATE_WAIT_FOR_DRAW:
-                if ((window.Input && Input.isMouseJustPressed() && this.timer > 8) || (this.isAutoTest() && this.timer > 3)) {
+                if (this.isAutoTest() && this.timer > 3) {
+                    this.confirmDraw();
+                } else if (this.p1.isRiichi && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DRAW) {
                     this.confirmDraw();
                 }
                 break;
@@ -1090,16 +1092,20 @@ const BattleEngine = {
                 this.currentState = this.STATE_FX_PLAYING;
 
                 const riichiKey = this.p1.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
-                this.triggerDialogue(riichiKey, 'cpu');
+                const sp = BattleConfig.SPEED;
 
                 this.sequencing = {
                     active: true,
                     timer: 0,
                     currentStep: 0,
                     steps: [
+                        { type: 'WAIT', duration: sp.CPU_RIICHI_THINK },
+                        { type: 'DIALOGUE', key: riichiKey, who: 'cpu' },
+                        { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                        { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'p1' },
+                        { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
                         { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { timeline: 'riichi_r', blocking: true }) },
                         { type: 'MUSIC', id: 'audio/bgm_tension', loop: true },
-                        { type: 'WAIT', duration: 60 },
                         {
                             type: 'CALLBACK', callback: () => {
                                 this.sequencing.active = false;
@@ -1195,15 +1201,10 @@ const BattleEngine = {
             this.currentState === this.STATE_FX_PLAYING ||
             this.turnCount > 20) return;
 
-        if (this.p1.isRiichi) {
-            this.currentState = this.STATE_PLAYER_TURN;
-            this.playerDraw();
-        } else {
-            this.currentState = this.STATE_WAIT_FOR_DRAW;
-            this.timer = 0;
-            if (this.tutorial) {
-                this.tutorialEvent(this.possibleActions.some(a => a.type === 'PON') ? 'ponChance' : 'wait');
-            }
+        this.currentState = this.STATE_WAIT_FOR_DRAW;
+        this.timer = 0;
+        if (this.tutorial && !this.p1.isRiichi) {
+            this.tutorialEvent(this.possibleActions.some(a => a.type === 'PON') ? 'ponChance' : 'wait');
         }
     },
     sortHand: function (hand) {
@@ -1288,6 +1289,41 @@ const BattleEngine = {
 
         this.possibleActions = [];
 
+        if (this.p1.declaringRiichi) {
+            const sp = BattleConfig.SPEED;
+            const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
+            this.riichiTargetIndex = index;
+            this.currentState = this.STATE_FX_PLAYING;
+            const talk = this.tutorial ? [] : [
+                { type: 'DIALOGUE', key: riichiKey, who: 'p1' },
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'cpu' },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
+            ];
+            this.sequencing = {
+                active: true,
+                timer: 0,
+                currentStep: 0,
+                steps: [
+                    ...talk,
+                    { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { blocking: true }) },
+                    { type: 'MUSIC', id: 'audio/bgm_showdown', loop: true },
+                    {
+                        type: 'CALLBACK', callback: () => {
+                            this.sequencing.active = false;
+                            this.currentBgm = 'audio/bgm_showdown';
+                            this.currentState = this.STATE_PLAYER_TURN;
+                            this.commitDiscard(index);
+                        }
+                    }
+                ]
+            };
+            return;
+        }
+        this.commitDiscard(index);
+    },
+
+    commitDiscard: function (index) {
         this.events.push({ type: 'DISCARD', player: 'P1' });
         const discarded = this.p1.hand.splice(index, 1)[0];
         discarded.owner = 'p1';
@@ -1529,7 +1565,7 @@ const BattleEngine = {
 
                 this.timers.add(() => {
                     this.triggerDialogue('PON_REPLY', 'cpu');
-                }, BattleConfig.DIALOGUE.replyDelay);
+                }, BattleConfig.SPEED.DIALOGUE_SPEAK);
 
                 this.currentState = this.STATE_PLAYER_TURN;
                 this.possibleActions = [];
@@ -1541,17 +1577,6 @@ const BattleEngine = {
             this.p1.isRiichi = true;
             this.p1.declaringRiichi = true;
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
-
-            this.showPopup('RIICHI', { blocking: true });
-
-            const riichiKey = this.cpu.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
-            this.triggerDialogue(riichiKey, 'p1');
-            this.timers.add(() => {
-                this.triggerDialogue('RIICHI_REPLY', 'cpu');
-            }, BattleConfig.DIALOGUE.replyDelay);
-
-            this.currentBgm = 'audio/bgm_showdown';
-            this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
 
             this.setExpression('P1', 'smile');
 

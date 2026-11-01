@@ -1010,7 +1010,7 @@ const BattleRenderer = {
             if (this.canRiichiNow(state)) return 'riichi';
             return null;
         }
-        if (st === state.STATE_WAIT_FOR_DRAW) return 'draw';
+        if (st === state.STATE_WAIT_FOR_DRAW) return state.p1 && state.p1.isRiichi ? null : 'draw';
         return null;
     },
 
