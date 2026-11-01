@@ -793,11 +793,12 @@ const BattleRenderer = {
             ctx.fillText("데미지", conf.yakuListX, damageY);
 
             const hasBuffs = info.activeBuffs && info.activeBuffs.length > 0;
+            const openPenalty = info.yakuScore != null && info.baseScore != null && info.yakuScore !== info.baseScore;
             let displayScore = info.score;
 
-            if (hasBuffs) {
-                // 버프 적용 시 점수 롤업 애니메이션: 0~80f 기저값 → 80~140f 보간 → 이후 최종값
-                const baseTotal = (info.baseScore || 0) + (info.bonusScore || 0);
+            if (hasBuffs || openPenalty) {
+                // 보정(버프·오픈 페널티)이 있으면 점수 롤업: 0~80f 역 원점수+보너스 → 80~140f 보간 → 이후 최종값
+                const baseTotal = (info.yakuScore != null ? info.yakuScore : (info.baseScore || 0)) + (info.bonusScore || 0);
                 const finalTotal = info.score;
 
                 if (state.timer < 80) {

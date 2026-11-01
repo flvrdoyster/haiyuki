@@ -6,6 +6,7 @@ const BattleSequencer = {
         engine.events.push({ type: 'STOP_MUSIC' });
 
         let finalScore = score;
+        const rawScore = engine.winningYaku ? engine.winningYaku.score : score;
         const attacker = engine.getPlayer(who);
         const defender = engine.getOpponent(who);
         const activeBuffs = [];
@@ -118,7 +119,7 @@ const BattleSequencer = {
                     score: totalScore,
                     finalDamage: totalScore,
                     yakuName: engine.winningYaku ? engine.winningYaku.yaku[0] : '',
-                    yakuScore: engine.winningYaku ? engine.winningYaku.score : 0,
+                    yakuScore: rawScore,
                     bonuses: bonusResult.details,
                     bonusScore: bonusResult.score,
                     activeBuffs: activeBuffs
