@@ -135,7 +135,7 @@ const CharacterData = [
         aiProfile: { type: 'LUCKY', value: 0.35, speed: 0.45, defense: 0.65, colorBias: 0.30, greed: 0.35, luck: 0.30 },
     },
     {
-        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], skillOffset: -0.10, battleOffsetX: 5, battleOffsetY: 0,
+        id: 'smash', name: '스마슈', face: 'face/SMSH.png', selectIcon: 'face/select_SMSH.png', rival: 'yuri', skills: ['EXCHANGE_TILE', 'EXCHANGE_RON'], battleOffsetX: 5, battleOffsetY: 0,
         // 펑 적극, 빠르고 싸게. 큰 손·도라·색 욕심 없음.
         aiProfile: { type: 'ZAP_SPEED', value: 0.15, speed: 0.95, defense: 0.50, colorBias: 0.20, greed: 0.15, luck: 0.25 },
     },
@@ -145,12 +145,12 @@ const CharacterData = [
         aiProfile: { type: 'TRICKY_ATTACK', value: 0.80, speed: 0.50, defense: 0.15, colorBias: 0.55, greed: 0.55, luck: 0.20 },
     },
     {
-        id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/select_YURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], skillOffset: 0.10, battleOffsetX: 0, battleOffsetY: 0,
+        id: 'yuri', name: '유리와카마루', face: 'face/YURI_base.png', selectIcon: 'face/select_YURI.png', rival: 'smash', skills: ['SUPER_IAI', 'SPIRIT_RIICHI'], battleOffsetX: 0, battleOffsetY: 0,
         // 엘리트: 공격하되 상대 리치엔 확실히 안전패로 접는 단단한 방어.
         aiProfile: { type: 'ELITE', value: 0.65, speed: 0.50, defense: 0.85, colorBias: 0.50, greed: 0.55, luck: 0.25 },
     },
     {
-        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], skillOffset: 0.25, battleOffsetX: 0, battleOffsetY: -24,
+        id: 'mayu', name: '눈썹개', face: 'face/MAYU_base.png', selectIcon: 'face/select_MAYU.png', hidden: true, singleSprite: true, rival: 'yuri', skills: ['PAINT_TILE'], battleOffsetX: 0, battleOffsetY: -24,
         // 보스: 전부 강함 — 빠르고 잘 막고 운도 좋고 실수 거의 없음.
         aiProfile: { type: 'GOD', value: 0.80, speed: 0.80, defense: 0.90, colorBias: 0.55, greed: 0.65, luck: 0.45 },
     }
