@@ -135,6 +135,7 @@ const Assets = {
         { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // draw.mp3 별칭
         { id: 'audio/flip', src: 'assets/audio/flip.mp3', type: 'audio' },
         { id: 'audio/tick', src: 'assets/audio/tick.mp3', type: 'audio' },
+        { id: 'audio/continue', src: 'assets/audio/continue.mp3', type: 'audio' },
 
         'bg/CHRBAK.png',
         'bg/MAYUBAK.png', // 마유 난입 모놀로그 배경
@@ -227,6 +228,9 @@ const Assets = {
         'ui/bar_yellow.png',
         'ui/alphabet.png',
         'ui/pointer.png',
+        'ui/gameover.png',
+        'ui/contmoji.png',
+        'ui/yesno.png',
 
         'ending/ending_ATA.png', 'ending/ending_FARI.png', 'ending/ending_MAYU.png',
         'ending/ending_RIN.png', 'ending/ending_SMSH.png', 'ending/ending_YURI.png',

@@ -27,7 +27,8 @@ const BattleScene = {
     },
 
     endMatch: function () {
-        Game.fadeTo(() => this.proceedFromMatchOver());
+        const lost = BattleEngine.matchWinner !== 'P1';
+        Game.fadeTo(() => this.proceedFromMatchOver(), lost ? BattleConfig.LOSE_FADE : undefined);
     },
 
     fadeRound: function (action) {

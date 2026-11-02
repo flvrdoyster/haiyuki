@@ -4,7 +4,6 @@ const FONTS = {
     bold: '"KoddiUDOnGothic"'
 };
 
-// 패 가져오기/날 수 있어/리치 걸 수 있어 세 버튼이 같은 슬롯을 공유. 폭은 텍스트+padX로 가변, 오른쪽 끝만 고정. (BattleRenderer._actionButtonRect)
 const ACTION_BUTTON_BOX = { right: 640, y: 400, h: 36, padX: 14 };
 
 const BattleConfig = {
@@ -194,6 +193,7 @@ const BattleConfig = {
         { min: 0, amp: 8, frames: 12 }
     ],
     ROUND_FADE: { outDur: 40, inDur: 40 },
+    LOSE_FADE: { outDur: 40, inDur: 0 },
     BATTLE_MENU: {
         w: 140,
         h: 150,

@@ -12,7 +12,7 @@
 - 대응 판정은 웹 PNG를 원본 PNG 안에서 위치를 바꿔 가며 찾아 투명이 아닌 픽셀이 일치하는 비율로 정했다. 일치율이 100%면 `확실`, 그림을 열어 보고 같은 용도라고 본 것에 `?`를 붙였다(일치율은 비고에 적음).
 - 웹 경로는 `haiyuki_web/assets/` 기준. 오디오는 웹 매니페스트(`js/core/assets.js`의 `toLoad`) id를 함께 적는다.
 
-집계(그림 99개): 확실 51, 불확실(?) 32, 대응 없음 16.
+집계(그림 99개): 확실 54, 불확실(?) 32, 대응 없음 13.
 
 ## 표 A. 원본 그림 → 웹
 
@@ -48,7 +48,7 @@
 | `graph/chrselef.CNX` | `graph/chrselef.png` | 640x160 | 캐릭터 선택 얼굴 아이콘 7명(밝음·어두운 디더 2벌) + PLAYER/CPU 커서 틀 | `face/select_ATA.png`<br>`face/select_RIN.png`<br>`face/select_PET.png`<br>`face/select_FARI.png`<br>`face/select_SMSH.png`<br>`face/select_YURI.png`<br>`face/select_MAYU.png`<br>`face/select_cursor.png` | 얼굴 7개 픽셀 동일(64x80씩 잘라 씀), 커서 80% 일치 |
 | `graph/clr.cnx` | `graph/clr.png` | 640x16 | 검은 띠(화면 지우기용) | — |  |
 | `graph/Complogo.cnx` | `graph/Complogo.png` | 277x30 | 분홍 "COMPILE" 로고 | `ui/logo_compile.png` | 웹 276x30, 겹치는 픽셀 91%만 일치(1px 어긋남·색 차이 추정) |
-| `graph/CONTMOJI.CNx` | `graph/CONTMOJI.png` | 288x32 | 노란 글자 "CONTINUE?" | — | 웹에는 이 그림 없음 |
+| `graph/CONTMOJI.CNx` | `graph/CONTMOJI.png` | 288x32 | 노란 글자 "CONTINUE?" | `ui/contmoji.png` | 회색 129만 투명, 나머지 픽셀 동일 |
 | `graph/endata.CNx` | `graph/endata.png` | 320x240 | 엔딩 일러스트(ATA): 술병을 든 보라 머리 인물과 호랑이 | `ending/ending_ATA.png` | 픽셀 동일 |
 | `graph/endfar.CNX` | `graph/endfar.png` | 320x240 | 엔딩 일러스트(FARI) | `ending/ending_FARI.png` | 픽셀 동일 |
 | `graph/endmay.CNX` | `graph/endmay.png` | 320x240 | 엔딩 일러스트(MAYU): 울고 있는 인물과 흰 강아지 | `ending/ending_MAYU.png` | 픽셀 동일 |
@@ -66,7 +66,7 @@
 | `graph/fuki.cnx` | `graph/fuki.png` | 640x88 | 말풍선 틀 2개(검은 안쪽, 가운데 꼬리) | `ui/short_bubble.png` ? | short_bubble과 84% 일치. FUKIDASI와 유사한 변형 |
 | `graph/FUKIDASI.CNx` | `graph/FUKIDASI.png` | 640x160 | 말풍선 틀 2종(긴 것, 짧은 것+꼬리) | `ui/long_bubble.png`<br>`ui/long_bubble_tail.png`<br>`ui/short_bubble.png` | long_bubble 99.5%(높이 136으로 잘림), tail 93%, short 92.5%: 웹에서 다듬음 |
 | `graph/gamebg.cnx` | `graph/gamebg.png` | 640x480 | 전투 화면 배경: 녹색 바탕에 위 노란 선, 아래 HP 막대 | `bg/GAMEBG.png` | 웹은 아래 24줄(y336~359, HP 막대 줄)이 다르고 일부가 투명 처리됨(투명 17만 픽셀) |
-| `graph/gameover.CNX` | `graph/gameover.png` | 576x64 | 노란 "GAME OVER" 글자 | — |  |
+| `graph/gameover.CNX` | `graph/gameover.png` | 576x64 | 노란 "GAME OVER" 글자 | `ui/gameover.png` | 회색 129만 투명, 나머지 픽셀 동일 |
 | `graph/herecome.CNX` | `graph/herecome.png` | 448x128 | 노란 "HERE COMES A NEW CHALLENGER" 글자(2벌) | — |  |
 | `graph/jp/CHRBAK.CNx` | `graph/jp/CHRBAK.png` | 640x480 | 캐릭터 선택 배경: 파란 "幻世牌遊記" 무늬 | `bg/CHRBAK.png` | 픽셀 동일 |
 | `graph/jp/draw.cnx` | `graph/jp/draw.png` | 640x192 | 큰 흰 글씨 "流局" | `fx/nagari.png` ? | 웹은 한글 "나가리" 새로 그림 640x192(원본 640x192) |
@@ -116,7 +116,7 @@
 | `graph/tthai.CNX` | `graph/tthai.png` | 80x128 | 타이틀 로고 패 한 장(베이지+빨간 아래) | `title/PAI.png` | 웹은 80x120, 원본 80x128의 위쪽 |
 | `graph/ttnaruto.CNX` | `graph/ttnaruto.png` | 616x22 | 타이틀 로고 위·아래 소용돌이 무늬 띠 | `title/LINE_NARUTO.png` | 픽셀 동일 |
 | `graph/VS.CNx` | `graph/VS.png` | 112x80 | 노란 "VS" 로고 | `ui/vs.png` | 픽셀 동일 |
-| `graph/yesno.CNX` | `graph/yesno.png` | 96x128 | 노란 "YES / NO" 글자(밝음·어두움) | — |  |
+| `graph/yesno.CNX` | `graph/yesno.png` | 96x128 | "YES / NO" 글자, 위부터 YES 주황·NO 주황·YES 연노랑·NO 연노랑 | `ui/yesno.png` | 회색 129만 투명, 나머지 픽셀 동일 |
 
 ## 표 B. 웹 그림 중 원본에 대응이 없는 것
 
@@ -163,7 +163,7 @@
 | `se_02.wav` | 0.15s | 44100Hz 16bit | — | 웹에서 안 씀 |
 | `se_03.wav` | 1.28s | 22050Hz 16bit | `audio/riichi.mp3` (`audio/riichi`) | 재생 파형 상관 0.93~1.0 |
 | `se_04.wav` | 1.72s | 22050Hz 8bit | — | 웹에서 안 씀 |
-| `se_05.wav` | 0.55s | 22050Hz 8bit | — | 웹에서 안 씀 |
+| `se_05.wav` | 0.55s | 22050Hz 8bit | `audio/continue.mp3` | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
 | `se_06.wav` | 0.25s | 22050Hz 8bit | `audio/draw.mp3` (`audio/draw, audio/deal`) | 재생 파형 상관 0.93~1.0; 파형 일치도 0.93 |
 | `se_07.wav` | 0.14s | 22050Hz 16bit | `audio/discard.mp3` (`audio/discard`) | 재생 파형 상관 0.93~1.0 |
 | `se_08.wav` | 0.1s | 22050Hz 8bit | `audio/tick.mp3` (`audio/tick`) | 재생 파형 상관 0.93~1.0 |
@@ -193,8 +193,8 @@
 | `bgm_08.mid` | アイテム入手 | 1.9s | 48 | — |  |
 | `bgm_09.mid` | (제목 없음, 트랙 이름 Remixed) | 2.0s | 66 | — |  |
 | `bgm_10.mid` | スタッフロール | 99.1s | 2958 | `audio/bgm_ending.mp3` (`audio/bgm_ending`) | 웹 103.08s / 99.1s = 1.040: 세 곡이 같은 비율이라 같은 곡을 렌더한 것으로 판단 |
-| `bgm_11.mid` | (제목 없음) | 4.6s | 20 | — |  |
+| `bgm_11.mid` | (제목 없음) | 4.6s | 20 | `audio/bgm_inn.mp3` (`audio/bgm_inn`) | 확실: SC-55 사운드폰트로 fluidsynth 렌더한 것과 길이 7.106757s 일치, 파형 상관 1.0. 반복 꺼짐 |
 | `bgm_12.mid` | (제목 없음, 드럼·베이스 트랙 9개) | 15.1s | 645 | `audio/bgm_compile.mp3` ? | 웹 13.63s, 비 0.90 |
 | `bgm_13.mid` | スマッシュトイレ | 1.9s | 32 | `audio/bgm_toilet.mp3` ? (3.9s = 1.9s x 2) | 웹 3.92s, 곡 길이 2배 |
 
-웹 곡 중 원본과 대응을 못 찾은 것: `bgm_inn`(7.1s), `bgm_option`(21.7s)와 위 `?` 후보로 잡히지 않은 것. 원본 곡 중 웹에서 안 쓰는 것으로 보이는 것: 0, 1, 3, 8, 9, 11, 12(12는 `bgm_compile` 후보 ?).
+웹 곡 중 원본과 대응을 못 찾은 것: `bgm_option`(21.7s)와 위 `?` 후보로 잡히지 않은 것. 원본 곡 중 웹에서 안 쓰는 것으로 보이는 것: 0, 1, 3, 8, 9, 12(12는 `bgm_compile` 후보 ?).
