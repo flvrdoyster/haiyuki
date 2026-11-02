@@ -54,7 +54,7 @@ const TitleScene = {
         this.menuIndex = 0;
         this.pointerTimer = 0;
 
-        Assets.playMusic('audio/bgm_title');
+        Assets.playMusic('audio/bgm_title', false);
     },
 
     update: function (dt = 1.0) {

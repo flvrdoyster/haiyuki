@@ -136,8 +136,7 @@
 | `fx/pon.png`, `fx/ron.png`, `fx/riichi.png`, `fx/tsumo.png`, `fx/nagari.png`, `fx/noten.png` | 320~640 x 96~192 | 한글 선언 글자 | 원본 일본어 글자를 한글로 새로 그림. 표 A 참조 |
 | `ui/on.png`, `ui/off.png`, `ending/theend.png` | | 한글 "켠다/끈다", 끝 글자 | 원본 일본어 글자를 한글로 새로 그림 |
 | `ending/staff.png` | 640x512 | 스탭롤 글자 아틀라스 | 위 6줄은 `jp/STAFFHAI`와 동일, 아래 2줄은 한글 추가 |
-| `audio/correct.mp3`, `gong.mp3`, `hit-1.mp3`~`hit-4.mp3`, `quake.mp3`, `recovery.mp3`, `roar.mp3`, `tragic-1.mp3`, `tragic-2.mp3`, `wrong.mp3` | | 효과음·짧은 곡 | 원본 효과음 17개, 원본 곡 14개(SC-55 렌더)와 파형이 안 맞음(상관 0.4 이하). 웹에서 따로 구한 것. `fanfare`·`victory`·`lose`는 원본 곡이다(표 D) |
-| `audio/bgm_basic.mp3`·`bgm_chrsel.mp3`·`bgm_compile.mp3`·`bgm_inn.mp3`·`bgm_option.mp3`·`bgm_showdown.mp3`·`bgm_tension.mp3` | | 곡 | 표 D 참조. 일부는 원본 곡과 `?` 대응 |
+| `audio/quake.mp3`, `recovery.mp3`, `roar.mp3`, `slash.mp3`, `wrong.mp3` | | 효과음 | 원본 효과음 17개, 원본 곡 14개(SC-55 렌더)와 파형이 안 맞음(상관 0.4 이하). 웹에서 따로 구한 것 |
 
 ## 표 C. 스크립트가 참조하지만 `graph/`에 파일이 없는 이름
 
@@ -158,43 +157,43 @@
 
 | 원본 | 길이 | 형식 | 웹 | 비고 |
 |---|---|---|---|---|
-| `se_00.wav` | 0.23s | 44100Hz 16bit | `audio/pon.mp3` (`audio/pon`) | 재생 파형 상관 0.93~1.0; se_01과 파형 동일 |
-| `se_01.wav` | 0.23s | 44100Hz 16bit | `audio/pon.mp3` (`audio/pon`) | 재생 파형 상관 0.93~1.0; se_00과 파형 동일 |
+| `se_00.wav` | 0.23s | 44100Hz 16bit | `audio/se_00.mp3` (`audio/pon`) | 재생 파형 상관 0.93~1.0; se_01과 파형 동일 |
+| `se_01.wav` | 0.23s | 44100Hz 16bit | `audio/se_00.mp3` (`audio/pon`) | 재생 파형 상관 0.93~1.0; se_00과 파형 동일 |
 | `se_02.wav` | 0.15s | 44100Hz 16bit | — | 웹에서 안 씀 |
-| `se_03.wav` | 1.28s | 22050Hz 16bit | `audio/riichi.mp3` (`audio/riichi`) | 재생 파형 상관 0.93~1.0 |
+| `se_03.wav` | 1.28s | 22050Hz 16bit | `audio/se_03.mp3` (`audio/riichi`) | 재생 파형 상관 0.93~1.0 |
 | `se_04.wav` | 1.72s | 22050Hz 8bit | — | 웹에서 안 씀 |
-| `se_05.wav` | 0.55s | 22050Hz 8bit | `audio/continue.mp3` | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
-| `se_06.wav` | 0.25s | 22050Hz 8bit | `audio/draw.mp3` (`audio/draw, audio/deal`) | 재생 파형 상관 0.93~1.0; 파형 일치도 0.93 |
-| `se_07.wav` | 0.14s | 22050Hz 16bit | `audio/discard.mp3` (`audio/discard`) | 재생 파형 상관 0.93~1.0 |
-| `se_08.wav` | 0.1s | 22050Hz 8bit | `audio/tick.mp3` (`audio/tick`) | 재생 파형 상관 0.93~1.0 |
-| `se_09.wav` | 0.34s | 11025Hz 16bit | `audio/nagari_land.mp3` | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
-| `se_10.wav` | 0.8s | 22050Hz 8bit | `audio/whoosh.mp3` (`audio/skill_activate`) | 재생 파형 상관 0.93~1.0 |
-| `se_11.wav` | 0.95s | 22050Hz 8bit | `audio/buff.mp3` (`audio/buff`) | 재생 파형 상관 0.93~1.0 |
-| `se_12.wav` | 1.31s | 44100Hz 16bit | `audio/barrier.mp3` (`audio/barrier`) | 재생 파형 상관 0.93~1.0 |
-| `se_13.wav` | 0.42s | 22050Hz 16bit | `audio/damage.mp3` | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
+| `se_05.wav` | 0.55s | 22050Hz 8bit | `audio/se_05.mp3` (`audio/continue`) | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
+| `se_06.wav` | 0.25s | 22050Hz 8bit | `audio/se_06.mp3` (`audio/draw`) | 재생 파형 상관 0.93~1.0; 파형 일치도 0.93 |
+| `se_07.wav` | 0.14s | 22050Hz 16bit | `audio/se_07.mp3` (`audio/discard`) | 재생 파형 상관 0.93~1.0 |
+| `se_08.wav` | 0.1s | 22050Hz 8bit | `audio/se_08.mp3` (`audio/tick`) | 재생 파형 상관 0.93~1.0 |
+| `se_09.wav` | 0.34s | 11025Hz 16bit | `audio/se_09.mp3` (`audio/nagari_land`) | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
+| `se_10.wav` | 0.8s | 22050Hz 8bit | `audio/se_10.mp3` (`audio/skill_activate`) | 재생 파형 상관 0.93~1.0 |
+| `se_11.wav` | 0.95s | 22050Hz 8bit | `audio/se_11.mp3` (`audio/buff`) | 재생 파형 상관 0.93~1.0 |
+| `se_12.wav` | 1.31s | 44100Hz 16bit | `audio/se_12.mp3` (`audio/barrier`) | 재생 파형 상관 0.93~1.0 |
+| `se_13.wav` | 0.42s | 22050Hz 16bit | `audio/se_13.mp3` (`audio/damage`) | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
 | `se_14.wav` | 0.31s | 22050Hz 8bit | — | 웹에서 안 씀 |
-| `se_15.wav` | 0.21s | 22050Hz 8bit | `audio/flip.mp3` (`audio/flip`) | 재생 파형 상관 0.93~1.0 |
-| `se_16.wav` | 0.12s | 22050Hz 8bit | `audio/dora_roulette.mp3` | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
+| `se_15.wav` | 0.21s | 22050Hz 8bit | `audio/se_15.mp3` (`audio/flip`) | 재생 파형 상관 0.93~1.0 |
+| `se_16.wav` | 0.12s | 22050Hz 8bit | `audio/se_16.mp3` (`audio/dora_roulette`) | 22050Hz 모노 VBR(`ffmpeg -q:a 2`)로 변환 |
 
 ### 곡 (`haiyuki.mlk`, 14곡 → `audio/haiyuki.mlk/bgm_NN.mid`)
 
-원본은 MIDI이고 웹은 mp3라 파형 비교가 안 된다. 곡 길이 비율과 곡 제목(트랙 이름, Shift-JIS)으로 판단했다.
+원본 MIDI를 SC-55 사운드폰트(`SC-55.sf3`)와 `fluidsynth -ni -g 1.0`으로 렌더해 웹 mp3와 비교했다. 14곡 모두 렌더 길이가 웹 파일과 소수점 6자리까지 같고, 앞 20초 파형 상관이 0.999 이상이다. 웹 곡은 이 방식으로 만든 것이다. "제목"은 MIDI 트랙 이름이고 실제 쓰임과 다를 수 있다(02는 이름이 オープニング지만 타이틀 곡은 01). "길이"는 MIDI 자체 길이, "렌더"는 SC-55 렌더 길이(끝 울림 포함). "반복"은 `haiyuki.mlk` 머리의 반복 비트이다.
 
-| 원본 | 제목 | 길이 | 음표 수 | 웹 | 비고 |
-|---|---|---|---|---|---|
-| `bgm_00.mid` | (제목 없음) | 4.6s | 72 | — |  |
-| `bgm_01.mid` | (제목 없음, 드럼·베이스 트랙 16개) | 24.4s | 1463 | — |  |
-| `bgm_02.mid` | オープニング | 29.6s | 1402 | `audio/bgm_title.mp3` (`audio/bgm_title`) | 웹 30.84s / 원본 29.6s = 1.042 |
-| `bgm_03.mid` | 戦闘勝利 | 1.4s | 107 | `audio/victory.mp3` (`audio/victory`) | 확실: SC-55 렌더와 길이 3.625215s 일치, 파형 상관 1.0. 반복 꺼짐 |
-| `bgm_04.mid` | 山道 | 59.1s | 1212 | `audio/bgm_trail.mp3` (`audio/bgm_trail`) | 웹 61.33s / 59.1s = 1.038 |
-| `bgm_05.mid` | 町 | 48.1s | 1147 | `audio/bgm_basic.mp3` (`audio/bgm_basic`) ? | 웹 54.06s, 비 1.12 |
-| `bgm_06.mid` | (제목 없음, 음표 3060개로 가장 촘촘) | 68.6s | 3060 | `audio/bgm_tension.mp3` (`audio/bgm_tension`) ? | 웹 75.49s, 비 1.10 |
-| `bgm_07.mid` | 修業 | 33.3s | 945 | `audio/bgm_chrsel.mp3` 또는 `audio/bgm_showdown.mp3` ? | 웹 chrsel 31.79s / showdown 38.22s, 길이만으로 못 정함 |
-| `bgm_08.mid` | アイテム入手 | 1.9s | 48 | `audio/fanfare.mp3` (`audio/fanfare`) | 확실: SC-55 렌더와 길이 4.041723s 일치, 파형 상관 1.0. 반복 꺼짐 |
-| `bgm_09.mid` | (제목 없음, 트랙 이름 Remixed) | 2.0s | 66 | `audio/lose.mp3` (`audio/lose`) | 확실: SC-55 렌더와 길이 5.003900s 일치, 파형 상관 1.0. 반복 꺼짐 |
-| `bgm_10.mid` | スタッフロール | 99.1s | 2958 | `audio/bgm_ending.mp3` (`audio/bgm_ending`) | 웹 103.08s / 99.1s = 1.040: 세 곡이 같은 비율이라 같은 곡을 렌더한 것으로 판단 |
-| `bgm_11.mid` | (제목 없음) | 4.6s | 20 | `audio/bgm_inn.mp3` (`audio/bgm_inn`) | 확실: SC-55 사운드폰트로 fluidsynth 렌더한 것과 길이 7.106757s 일치, 파형 상관 1.0. 반복 꺼짐 |
-| `bgm_12.mid` | (제목 없음, 드럼·베이스 트랙 9개) | 15.1s | 645 | `audio/bgm_compile.mp3` ? | 웹 13.63s, 비 0.90 |
-| `bgm_13.mid` | スマッシュトイレ | 1.9s | 32 | `audio/bgm_toilet.mp3` ? (3.9s = 1.9s x 2) | 웹 3.92s, 곡 길이 2배 |
+| 원본 | 제목 | 길이 | 음표 수 | 웹 | 렌더 | 상관 | 반복 | 스크립트 호출 |
+|---|---|---|---|---|---|---|---|---|
+| `bgm_00.mid` | (제목 없음) | 4.6s | 72 | `audio/bgm_00.mp3` (`audio/bgm_compile`) | 13.625760s | 1.000 | 꺼짐 | 로고(tlogo E19) |
+| `bgm_01.mid` | (제목 없음, 드럼·베이스 트랙 16개) | 24.4s | 1463 | `audio/bgm_01.mp3` (`audio/bgm_title`) | 30.841905s | 0.999 | 꺼짐 | 타이틀(startup E2) |
+| `bgm_02.mid` | オープニング | 29.6s | 1402 | `audio/bgm_02.mp3` (`audio/bgm_chrsel`) | 31.791020s | 0.999 | 켜짐 | startup E3 |
+| `bgm_03.mid` | 戦闘勝利 | 1.4s | 107 | `audio/bgm_03.mp3` | 3.625215s | 0.999 | 꺼짐 |  |
+| `bgm_04.mid` | 山道 | 59.1s | 1212 | `audio/bgm_04.mp3` (`audio/bgm_trail`) | 61.328254s | 0.999 | 켜짐 | startup E3 |
+| `bgm_05.mid` | 町 | 48.1s | 1147 | `audio/bgm_05.mp3` (`audio/bgm_basic`) | 54.061859s | 0.999 | 켜짐 | 대국(usamain E2) |
+| `bgm_06.mid` | (제목 없음, 음표 3060개로 가장 촘촘) | 68.6s | 3060 | `audio/bgm_06.mp3` (`audio/bgm_tension`) | 75.485170s | 0.999 | 켜짐 | 사람 리치(usamain E64) |
+| `bgm_07.mid` | 修業 | 33.3s | 945 | `audio/bgm_07.mp3` (`audio/bgm_showdown`) | 38.221497s | 0.999 | 켜짐 | CPU 리치(usamain E17) |
+| `bgm_08.mid` | アイテム入手 | 1.9s | 48 | `audio/bgm_08.mp3` (`audio/jingle_p1_win`) | 4.041723s | 1.000 | 꺼짐 | 사람 승(usamain E57, E58) |
+| `bgm_09.mid` | (제목 없음, 트랙 이름 Remixed) | 2.0s | 66 | `audio/bgm_09.mp3` (`audio/jingle_cpu_win`) | 5.003900s | 1.000 | 꺼짐 | CPU 승(usamain E25, E26) |
+| `bgm_10.mid` | スタッフロール | 99.1s | 2958 | `audio/bgm_10.mp3` (`audio/bgm_ending`) | 103.082086s | 0.999 | 켜짐 | startup E13, E14, E21 |
+| `bgm_11.mid` | (제목 없음) | 4.6s | 20 | `audio/bgm_11.mp3` (`audio/bgm_continue`) | 7.106757s | 1.000 | 꺼짐 | 컨티뉴(startup E18) |
+| `bgm_12.mid` | (제목 없음, 드럼·베이스 트랙 9개) | 15.1s | 645 | `audio/bgm_12.mp3` | 21.652608s | 0.999 | 켜짐 | startup E17, usamain E69(헬프), E147, E149 |
+| `bgm_13.mid` | スマッシュトイレ | 1.9s | 32 | `audio/bgm_13.mp3` | 3.916916s | 1.000 | 켜짐 |  |
 
-웹 곡 중 원본과 대응을 못 찾은 것: `bgm_option`(21.7s)와 위 `?` 후보로 잡히지 않은 것. 원본 곡 중 웹에서 안 쓰는 것으로 보이는 것: 0, 1, 12(12는 `bgm_compile` 후보 ?).
+원본 14곡 모두 웹에 대응이 있다. 웹 곡 중 원본에 없는 것은 없다.

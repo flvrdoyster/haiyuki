@@ -8,7 +8,7 @@ const ContinueConfig = {
     NO: { fadeStart: 62, fadeDur: 60, blackAt: 132, endAt: 142, floor: 448, vanish: 489, bounces: 3 },
     TRACK_DIV: 4,
     SFX: { toggle: 'audio/flip', confirm: 'audio/continue' },
-    BGM: 'audio/bgm_inn',
+    BGM: 'audio/bgm_continue',
     INFO: {
         text: "컨티뉴를 선택하면 진 엔딩 조건을 달성할 수 없습니다.",
         x: 320, y: 440,

@@ -265,19 +265,8 @@ const BattleConfig = {
         DRAW: 'audio/draw',
         DISCARD: 'audio/discard',
         DISCARD_GUARDED: 'audio/flip',
-        HIT: 'audio/impact-1',
         DAMAGE: 'audio/damage',
         TICK: 'audio/tick'
-    },
-    BGM: {
-        BASIC: 'audio/bgm_basic',
-        TENSION: 'audio/bgm_tension',
-        SHOWDOWN: 'audio/bgm_showdown',
-        WIN: 'audio/bgm_win',
-        LOSE: 'audio/bgm_lose',
-        ENDING: 'audio/bgm_ending',
-        TITLE: 'audio/bgm_title',
-        CHRSEL: 'audio/bgm_chrsel'
     },
     RESULT: {
         x: 120, y: 90, w: 400, h: 300,
@@ -316,13 +305,13 @@ const BattleConfig = {
                 title: "승!",
                 text: "{yaku}\n데미지: {score}",
                 color: "rgba(255, 255, 255, 1)",
-                jingle: "audio/fanfare"
+                jingle: "audio/jingle_p1_win"
             },
             LOSE: {
                 title: "패!",
                 text: "{yaku}\n데미지: -{score}",
                 color: "rgba(255, 255, 255, 1)",
-                jingle: "audio/lose"
+                jingle: "audio/jingle_cpu_win"
             },
             NAGARI: {
                 title: "무승부!",
@@ -332,7 +321,6 @@ const BattleConfig = {
             MATCH_WIN: {
                 title: "{winner} 승리!",
                 color: "gold",
-                sound: "audio/victory",
                 historyFont: `16px ${FONTS.regular}`,
                 historyLineHeight: 20,
                 historyMaxVisible: 7,

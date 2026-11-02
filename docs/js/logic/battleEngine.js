@@ -288,7 +288,7 @@ const BattleEngine = {
 
         // 승리 효과음 없음 — 빅토리 화면 제거 후 다음 장면과 겹쳤던 이력 있음.
         if (winner !== 'P1') {
-            const sound = (BattleConfig.RESULT.TYPES.MATCH_LOSE && BattleConfig.RESULT.TYPES.MATCH_LOSE.sound) || 'audio/lose';
+            const sound = 'audio/jingle_cpu_win';
             if (sound) this.events.push({ type: 'SOUND', id: sound });
         }
 

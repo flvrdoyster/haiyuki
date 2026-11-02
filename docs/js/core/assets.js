@@ -63,7 +63,7 @@ const Assets = {
         const ctx = this.audioContext;
         if (ctx && ctx.state !== 'running') ctx.resume().catch(() => { });
         const bgm = this.currentMusic;
-        if (bgm && !this.muted && bgm.paused) bgm.play().catch(() => { });
+        if (bgm && !this.muted && bgm.paused && !bgm.ended) bgm.play().catch(() => { });
     },
 
     // 백그라운드 복귀 핸들러를 한 번만 등록(멱등).
@@ -97,48 +97,37 @@ const Assets = {
         'title/PAI.png',
 
         // 오디오
-        { id: 'audio/draw', src: 'assets/audio/draw.mp3', type: 'audio' },
-        { id: 'audio/discard', src: 'assets/audio/discard.mp3', type: 'audio' },
-        { id: 'audio/bgm_compile', src: 'assets/audio/bgm_compile.mp3', type: 'audio' },
-        { id: 'audio/bgm_title', src: 'assets/audio/bgm_title.mp3', type: 'audio' },
-        { id: 'audio/bgm_chrsel', src: 'assets/audio/bgm_chrsel.mp3', type: 'audio' },
-        { id: 'audio/bgm_trail', src: 'assets/audio/bgm_trail.mp3', type: 'audio' },
-        { id: 'audio/bgm_basic', src: 'assets/audio/bgm_basic.mp3', type: 'audio' },
-        { id: 'audio/bgm_tension', src: 'assets/audio/bgm_tension.mp3', type: 'audio' },
-        { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_showdown.mp3', type: 'audio' },
-        { id: 'audio/bgm_win', src: 'assets/audio/victory.mp3', type: 'audio' },
-        { id: 'audio/bgm_lose', src: 'assets/audio/lose.mp3', type: 'audio' },
-        { id: 'audio/lose', src: 'assets/audio/lose.mp3', type: 'audio' },
-        { id: 'audio/bgm_inn', src: 'assets/audio/bgm_inn.mp3', type: 'audio' },
+        { id: 'audio/bgm_compile', src: 'assets/audio/bgm_00.mp3', type: 'audio' },
+        { id: 'audio/bgm_title', src: 'assets/audio/bgm_01.mp3', type: 'audio' },
+        { id: 'audio/bgm_chrsel', src: 'assets/audio/bgm_02.mp3', type: 'audio' },
+        { id: 'audio/bgm_trail', src: 'assets/audio/bgm_04.mp3', type: 'audio' },
+        { id: 'audio/bgm_basic', src: 'assets/audio/bgm_05.mp3', type: 'audio' },
+        { id: 'audio/bgm_tension', src: 'assets/audio/bgm_06.mp3', type: 'audio' },
+        { id: 'audio/bgm_showdown', src: 'assets/audio/bgm_07.mp3', type: 'audio' },
+        { id: 'audio/bgm_ending', src: 'assets/audio/bgm_10.mp3', type: 'audio' },
+        { id: 'audio/bgm_continue', src: 'assets/audio/bgm_11.mp3', type: 'audio' },
+        { id: 'audio/jingle_p1_win', src: 'assets/audio/bgm_08.mp3', type: 'audio' },
+        { id: 'audio/jingle_cpu_win', src: 'assets/audio/bgm_09.mp3', type: 'audio' },
+
+        { id: 'audio/pon', src: 'assets/audio/se_00.mp3', type: 'audio' },
+        { id: 'audio/riichi', src: 'assets/audio/se_03.mp3', type: 'audio' },
+        { id: 'audio/continue', src: 'assets/audio/se_05.mp3', type: 'audio' },
+        { id: 'audio/draw', src: 'assets/audio/se_06.mp3', type: 'audio' },
+        { id: 'audio/discard', src: 'assets/audio/se_07.mp3', type: 'audio' },
+        { id: 'audio/tick', src: 'assets/audio/se_08.mp3', type: 'audio' },
+        { id: 'audio/nagari_land', src: 'assets/audio/se_09.mp3', type: 'audio' },
+        { id: 'audio/skill_activate', src: 'assets/audio/se_10.mp3', type: 'audio' },
+        { id: 'audio/buff', src: 'assets/audio/se_11.mp3', type: 'audio' },
+        { id: 'audio/barrier', src: 'assets/audio/se_12.mp3', type: 'audio' },
+        { id: 'audio/damage', src: 'assets/audio/se_13.mp3', type: 'audio' },
+        { id: 'audio/flip', src: 'assets/audio/se_15.mp3', type: 'audio' },
+        { id: 'audio/dora_roulette', src: 'assets/audio/se_16.mp3', type: 'audio' },
+
         { id: 'audio/recovery', src: 'assets/audio/recovery.mp3', type: 'audio' },
-        { id: 'audio/barrier', src: 'assets/audio/barrier.mp3', type: 'audio' },
-        { id: 'audio/buff', src: 'assets/audio/buff.mp3', type: 'audio' },
-        { id: 'audio/bgm_ending', src: 'assets/audio/bgm_ending.mp3', type: 'audio' },
-        { id: 'audio/pon', src: 'assets/audio/pon.mp3', type: 'audio' },
-        { id: 'audio/riichi', src: 'assets/audio/riichi.mp3', type: 'audio' },
-        { id: 'audio/fanfare', src: 'assets/audio/fanfare.mp3', type: 'audio' },
-        { id: 'audio/gong', src: 'assets/audio/gong.mp3', type: 'audio' },
-        { id: 'audio/victory', src: 'assets/audio/victory.mp3', type: 'audio' },
-        { id: 'audio/hit-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
-        { id: 'audio/hit-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
-        { id: 'audio/hit-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
-        { id: 'audio/impact-1', src: 'assets/audio/hit-1.mp3', type: 'audio' },
-        { id: 'audio/impact-2', src: 'assets/audio/hit-2.mp3', type: 'audio' },
-        { id: 'audio/impact-3', src: 'assets/audio/hit-3.mp3', type: 'audio' },
-        { id: 'audio/hit-4', src: 'assets/audio/hit-4.mp3', type: 'audio' },
-        { id: 'audio/slash', src: 'assets/audio/hit-4.mp3', type: 'audio' },
-        { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
         { id: 'audio/roar', src: 'assets/audio/roar.mp3', type: 'audio' },
         { id: 'audio/quake', src: 'assets/audio/quake.mp3', type: 'audio' },
-        { id: 'audio/skill_activate', src: 'assets/audio/whoosh.mp3', type: 'audio' },
-
-        { id: 'audio/deal', src: 'assets/audio/draw.mp3', type: 'audio' }, // draw.mp3 별칭
-        { id: 'audio/flip', src: 'assets/audio/flip.mp3', type: 'audio' },
-        { id: 'audio/tick', src: 'assets/audio/tick.mp3', type: 'audio' },
-        { id: 'audio/continue', src: 'assets/audio/continue.mp3', type: 'audio' },
-        { id: 'audio/dora_roulette', src: 'assets/audio/dora_roulette.mp3', type: 'audio' },
-        { id: 'audio/nagari_land', src: 'assets/audio/nagari_land.mp3', type: 'audio' },
-        { id: 'audio/damage', src: 'assets/audio/damage.mp3', type: 'audio' },
+        { id: 'audio/slash', src: 'assets/audio/slash.mp3', type: 'audio' },
+        { id: 'audio/wrong', src: 'assets/audio/wrong.mp3', type: 'audio' },
 
         'bg/CHRBAK.png',
         'bg/MAYUBAK.png', // 마유 난입 모놀로그 배경
