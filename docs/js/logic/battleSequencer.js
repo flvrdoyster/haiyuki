@@ -1,6 +1,3 @@
-// 전투 연출: 승리/나가리 시퀀스와 스텝 러너. SkillFlows처럼 engine을 첫 인자로 받아
-// 룰 엔진은 연출에서 자유롭게 둔다. 시퀀싱 상태(engine.sequencing)는 엔진에 있고, 이
-// 모듈은 스텝 실행 방식과 두 결과 연출을 소유한다.
 const BattleSequencer = {
     startWinSequence: function (engine, type, who, score) {
         engine.events.push({ type: 'STOP_MUSIC' });
@@ -66,7 +63,6 @@ const BattleSequencer = {
             }
         ];
 
-        // 도라폭진 사용 확인(플레이어 한정).
         if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && !engine.symmetric && isRiichi && attacker.id === 'rinxiang') {
             const skillId = 'DORA_BOMB';
             const skill = SkillData[skillId];
@@ -100,7 +96,6 @@ const BattleSequencer = {
             engine.winningYaku.score = score;
         }
 
-        // 보너스는 우라도라가 바뀔 수 있어 시퀀스 진행 후(아래 콜백)에 확정한다.
         steps.push({ type: 'WAIT_FX' });
         steps.push({
             type: 'CALLBACK',
@@ -172,56 +167,18 @@ const BattleSequencer = {
         };
         engine.roundHistory.push(resultData);
 
-        const steps = [
-            // 나가리 확정 전 LAST_CHANCE(페톰): 텐파이 + 스킬 보유 시 확인 띄움.
-            {
-                type: 'CALLBACK', callback: () => {
-                    const skillId = 'LAST_CHANCE';
-                    const player = engine.p1;
-                    if (BattleConfig.RULES.SKILLS_ENABLED && p1Tenpai && player.skills && player.skills.includes(skillId)) {
-                        const skill = SkillData[skillId];
-                        if (engine.checkSkillCost(skill, 'P1')) {
-                            if (engine.symmetric) {
-                                if (SkillFlows.cpuWantsLastChance(engine, 'P1')) {
-                                    engine.sequencing.active = false;
-                                    engine.activateLastChance('P1');
-                                }
-                                return;
-                            }
-                            engine.sequencing.active = false;
+        const tenpaiOf = [p1Tenpai, cpuTenpai];
+        const lastChanceSteps = [0, 1].map(seat => ({
+            type: 'CALLBACK', callback: () => {
+                if (engine.currentState !== engine.STATE_FX_PLAYING) return;
+                engine.offerLastChance(engine.whoAt(seat), tenpaiOf[seat]);
+            }
+        }));
 
-                            if (engine.scene && engine.scene.showConfirm) {
-                                engine.scene.showConfirm(
-                                    (BattleConfig.MESSAGES && BattleConfig.MESSAGES.SKILL_CONFIRM && BattleConfig.MESSAGES.SKILL_CONFIRM[skillId]) ?
-                                        BattleConfig.MESSAGES.SKILL_CONFIRM[skillId](skill.cost) : skill.name,
-                                    () => {
-                                        engine.activateLastChance('P1');
-                                    },
-                                    () => {
-                                        engine.sequencing.active = true;
-                                    }
-                                );
-                            } else {
-                                engine.sequencing.active = true;
-                            }
-                        }
-                    }
-                }
-            },
+        const steps = [
+            ...lastChanceSteps,
             {
                 type: 'CALLBACK', callback: () => {
-                    if (engine.currentState !== engine.STATE_FX_PLAYING) return;
-                    const skillId = 'LAST_CHANCE';
-                    if (BattleConfig.RULES.SKILLS_ENABLED && cpuTenpai && engine.cpu.skills && engine.cpu.skills.includes(skillId)
-                        && engine.checkSkillCost(SkillData[skillId], 'CPU') && SkillFlows.cpuWantsLastChance(engine, 'CPU')) {
-                        engine.sequencing.active = false;
-                        engine.activateLastChance('CPU');
-                    }
-                }
-            },
-            {
-                type: 'CALLBACK', callback: () => {
-                    // 라스트찬스 승리로 중단되지 않았을 때만 나가리 진행.
                     if (engine.currentState === engine.STATE_FX_PLAYING) {
                         engine.showPopup('NAGARI', {
                             blocking: true,
@@ -260,8 +217,6 @@ const BattleSequencer = {
         };
     },
 
-    // 스텝 핸들러. 각자 engine.sequencing을 직접 진행: 대부분 advance(), WAIT/WAIT_FX는
-    // 조건 충족까지 머무름, STATE/STATE_NAGARI는 시퀀스 종료.
     stepHandlers: {
         WAIT: function (engine, step, dt) {
             engine.sequencing.timer += dt;
@@ -318,7 +273,6 @@ const BattleSequencer = {
             const prevSeq = engine.sequencing;
             if (step.callback) step.callback();
 
-            // 콜백이 시퀀스를 통째로 교체하지 않았을 때만 진행.
             if (engine.sequencing === prevSeq) {
                 BattleSequencer.advance(engine);
             }
@@ -342,8 +296,8 @@ const BattleSequencer = {
             if (--step.left <= 0) BattleSequencer.advance(engine);
         },
         DEAL: function (engine, step) {
-            if (step.who !== 'CPU') engine.p1.hand = engine.p1.hand.concat(engine.drawTiles(step.count));
-            if (step.who !== 'P1') engine.cpu.hand = engine.cpu.hand.concat(engine.drawTiles(step.count));
+            const player = engine.seats[step.seat];
+            player.hand = player.hand.concat(engine.drawTiles(step.count));
 
             if (step.sound) {
                 engine.events.push({ type: 'SOUND', id: step.sound });
@@ -384,7 +338,6 @@ const BattleSequencer = {
         if (handler) {
             handler(engine, step, dt);
         } else {
-            // 미지의 스텝 타입은 시퀀스를 영영 멈추므로 경고하고 건너뛴다.
             console.warn(`Unknown sequence step type: ${step.type}`);
             BattleSequencer.advance(engine);
         }

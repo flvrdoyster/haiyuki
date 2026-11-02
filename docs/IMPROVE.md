@@ -32,3 +32,9 @@
 - EndingScene/CreditsScene/EncounterScene 확인키는 실제 키 입력 테스트 없음(씬을 `update()` 직접 호출로만 구동).
 - 연출 타임라인 재생(조각 위치·대기·건너뛰기)을 직접 단언하는 테스트 없음. 전투 테스트가 스폰과 `isBlocking` 게이팅을 간접적으로 지날 뿐.
 - 전체 스위트 간헐 실패의 기전 미확정(`retries: 1`로 실용 대응). 조사한다면 30분 타임박스.
+
+## 7. 온라인 대전 준비 — 잔여
+- P1 자리에 `AIController`를 끼워 대칭 모드·자동 테스트의 P1 AI(`autoPlay.js`, `tryP1AiPon`, `updateLogic`의 `symmetric` 분기, `HumanController` 안의 `symmetric` 분기)를 컨트롤러 교체로 바꾼다. `_ai_fingerprint` 베이스라인이 걸려 있으므로 측정값을 전후 비교한다.
+- 승리 때 도라 폭진 확인(`startWinSequence`)을 컨트롤러 통지로 옮긴다.
+- `skillsUsedThisTurn`을 자리마다 두거나 양쪽 뽑기에서 풀지 결정한다(지금은 P1 뽑기에서만 풀려 P1이 비기를 쓴 다음 CPU 차례는 비기를 못 쓴다).
+- 펑 뒤 상대의 `PON_REPLY` 대사가 P1 펑에만 붙는다. 온라인에서 양쪽 화면을 같게 하려면 상대 펑에도 붙일지 정한다.

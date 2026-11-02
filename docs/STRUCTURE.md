@@ -1,6 +1,6 @@
 # 코드 구조
 
-- `index.html`의 `<script>` 순서가 곧 의존성. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `core/game.js`는 마지막.
+- `index.html`의 `<script>` 순서가 곧 의존성. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `logic/seatControllers.js`는 `battleEngine.js` 뒤(런타임에만 참조), `core/game.js`는 마지막.
 - ESM 전환 불가 — 테스트가 `(0, eval)('Game')`로 스크립트 스코프 전역을 98곳에서 잡는다.
 - `BattleEngine`의 상태 필드를 옮기지 말 것 — 테스트가 `e.p1`/`e.deck`/`e.currentState` 등을 199곳에서 직접 읽는다. 함수 이동은 안전.
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
@@ -15,6 +15,22 @@
 - 자원 한 개가 실패하면 `Assets.maxAttempts`(4)번까지 `retryDelayMs`씩 늘려 가며 다시 받는다. 끝내 실패하면 `Assets.failed`에 id를 모으고, `Assets.load(onComplete, onError)`는 `onComplete` 대신 `onError(failed)`만 부른다. `LoadingScene`은 이때 오류 문구를 그리고 타이틀로 가지 않으며, 아무 키나 누르면 새로 고친다. 지연 등록되는 BGM(`bootBgm` 밖)은 요소만 만들고 끝나므로 재시도 대상이 아니다.
 - 역 판정(`yakuLogic.js`)은 손패를 13종류 개수 벡터(`countsOf`, `PaiData.TYPES` 순서)로 바꿔 `_evalCounts`에서 메모한다(키 = 13진수×2 + 오픈 여부, 상한 `MEMO_MAX`면 비움). 오픈 손패는 `CLOSED_ONLY` 역을 건너뛰므로 `checkYaku`·`checkTenpai`에 `open`(= `engine.isOpen(player)`)을 넘겨야 하고, 전체 손패는 `getFullHand`로 만든다. 패 색은 종류에 묶여 있다는 전제이고, 종류와 색이 어긋난 패가 들어오면 `countsOf`가 null을 돌려 `checkYaku`만 옛 경로(`analyzeHand`)로 간다. AI(`aiLogic.js`)의 수용 패·리치 점수 탐색은 배열 복사 없이 이 벡터를 증감하며 돈다 — 한 CPU 차례에 `checkYaku` 1.5만 회가 거의 전부 메모 적중으로 바뀌어 롱태스크가 사라졌다(`tests/perf/REPORT.md`).
 
+## 자리와 컨트롤러
+
+- 전투는 두 자리(`engine.seats = [p1, cpu]`, 자리 번호 0·1, 로컬은 항상 0)로 돌고, 자리마다 컨트롤러(`engine.controllers.P1`·`.CPU`, `logic/seatControllers.js`)가 결정을 내린다. 기본은 P1 = `HumanController`(아무 것도 하지 않고 UI 입력을 기다림), CPU = `AIController`. `BattleEngine.init(data)`의 `data.controllers`로 바꿔 끼운다. 온라인 설계는 `ONLINE.md`.
+- 엔진은 자리에 무관한 적용 함수만 가진다: `drawFor(who)`, `discardFor(who, index)`, `declareRiichi(who)`, `declareTsumo(who)`, `declarePon(who, tile)`, `declareRon(who)`, `confirmTileExchange(who, indices)`, `finishRoundSetup(who)`, `activateLastChance(who)`. 연출(표정 방향, 리치 배너 타임라인·곡, 뽑은 패를 잠깐 보여 주는 `CPU_DISCARD_HOLD`, 상대 캐릭터의 버림 대사)은 자리에 따라 값만 다르다. 옛 이름 `confirmDraw`·`playerDraw`·`discardTile`·`commitDiscard`·`executeAction`·`checkPlayerActions`·`checkCpuActions`·`checkActiveSkills`는 얇은 래퍼로 남아 씬·테스트·`autoPlay.js`가 쓴다.
+- 컨트롤러가 답하는 지점(모두 "결정하라"는 통지이고, 답은 엔진 적용 함수를 불러 전달한다): `onDrawWindow(engine, who, { tile, canPon })` 상대가 버린 직후(펑 또는 뽑기. 론은 리치 중 화료패면 규칙상 자동이라 결정이 아니다), `onTurn(engine, who, { drew })` 뽑은 뒤 또는 펑·론 교환 뒤 차례, `onCounterPrompt(engine, who, skillId, resolve)` 상대 론에 초발도·론 교환을 쓸지, `onRoundSetup(engine, who, skillId)` 라운드 시작 패 교환, `onNagari(engine, who, resolve)` 라스트 찬스를 쓸지, `autoStopRoulette(engine, who)` 룰렛을 키 없이 자동 정지할지, `update(engine, who, dt)` 상대 차례 상태에서 매 틱.
+- 상대 자리 상태는 `STATE_CPU_TURN` 하나이고 `engine.cpuPhase`가 `'draw'`(뽑기 창: 펑·뽑기 대기)와 `'turn'`(버림·리치·쯔모·비기 대기)을 가른다. 로컬 자리는 `STATE_WAIT_FOR_DRAW`·`STATE_PLAYER_TURN`. `isDrawWindow(who)`·`isTurn(who)`가 두 자리를 같은 모양으로 묻는다. 생각 시간(`CPU_THINK_TIME`, 자동 테스트 3틱)은 `AIController.update`가 `engine.timer`로 재고, 엔진은 기다리기만 한다. 펑 뒤 차례는 `timer`를 `PON_THINK_CREDIT`(15)에서 시작해 생각 시간이 그만큼 짧다.
+- 네트워크 컨트롤러가 끼어들 지점: `onDrawWindow`·`onTurn`·`onCounterPrompt`·`onRoundSetup`·`onNagari`에서 아무 것도 하지 않고, 메시지가 오면 같은 적용 함수를 부른다. `autoStopRoulette`는 정지 위치를 메시지로 받아야 하므로 뒤 단계에서 정한다.
+- 순서 의존 로직은 자리 번호 기준이다: 배패는 자리 1부터 3·3·3·2(시퀀서 `DEAL` 스텝의 `seat`), 라운드 시작 셋업 비기도 자리 1 → 0, 선공은 `firstSeat`(0 또는 1)를 뽑아 `firstTurn` 문자열로 바꾼다. 나가리의 라스트 찬스는 자리 0 → 1 순으로 묻는다.
+- `skillsUsedThisTurn`은 P1이 뽑을 때만 풀린다(원래 동작 유지). P1이 비기를 쓰면 바로 다음 CPU 차례는 비기를 못 쓴다.
+- 초발도로 버림패가 사라진 뒤에는 론을 건 쪽이 뽑기 창에 들어간다(사람이면 뽑기 버튼을 누른다).
+- 상대 론에 대한 반격 비기 제안은 `SKILLS_ENABLED`가 켜져 있을 때만 양쪽에 뜬다.
+- `showPopup`은 같은 종류의 팝업을 10틱 안에 두 번 띄우지 않는다(`totalTicks` 기준).
+- 크리티컬·수경 보정은 `startWinSequence`에서 한 번만 곱한다. 우라도라는 표 도라와 같은 종류가 나올 수 있다.
+- `SkillRegistry` 항목의 훅은 모두 선택이다: `canUse(engine, who, user)` 추가 조건, `execute(engine, who, user, opponent)` 효과, `aiScore(engine, ctx)` AI 욕구(점수 + 0~0.2 난수가 0.6을 넘으면 발동, `ctx = { who, isTenpai, isPlayerRiichi, turn, profile }`). 플래그 `multiUse`는 라운드·턴 제한 면제, `autoFlow`는 전용 흐름에서만 발동(`useSkill` 경로 차단). 반격 비기(`EXCHANGE_RON`·`SUPER_IAI`)와 `DORA_BOMB`은 항목 없이 `SkillFlows`가 엔진 흐름에서 직접 부른다.
+- 시퀀서 스텝 `CALLBACK`은 콜백이 `engine.sequencing`을 통째로 바꾸지 않았을 때만 다음 스텝으로 넘어간다. 모르는 스텝 종류는 경고하고 건너뛴다.
+
 ## CPU 스킬
 
 - 지옥쌓기·수경·크리티컬·회복·버린 패 방어는 리치 중에 쓸 수 없다(`canUse`의 `!user.isRiichi`, 원본 `sq/RULES.md` 6.2). 사람은 리치 뒤 메뉴가 막혀 원래도 못 썼고, 이 조건으로 CPU도 같아진다. 라스트 찬스는 발동 때 `audio/barrier`(원본 SFX 12)를 낸다.
@@ -24,8 +40,8 @@
 - 캐릭터 필드 `skillOffset`(기본 0)은 `BattleEngine`이 `cpuSkill`(0..1 클램프)에 더한다 — 버림패 실수와 스킬 발동 확률에만 걸린다(린샹 +0.05, 스마슈 −0.15, 화린 −0.10, 유리 +0.10, 페톰 +0.15, 나머지 0). 보통(쉬움도 같은 밴드)에서 어느 상대와 붙어도 매치 승률이 비슷해지도록 맞춘 값이다. 어려움은 실력 1.0 고정이라 보정이 올라갈 자리가 없어서 보정을 0으로 끈다 — 어려움은 모든 CPU가 최선을 다하는 상태이고 캐릭터 간 체급 차이가 그대로 드러나는 것이 의도다. CPU 난이도 보정이라 대칭 모드(실력 고정 1.0)에서도 0으로 둔다.
 - `aiProfile.luck`은 캐릭터 특성이다: `drawTiles`가 뽑는 쪽(`who`)의 캐릭터 luck(`BattleEngine.luckOf`)만큼 덱 상단 몇 장 중 유리한 패(음수면 불리한 패)를 올린다. 사람 P1·CPU 어느 쪽이 그 캐릭터를 잡든 같고, 튜토리얼에서만 `luckEnabled`로 끈다. easy 드로우 어시스트는 별개의 P1 전용 난이도 기능.
 - 눈썹개 버림패 AI(`AILogic.scoreDiscards`, `charId === 'mayu'`, 닫힌 12장 평가 한정)는 눈썹개 4종을 눈썹개 역에 필요한 장수(빨·노·파 4장, 보라 3장)까지는 버리지 않도록 `MAYU_KEEP_W`만큼 감점한다. 텐파이 단계 점수(`TENPAI_TIER`)보다 작아 텐파이는 깨지 않는다.
-- CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(`cpu.exchangeDiscard`, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
-- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`shouldAiReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 실력 `SYMMETRIC_SKILL`(1.0), `skillOffset` 0, 드로우 어시스트 0(`luck`은 캐릭터 특성이라 그대로 걸린다). `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
+- CPU 스마슈의 `EXCHANGE_RON`은 `SkillFlows.pickRonExchangeTile`이 원본(`sq/RULES.md` 6.3)처럼 되가져온 패를 뺀 손패에서 종류 수 1인 칸 → 2인 칸 → 3 초과 칸 → 아무 칸 순으로 하나를 무작위로 골라 다음 차례에 버린다(되가져온 패는 `player.exchangeReturned`에 남고 AI 컨트롤러가 자기 차례에 고른다, 그 차례는 리치·AI 버림 판단을 건너뜀). 안전패 평가는 쓰지 않으므로 다시 론당할 수 있다.
+- 대칭 모드(`Game.symmetric` + `Game.isAutoTest`, 엔진 `symmetric`)는 PvP 밸런스 측정용이다: P1도 CPU와 같은 AI가 움직인다. `AutoPlay.performSymmetricTurn`(비기 `checkActiveSkills('P1')`·쯔모·리치 `shouldRiichi`·`decideDiscard`), 대기 중 펑(`tryP1AiPon`), 라운드 시작 교환(`executeCpuTileExchange(engine, id, 'P1')`), 론 반응(`AIDecisions.shouldReact`, 론 교환 뒤 `p1.exchangeDiscard`), 승리 때 도라 폭진, 나가리 라스트 찬스(양쪽, 룰렛 자동 정지)를 CPU 쪽과 같은 규칙으로 쓴다. 양쪽 실력 `SYMMETRIC_SKILL`(1.0), `skillOffset` 0, 드로우 어시스트 0(`luck`은 캐릭터 특성이라 그대로 걸린다). `aiProfile`(펑·방어 성향)은 캐릭터 것을 그대로 쓴다. 사람이 조작하는 P1 경로와 일반 CPU 대전 동작은 바뀌지 않는다.
 
 ## 튜토리얼
 
@@ -33,7 +49,7 @@
 - 레슨 `plan`(플레이어 뽑기·버림·펑·론과 단계별 텐파이/역)이 단일 출처다: 뽑기 순서, 버릴 수 있는 패(버림 횟수째 한 종류), 검증 spec이 모두 여기서 나온다. `cpuDraws`는 CPU 뽑기 = 버림 순서.
 - 판 준비: `startRound`가 `tutorialBuildDeck`으로 배패 순서를 덱 끝에 깔고 도라·우라도라를 레슨 값으로 고정. `drawTiles`는 큐에서 꺼내고 비면 덱에서 뽑는다. easy 어시스트 0, `luckEnabled` false, `BattleConfig.RULES.SKILLS_ENABLED`는 시작 때 끄고 `BattleScene.exitTutorial`이 복구. 툴바 비기 버튼은 `Game.syncSkillsButton`이 전투 시작·튜토리얼 종료·페이지 로드 때 켜짐/꺼짐 표시를 실제 값에 맞추고, 튜토리얼 중에는 `disabled`로 흐리게 둔다.
 - 리치 선언은 `needRiichi` 레슨에서만 뜬다(`checkSelfActions`가 다른 레슨에서 RIICHI를 걸러 냄).
-- CPU: 뽑은 패를 그대로 버리고 쯔모·리치·펑·론·비기 없음(`checkCpuActions` 즉시 false), `triggerDialogue` 전부 무시.
+- CPU: 뽑은 패를 그대로 버리고 쯔모·리치·펑·론·비기 없음(`AIController`가 `engine.tutorial`이면 펑 창을 무시하고 차례에 마지막 패만 버린다), `triggerDialogue` 전부 무시.
 - 버림 제한: `discardTile`이 `tutorialCanDiscard`로 거르고(틀리면 `audio/wrong`), 렌더러가 같은 함수로 못 버리는 패를 어둡게 칠한다. 리치를 걸어야 하는 차례(`tutorialWantsAction`)에는 리치 전까지 모든 패를 막는다. `needPon` 레슨에서 펑 가능 때 패를 가져오면 `tutorialFail` → 실패 나레이션 뒤 그 레슨 처음부터.
 - 나레이션: 레슨 `script`의 `{ on, say }`를 순서대로 소비한다(엔진이 `tutorialEvent(이름)`을 부르고, 현재 가리키는 항목의 `on`과 같을 때만 발동. 항목에 `discards: n`이 있으면 플레이어가 n번째 패를 버린 뒤에만). 이벤트: `wait`·`drawn`·`discarded`·`tsumoChance`·`ponChance`·`afterPon`·`riichi`·`ron`·`win`(결과 창이 펼쳐진 뒤, `NARRATION.resultDelay`틱)·`afterResult`. 대사 안의 `\n`은 줄바꿈, `{…}`로 감싼 부분은 `NARRATION.highlight`(노란색)로 그린다. 떠 있는 동안 `engine.narration`이 `updateLogic`과 `BattleScene` 입력을 막고 확인키·클릭으로 넘긴다. 쯔모·론이 자동으로 나가는 지점(리치 중)은 `tutorialEvent`의 `onDone`으로 나레이션 뒤에 실행한다. `say`의 한 장은 문자열이거나 `{ text, look }`이고(`engine.narrationPage()`가 둘을 같은 모양으로 돌려준다), `look`은 `dora`·`uraDora`·`lastDiscard`·`actionButton`·`hand:<패 id>` 중 하나 또는 배열이다. 렌더러가 그 프레임에 그린 위치를 `_lookRects`에 모아 두고 `lookRects(state)`로 대상 사각형을 찾아 나레이션 위에 대상 가운데를 끝으로 하는 초록 화살표(원본 마우스 커서 `ui/mouse2.png` 그대로, 5프레임 순환, `NARRATION.look`)를 그린다. 대상이 `RESULT` 창과 겹치면 그 장 동안 `drawResult`를 건너뛴다.
 - 라운드 라벨은 `ui/lesson.png`(`INFO.labels.lessonPath`)로 바꾸고 숫자는 레슨 번호(`startRound`가 `currentRound`를 맞춤).
@@ -64,9 +80,9 @@
 
 - 원본 `usamain.sq`를 fxtrace로 실행해 센 틱에 맞춘다(`SPEED`): 사람 버림 → CPU 뽑기 21, CPU 뽑기 → 버림 22, CPU 버림 → 사람 뽑기 입력 가능 22(`DRAW_INPUT_DELAY`, 키·마우스 모두), 리치 중 사람은 CPU 버림 22틱 뒤 자동으로 뽑고(`RIICHI_AUTO_DRAW`) 50틱 뒤 자동 버림(원본은 자동 없음 — 웹 선택).
 - 라운드 시작은 원본(`sq/FX.md` 4.10) 순서다: 도라 룰렛(2틱마다 종류가 하나씩 넘어가며 `audio/dora_roulette`, 26~51회 무작위) → 10틱 → 손패 칸 비움 효과음 → 5틱 → 배패를 CPU 먼저 3·3·3·2장씩 번갈아 8단계, 단계 간 5틱, 단계마다 `audio/discard`. 사람 패는 배패 중 앞면으로 놓이고(`isFaceDown` false), 다 놓인 뒤 30틱에 전부 엎고(`FACE_DOWN`) 15틱 뒤 정렬하며 공개(`FLIP_HAND`). 원본은 패가 이동하지 않고 그 틱에 자리에 나타나므로 웹도 이동 연출은 없다. 튜토리얼과 자동 테스트는 룰렛을 건너뛴다(도라 고정·측정 속도).
-- 선공은 라운드마다 50% 무작위다(`RULES.RANDOM_FIRST_TURN`, `engine.firstTurn`, 원본 E10의 `rand(100) < 50`). 튜토리얼은 항상 사람 선공. `turnCount`는 "양쪽이 한 번씩 버린 사이클" 번호라서 후공 쪽이 버린 뒤에 올린다: 사람 선공이면 CPU 버림 뒤(`discardTileCPU`), CPU 선공이면 사람 버림 뒤(`commitDiscard`). 그래서 어느 쪽이 선공이든 각자 20턴에 40장 버림으로 나가리가 된다. 후공의 첫 턴 쯔모 800은 `calculateBonuses`가 버림 수로 판단하므로 그대로 적용된다(버림 수 1의 론 400 분기는 후공이 리치일 수 없어 도달 불가). 테스트 헬퍼 `startBattle`은 기본으로 사람 선공 고정(`randomFirst: true`로 풀 수 있음).
+- 선공은 라운드마다 50% 무작위다(`RULES.RANDOM_FIRST_TURN`, `engine.firstTurn`, 원본 E10의 `rand(100) < 50`). 튜토리얼은 항상 사람 선공. `turnCount`는 "양쪽이 한 번씩 버린 사이클" 번호라서 후공 쪽이 버린 뒤에 올린다: 후공이 버린 직후 상대의 뽑기 창을 열고(`commitDiscardFor` → `openDrawWindow`), 그 창이 그 자리에서 바로 론·펑으로 닫히지 않았을 때만 올린다(AI의 펑은 즉시 결정되므로 턴을 올리지 않고, 사람의 펑은 창이 열린 뒤에 일어나므로 이미 올라가 있다). 그래서 어느 쪽이 선공이든 각자 20턴에 40장 버림으로 나가리가 된다. 후공의 첫 턴 쯔모 800은 `calculateBonuses`가 버림 수로 판단하므로 그대로 적용된다(버림 수 1의 론 400 분기는 후공이 리치일 수 없어 도달 불가). 테스트 헬퍼 `startBattle`은 기본으로 사람 선공 고정(`randomFirst: true`로 풀 수 있음).
 - 승패 소리는 원본 `sq/FX.md` 4.12 순서다. 론·쯔모(라스트 찬스 성공 포함)는 `startWinSequence`가 이긴 쪽 손패 공개(CPU가 이겼을 때만 CPU 패를 엎은 채에서 공개) + `audio/discard` → 말풍선 20틱 + 최대 120틱(키로 넘김) → 승리 곡(사람 승 `audio/jingle_p1_win` = 원본 BGM 8, CPU 승 `audio/jingle_cpu_win` = BGM 9, `RESULT.TYPES.WIN/LOSE.jingle`)과 론·쯔모 배너를 같은 틱에 띄운다. 결과 창에는 징글이 없다. 피해는 `audio/damage`(원본 SFX 13), 나가리 조각 두 개가 착지할 때마다 `audio/nagari_land`(SFX 9, 타임라인 `shakes` 틱에 `POPUP.TYPES.NAGARI.shakeSound`). 화린이 버린 패 방어 중일 때 버리는 소리는 `audio/flip`(SFX 15, `AUDIO.DISCARD_GUARDED`).
-- 리치 선언 순서는 원본대로 "대사(20틱) → 상대 대답(120틱, 확인키·클릭으로 넘김) → 배너(82틱) → 버림". 사람은 리치 버튼 뒤 버릴 패를 고른 순간 이 시퀀스가 돌고 배너가 끝나야 패가 놓인다(`discardTile` → `commitDiscard`). CPU는 뽑은 뒤 21틱(`CPU_RIICHI_THINK`)에 시작한다. 시퀀서 스텝 `DIALOGUE`·`WAIT_KEY`가 이를 맡고, 키로 넘기면 `BattleDialogue.hideAll`로 말풍선을 닫는다. 튜토리얼은 대사 없이 배너만. BGM은 시퀀스 끝의 `MUSIC` 스텝이 배너 뒤에 바꾸며, `updateBattleMusic`과 리치 봉 그리기는 `declaringRiichi` 중인 쪽을 아직 리치가 아닌 것으로 본다(버튼을 누른 순간 먼저 바뀌지 않게). 비기로 거는 리치(`declareRiichiLock`: 맹호일발권·기합 리치)도 원본처럼 버리는 순간 같은 시퀀스를 탄다(원본은 두 비기가 '이번 버림에서 리치 선언' 플래그를 직접 켜고 버림 루틴이 그 플래그로 선언 연출에 들어간다, `sq/RULES.md` 비기 표). CPU는 AI 판단 리치와 비기 리치 모두 `startCpuRiichiSequence`를 쓴다. 론 패 교환으로 되가져온 리치패를 다시 버릴 때만 `riichiSilent`로 시퀀스를 건너뛰고 버림패에 리치 표시만 한다.
+- 리치 선언 순서는 원본대로 "대사(20틱) → 상대 대답(120틱, 확인키·클릭으로 넘김) → 배너(82틱) → 버림". 사람은 리치 버튼 뒤 버릴 패를 고른 순간 이 시퀀스가 돌고 배너가 끝나야 패가 놓인다(`discardFor` → `startRiichiSequence` → `commitDiscardFor`). 상대 자리는 같은 시퀀스 앞에 21틱(`CPU_RIICHI_THINK`) 대기가 붙고 배너 타임라인이 `riichi_r`, 곡이 `bgm_tension`이다. 시퀀서 스텝 `DIALOGUE`·`WAIT_KEY`가 이를 맡고, 키로 넘기면 `BattleDialogue.hideAll`로 말풍선을 닫는다. 튜토리얼은 대사 없이 배너만. BGM은 시퀀스 끝의 `MUSIC` 스텝이 배너 뒤에 바꾸며, `updateBattleMusic`과 리치 봉 그리기는 `declaringRiichi` 중인 쪽을 아직 리치가 아닌 것으로 본다(버튼을 누른 순간 먼저 바뀌지 않게). 비기로 거는 리치(`declareRiichiLock`: 맹호일발권·기합 리치)도 원본처럼 버리는 순간 같은 시퀀스를 탄다(원본은 두 비기가 '이번 버림에서 리치 선언' 플래그를 직접 켜고 버림 루틴이 그 플래그로 선언 연출에 들어간다, `sq/RULES.md` 비기 표). AI 판단 리치(`declareRiichi`)와 비기 리치 모두 같은 시퀀스를 탄다. `declareRiichi`는 `riichiSilent`를 끈다. 론 패 교환으로 되가져온 리치패를 다시 버릴 때만 `riichiSilent`로 시퀀스를 건너뛰고 버림패에 리치 표시만 한다.
 
 ## 페이지 스타일
 

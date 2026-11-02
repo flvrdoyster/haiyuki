@@ -1,11 +1,3 @@
-// 스킬별 동작 훅. 정적 데이터(name/desc/type/cost/sfx)는 SkillData(characterData.js),
-// 로직은 여기. 훅(모두 선택): canUse(engine,who,user) 추가 가용조건 / execute(engine,who,
-// user,opponent) 효과 / aiScore(engine,ctx) CPU 욕구(score+rand(0~0.2)>0.6 발동;
-// ctx={isTenpai,isPlayerRiichi,turn,profile}). 플래그: multiUse=라운드/턴 제한 면제,
-// autoFlow=전용 플로우로만 발동(일반 useSkill 경로 차단, 중복발동 방지).
-// REACTIVE(EXCHANGE_RON·SUPER_IAI)·DORA_BOMB은 레지스트리 항목 없이 아래 SkillFlows로
-// 전용 엔진 플로우(론 카운터/승리 시퀀스)에서 호출된다.
-
 function _aggressiveSkillScore(ctx) {
     let score = 0;
     if (ctx.isTenpai) score += 0.8;
@@ -23,8 +15,6 @@ function _defensiveSkillScore(engine, ctx) {
     return score;
 }
 
-// CPU 현재 손패가 도달 가능한 최고 역점수(value 인지 스킬용 — CRITICAL은 큰 손에서만 값어치).
-// 12패(버림 전)·11패(텐파이) 모두 처리.
 function _cpuBestYaku(engine, who) {
     const me = engine.getPlayer(who || 'CPU');
     const hand = engine.getFullHand(me), charId = me.id, open = engine.isOpen(me);
@@ -43,9 +33,7 @@ function _cpuBestYaku(engine, who) {
     return best;
 }
 
-// 엔진 상태(시퀀싱/덱)를 직접 다루는 큰 스킬 구현. 스킬 전용 코드를 한 파일에 모으려 여기 둔다.
 const SkillFlows = {
-    // 우라도라를 승자 손패에서 가장 많은 패로 덮어쓴다.
     applyDoraBomb: function (engine, attacker, who) {
         const skillId = 'DORA_BOMB';
         const skill = SkillData[skillId];
@@ -81,7 +69,6 @@ const SkillFlows = {
         engine.events.push({ type: 'SOUND', id: 'audio/quake' });
     },
 
-    // REACTIVE: 위험한 버림패를 베어 없앤다 — 턴이 상대로 넘어감.
     activateSuperIaido: function (engine, who) {
         engine.discards.pop();
 
@@ -89,13 +76,7 @@ const SkillFlows = {
         engine.events.push({ type: 'SOUND', id: 'audio/slash' });
         engine.triggerDialogue('SKILL_DEFENSE', who === 'P1' ? 'p1' : 'cpu');
 
-        if (who === 'CPU') {
-            engine.currentState = engine.STATE_PLAYER_TURN;
-            engine.playerDraw();
-        } else {
-            engine.currentState = engine.STATE_CPU_TURN;
-            engine.timer = 0;
-        }
+        engine.openDrawWindow(engine.opponentOf(who), null);
     },
 
     pickRonExchangeTile: function (hand, returned) {
@@ -111,7 +92,6 @@ const SkillFlows = {
         return pool[Math.floor(Math.random() * pool.length)];
     },
 
-    // REACTIVE: 위험한 버림패를 손으로 되가져온다 — 같은 플레이어가 다시 버린다.
     activateRonTileExchange: function (engine, who) {
         const badTile = engine.discards.pop();
 
@@ -127,17 +107,12 @@ const SkillFlows = {
         engine.showPopup('SKILL', { text: '론 패 교환', blocking: false });
         engine.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
 
-        if (who === 'P1') {
-            engine.currentState = engine.STATE_PLAYER_TURN;
-            const returnedIndex = engine.p1.hand.indexOf(badTile);
-            engine.hoverIndex = returnedIndex !== -1 ? returnedIndex : engine.p1.hand.length - 1;
-            if (engine.symmetric) engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
-        } else {
-            engine.currentState = engine.STATE_CPU_TURN;
-            engine.cpu.needsToDiscard = true;
-            engine.cpu.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
-            engine.timer = 0;
+        player.exchangeReturned = badTile;
+        if (who === 'P1' && engine.symmetric) {
+            engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
         }
+        const returnedIndex = hand.indexOf(badTile);
+        engine.enterTurn(who, { drew: false, hoverIndex: returnedIndex !== -1 ? returnedIndex : hand.length - 1 });
     },
 
     activateLastChance: function (engine, who) {
@@ -147,7 +122,7 @@ const SkillFlows = {
     },
 
     lastChanceAuto: function (engine, who) {
-        return who === 'CPU' || engine.symmetric || engine.isAutoTest();
+        return engine.controllerOf(who).autoStopRoulette(engine, who);
     },
 
     cpuWantsLastChance: function (engine, who) {
@@ -250,7 +225,6 @@ const SkillFlows = {
         engine.sequencing.active = true;
     },
 
-    // 라운드 시작 시 CPU 자동 패 교환(원본 6.4·6.5: 칸을 무작위 순서로 훑으며 MP 예산이 남는 동안 교환 표시).
     executeCpuTileExchange: function (engine, skillId, who) {
         who = who || 'CPU';
         const me = engine.getPlayer(who);
@@ -408,17 +382,12 @@ const SkillRegistry = {
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },
 
-    // 셋업 스킬: 라운드 시작(STATE_INIT) 자동 발동. P1은 교환 UI, CPU는 AI 교환 실행.
     EXCHANGE_TILE: {
         multiUse: true,
         autoFlow: true,
         canUse: (engine) => engine.turnCount === 1,
         execute: (engine, who) => {
-            if (who === 'CPU') {
-                SkillFlows.executeCpuTileExchange(engine, 'EXCHANGE_TILE');
-            } else {
-                engine.enterTileExchangeState();
-            }
+            engine.controllerOf(who).onRoundSetup(engine, who, 'EXCHANGE_TILE');
         }
     },
 
@@ -427,11 +396,7 @@ const SkillRegistry = {
         autoFlow: true,
         canUse: (engine) => engine.turnCount === 1,
         execute: (engine, who) => {
-            if (who === 'CPU') {
-                SkillFlows.executeCpuTileExchange(engine, 'PAINT_TILE');
-            } else {
-                engine.enterTileExchangeState();
-            }
+            engine.controllerOf(who).onRoundSetup(engine, who, 'PAINT_TILE');
         }
     }
 };
