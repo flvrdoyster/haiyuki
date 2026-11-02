@@ -16,9 +16,7 @@ const BattleEngine = {
     STATE_TILE_EXCHANGE: 13,
     STATE_ROULETTE: 14,
 
-    rouletteTimer: 0,
-    rouletteIndex: 0,
-    rouletteTileType: null,
+    lastChance: null,
 
     currentState: 0,
     timer: 0,
@@ -331,7 +329,7 @@ const BattleEngine = {
         this.resultInfo = null;
         this.sequencing.active = false;
         this.events = [];
-        this.showLastChanceResult = false;
+        this.lastChance = null;
 
         this._lastPopupType = null;
         this._lastPopupTime = -100;
@@ -357,27 +355,34 @@ const BattleEngine = {
         this.validRiichiDiscardIndices = null;
         this.narration = null;
 
-        this.p1.isFaceDown = true;
+        this.p1.isFaceDown = false;
         this.cpu.isRevealed = false;
+        this.firstTurn = (!this.tutorial && BattleConfig.RULES.RANDOM_FIRST_TURN && Math.random() < 0.5) ? 'CPU' : 'P1';
 
+        const dealSteps = [];
+        [3, 3, 3, 2].forEach((count, i) => {
+            if (i > 0) dealSteps.push({ type: 'WAIT', duration: 5 });
+            dealSteps.push({ type: 'DEAL', who: 'CPU', count: count, sound: 'audio/discard' });
+            dealSteps.push({ type: 'WAIT', duration: 5 });
+            dealSteps.push({ type: 'DEAL', who: 'P1', count: count, sound: 'audio/discard' });
+        });
+        const roulette = (this.tutorial || this.isAutoTest()) ? [] : [{ type: 'DORA_ROULETTE', sound: 'audio/dora_roulette' }];
         this.currentState = this.STATE_DEALING;
         this.sequencing = {
             active: true,
             currentStep: 0,
             timer: 0,
             steps: [
-                { type: 'WAIT', duration: 15 },
-                { type: 'DEAL', count: 4, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 8 },
-                { type: 'DEAL', count: 4, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 8 },
-                { type: 'DEAL', count: 2, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 8 },
-                { type: 'DEAL', count: 1, sound: 'audio/deal' },
-                { type: 'WAIT', duration: 15 },
-                { type: 'FLIP_HAND', sound: 'audio/flip' }, // Reveal & Sort
+                ...roulette,
+                { type: 'WAIT', duration: 10 },
+                { type: 'SOUND', id: 'audio/discard' },
                 { type: 'WAIT', duration: 5 },
-                { type: 'STATE', state: this.STATE_INIT } // Hand off to INIT to start turn logic
+                ...dealSteps,
+                { type: 'WAIT', duration: 30 },
+                { type: 'FACE_DOWN', sound: 'audio/discard' },
+                { type: 'WAIT', duration: 15 },
+                { type: 'FLIP_HAND', sound: 'audio/discard' },
+                { type: 'STATE', state: this.STATE_INIT }
             ]
         };
 
@@ -475,8 +480,8 @@ const BattleEngine = {
         const cpu = deck.splice(0, mine.length);
         const deal = [];
         let at = 0;
-        [4, 4, 2, 1].forEach(count => {
-            deal.push(...mine.slice(at, at + count), ...cpu.slice(at, at + count));
+        [3, 3, 3, 2].forEach(count => {
+            deal.push(...cpu.slice(at, at + count), ...mine.slice(at, at + count));
             at += count;
         });
         return deck.concat(deal.reverse());
@@ -679,7 +684,6 @@ const BattleEngine = {
     },
 
     finishRon: function (win) {
-        this.showPopup('RON', { blocking: true });
         this.winningYaku = win;
         const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
         this.pendingDamage = { target: 'P1', amount: score };
@@ -690,9 +694,6 @@ const BattleEngine = {
         SkillFlows.activateLastChance(this, who);
     },
 
-    resolveRouletteResult: function () {
-        SkillFlows.resolveRouletteResult(this);
-    },
 
     generateDeck: function () {
         const deck = [];
@@ -892,18 +893,14 @@ const BattleEngine = {
                         const p1SetupSkill = p1Skills.find(id => id === 'PAINT_TILE' || id === 'EXCHANGE_TILE');
                         if (this.symmetric && BattleConfig.RULES.SKILLS_ENABLED && p1SetupSkill) {
                             SkillFlows.executeCpuTileExchange(this, p1SetupSkill, 'P1');
-                            this.currentState = this.STATE_WAIT_FOR_DRAW;
-                            this.timer = 0;
+                            this.startFirstTurn();
                         } else if (BattleConfig.RULES.SKILLS_ENABLED && p1SetupSkill) {
                             this.enterTileExchangeState();
                         } else {
-                            this.currentState = this.STATE_WAIT_FOR_DRAW;
-                            this.timer = 0;
-                            this.tutorialEvent('wait');
+                            this.startFirstTurn();
                         }
                     } else {
-                        this.currentState = this.STATE_WAIT_FOR_DRAW;
-                        this.timer = 0;
+                        this.startFirstTurn();
                     }
                 }
                 break;
@@ -1099,7 +1096,6 @@ const BattleEngine = {
 
         this.winningYaku = YakuLogic.checkYaku(this.getFullHand(this.cpu), this.cpu.id, this.isOpen(this.cpu));
         if (this.winningYaku) {
-            this.showPopup('TSUMO', { blocking: true });
             const score = this.calculateScore(this.winningYaku.score, this.cpu.isMenzen, this.cpu, this.p1);
             this.pendingDamage = { target: 'P1', amount: score };
             BattleSequencer.startWinSequence(this, 'TSUMO', 'CPU', score);
@@ -1249,7 +1245,7 @@ const BattleEngine = {
             }
         }
 
-        this.turnCount++;
+        if (this.firstTurn !== 'CPU') this.turnCount++;
         this.checkRoundEnd();
         if (this.currentState === this.STATE_NAGARI ||
             this.currentState === this.STATE_MATCH_OVER ||
@@ -1436,6 +1432,15 @@ const BattleEngine = {
 
         if (this.checkCpuActions(discarded)) {
             return;
+        }
+
+        if (this.firstTurn === 'CPU') {
+            this.turnCount++;
+            this.checkRoundEnd();
+            if (this.currentState === this.STATE_NAGARI ||
+                this.currentState === this.STATE_MATCH_OVER ||
+                this.currentState === this.STATE_FX_PLAYING ||
+                this.turnCount > 20) return;
         }
 
         this.currentState = this.STATE_CPU_TURN;
@@ -1708,7 +1713,6 @@ const BattleEngine = {
 
         } else if (action.type === 'TSUMO') {
             const fullHand = this.getFullHand(this.p1);
-            this.showPopup('TSUMO', { blocking: true });
             this.setExpressions('smile', 'shocked');
 
             this.winningYaku = YakuLogic.checkYaku(fullHand, this.p1.id, this.isOpen(this.p1));
@@ -1743,7 +1747,6 @@ const BattleEngine = {
                 }
             }
 
-            this.showPopup('RON', { blocking: true });
             this.setExpressions('smile', 'shocked');
 
             const fullHand = this.getFullHand(this.p1);
@@ -1808,6 +1811,16 @@ const BattleEngine = {
         if (who === 'P1') {
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
         }
+    },
+
+    startFirstTurn: function () {
+        this.timer = 0;
+        if (this.firstTurn === 'CPU') {
+            this.currentState = this.STATE_CPU_TURN;
+            return;
+        }
+        this.currentState = this.STATE_WAIT_FOR_DRAW;
+        if (this.tutorial) this.tutorialEvent('wait');
     },
 
     getOpponent: function (who) {
@@ -1999,16 +2012,14 @@ const BattleEngine = {
 
         const skill = SkillData[skillId];
         if (!skill) {
-            this.currentState = this.STATE_WAIT_FOR_DRAW;
-            this.timer = 0;
+            this.startFirstTurn();
             return;
         }
 
         const count = this.exchangeIndices.length;
 
         if (count === 0) {
-            this.currentState = this.STATE_WAIT_FOR_DRAW;
-            this.timer = 0;
+            this.startFirstTurn();
             return;
         }
 
@@ -2028,8 +2039,7 @@ const BattleEngine = {
 
         this.exchangeIndices = [];
 
-        this.currentState = this.STATE_WAIT_FOR_DRAW;
-        this.timer = 0;
+        this.startFirstTurn();
     }
 };
 

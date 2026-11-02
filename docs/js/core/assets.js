@@ -136,6 +136,9 @@ const Assets = {
         { id: 'audio/flip', src: 'assets/audio/flip.mp3', type: 'audio' },
         { id: 'audio/tick', src: 'assets/audio/tick.mp3', type: 'audio' },
         { id: 'audio/continue', src: 'assets/audio/continue.mp3', type: 'audio' },
+        { id: 'audio/dora_roulette', src: 'assets/audio/dora_roulette.mp3', type: 'audio' },
+        { id: 'audio/nagari_land', src: 'assets/audio/nagari_land.mp3', type: 'audio' },
+        { id: 'audio/damage', src: 'assets/audio/damage.mp3', type: 'audio' },
 
         'bg/CHRBAK.png',
         'bg/MAYUBAK.png', // 마유 난입 모놀로그 배경

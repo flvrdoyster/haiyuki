@@ -90,12 +90,7 @@ const Game = {
                 yakuBtn.classList.remove('toggle-on', 'toggle-off');
                 yakuBtn.classList.add(isHidden ? 'toggle-off' : 'toggle-on');
 
-                if (!isHidden) {
-                    const iframe = document.getElementById('yaku-frame');
-                    if (iframe && !iframe.src) {
-                        iframe.src = iframe.dataset.src;
-                    }
-                }
+                if (!isHidden) Game.loadYakuFrame();
                 yakuBtn.blur();
             };
         }
@@ -180,6 +175,16 @@ const Game = {
     save: function () {
         localStorage.setItem('haiyuki_save', JSON.stringify(this.saveData));
         console.log("Game saved.");
+    },
+
+    loadYakuFrame: function () {
+        const iframe = document.getElementById('yaku-frame');
+        if (!iframe) return;
+        let loaded = false;
+        try {
+            loaded = !!(iframe.contentDocument && iframe.contentDocument.getElementById('live'));
+        } catch (_) { loaded = false; }
+        if (!iframe.src || !loaded) iframe.src = iframe.dataset.src;
     },
 
     syncSkillsButton: function () {

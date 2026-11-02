@@ -86,12 +86,7 @@ const BattleMenuSystem = {
                     yakuBtn.classList.add(isHidden ? 'toggle-on' : 'toggle-off');
                 }
 
-                if (isHidden) {
-                    const iframe = document.getElementById('yaku-frame');
-                    if (iframe && !iframe.src) {
-                        iframe.src = iframe.dataset.src;
-                    }
-                }
+                if (isHidden) Game.loadYakuFrame();
             } else {
                 window.__yakuPopup = window.open('yaku-calc.html?live', '_blank', 'width=380,height=480,status=no,toolbar=no');
             }

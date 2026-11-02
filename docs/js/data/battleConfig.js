@@ -19,6 +19,7 @@ const BattleConfig = {
         INITIAL_MP: 100,
         NAGARI_DAMAGE: 1000,
         SKILLS_ENABLED: true,
+        RANDOM_FIRST_TURN: true,
 
         // 플레이어 운 보정: chance 확률로 상위 peek장을 들여다보고 최고득점 패를 꺼냄. CPU는 적용 안 됨.
         DRAW_ASSIST: { chance: 1.0, peek: 20 },
@@ -33,8 +34,7 @@ const BattleConfig = {
         CPU_RIICHI_THINK: 21,
         DIALOGUE_SPEAK: 20,
         DIALOGUE_REPLY: 120,
-        ACTION_WAIT: 30,
-        WIN_WAIT: 80
+        ACTION_WAIT: 30
     },
 
     UI_BG: { path: 'bg/GAMEBG.png', color: 'rgba(34, 85, 34, 1)' },
@@ -161,9 +161,9 @@ const BattleConfig = {
         TYPES: {
             'RIICHI': { timeline: 'riichi', sound: 'audio/riichi' },
             'PON': { timeline: 'pon', sound: 'audio/pon' },
-            'RON': { timeline: 'ron', sound: 'audio/gong' },
-            'TSUMO': { timeline: 'tsumo', sound: 'audio/gong' },
-            'NAGARI': { timeline: 'nagari', sound: 'audio/deal' }
+            'RON': { timeline: 'ron' },
+            'TSUMO': { timeline: 'tsumo' },
+            'NAGARI': { timeline: 'nagari', shakeSound: 'audio/nagari_land' }
         }
     },
 
@@ -264,8 +264,9 @@ const BattleConfig = {
     AUDIO: {
         DRAW: 'audio/draw',
         DISCARD: 'audio/discard',
+        DISCARD_GUARDED: 'audio/flip',
         HIT: 'audio/impact-1',
-        DAMAGE: 'audio/impact-2',
+        DAMAGE: 'audio/damage',
         TICK: 'audio/tick'
     },
     BGM: {
@@ -315,19 +316,18 @@ const BattleConfig = {
                 title: "승!",
                 text: "{yaku}\n데미지: {score}",
                 color: "rgba(255, 255, 255, 1)",
-                sound: "audio/fanfare"
+                jingle: "audio/fanfare"
             },
             LOSE: {
                 title: "패!",
                 text: "{yaku}\n데미지: -{score}",
                 color: "rgba(255, 255, 255, 1)",
-                sound: "audio/lose"
+                jingle: "audio/lose"
             },
             NAGARI: {
                 title: "무승부!",
                 text: "플레이어: {p1Status} / 상대: {cpuStatus}\n{damageMsg}",
-                color: "rgba(255, 255, 255, 1)",
-                sound: "audio/wrong"
+                color: "rgba(255, 255, 255, 1)"
             },
             MATCH_WIN: {
                 title: "{winner} 승리!",

@@ -169,25 +169,7 @@ const BattleScene = {
                 }
 
                 if (evt.type === 'DAMAGE') {
-                    // 공격자 캐릭터에 따라 피격 효과음 분기 (검사: slash, 나머지: impact 랜덤)
-                    let attackerId = null;
-                    if (evt.target === 'P1') {
-                        attackerId = engine.cpu.id;
-                    } else if (evt.target === 'CPU') {
-                        attackerId = engine.p1.id;
-                    }
-
-                    if (attackerId) {
-                        const isSword = (attackerId === 'smash' || attackerId === 'yuri');
-                        if (isSword) {
-                            Assets.playSound('audio/slash');
-                        } else {
-                            const r = Math.floor(Math.random() * 3) + 1;
-                            Assets.playSound(`audio/impact-${r}`);
-                        }
-                    } else {
-                        Assets.playSound(BattleConfig.AUDIO.DAMAGE);
-                    }
+                    Assets.playSound(BattleConfig.AUDIO.DAMAGE);
 
                     const tier = BattleConfig.SHAKE.find(t => evt.amount >= t.min) || BattleConfig.SHAKE[BattleConfig.SHAKE.length - 1];
                     Game.shake(tier.amp, tier.frames);
@@ -203,7 +185,9 @@ const BattleScene = {
                 }
 
                 if (evt.type === 'DISCARD') {
-                    Assets.playSound(BattleConfig.AUDIO.DISCARD);
+                    const who = evt.player === 'CPU' ? engine.cpu : engine.p1;
+                    const guarded = who.id === 'fari' && who.buffs && who.buffs.discardGuard > 0;
+                    Assets.playSound(guarded ? BattleConfig.AUDIO.DISCARD_GUARDED : BattleConfig.AUDIO.DISCARD);
                     engine.events.splice(i, 1);
                     continue;
                 }

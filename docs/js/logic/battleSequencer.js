@@ -44,9 +44,26 @@ const BattleSequencer = {
 
         engine.currentState = engine.STATE_FX_PLAYING;
 
+        const sp = BattleConfig.SPEED;
+        const jingle = BattleConfig.RESULT.TYPES[who === 'P1' ? 'WIN' : 'LOSE'].jingle;
         const steps = [
-            { type: 'WAIT', duration: BattleConfig.SPEED.WIN_WAIT },
-            { type: 'REVEAL_HAND' }
+            {
+                type: 'CALLBACK', callback: () => {
+                    if (who === 'CPU') {
+                        engine.cpu.isRevealed = true;
+                        engine.sortHand(engine.cpu.hand);
+                    }
+                    engine.events.push({ type: 'SOUND', id: 'audio/discard' });
+                }
+            },
+            { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+            { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
+            {
+                type: 'CALLBACK', callback: () => {
+                    if (jingle) engine.events.push({ type: 'SOUND', id: jingle });
+                    engine.showPopup(type, { blocking: true });
+                }
+            }
         ];
 
         // 도라폭진 사용 확인(플레이어 한정).
@@ -77,14 +94,6 @@ const BattleSequencer = {
 
         if ((who === 'P1' && engine.p1.isRiichi) || (who === 'CPU' && engine.cpu.isRiichi)) {
             steps.push({ type: 'REVEAL_URA' });
-        }
-
-        if (who === 'P1') {
-            const sound = BattleConfig.RESULT.TYPES.WIN.sound;
-            if (sound) steps.push({ type: 'SOUND', id: sound });
-        } else {
-            const sound = BattleConfig.RESULT.TYPES.LOSE.sound;
-            if (sound) steps.push({ type: 'SOUND', id: sound });
         }
 
         if (engine.winningYaku) {
@@ -172,12 +181,14 @@ const BattleSequencer = {
                     if (BattleConfig.RULES.SKILLS_ENABLED && p1Tenpai && player.skills && player.skills.includes(skillId)) {
                         const skill = SkillData[skillId];
                         if (engine.checkSkillCost(skill, 'P1')) {
-                            engine.sequencing.active = false;
-
                             if (engine.symmetric) {
-                                engine.activateLastChance('P1');
+                                if (SkillFlows.cpuWantsLastChance(engine, 'P1')) {
+                                    engine.sequencing.active = false;
+                                    engine.activateLastChance('P1');
+                                }
                                 return;
                             }
+                            engine.sequencing.active = false;
 
                             if (engine.scene && engine.scene.showConfirm) {
                                 engine.scene.showConfirm(
@@ -199,10 +210,10 @@ const BattleSequencer = {
             },
             {
                 type: 'CALLBACK', callback: () => {
-                    if (!engine.symmetric || engine.currentState !== engine.STATE_FX_PLAYING) return;
+                    if (engine.currentState !== engine.STATE_FX_PLAYING) return;
                     const skillId = 'LAST_CHANCE';
                     if (BattleConfig.RULES.SKILLS_ENABLED && cpuTenpai && engine.cpu.skills && engine.cpu.skills.includes(skillId)
-                        && engine.checkSkillCost(SkillData[skillId], 'CPU')) {
+                        && engine.checkSkillCost(SkillData[skillId], 'CPU') && SkillFlows.cpuWantsLastChance(engine, 'CPU')) {
                         engine.sequencing.active = false;
                         engine.activateLastChance('CPU');
                     }
@@ -216,8 +227,6 @@ const BattleSequencer = {
                             blocking: true,
                             labels: { bottom: p1Tenpai ? 'fx/tenpai' : 'fx/noten', top: cpuTenpai ? 'fx/tenpai' : 'fx/noten' }
                         });
-                        const sound = BattleConfig.RESULT.TYPES.NAGARI.sound;
-                        if (sound) engine.events.push({ type: 'SOUND', id: sound });
                     }
                 }
             },
@@ -319,12 +328,30 @@ const BattleSequencer = {
             engine.calculateTenpaiDamage(true);
             engine.sequencing.active = false;
         },
+        DORA_ROULETTE: function (engine, step, dt) {
+            if (!engine.doras.length) { BattleSequencer.advance(engine); return; }
+            if (step.left === undefined) step.left = 26 + Math.floor(Math.random() * 26);
+            engine.sequencing.timer += dt;
+            if (engine.sequencing.timer < 2) return;
+            engine.sequencing.timer = 0;
+            const types = PaiData.TYPES;
+            const idx = types.findIndex(t => t.id === engine.doras[0].type);
+            const next = types[(idx + 1) % types.length];
+            engine.doras[0] = { type: next.id, color: next.color, img: next.img };
+            if (step.sound) engine.events.push({ type: 'SOUND', id: step.sound });
+            if (--step.left <= 0) BattleSequencer.advance(engine);
+        },
         DEAL: function (engine, step) {
-            const newP1 = engine.drawTiles(step.count);
-            const newCpu = engine.drawTiles(step.count);
-            engine.p1.hand = engine.p1.hand.concat(newP1);
-            engine.cpu.hand = engine.cpu.hand.concat(newCpu);
+            if (step.who !== 'CPU') engine.p1.hand = engine.p1.hand.concat(engine.drawTiles(step.count));
+            if (step.who !== 'P1') engine.cpu.hand = engine.cpu.hand.concat(engine.drawTiles(step.count));
 
+            if (step.sound) {
+                engine.events.push({ type: 'SOUND', id: step.sound });
+            }
+            BattleSequencer.advance(engine);
+        },
+        FACE_DOWN: function (engine, step) {
+            engine.p1.isFaceDown = true;
             if (step.sound) {
                 engine.events.push({ type: 'SOUND', id: step.sound });
             }

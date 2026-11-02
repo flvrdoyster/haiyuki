@@ -43,8 +43,10 @@ const FXSystem = {
                     }
                 }
 
+                const popupConf = options.popupType && BattleConfig.POPUP.TYPES[options.popupType];
                 this.list.push({
                     type: options.timeline, timeline: tl,
+                    shakeSound: popupConf ? popupConf.shakeSound : null,
                     pieces: pieces, labels: labels,
                     t: 0, holdLeft: 0, holdDone: !tl.hold, nextShake: 0,
                     blocking: options.blocking || false,
@@ -116,6 +118,7 @@ const FXSystem = {
                     while (fx.nextShake < tl.shakes.length && tl.shakes[fx.nextShake][0] <= fx.t) {
                         const s = tl.shakes[fx.nextShake++];
                         if (typeof Game !== 'undefined') Game.shake(s[1], s[2]);
+                        if (fx.shakeSound) Assets.playSound(fx.shakeSound);
                     }
                 }
 

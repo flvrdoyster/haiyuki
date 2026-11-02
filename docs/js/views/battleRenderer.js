@@ -237,45 +237,29 @@ const BattleRenderer = {
 
         if (state.currentState === state.STATE_TILE_EXCHANGE) {
             this.drawExchangeWindow(ctx, state);
-        } else if (state.currentState === state.STATE_ROULETTE || state.showLastChanceResult) {
+        } else if (state.lastChance) {
             this.drawRoulette(ctx, state);
         }
 
     },
 
     drawRoulette: function (ctx, state) {
-        // groupSize=1 로 가상 설정하여 드로우 갭 위치 계산
-        const metrics = BattleLayout.getVisualMetrics(state.p1, 1, 'p1');
-        const pStartX = metrics.handStartX;
-        const pCount = state.p1.hand.length;
-
-        const pos = BattleLayout.getPlayerHandPosition(pCount, pCount + 1, 1, pStartX);
+        const lc = state.lastChance;
+        if (!lc || !lc.tile) return;
+        const player = lc.who === 'CPU' ? state.cpu : state.p1;
+        const start = BattleLayout.getVisualMetrics(player, 0).handStartX;
+        const count = player.hand.length;
+        const x = BattleLayout.getPlayerHandPosition(count, count + 1, 1, start).x;
         const tileW = BattleConfig.HAND.tileWidth;
         const tileH = BattleConfig.HAND.tileHeight;
-
-        const x = pos.x;
-        const y = BattleConfig.HAND.playerY;
-
-        if (state.rouletteTileType) {
-            const typeData = PaiData.TYPES.find(t => t.id === state.rouletteTileType);
-            const tile = { type: state.rouletteTileType, img: typeData.img, color: typeData.color };
-
-            const sideImg = Assets.get('tiles/side-top.png');
-            if (sideImg) {
-                const sy = y - sideImg.height;
-                ctx.drawImage(sideImg, x, sy, tileW, sideImg.height);
-            }
-
-            ctx.save();
-            ctx.shadowColor = 'gold';
-            ctx.shadowBlur = 20;
-            this.drawTile(ctx, tile, x, y, tileW, tileH);
-            ctx.restore();
-
-            ctx.strokeStyle = 'gold';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x, y, tileW, tileH);
+        if (lc.who === 'CPU') {
+            this.drawTile(ctx, lc.tile, x, BattleConfig.HAND.cpuY, tileW, tileH);
+            return;
         }
+        const y = BattleConfig.HAND.playerY;
+        const sideImg = Assets.get('tiles/side-top.png');
+        if (sideImg) ctx.drawImage(sideImg, x, y - sideImg.height, tileW, sideImg.height);
+        this.drawTile(ctx, lc.tile, x, y, tileW, tileH);
     },
 
     drawCharacterNames: function (ctx, state) {

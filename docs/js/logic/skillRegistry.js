@@ -140,115 +140,114 @@ const SkillFlows = {
         }
     },
 
-    // 나가리 직전 룰렛으로 마지막 화료패를 노린다.
     activateLastChance: function (engine, who) {
-        const skillId = 'LAST_CHANCE';
-        const skill = SkillData[skillId];
-        engine.consumeMp(who, skill.cost);
-        console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
-        engine.showPopup('SKILL', { text: skill.name, blocking: false });
-        engine.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
+        engine.currentState = engine.STATE_ROULETTE;
+        engine.lastChance = { who: who, phase: 'talk', t: 0, ptr: -1, tile: null, shown: 0, stopAt: 0 };
+        engine.triggerDialogue('LAST_CHANCE', who === 'P1' ? 'p1' : 'cpu');
+    },
 
-        engine.rouletteWho = who;
+    lastChanceAuto: function (engine, who) {
+        return who === 'CPU' || engine.symmetric || engine.isAutoTest();
+    },
+
+    cpuWantsLastChance: function (engine, who) {
         const player = engine.getPlayer(who);
         const hand = engine.getFullHand(player);
-
-        const winningTiles = [];
+        let best = 0, want = null;
         PaiData.TYPES.forEach(type => {
-            const testHand = [...hand, { type: type.id, color: type.color, img: type.img }];
-            if (YakuLogic.checkYaku(testHand, player.id, engine.isOpen(player))) {
-                winningTiles.push(type);
-            }
+            const y = YakuLogic.checkYaku([...hand, { type: type.id, color: type.color, img: type.img }], player.id, engine.isOpen(player));
+            if (y && y.score > best) { best = y.score; want = type.id; }
         });
-
-        if (winningTiles.length === 0) {
-            engine.showPopup('MISS', { blocking: false });
-            engine.sequencing.active = true;
-            return;
-        }
-
-        if (engine.deck.length === 0) {
-            engine.showPopup('MISS', { blocking: false });
-            engine.sequencing.active = true;
-            return;
-        }
-
-        engine.currentState = engine.STATE_ROULETTE;
-        engine.rouletteTimer = 0;
-        engine.rouletteIndex = 0;
-        engine.rouletteTileType = PaiData.TYPES[0].id;
-
-        engine.rouletteFinished = false;
-        engine.rouletteFinishTimer = 0;
-        engine.showLastChanceResult = false;
+        if (!want || best < 5000) return false;
+        const opp = engine.getOpponent(who);
+        const sets = player.openSets.concat(opp.openSets).reduce((a, s) => a.concat(s.tiles), []);
+        const seen = player.hand.concat(engine.discards, sets).filter(t => t.type === want).length;
+        return seen < 6;
     },
 
     updateRoulette: function (engine, dt = 1.0) {
-        if (engine.rouletteFinished) {
-            engine.rouletteFinishTimer += dt;
-            if (engine.rouletteFinishTimer > 60) {
-                SkillFlows.resolveRouletteResult(engine);
+        const lc = engine.lastChance;
+        if (!lc) return;
+        const pressed = Input.isConfirmKey() || Input.isMouseJustPressed();
+        const auto = SkillFlows.lastChanceAuto(engine, lc.who);
+        lc.t += dt;
+
+        if (lc.phase === 'talk') {
+            if (engine.isAutoTest() || (lc.t >= 20 && pressed) || lc.t >= 140) {
+                if (typeof BattleDialogue !== 'undefined') BattleDialogue.hideAll();
+                SkillFlows.lastChanceActivate(engine);
             }
+        } else if (lc.phase === 'pre') {
+            if (lc.t >= 10) {
+                lc.phase = 'spin';
+                lc.t = 0;
+                lc.ptr = engine.deck.length - 1;
+                lc.tile = engine.deck[lc.ptr] || null;
+                lc.shown = 1;
+                lc.stopAt = auto ? 20 + Math.floor(Math.random() * 10) : 0;
+                if (!lc.tile) SkillFlows.lastChanceJudge(engine);
+            }
+        } else if (lc.phase === 'spin') {
+            if (!auto && pressed) {
+                SkillFlows.lastChanceJudge(engine);
+                return;
+            }
+            while (lc.phase === 'spin' && lc.t >= 4) {
+                lc.t -= 4;
+                if (auto && lc.shown >= lc.stopAt) {
+                    SkillFlows.lastChanceJudge(engine);
+                } else {
+                    lc.ptr = lc.ptr > 0 ? lc.ptr - 1 : engine.deck.length - 1;
+                    lc.tile = engine.deck[lc.ptr];
+                    lc.shown++;
+                }
+            }
+        } else if (lc.phase === 'miss') {
+            if (engine.isAutoTest() || (lc.t >= 1 && pressed) || lc.t >= 201) {
+                SkillFlows.lastChanceEnd(engine);
+            }
+        }
+    },
+
+    lastChanceActivate: function (engine) {
+        const lc = engine.lastChance;
+        const skill = SkillData.LAST_CHANCE;
+        engine.consumeMp(lc.who, skill.cost);
+        console.log(`[Skill] ${lc.who} used ${skill.name} (LAST_CHANCE)`);
+        engine.events.push({ type: 'SOUND', id: 'audio/barrier' });
+        engine.showPopup('SKILL', { text: skill.name, blocking: false });
+        if (lc.who === 'CPU') {
+            engine.cpu.isRevealed = true;
+            engine.events.push({ type: 'SOUND', id: 'audio/discard' });
+        }
+        lc.phase = 'pre';
+        lc.t = 0;
+    },
+
+    lastChanceJudge: function (engine) {
+        const lc = engine.lastChance;
+        const player = engine.getPlayer(lc.who);
+        const tile = lc.tile;
+        const winYaku = tile && YakuLogic.checkYaku([...engine.getFullHand(player), tile], player.id, engine.isOpen(player));
+        if (winYaku) {
+            player.hand.push({ type: tile.type, color: tile.color, img: tile.img });
+            engine.lastChance = null;
+            engine.winningYaku = winYaku;
+            const score = engine.calculateScore(winYaku.score, player.isMenzen, player, engine.getOpponent(lc.who));
+            engine.sequencing.active = false;
+            engine.pendingDamage = { target: engine.opponentOf(lc.who), amount: score };
+            BattleSequencer.startWinSequence(engine, 'TSUMO', lc.who, score);
             return;
         }
-
-        const cycleInterval = 4;
-        const prevRoulette = Math.floor(engine.rouletteTimer / cycleInterval);
-        engine.rouletteTimer += dt;
-        const currentRoulette = Math.floor(engine.rouletteTimer / cycleInterval);
-
-        if (currentRoulette > prevRoulette) {
-            const skip = currentRoulette - prevRoulette;
-            engine.rouletteIndex = (engine.rouletteIndex + skip) % PaiData.TYPES.length;
-            engine.rouletteTileType = PaiData.TYPES[engine.rouletteIndex].id;
-        }
-
-        if (engine.symmetric || Input.isConfirmKey() || Input.isMouseJustPressed()) {
-            SkillFlows.finishRoulette(engine);
-        }
+        lc.phase = 'miss';
+        lc.t = 0;
     },
 
-    // 도박 기믹 — 덱에서 무작위 한 장.
-    finishRoulette: function (engine) {
-        const randIdx = Math.floor(Math.random() * engine.deck.length);
-        const resultTile = engine.deck[randIdx];
-
-        engine.rouletteTileType = resultTile.type;
-        engine.rouletteFinished = true;
-        engine.rouletteFinishTimer = 0;
-        engine.rouletteResultTile = resultTile;
-    },
-
-    resolveRouletteResult: function (engine) {
-        const resultTile = engine.rouletteResultTile;
-        if (!resultTile) return;
-
-        const who = engine.rouletteWho || 'P1';
-        const player = engine.getPlayer(who);
-        const hand = engine.getFullHand(player);
-
-        const winTile = { type: resultTile.type, color: resultTile.color, img: resultTile.img };
-        const testHand = [...hand, winTile];
-        const winYaku = YakuLogic.checkYaku(testHand, player.id, engine.isOpen(player));
-
-        if (winYaku) {
-            engine.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-
-            player.hand.push(winTile);
-            engine.winningYaku = winYaku;
-            const score = engine.calculateScore(winYaku.score, player.isMenzen, player, engine.getOpponent(who));
-
-            engine.sequencing.active = false;
-            engine.pendingDamage = { target: engine.opponentOf(who), amount: score };
-            BattleSequencer.startWinSequence(engine, 'TSUMO', who, score);
-        } else {
-            engine.showPopup('MISS', { blocking: false });
-
-            engine.showLastChanceResult = true;
-
-            engine.sequencing.active = true;
-            engine.currentState = engine.STATE_FX_PLAYING;
-        }
+    lastChanceEnd: function (engine) {
+        engine.lastChance = null;
+        engine.cpu.isRevealed = false;
+        engine.currentState = engine.STATE_FX_PLAYING;
+        engine.sequencing.active = true;
     },
 
     // 라운드 시작 시 CPU 자동 패 교환(원본 6.4·6.5: 칸을 무작위 순서로 훑으며 MP 예산이 남는 동안 교환 표시).
@@ -319,9 +318,9 @@ const SkillRegistry = {
     },
 
     HELL_PILE: {
-        canUse: (engine, who) => {
+        canUse: (engine, who, user) => {
             const target = engine.getOpponent(who);
-            return !(target.buffs && target.buffs.curseDraw > 0);
+            return !user.isRiichi && !(target.buffs && target.buffs.curseDraw > 0);
         },
         execute: (engine, who, user, opponent) => {
             opponent.buffs.curseDraw = 3;
@@ -341,7 +340,7 @@ const SkillRegistry = {
 
     RECOVERY: {
         multiUse: true,
-        canUse: (engine, who, user) => user.hp < user.maxHp,
+        canUse: (engine, who, user) => !user.isRiichi && user.hp < user.maxHp,
         execute: (engine, who) => {
             engine.heal(who, 1600);
             engine.playFX('fx/heal', BattleConfig.PORTRAIT[who].x + 100, 300, { scale: 1.5 });
@@ -361,7 +360,7 @@ const SkillRegistry = {
 
     DISCARD_GUARD: {
         multiUse: true,
-        canUse: (engine, who, user) => !(user.buffs && user.buffs.discardGuard > 0),
+        canUse: (engine, who, user) => !user.isRiichi && !(user.buffs && user.buffs.discardGuard > 0),
         execute: (engine, who, user) => {
             user.buffs.discardGuard = 5;
         },
@@ -369,7 +368,7 @@ const SkillRegistry = {
     },
 
     CRITICAL: {
-        canUse: (engine, who, user) => !(user.buffs && user.buffs.attackUp),
+        canUse: (engine, who, user) => !user.isRiichi && !(user.buffs && user.buffs.attackUp),
         execute: (engine, who, user) => {
             user.buffs.attackUp = true;
         },
@@ -388,7 +387,7 @@ const SkillRegistry = {
     },
 
     WATER_MIRROR: {
-        canUse: (engine, who, user) => !(user.buffs && user.buffs.defenseUp),
+        canUse: (engine, who, user) => !user.isRiichi && !(user.buffs && user.buffs.defenseUp),
         execute: (engine, who, user) => {
             user.buffs.defenseUp = true;
         },
