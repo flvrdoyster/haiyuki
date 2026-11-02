@@ -228,6 +228,7 @@ const Assets = {
         'ui/bar_yellow.png',
         'ui/alphabet.png',
         'ui/pointer.png',
+        'ui/mouse2.png',
         'ui/gameover.png',
         'ui/contmoji.png',
         'ui/yesno.png',

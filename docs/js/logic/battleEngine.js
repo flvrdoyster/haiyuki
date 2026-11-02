@@ -516,6 +516,12 @@ const BattleEngine = {
         this.narration = { pages: pages, index: 0, age: 0, onDone: onDone };
     },
 
+    narrationPage: function () {
+        const page = this.narration.pages[this.narration.index];
+        if (typeof page === 'string') return { text: page, look: [] };
+        return { text: page.text, look: [].concat(page.look || []) };
+    },
+
     advanceNarration: function () {
         const n = this.narration;
         if (!n) return;

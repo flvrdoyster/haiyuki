@@ -57,6 +57,7 @@ const BattleRenderer = {
 
     draw: function (ctx, state, activeFX) {
         ctx.imageSmoothingEnabled = false;
+        this._lookRects = { dora: null, uraDora: null, lastDiscard: null, hand: [] };
 
         if (this._dirtyStatic || !this.bgCanvas) {
             this.updateStaticLayers(state);
@@ -145,6 +146,8 @@ const BattleRenderer = {
                 this.drawCardBack(ctx, pos.x, y, tileW, tileH, 'tiles/pai_back.png');
             } else {
                 this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH, options);
+                const sideH = sideImg ? sideImg.height : 0;
+                this._lookRects.hand.push({ type: state.p1.hand[i].type, x: pos.x, y: y - sideH, w: tileW, h: tileH + sideH });
             }
         }
 
@@ -218,7 +221,7 @@ const BattleRenderer = {
 
         if (state.currentState === state.STATE_WIN || state.currentState === state.STATE_LOSE || state.currentState === state.STATE_NAGARI) {
             // 라운드별 결과 창만 — 매치 종료는 블랙 페이드로 처리
-            this.drawResult(ctx, state);
+            if (!this._lookUnderResult(state)) this.drawResult(ctx, state);
         }
 
         if (state.currentState === state.STATE_BATTLE_MENU) {
@@ -229,6 +232,7 @@ const BattleRenderer = {
 
         if (state.narration) {
             this.drawNarration(ctx, state);
+            this.drawLook(ctx, state);
         }
 
         if (state.currentState === state.STATE_TILE_EXCHANGE) {
@@ -468,6 +472,7 @@ const BattleRenderer = {
                     ctx.lineWidth = 2;
                     ctx.strokeRect(-w / 2, -h / 2, w, h);
                     ctx.restore();
+                    this._lookRects.lastDiscard = { x: cx - h / 2, y: cy - w / 2, w: h, h: w };
                 } else {
                     const cx = dx + (dw - w) / 2;
                     const cy = dy + (dh - h) / 2;
@@ -475,6 +480,7 @@ const BattleRenderer = {
                     ctx.strokeStyle = 'yellow';
                     ctx.lineWidth = 2;
                     ctx.strokeRect(cx, cy, w, h);
+                    this._lookRects.lastDiscard = { x: cx, y: cy, w: w, h: h };
                 }
             } else {
                 if (t.isRiichi) {
@@ -568,10 +574,12 @@ const BattleRenderer = {
 
         if (doras.length > 0) {
             this.drawTile(ctx, doras[0], startX, startY, tileW, tileH);
+            this._lookRects.dora = { x: startX, y: startY, w: tileW, h: tileH };
         }
 
         if (uraDoras && uraDoras.length > 0) {
             const x = startX + (tileW + gap);
+            this._lookRects.uraDora = { x: x, y: startY, w: tileW, h: tileH };
             if (isRevealed) {
                 this.drawTile(ctx, uraDoras[0], x, startY, tileW, tileH);
             } else {
@@ -940,7 +948,7 @@ const BattleRenderer = {
         ctx.font = text.font;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        const lines = this._wrapNarration(ctx, state.narration.pages[state.narration.index], box.width - text.xPadding * 2);
+        const lines = this._wrapNarration(ctx, state.narrationPage().text, box.width - text.xPadding * 2);
         const top = y + box.height / 2 - (lines.length * text.lineHeight) / 2 + text.lineHeight * 0.7 + text.baselineCorrection;
         lines.forEach((line, i) => {
             let cx = x + text.xPadding;
@@ -963,6 +971,39 @@ const BattleRenderer = {
             ctx.fill();
         }
         ctx.restore();
+    },
+
+    lookRects: function (state) {
+        const page = state.narration ? state.narrationPage() : null;
+        if (!page || !this._lookRects) return [];
+        const rects = [];
+        page.look.forEach(target => {
+            if (target.startsWith('hand:')) {
+                const type = target.slice(5);
+                this._lookRects.hand.forEach(r => { if (r.type === type) rects.push(r); });
+            } else if (target === 'actionButton') {
+                if (this._actionRect) rects.push(this._actionRect);
+            } else if (this._lookRects[target]) {
+                rects.push(this._lookRects[target]);
+            }
+        });
+        return rects;
+    },
+
+    _lookUnderResult: function (state) {
+        const r = BattleConfig.RESULT;
+        return this.lookRects(state).some(t =>
+            t.x < r.x + r.w && t.x + t.w > r.x && t.y < r.y + r.h && t.y + t.h > r.y);
+    },
+
+    drawLook: function (ctx, state) {
+        const conf = BattleConfig.NARRATION.look;
+        const img = Assets.get(conf.path);
+        if (!img) return;
+        const sx = (Math.floor(state.narration.age / conf.ticks) % conf.frames) * conf.w;
+        this.lookRects(state).forEach(r => {
+            ctx.drawImage(img, sx, 0, conf.w, conf.h, Math.round(r.x + r.w / 2), Math.round(r.y + r.h / 2), conf.w, conf.h);
+        });
     },
 
     _wrapNarration: function (ctx, text, maxWidth) {

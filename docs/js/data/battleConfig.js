@@ -220,7 +220,10 @@ const BattleConfig = {
         ]
     },
 
-    NARRATION: { bottom: 384, resultDelay: 30, highlight: 'rgba(255, 255, 0, 1)' },
+    NARRATION: {
+        bottom: 384, resultDelay: 30, highlight: 'rgba(255, 255, 0, 1)',
+        look: { path: 'ui/mouse2.png', w: 32, h: 24, frames: 5, ticks: 5 }
+    },
     CONFIRM: {
         y: 200,
         minWidth: 200,
