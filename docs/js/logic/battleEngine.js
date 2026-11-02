@@ -173,8 +173,8 @@ const BattleEngine = {
         this.defeatedOpponents = data.defeatedOpponents || [];
         this.roundHistory = [];
 
-        // cpuSkill: 역량(0..1). aiProfile: 플레이 스타일(별도).
         this.difficulty = data.difficulty || 'normal';
+        if (this.difficulty === 'hard') this.cpu.skillOffset = 0;
         this.cpuSkill = this.applySkillOffset(
             this.computeCpuSkill(this.difficulty, this.defeatedOpponents.length), this.cpu.skillOffset);
 
