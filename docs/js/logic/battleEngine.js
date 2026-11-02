@@ -49,6 +49,22 @@ const BattleEngine = {
         return typeof Game !== 'undefined' && !!Game.isAutoTest;
     },
 
+    isSymmetric: function () {
+        return this.isAutoTest() && typeof Game !== 'undefined' && !!Game.symmetric;
+    },
+
+    SYMMETRIC_SKILL: 1.0,
+
+    luckOf: function (who) {
+        if (!this.luckEnabled) return 0;
+        const c = CharacterData.find(ch => ch.id === who.id);
+        return (c && c.aiProfile && c.aiProfile.luck) || 0;
+    },
+
+    skillOf: function (who) {
+        return who === 'P1' ? this.p1Skill : this.cpuSkill;
+    },
+
     isAutoLoseMode: function () {
         return this.isAutoTest() && !!(Game.autoTestOptions && Game.autoTestOptions.loseMode);
     },
@@ -167,14 +183,23 @@ const BattleEngine = {
             ? BattleConfig.RULES.DRAW_ASSIST.chance : 0;
         this.lastDrawAssist = null;
 
-        // CPU 성격 편향: luck>0이면 유리한 패, luck<0이면 불리한 패 쪽으로 드로우 확률 기울임.
-        this.cpuLuck = (this.cpu.aiProfile && this.cpu.aiProfile.luck) || 0;
+        this.luckEnabled = true;
+
+        this.symmetric = this.isSymmetric();
+        this.p1.exchangeDiscard = this.cpu.exchangeDiscard = null;
+        this.p1Skill = this.cpuSkill;
+        if (this.symmetric) {
+            this.p1.skillOffset = this.cpu.skillOffset = 0;
+            this.cpuSkill = this.p1Skill = this.SYMMETRIC_SKILL;
+            this.drawAssistChance = 0;
+            this.p1.aiProfile = p1Data && p1Data.aiProfile || null;
+        }
 
         this.narration = null;
         this.tutorial = null;
         if (data.tutorial) {
             this.drawAssistChance = 0;
-            this.cpuLuck = 0;
+            this.luckEnabled = false;
             this.tutorialLoad(data.lessonIndex || 0);
         }
 
@@ -757,10 +782,11 @@ const BattleEngine = {
             }
         }
 
-        // CPU 성격 편향 드로우(cpuLuck): 덱 상단 재정렬만, 패 구성 불변.
-        if (!buffActive && who === this.cpu && count === 1 && this.cpuLuck && this.deck.length >= 2 &&
-            Math.random() < Math.abs(this.cpuLuck)) {
-            const want = this.cpuLuck > 0;
+        // 캐릭터 특성 luck(뽑는 쪽 캐릭터 기준, 양쪽 적용): 덱 상단 재정렬만, 패 구성 불변.
+        const luck = who ? this.luckOf(who) : 0;
+        if (!buffActive && who && count === 1 && luck && this.deck.length >= 2 &&
+            Math.random() < Math.abs(luck)) {
+            const want = luck > 0;
             const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
             const fullHand = this.getFullHand(who);
             let pickOffset = 0;
@@ -857,7 +883,12 @@ const BattleEngine = {
                         }
 
                         const p1Skills = CharacterData.find(c => c.id === this.p1.id).skills;
-                        if (BattleConfig.RULES.SKILLS_ENABLED && (p1Skills.includes('EXCHANGE_TILE') || p1Skills.includes('PAINT_TILE'))) {
+                        const p1SetupSkill = p1Skills.find(id => id === 'PAINT_TILE' || id === 'EXCHANGE_TILE');
+                        if (this.symmetric && BattleConfig.RULES.SKILLS_ENABLED && p1SetupSkill) {
+                            SkillFlows.executeCpuTileExchange(this, p1SetupSkill, 'P1');
+                            this.currentState = this.STATE_WAIT_FOR_DRAW;
+                            this.timer = 0;
+                        } else if (BattleConfig.RULES.SKILLS_ENABLED && p1SetupSkill) {
                             this.enterTileExchangeState();
                         } else {
                             this.currentState = this.STATE_WAIT_FOR_DRAW;
@@ -877,6 +908,7 @@ const BattleEngine = {
 
             case this.STATE_WAIT_FOR_DRAW:
                 if (this.isAutoTest() && this.timer > 3) {
+                    if (this.symmetric && this.tryP1AiPon()) break;
                     this.confirmDraw();
                 } else if (this.p1.isRiichi && this.timer > BattleConfig.SPEED.RIICHI_AUTO_DRAW) {
                     this.confirmDraw();
@@ -1126,6 +1158,13 @@ const BattleEngine = {
             discardIdx = this.cpu.hand.indexOf(exchangeTile);
         } else if (this.cpu.isRiichi) {
             discardIdx = this.cpu.hand.length - 1;
+            if (this.cpu.declaringRiichi) {
+                for (let i = 0; i < this.cpu.hand.length; i++) {
+                    const tempHand = [...this.cpu.hand];
+                    tempHand.splice(i, 1);
+                    if (this.checkTenpai(tempHand)) { discardIdx = i; break; }
+                }
+            }
         } else {
             const context = {
                 discards: this.discards,
@@ -1238,30 +1277,65 @@ const BattleEngine = {
     },
 
     checkCpuActiveSkills: function () {
+        this.checkActiveSkills('CPU');
+    },
+
+    tryP1AiPon: function () {
+        const pon = (this.possibleActions || []).find(a => a.type === 'PON');
+        if (!pon) return false;
+        const context = { isMenzen: this.p1.isMenzen, turnCount: this.turnCount };
+        if (!AILogic.shouldPon(this.p1.hand, pon.targetTile, this.p1Skill, this.p1.aiProfile, context)) return false;
+        this.executeAction(pon);
+        return true;
+    },
+
+    shouldAiReact: function (who, skillId) {
+        if (skillId === 'SUPER_IAI') return true;
+        const me = this.getPlayer(who);
+        return me.hp < me.maxHp * 0.8 || Math.random() < 0.8;
+    },
+
+    canReachTenpai: function (who) {
+        const me = this.getPlayer(who);
+        const full = this.getFullHand(me);
+        const open = this.isOpen(me);
+        if (full.length === 11) return !!this.checkTenpai(full, false, open);
+        for (let i = 0; i < me.hand.length; i++) {
+            const tmp = [...full];
+            tmp.splice(tmp.indexOf(me.hand[i]), 1);
+            if (this.checkTenpai(tmp, false, open)) return true;
+        }
+        return false;
+    },
+
+    checkActiveSkills: function (who) {
         if (!BattleConfig.RULES.SKILLS_ENABLED) return;
         if (this.skillsUsedThisTurn) return;
 
-        const skills = this.cpu.skills || [];
-        const cpuProfile = CharacterData.find(c => c.id === this.cpu.id).aiProfile;
+        const me = this.getPlayer(who);
+        const opp = this.getOpponent(who);
+        const skills = me.skills || [];
+        const cpuProfile = CharacterData.find(c => c.id === me.id).aiProfile;
         if (!cpuProfile) return;
 
         // cpuSkill: 스킬 발동 빈도(기회를 얼마나 잡는가). 타이밍 품질은 aiScore가 담당.
-        const skillUseChance = 0.3 + 0.7 * this.cpuSkill;
+        const skillUseChance = 0.3 + 0.7 * this.skillOf(who);
 
         for (const skillId of skills) {
             const skill = SkillData[skillId];
             if (!skill) continue;
 
             // Core Validation
-            if (!this.canUseSkill(skillId, 'CPU', true)) continue;
+            if (!this.canUseSkill(skillId, who, true)) continue;
 
             const entry = SkillRegistry[skillId];
             if (!entry || !entry.aiScore) continue;
 
             const threshold = 0.6;
             const ctx = {
-                isTenpai: this.checkTenpai(this.getFullHand(this.cpu), false, this.isOpen(this.cpu)),
-                isPlayerRiichi: this.p1.isRiichi,
+                who: who,
+                isTenpai: this.canReachTenpai(who),
+                isPlayerRiichi: opp.isRiichi,
                 turn: this.turnCount,
                 profile: cpuProfile
             };
@@ -1270,7 +1344,7 @@ const BattleEngine = {
 
             if (score + randomFactor > threshold) {
                 if (Math.random() < skillUseChance) {
-                    this.useSkill(skillId, 'CPU');
+                    this.useSkill(skillId, who);
                 }
                 return;
             }
@@ -1375,7 +1449,16 @@ const BattleEngine = {
             if (reactiveSkillId && !this.p1.isRiichi) {
                 const canAfford = this.checkSkillCost(SkillData[reactiveSkillId]);
 
-                if (canAfford) {
+                if (canAfford && this.symmetric) {
+                    if (this.shouldAiReact('P1', reactiveSkillId) && this.useSkill(reactiveSkillId, 'P1', true)) {
+                        if (reactiveSkillId === 'SUPER_IAI') {
+                            SkillFlows.activateSuperIaido(this, 'P1');
+                        } else {
+                            SkillFlows.activateRonTileExchange(this, 'P1');
+                        }
+                        return true;
+                    }
+                } else if (canAfford) {
                     this.triggerReaction(reactiveSkillId, () => {
                         if (this.useSkill(reactiveSkillId, 'P1', true)) {
                             if (reactiveSkillId === 'SUPER_IAI') {
@@ -1634,7 +1717,7 @@ const BattleEngine = {
                 }) : null;
 
                 if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], 'CPU')) {
-                    if (this.cpu.hp < this.cpu.maxHp * 0.8 || Math.random() < 0.8) {
+                    if (this.shouldAiReact('CPU', reactiveSkillId)) {
                         if (this.useSkill(reactiveSkillId, 'CPU', true)) {
                             if (reactiveSkillId === 'SUPER_IAI') {
                                 SkillFlows.activateSuperIaido(this, 'CPU');

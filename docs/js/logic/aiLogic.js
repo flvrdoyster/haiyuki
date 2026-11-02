@@ -16,6 +16,7 @@ const AILogic = {
     COLOR_W: 350,
     DORA_KEEP_W: 400,
     VALUE_BUILD_W: 300,
+    MAYU_KEEP_W: 500,
 
     // skill(0..1)은 softmax 온도만 좌우(실력). 스타일 축은 skill 무관 full 적용.
     decideDiscard: function (hand, skill, profile, context) {
@@ -87,6 +88,12 @@ const AILogic = {
 
                 if (domCount >= 5 && tile.color !== domColor) score += profile.colorBias * this.COLOR_W;
                 if (doraSet.has(tile.type + '_' + tile.color)) score -= greed * this.DORA_KEEP_W;
+
+                if (charId === 'mayu' && tile.type.indexOf('mayu_') === 0) {
+                    let have = 0;
+                    for (const t of hand) if (t.type === tile.type) have++;
+                    if (have <= (tile.type === 'mayu_purple' ? 3 : 4)) score -= this.MAYU_KEEP_W;
+                }
             } else {
                 score = this.calculateHandPotential(remainingHand, profile, doras, 1);
             }

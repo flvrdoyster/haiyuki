@@ -1,8 +1,69 @@
 // 오토 플레이 — Game.isAutoTest일 때 P1을 AI가 대신 둔다.
 // P1은 aiProfile 없이 skill 0.7 고정. tests/_ai_fingerprint가 이 값을 중립 베이스라인으로 쓴다.
 const AutoPlay = {
+    performSymmetricTurn: function (e) {
+        e.checkActiveSkills('P1');
+
+        e.checkSelfActions();
+        const tsumoAction = (e.possibleActions || []).find(a => a.type === 'TSUMO');
+        if (tsumoAction) {
+            e.executeAction(tsumoAction);
+            return;
+        }
+
+        const exchangeTile = e.p1.exchangeDiscard;
+        e.p1.exchangeDiscard = null;
+        if (exchangeTile && e.p1.hand.indexOf(exchangeTile) !== -1) {
+            e.discardTile(e.p1.hand.indexOf(exchangeTile));
+            return;
+        }
+
+        if (e.p1.isRiichi) {
+            if (e.p1.declaringRiichi && e.validRiichiDiscardIndices && e.validRiichiDiscardIndices.length > 0) {
+                e.discardTile(e.validRiichiDiscardIndices[0]);
+            } else {
+                e.discardTile(e.p1.hand.length - 1);
+            }
+            return;
+        }
+
+        if (e.p1.isMenzen && e.p1.hand.length >= 2 && e.turnCount < 20) {
+            let riichiDiscardIndex = -1;
+            for (let i = 0; i < e.p1.hand.length; i++) {
+                const tempHand = [...e.p1.hand];
+                tempHand.splice(i, 1);
+                if (e.checkTenpai(tempHand)) {
+                    riichiDiscardIndex = i;
+                    break;
+                }
+            }
+            if (riichiDiscardIndex >= 0 && AILogic.shouldRiichi(e.p1.hand, e.p1Skill, e.p1.aiProfile)) {
+                e.p1.isRiichi = true;
+                e.p1.declaringRiichi = true;
+                e.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
+                e.updateBattleMusic();
+                e.discardTile(riichiDiscardIndex);
+                return;
+            }
+        }
+
+        const context = {
+            discards: e.discards,
+            opponentRiichi: e.cpu.isRiichi,
+            doras: e.doras,
+            turnCount: e.turnCount,
+            charId: e.p1.id
+        };
+        e.discardTile(AILogic.decideDiscard(e.p1.hand, e.p1Skill, e.p1.aiProfile, context));
+    },
+
     performTurn: function (e) {
         if (e.currentState !== e.STATE_PLAYER_TURN) {
+            return;
+        }
+
+        if (e.symmetric) {
+            AutoPlay.performSymmetricTurn(e);
             return;
         }
 
