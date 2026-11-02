@@ -59,6 +59,10 @@ const CharacterSelectScene = {
 
         this.mode = data && data.mode ? data.mode : 'STORY';
         this.defeatedOpponents = data && data.defeatedOpponents ? data.defeatedOpponents : [];
+        this.match = this.mode === 'ONLINE' ? data.match : null;
+        if (this.match && this.match.myChar != null && this.characters[this.match.myChar]) {
+            this.playerIndex = this.match.myChar;
+        }
 
         if (this.mode === 'NEXT_MATCH') {
             this.playerIndex = data.playerIndex;
@@ -76,6 +80,66 @@ const CharacterSelectScene = {
 
         this.updateP1Portrait();
         this.updateCpuPortrait();
+        if (this.match && this.match.myChar != null) this.confirmPlayer();
+    },
+
+    charAt: function (index) {
+        return this.match ? CharacterData[index] : this.characters[index];
+    },
+
+    confirmPlayer: function () {
+        this.currentState = this.STATE_CPU_SELECT;
+        this.cpuTimer = 0;
+        if (this.match) {
+            this.match.sendPick(this.playerIndex);
+            return;
+        }
+        this.updateCpuPortrait();
+        if (this.mode === 'WATCH') {
+            this.startWatchMode();
+        }
+    },
+
+    leaveOnline: function () {
+        this.match.close();
+        this.match = null;
+        Assets.stopMusic();
+        Game.changeScene(TitleScene);
+    },
+
+    updateOnline: function (dt) {
+        const match = this.match;
+        if (match.failed) {
+            if (match.updateFailure(dt)) this.leaveOnline();
+            return true;
+        }
+        if (match.peerChar != null && this.cpuIndex !== match.peerChar) {
+            this.cpuIndex = match.peerChar;
+            this.updateCpuPortrait();
+        }
+        if (this.currentState === this.STATE_CPU_SELECT) {
+            if (match.peerChar != null) {
+                this.currentState = this.STATE_READY;
+                this.readyTimer = 0;
+            }
+            return true;
+        }
+        if (this.currentState === this.STATE_READY) {
+            this.readyTimer += dt;
+            if (this.readyTimer > (Game.isAutoTest ? 10 : 60)) {
+                Game.changeScene(BattleScene, {
+                    online: match,
+                    playerIndex: this.playerIndex,
+                    cpuIndex: this.cpuIndex
+                });
+            }
+            return true;
+        }
+        if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
+            this.leaveOnline();
+            return true;
+        }
+        return false;
     },
 
     updateP1Portrait: function () {
@@ -93,9 +157,10 @@ const CharacterSelectScene = {
     },
 
     updateCpuPortrait: function () {
-        if (!this.characters[this.cpuIndex]) return;
-        this.cpuPortrait = new PortraitCharacter(this.characters[this.cpuIndex], SelectConfig.PORTRAIT.CPU, true);
-        this.setupPortraitAnim(this.cpuPortrait, this.characters[this.cpuIndex].id);
+        const charData = this.charAt(this.cpuIndex);
+        if (!charData) return;
+        this.cpuPortrait = new PortraitCharacter(charData, SelectConfig.PORTRAIT.CPU, true);
+        this.setupPortraitAnim(this.cpuPortrait, charData.id);
     },
 
     setupPortraitAnim: function (portrait, id) {
@@ -156,11 +221,12 @@ const CharacterSelectScene = {
         if (this.p1Portrait) this.p1Portrait.update(dt);
         if (this.cpuPortrait) this.cpuPortrait.update(dt);
 
+        if (this.match && this.updateOnline(dt)) return;
+
         if (this.currentState === this.STATE_PLAYER_SELECT) {
             if (Game.isAutoTest) {
-                this.currentState = this.STATE_CPU_SELECT;
-                this.cpuTimer = 0;
-                this.updateCpuPortrait();
+                this.confirmPlayer();
+                return;
             }
 
             // UP으로 숨김 슬롯(마유)에 진입, DOWN/LEFT/RIGHT으로 행으로 복귀
@@ -183,13 +249,7 @@ const CharacterSelectScene = {
             }
 
             if (Input.isConfirmKey()) {
-                this.currentState = this.STATE_CPU_SELECT;
-                this.cpuTimer = 0;
-                this.updateCpuPortrait();
-
-                if (this.mode === 'WATCH') {
-                    this.startWatchMode();
-                }
+                this.confirmPlayer();
             }
             // 호버 변경 시 즉시 선택 반영 (하이브리드 마우스 입력)
             const hoveredIndex = this.getHoveredCharacterIndex();
@@ -206,13 +266,7 @@ const CharacterSelectScene = {
 
             if (Input.isMouseJustPressed()) {
                 if (hoveredIndex !== -1) {
-                    this.currentState = this.STATE_CPU_SELECT;
-                    this.cpuTimer = 0;
-                    this.updateCpuPortrait();
-
-                    if (this.mode === 'WATCH') {
-                        this.startWatchMode();
-                    }
+                    this.confirmPlayer();
                 }
             }
         } else if (this.currentState === this.STATE_CPU_SELECT) {
@@ -271,6 +325,11 @@ const CharacterSelectScene = {
     },
 
     draw: function (ctx) {
+        this.drawScene(ctx);
+        if (this.match) this.match.drawFailure(ctx);
+    },
+
+    drawScene: function (ctx) {
         const bg = Assets.get(SelectConfig.BACKGROUND.path);
         if (bg) {
             const pattern = UIDraw.getPattern(ctx, bg, 'repeat');
@@ -306,14 +365,15 @@ const CharacterSelectScene = {
             ctx.fillText(pNameText, pNameX, pNameY);
         }
 
-        if (this.currentState >= this.STATE_CPU_SELECT) {
+        const showCpu = this.match ? this.match.peerChar != null : this.currentState >= this.STATE_CPU_SELECT;
+        if (showCpu) {
             if (this.cpuPortrait) {
                 this.cpuPortrait.draw(ctx);
             }
 
             ctx.textAlign = 'right';
-            if (this.characters[this.cpuIndex]) {
-                const cpuNameText = this.characters[this.cpuIndex].name;
+            if (this.charAt(this.cpuIndex)) {
+                const cpuNameText = this.charAt(this.cpuIndex).name;
                 const cpuNameX = SelectConfig.PORTRAIT.CPU.x - SelectConfig.NAME.xPadding;
                 const cpuNameY = SelectConfig.PORTRAIT.CPU.y + SelectConfig.NAME.yOffset;
 
@@ -361,7 +421,7 @@ const CharacterSelectScene = {
             UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                 pr.x + (pr.w - cursorW) / 2, pr.y + (pr.h - cursorH) / 2, 0, cursorW, cursorH);
 
-            if (this.currentState >= this.STATE_CPU_SELECT) {
+            if (showCpu && this.characters[this.cpuIndex]) {
                 const cr = this.getIconRect(this.cpuIndex);
                 UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
                     cr.x + (cr.w - cursorW) / 2, cr.y + (cr.h - cursorH) / 2, 1, cursorW, cursorH);

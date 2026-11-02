@@ -9,10 +9,6 @@ const BattleSequencer = {
         const activeBuffs = [];
         const isRiichi = (who === 'P1') ? engine.p1.isRiichi : engine.cpu.isRiichi;
 
-        if (BattleConfig.RULES.SKILLS_ENABLED && (who === 'CPU' || engine.symmetric) && isRiichi && attacker.id === 'rinxiang') {
-            SkillFlows.applyDoraBomb(engine, attacker, who);
-        }
-
         if (attacker.buffs && attacker.buffs.attackUp) {
             finalScore = Math.floor(finalScore * 1.25);
             attacker.buffs.attackUp = false;
@@ -63,30 +59,13 @@ const BattleSequencer = {
             }
         ];
 
-        if (BattleConfig.RULES.SKILLS_ENABLED && who === 'P1' && !engine.symmetric && isRiichi && attacker.id === 'rinxiang') {
-            const skillId = 'DORA_BOMB';
-            const skill = SkillData[skillId];
-            if (skill && attacker.mp >= skill.cost) {
-                steps.push({
-                    type: 'CALLBACK',
-                    callback: () => {
-                        if (engine.scene && engine.scene.showConfirm) {
-                            engine.sequencing.active = false;
-                            engine.scene.showConfirm(
-                                '도라폭진을 사용하시겠습니까?',
-                                () => {
-                                    SkillFlows.applyDoraBomb(engine, attacker, who);
-                                    engine.sequencing.active = true;
-                                },
-                                () => {
-                                    engine.sequencing.active = true;
-                                }
-                            );
-                        }
-                    }
-                });
+        steps.push({
+            type: 'CALLBACK',
+            callback: () => {
+                engine.sequencing.active = false;
+                engine.offerDoraBomb(who, () => { engine.sequencing.active = true; });
             }
-        }
+        });
 
         if ((who === 'P1' && engine.p1.isRiichi) || (who === 'CPU' && engine.cpu.isRiichi)) {
             steps.push({ type: 'REVEAL_URA' });
@@ -167,7 +146,7 @@ const BattleSequencer = {
         };
         engine.roundHistory.push(resultData);
 
-        const tenpaiOf = [p1Tenpai, cpuTenpai];
+        const tenpaiOf = [0, 1].map(seat => engine.whoAt(seat) === 'P1' ? p1Tenpai : cpuTenpai);
         const lastChanceSteps = [0, 1].map(seat => ({
             type: 'CALLBACK', callback: () => {
                 if (engine.currentState !== engine.STATE_FX_PLAYING) return;
@@ -296,7 +275,7 @@ const BattleSequencer = {
             if (--step.left <= 0) BattleSequencer.advance(engine);
         },
         DEAL: function (engine, step) {
-            const player = engine.seats[step.seat];
+            const player = engine.playerAt(step.seat);
             player.hand = player.hand.concat(engine.drawTiles(step.count));
 
             if (step.sound) {

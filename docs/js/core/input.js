@@ -26,7 +26,10 @@ const Input = {
         // Enter·NumpadEnter를 Z(확인키)로 정규화 — 모든 isDown/isJustPressed가 자동 반응
         const normalize = (code) => (code === 'Enter' || code === 'NumpadEnter') ? this.Z : code;
 
+        const inTextField = (e) => !!(e.target && e.target.tagName === 'INPUT');
+
         window.addEventListener('keydown', (e) => {
+            if (inTextField(e)) return;
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
                 e.preventDefault();
             }
@@ -34,6 +37,7 @@ const Input = {
         });
 
         window.addEventListener('keyup', (e) => {
+            if (inTextField(e)) return;
             this.keys[normalize(e.code)] = false;
         });
 

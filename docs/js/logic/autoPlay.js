@@ -38,10 +38,7 @@ const AutoPlay = {
                 }
             }
             if (riichiDiscardIndex >= 0 && AILogic.shouldRiichi(e.p1.hand, e.p1Skill, e.p1.aiProfile)) {
-                e.p1.isRiichi = true;
-                e.p1.declaringRiichi = true;
-                e.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
-                e.updateBattleMusic();
+                e.declareRiichi('P1');
                 e.discardTile(riichiDiscardIndex);
                 return;
             }
@@ -75,9 +72,8 @@ const AutoPlay = {
 
         // Riichi Enforcement: Must discard drawn tile (last one)
         if (e.p1.isRiichi) {
-            if (e.p1.declaringRiichi && e.p1.validRiichiDiscardIndices) {
-                const validIdx = e.p1.validRiichiDiscardIndices[0];
-                e.discardTile(validIdx);
+            if (e.p1.declaringRiichi && e.validRiichiDiscardIndices && e.validRiichiDiscardIndices.length > 0) {
+                e.discardTile(e.validRiichiDiscardIndices[0]);
             } else {
                 e.discardTile(e.p1.hand.length - 1);
             }
@@ -100,11 +96,7 @@ const AutoPlay = {
             }
 
             if (canRiichi) {
-                e.p1.isRiichi = true;
-                e.p1.declaringRiichi = true;
-                e.showPopup('RIICHI', { blocking: true, slideFrom: 'LEFT' });
-                // Sound handled by showPopup -> View (popupType check)
-                e.updateBattleMusic();
+                e.declareRiichi('P1');
                 e.discardTile(riichiDiscardIndex);
                 return;
             }

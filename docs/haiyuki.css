@@ -292,6 +292,7 @@ body.gamepad-on .toolbar-icon-btn.btn-touch-only {
 
 #game-container {
     /* Layout */
+    position: relative;
     flex-shrink: 0;
 
     /* Visual */
@@ -577,4 +578,25 @@ body.gamepad-on #virtual-gamepad {
 .gamepad-buttons button.gamepad-btn-enter {
     width: 72px;
     min-width: 72px;
+}
+#online-code {
+    position: absolute;
+    left: 50%;
+    top: 68%;
+    transform: translate(-50%, -50%);
+    display: none;
+    width: 6ch;
+    padding: 4px 8px;
+    font: 28px monospace;
+    letter-spacing: 0.2em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #ff0;
+    background: #000;
+    border: 2px solid #fff;
+    outline: none;
+}
+
+#online-code.show {
+    display: block;
 }

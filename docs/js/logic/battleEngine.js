@@ -18,6 +18,7 @@ const BattleEngine = {
     lastChance: null,
 
     SEAT_WHO: ['P1', 'CPU'],
+    localSeat: 0,
     seats: null,
     controllers: null,
     firstSeat: 0,
@@ -71,11 +72,15 @@ const BattleEngine = {
     },
 
     whoAt: function (seat) {
-        return this.SEAT_WHO[seat];
+        return seat === this.localSeat ? 'P1' : 'CPU';
     },
 
     seatOf: function (who) {
-        return this.SEAT_WHO.indexOf(who);
+        return who === 'P1' ? this.localSeat : 1 - this.localSeat;
+    },
+
+    playerAt: function (seat) {
+        return this.getPlayer(this.whoAt(seat));
     },
 
     defaultControllers: function () {
@@ -141,10 +146,33 @@ const BattleEngine = {
     possibleActions: [],
 
     dialogueTriggeredThisTurn: false,
+    lastDrawInfo: { P1: null, CPU: null },
     roundSkillUsage: { p1: {}, cpu: {} },
 
     logAction: function (who, type, payload) {
-        this.actionLog.push(Object.assign({ round: this.currentRound, who: who, type: type }, payload));
+        const entry = Object.assign({ round: this.currentRound, who: who, type: type }, payload);
+        this.actionLog.push(entry);
+        if (this.onAction) this.onAction(entry);
+    },
+
+    stateHash: function () {
+        const key = t => t.type + ':' + t.color;
+        const hand = p => p.hand.map(key).sort().join(',');
+        const sets = p => p.openSets.map(s => s.tiles.map(key).sort().join(',')).join(';');
+        const s0 = this.playerAt(0), s1 = this.playerAt(1);
+        const parts = [
+            hand(s0), sets(s0), s0.hp, s0.mp,
+            hand(s1), sets(s1), s1.hp, s1.mp,
+            this.discards.map(key).join(','),
+            this.deck.length, this.currentRound, this.turnCount,
+            this.rng.deck.calls, this.rng.fx.calls
+        ];
+        const s = parts.join('|');
+        let h = 0x811c9dc5;
+        for (let i = 0; i < s.length; i++) {
+            h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+        }
+        return h >>> 0;
     },
 
     tileKey: function (tile) {
@@ -157,6 +185,8 @@ const BattleEngine = {
         this.rng = Rng.create(this.seed);
         AILogic.rng = this.rng.ai;
         this.actionLog = [];
+        this.onAction = data.onAction || null;
+        this.online = data.online || null;
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.oncontextmenu = (e) => {
@@ -166,7 +196,8 @@ const BattleEngine = {
 
         this.timers.clear();
 
-        this.seats = [this.p1, this.cpu];
+        this.localSeat = data.localSeat ? 1 : 0;
+        this.seats = [this.playerAt(0), this.playerAt(1)];
         this.controllers = Object.assign(this.defaultControllers(), data.controllers || {});
 
         this.playerIndex = data.playerIndex || 0;
@@ -383,7 +414,8 @@ const BattleEngine = {
         this.currentBgm = 'audio/bgm_basic';
         this.events.push({ type: 'MUSIC', id: this.currentBgm, loop: true });
 
-        this.skillsUsedThisTurn = false;
+        this.p1.skillsUsedThisTurn = false;
+        this.cpu.skillsUsedThisTurn = false;
         this.roundSkillUsage = { p1: {}, cpu: {} };
         this.p1.buffs = {};
         this.cpu.buffs = {};
@@ -417,7 +449,7 @@ const BattleEngine = {
             dealSteps.push({ type: 'WAIT', duration: 5 });
             dealSteps.push({ type: 'DEAL', seat: 0, count: count, sound: 'audio/discard' });
         });
-        const roulette = (this.tutorial || this.isAutoTest()) ? [] : [{ type: 'DORA_ROULETTE', sound: 'audio/dora_roulette' }];
+        const roulette = (this.tutorial || (this.isAutoTest() && !this.online)) ? [] : [{ type: 'DORA_ROULETTE', sound: 'audio/dora_roulette' }];
         this.currentState = this.STATE_DEALING;
         this.sequencing = {
             active: true,
@@ -588,7 +620,13 @@ const BattleEngine = {
         }
     },
 
-    skillsUsedThisTurn: false,
+    get skillsUsedThisTurn() {
+        return !!this.p1.skillsUsedThisTurn;
+    },
+
+    set skillsUsedThisTurn(v) {
+        this.p1.skillsUsedThisTurn = v;
+    },
 
     checkSkillCost: function (skill, who = 'P1') {
         if (!skill) return false;
@@ -611,7 +649,7 @@ const BattleEngine = {
             if (this.roundSkillUsage[who.toLowerCase()] && this.roundSkillUsage[who.toLowerCase()][skillId]) {
                 return false;
             }
-            if (this.skillsUsedThisTurn && skill.type === 'ACTIVE') {
+            if (this.getPlayer(who).skillsUsedThisTurn && skill.type === 'ACTIVE') {
                 return false;
             }
         }
@@ -637,15 +675,15 @@ const BattleEngine = {
             return false;
         }
 
-        this.consumeMp(who, skill.cost);
         this.logAction(who, 'skill', { skill: skillId });
+        this.consumeMp(who, skill.cost);
         this.processSkillEffect(skill, who, skillId);
 
         console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
 
         if (!entry.multiUse) {
             this.roundSkillUsage[who.toLowerCase()][skillId] = true;
-            this.skillsUsedThisTurn = true;
+            this.getPlayer(who).skillsUsedThisTurn = true;
         }
 
         this.showPopup('SKILL', { text: skill.name, blocking: false });
@@ -831,6 +869,10 @@ const BattleEngine = {
         this.totalTicks += dt;
 
         this.timers.update(dt);
+        this.SEAT_WHO.forEach(who => {
+            const c = this.controllerOf(who);
+            if (c.poll) c.poll(this, who, dt);
+        });
         if (this.narration) return;
 
         if (this.currentState !== this.lastState) {
@@ -876,14 +918,6 @@ const BattleEngine = {
             this.STATE_DAMAGE_ANIMATION,
             this.STATE_ROULETTE
         ];
-
-        if (!endStates.includes(this.currentState) && this.currentState !== this.STATE_INIT) {
-            const prevCheck = Math.floor((this.timer - dt) / 15);
-            const currentCheck = Math.floor(this.timer / 15);
-            if (currentCheck > prevCheck) {
-                this.checkRoundEnd();
-            }
-        }
 
         switch (this.currentState) {
             case this.STATE_ROULETTE:
@@ -1015,8 +1049,9 @@ const BattleEngine = {
             return;
         }
 
+        this.logAction(who, 'draw');
         this.dialogueTriggeredThisTurn = false;
-        if (who === 'P1') this.skillsUsedThisTurn = false;
+        me.skillsUsedThisTurn = false;
 
         this.manageBuffs(me);
         if (me.hp <= 0) return;
@@ -1025,13 +1060,12 @@ const BattleEngine = {
         const t = this.drawTiles(1, me);
         if (t.length > 0) {
             this.events.push({ type: 'DRAW', player: who });
-            this.logAction(who, 'draw');
             me.hand.push(t[0]);
             console.log(`[Draw] ${who}: ${t[0].color} ${t[0].type}`);
             if (who === 'P1') this.lastDrawGroupSize = 1;
-            else this.cpuDrawInfo = { tile: t[0], preHand: preHand };
-        } else if (who !== 'P1') {
-            this.cpuDrawInfo = null;
+            this.lastDrawInfo[who] = { tile: t[0], preHand: preHand };
+        } else {
+            this.lastDrawInfo[who] = null;
         }
 
         if (who === 'P1') {
@@ -1041,14 +1075,14 @@ const BattleEngine = {
                     if (this.tutorial) {
                         this.tutorialEvent('tsumoChance', () => this.executeAction(tsumoAction));
                     } else {
-                        this.executeAction(tsumoAction);
+                        this.declareTsumo('P1', true);
                     }
                     return;
                 }
             }
         } else if (me.isRiichi && !this.tutorial &&
             YakuLogic.checkYaku(this.getFullHand(me), me.id, this.isOpen(me))) {
-            this.declareTsumo(who);
+            this.declareTsumo(who, true);
             return;
         }
 
@@ -1227,21 +1261,20 @@ const BattleEngine = {
         }
         me.exchangeReturned = null;
 
-        if (who !== 'P1') {
-            if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !me.isRiichi) {
-                const CH = BattleConfig.DIALOGUE.CHANCE;
-                if (opp.isRiichi) {
-                    if (this.rng.fx.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
-                } else {
-                    const key = this.classifyCpuDraw();
-                    const chance = key === 'GOOD_DRAW' ? CH.DRAW_GOOD
-                        : key === 'BAD_DRAW' ? CH.DRAW_BAD
-                            : CH.RANDOM;
-                    if (this.rng.fx.random() < chance) this.triggerDialogue(key, 'cpu', 'RANDOM');
-                }
+        if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !me.isRiichi) {
+            const CH = BattleConfig.DIALOGUE.CHANCE;
+            const opts = { silent: who === 'P1' };
+            if (opp.isRiichi) {
+                if (this.rng.fx.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', who, undefined, opts);
+            } else {
+                const key = this.classifyDraw(who);
+                const chance = key === 'GOOD_DRAW' ? CH.DRAW_GOOD
+                    : key === 'BAD_DRAW' ? CH.DRAW_BAD
+                        : CH.RANDOM;
+                if (this.rng.fx.random() < chance) this.triggerDialogue(key, who, 'RANDOM', opts);
             }
-            this.cpuDrawInfo = null;
         }
+        this.lastDrawInfo[who] = null;
 
         this.discards.push(discarded);
         console.log(`[Discard] ${who}: ${discarded.color} ${discarded.type}${discarded.isRiichi ? ' [Riichi]' : ''}`);
@@ -1426,6 +1459,7 @@ const BattleEngine = {
 
     declarePon: function (who, tile) {
         const me = this.getPlayer(who);
+        this.logAction(who, 'pon', { tile: this.tileKey(tile) });
         this.setExpression(who, 'smile');
         this.setExpression(this.opponentOf(who), 'shocked');
         this.showPopup('PON', { blocking: true });
@@ -1435,11 +1469,12 @@ const BattleEngine = {
         this.currentState = this.STATE_FX_PLAYING;
         this.timers.add(() => {
             if (!this.applyPon(me, tile)) return;
-            this.logAction(who, 'pon', { tile: this.tileKey(tile) });
 
-            if (who === 'P1') {
+            const oppWho = this.opponentOf(who);
+            const reply = this.pickDialogue('PON_REPLY', oppWho);
+            if (reply && oppWho === 'CPU') {
                 this.timers.add(() => {
-                    this.triggerDialogue('PON_REPLY', 'cpu');
+                    this.events.push({ type: 'DIALOGUE', text: reply, who: oppWho });
                 }, BattleConfig.SPEED.DIALOGUE_SPEAK);
             }
 
@@ -1468,7 +1503,7 @@ const BattleEngine = {
         if (who === 'P1') this.tutorialEvent('riichi');
     },
 
-    declareTsumo: function (who) {
+    declareTsumo: function (who, auto) {
         const me = this.getPlayer(who);
         const opp = this.getOpponent(who);
         const win = YakuLogic.checkYaku(this.getFullHand(me), me.id, this.isOpen(me));
@@ -1476,7 +1511,7 @@ const BattleEngine = {
             console.error("CRITICAL: TSUMO allowed but checkYaku failed during execution!");
             return;
         }
-        this.logAction(who, 'tsumo');
+        this.logAction(who, 'tsumo', auto ? { auto: true } : undefined);
 
         this.setExpression(who, 'smile');
         this.setExpression(this.opponentOf(who), 'shocked');
@@ -1505,6 +1540,7 @@ const BattleEngine = {
             });
             if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], oppWho)) {
                 this.controllerOf(oppWho).onCounterPrompt(this, oppWho, reactiveSkillId, (use) => {
+                    this.logAction(oppWho, 'react', { use: !!use });
                     if (use && this.useSkill(reactiveSkillId, oppWho, true)) {
                         if (reactiveSkillId === 'SUPER_IAI') {
                             SkillFlows.activateSuperIaido(this, oppWho);
@@ -1626,6 +1662,7 @@ const BattleEngine = {
             removedTiles.push(player.hand.splice(idx, 1)[0]);
         });
 
+        removedTiles.sort((a, b) => (a.type + a.color).localeCompare(b.type + b.color));
         removedTiles.forEach(tile => {
             const r = this.rng.deck.int(this.deck.length);
             this.deck.splice(r, 0, tile);
@@ -1687,8 +1724,20 @@ const BattleEngine = {
         return YakuLogic.getRiichiScore(this.p1.hand, this.p1.id, discardIdx);
     },
 
+    get cpuDrawInfo() {
+        return this.lastDrawInfo.CPU;
+    },
+
+    set cpuDrawInfo(v) {
+        this.lastDrawInfo.CPU = v;
+    },
+
     classifyCpuDraw: function () {
-        const info = this.cpuDrawInfo;
+        return this.classifyDraw('CPU');
+    },
+
+    classifyDraw: function (who) {
+        const info = this.lastDrawInfo[who];
         if (!info || !info.tile) return 'RANDOM';
         const tile = info.tile;
         const preHand = info.preHand || [];
@@ -1702,9 +1751,17 @@ const BattleEngine = {
         return 'RANDOM';
     },
 
-    triggerDialogue: function (key, owner, fallbackKey) {
-        if (this.tutorial) return;
-        if (!DialogueData || !DialogueData.BATTLE) return;
+    triggerDialogue: function (key, owner, fallbackKey, options = {}) {
+        const text = this.pickDialogue(key, owner, fallbackKey);
+        if (!text) return;
+        const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
+        if (!options.silent) this.events.push({ type: 'DIALOGUE', text: text, who: who });
+        this.dialogueTriggeredThisTurn = true;
+    },
+
+    pickDialogue: function (key, owner, fallbackKey) {
+        if (this.tutorial) return null;
+        if (!DialogueData || !DialogueData.BATTLE) return null;
 
         const charId = (owner === 'p1' || owner === 'P1') ? this.p1.id : this.cpu.id;
         const charData = DialogueData.BATTLE[charId];
@@ -1720,12 +1777,8 @@ const BattleEngine = {
             lines = DialogueData.BATTLE.default[key];
         }
 
-        if (lines && lines.length > 0) {
-            const text = this.rng.fx.pick(lines);
-            const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
-            this.events.push({ type: 'DIALOGUE', text: text, who: who });
-            this.dialogueTriggeredThisTurn = true;
-        }
+        if (!lines || lines.length === 0) return null;
+        return this.rng.fx.pick(lines);
     },
 
     activeStateTileExchange: function () {
@@ -1778,10 +1831,11 @@ const BattleEngine = {
         this.continueRoundSetup();
     },
 
-    confirmTileExchange: function (who = 'P1', indices) {
+    confirmTileExchange: function (who = 'P1', indices, skillId) {
         const me = this.getPlayer(who);
         if (!indices) indices = this.exchangeIndices;
-        const skill = SkillData[this.setupSkillOf(who)];
+        if (!skillId) skillId = this.setupSkillOf(who);
+        const skill = SkillData[skillId];
         const count = indices.length;
 
         if (!skill || count === 0) {
@@ -1797,12 +1851,18 @@ const BattleEngine = {
             return;
         }
 
-        this.consumeMp(who, totalCost);
         this.logAction(who, 'exchange', { tiles: indices.map(i => this.tileKey(me.hand[i])) });
+        this.consumeMp(who, totalCost);
         this.exchangeTiles(me, indices);
 
-        this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-        this.showPopup('SKILL', { text: skill.name, blocking: false });
+        if (who === 'P1') {
+            this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+            this.showPopup('SKILL', { text: skill.name, blocking: false });
+        } else {
+            this.events.push({ type: 'SOUND', id: 'audio/flip' });
+            this.timer = -15;
+        }
+        this.triggerDialogue(skillId, who, undefined, { silent: who === 'P1' });
 
         if (indices === this.exchangeIndices) this.exchangeIndices = [];
 
@@ -1818,9 +1878,34 @@ const BattleEngine = {
 
         this.sequencing.active = false;
         this.controllerOf(who).onNagari(this, who, (use) => {
+            this.logAction(who, 'nagari', { use: !!use });
             if (use) this.activateLastChance(who);
             else this.sequencing.active = true;
         });
+    },
+
+    offerDoraBomb: function (who, onDone) {
+        const skillId = 'DORA_BOMB';
+        const me = this.getPlayer(who);
+        if (!BattleConfig.RULES.SKILLS_ENABLED || !me.isRiichi || me.id !== 'rinxiang' ||
+            !this.checkSkillCost(SkillData[skillId], who)) {
+            onDone();
+            return;
+        }
+        this.controllerOf(who).onDoraBomb(this, who, (use) => {
+            this.logAction(who, 'doraBomb', { use: !!use });
+            if (use) SkillFlows.applyDoraBomb(this, me, who);
+            onDone();
+        });
+    },
+
+    findHandIndex: function (who, tileKey, used = []) {
+        const hand = this.getPlayer(who).hand;
+        for (let i = 0; i < hand.length; i++) {
+            if (used.includes(i)) continue;
+            if (hand[i].type === tileKey.type && hand[i].color === tileKey.color) return i;
+        }
+        return -1;
     }
 };
 

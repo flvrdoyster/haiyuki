@@ -159,7 +159,7 @@ const SkillFlows = {
                 lc.ptr = engine.deck.length - 1;
                 lc.tile = engine.deck[lc.ptr] || null;
                 lc.shown = 1;
-                lc.stopAt = auto ? 20 + engine.rng.ai.int(10) : 0;
+                lc.stopAt = auto ? engine.controllerOf(lc.who).rouletteStopAt(engine, lc.who) : 0;
                 if (!lc.tile) SkillFlows.lastChanceJudge(engine);
             }
         } else if (lc.phase === 'spin') {
@@ -182,6 +182,22 @@ const SkillFlows = {
                 SkillFlows.lastChanceEnd(engine);
             }
         }
+    },
+
+    lastChanceSeek: function (engine, shown) {
+        const lc = engine.lastChance;
+        const n = engine.deck.length;
+        if (!lc || lc.phase !== 'spin' || n === 0) return;
+        lc.shown = shown;
+        lc.ptr = ((n - shown) % n + n) % n;
+        lc.tile = engine.deck[lc.ptr];
+    },
+
+    lastChanceSetStop: function (engine, shown) {
+        const lc = engine.lastChance;
+        if (!lc || lc.phase !== 'spin') return;
+        lc.stopAt = shown;
+        if (lc.shown > shown) SkillFlows.lastChanceSeek(engine, shown);
     },
 
     lastChanceActivate: function (engine) {
@@ -229,12 +245,16 @@ const SkillFlows = {
 
     executeCpuTileExchange: function (engine, skillId, who) {
         who = who || 'CPU';
+        engine.confirmTileExchange(who, SkillFlows.pickCpuTileExchange(engine, skillId, who), skillId);
+    },
+
+    pickCpuTileExchange: function (engine, skillId, who) {
         const me = engine.getPlayer(who);
         const skill = SkillData[skillId];
-        if (!skill) return;
+        if (!skill) return [];
 
         const hand = me.hand;
-        if (hand.length === 0) return;
+        if (hand.length === 0) return [];
 
         const isPaint = skillId === 'PAINT_TILE';
         const keepTypes = isPaint
@@ -247,7 +267,7 @@ const SkillFlows = {
                 if (keepTypes.indexOf(tile.type) >= 0) seen++;
                 if (seen < 6 && engine.rng.ai.random() < 0.7) { used = true; break; }
             }
-            if (!used) return;
+            if (!used) return [];
         }
 
         const typeCount = {};
@@ -266,15 +286,7 @@ const SkillFlows = {
             picked.push(i);
             budget -= skill.cost;
         }
-        if (picked.length === 0) return;
-
-        engine.consumeMp(who, picked.length * skill.cost);
-        engine.exchangeTiles(me, picked);
-
-        engine.events.push({ type: 'SOUND', id: 'audio/flip' });
-        engine.triggerDialogue(skillId, who === 'P1' ? 'p1' : 'cpu');
-
-        engine.timer = -15;
+        return picked;
     }
 };
 

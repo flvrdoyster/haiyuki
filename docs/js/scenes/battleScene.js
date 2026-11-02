@@ -10,6 +10,19 @@ const BattleScene = {
             this.skillsBeforeTutorial = BattleConfig.RULES.SKILLS_ENABLED;
             BattleConfig.RULES.SKILLS_ENABLED = false;
         }
+        this.online = null;
+        if (data.online) {
+            const match = data.online;
+            this.online = match;
+            this.skillsBeforeOnline = BattleConfig.RULES.SKILLS_ENABLED;
+            BattleConfig.RULES.SKILLS_ENABLED = !!match.skillsEnabled;
+            data.difficulty = 'normal';
+            data.seed = match.seed;
+            data.localSeat = match.seat;
+            data.defeatedOpponents = [];
+            data.controllers = { P1: new HumanController(), CPU: new NetController(match) };
+            data.onAction = (entry) => match.onAction(BattleEngine, entry);
+        }
         BattleEngine.init(data, this);
         Game.syncSkillsButton();
         BattleRenderer.reset();
@@ -28,6 +41,17 @@ const BattleScene = {
         Game.changeScene(TitleScene);
     },
 
+    exitOnline: function () {
+        BattleConfig.RULES.SKILLS_ENABLED = this.skillsBeforeOnline;
+        const match = this.online;
+        this.online = null;
+        BattleEngine.online = null;
+        if (match) match.close();
+        Game.syncSkillsButton();
+        Assets.stopMusic();
+        Game.changeScene(TitleScene);
+    },
+
     endMatch: function () {
         const lost = BattleEngine.matchWinner !== 'P1';
         Game.fadeTo(() => this.proceedFromMatchOver(), lost ? BattleConfig.LOSE_FADE : undefined);
@@ -39,6 +63,12 @@ const BattleScene = {
 
     proceedFromMatchOver: function () {
         const e = BattleEngine;
+
+        if (this.online) {
+            this.online.finish(e);
+            this.exitOnline();
+            return;
+        }
 
         if (e.matchWinner === 'P1') {
             e.defeatedOpponents = [...e.defeatedOpponents, e.cpuIndex];
@@ -218,6 +248,11 @@ const BattleScene = {
     update: function (dt = 1.0) {
         dt = dt || 1.0;
         QADebug.sync(BattleEngine);
+
+        if (this.online && this.online.failed) {
+            if (this.online.updateFailure(dt)) this.exitOnline();
+            return;
+        }
 
         if (this.confirmData) {
             this.updateConfirm(dt);
@@ -420,6 +455,7 @@ const BattleScene = {
         if (this.confirmData) {
             this.drawConfirm(ctx);
         }
+        if (this.online) this.online.drawFailure(ctx);
     },
 
     showConfirm: function (msg, onYes, onNo, options = {}) {

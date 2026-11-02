@@ -16,7 +16,9 @@ const Rng = {
     stream: function (seed, name) {
         let a = Rng.hash(seed, name);
         const s = {
+            calls: 0,
             random: function () {
+                s.calls++;
                 a = (a + 0x6d2b79f5) >>> 0;
                 let t = a;
                 t = Math.imul(t ^ (t >>> 15), t | 1);

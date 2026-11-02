@@ -26,9 +26,9 @@ const AIDecisions = {
 
     useActiveSkills: function (engine, who) {
         if (!BattleConfig.RULES.SKILLS_ENABLED) return;
-        if (engine.skillsUsedThisTurn) return;
-
         const me = engine.getPlayer(who);
+        if (me.skillsUsedThisTurn) return;
+
         const opp = engine.getOpponent(who);
         const skills = me.skills || [];
         const profile = CharacterData.find(c => c.id === me.id).aiProfile;
@@ -152,15 +152,22 @@ AIController.prototype = {
 
     onRoundSetup: function (engine, who, skillId) {
         SkillFlows.executeCpuTileExchange(engine, skillId, who);
-        engine.finishRoundSetup(who);
     },
 
     onNagari: function (engine, who, resolve) {
         resolve(SkillFlows.cpuWantsLastChance(engine, who));
     },
 
+    onDoraBomb: function (engine, who, resolve) {
+        resolve(true);
+    },
+
     autoStopRoulette: function () {
         return true;
+    },
+
+    rouletteStopAt: function (engine) {
+        return 20 + engine.rng.ai.int(10);
     }
 };
 
@@ -203,10 +210,17 @@ HumanController.prototype = {
     onRoundSetup: function (engine, who, skillId) {
         if (engine.symmetric) {
             SkillFlows.executeCpuTileExchange(engine, skillId, who);
-            engine.finishRoundSetup(who);
             return;
         }
         engine.enterTileExchangeState();
+    },
+
+    onDoraBomb: function (engine, who, resolve) {
+        if (engine.symmetric) {
+            resolve(true);
+            return;
+        }
+        this.confirm(engine, '도라폭진을 사용하시겠습니까?', resolve);
     },
 
     onNagari: function (engine, who, resolve) {
@@ -223,6 +237,10 @@ HumanController.prototype = {
 
     autoStopRoulette: function (engine) {
         return engine.symmetric || engine.isAutoTest();
+    },
+
+    rouletteStopAt: function (engine) {
+        return 20 + engine.rng.ai.int(10);
     }
 };
 
