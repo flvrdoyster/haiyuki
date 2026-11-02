@@ -11,6 +11,7 @@ const BattleScene = {
             BattleConfig.RULES.SKILLS_ENABLED = false;
         }
         BattleEngine.init(data, this);
+        Game.syncSkillsButton();
         BattleRenderer.reset();
         this.initPortraits();
         this.fx = FXSystem.create();
@@ -22,6 +23,7 @@ const BattleScene = {
         BattleConfig.RULES.SKILLS_ENABLED = this.skillsBeforeTutorial;
         BattleEngine.tutorial = null;
         BattleEngine.narration = null;
+        Game.syncSkillsButton();
         Assets.stopMusic();
         Game.changeScene(TitleScene);
     },

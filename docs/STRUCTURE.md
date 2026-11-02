@@ -28,7 +28,7 @@
 
 - 타이틀 `TUTORIAL` → `BattleScene`을 `{ tutorial: true, lessonIndex }`로 연다(플레이어·상대는 눈썹개를 뺀 무작위 서로 다른 캐릭터). 엔진은 `BattleEngine.tutorial`(null이면 본편)이 있을 때만 갈라진다. 레슨 데이터·나레이션은 `data/tutorialData.js`.
 - 레슨 `plan`(플레이어 뽑기·버림·펑·론과 단계별 텐파이/역)이 단일 출처다: 뽑기 순서, 버릴 수 있는 패(버림 횟수째 한 종류), 검증 spec이 모두 여기서 나온다. `cpuDraws`는 CPU 뽑기 = 버림 순서.
-- 판 준비: `startRound`가 `tutorialBuildDeck`으로 배패 순서를 덱 끝에 깔고 도라·우라도라를 레슨 값으로 고정. `drawTiles`는 큐에서 꺼내고 비면 덱에서 뽑는다. easy 어시스트 0, `luckEnabled` false, `BattleConfig.RULES.SKILLS_ENABLED`는 시작 때 끄고 `BattleScene.exitTutorial`이 복구(툴바 비기 버튼은 튜토리얼 중 무시).
+- 판 준비: `startRound`가 `tutorialBuildDeck`으로 배패 순서를 덱 끝에 깔고 도라·우라도라를 레슨 값으로 고정. `drawTiles`는 큐에서 꺼내고 비면 덱에서 뽑는다. easy 어시스트 0, `luckEnabled` false, `BattleConfig.RULES.SKILLS_ENABLED`는 시작 때 끄고 `BattleScene.exitTutorial`이 복구. 툴바 비기 버튼은 `Game.syncSkillsButton`이 전투 시작·튜토리얼 종료·페이지 로드 때 켜짐/꺼짐 표시를 실제 값에 맞추고, 튜토리얼 중에는 `disabled`로 흐리게 둔다.
 - 리치 선언은 `needRiichi` 레슨에서만 뜬다(`checkSelfActions`가 다른 레슨에서 RIICHI를 걸러 냄).
 - CPU: 뽑은 패를 그대로 버리고 쯔모·리치·펑·론·비기 없음(`checkCpuActions` 즉시 false), `triggerDialogue` 전부 무시.
 - 버림 제한: `discardTile`이 `tutorialCanDiscard`로 거르고(틀리면 `audio/wrong`), 렌더러가 같은 함수로 못 버리는 패를 어둡게 칠한다. 리치를 걸어야 하는 차례(`tutorialWantsAction`)에는 리치 전까지 모든 패를 막는다. `needPon` 레슨에서 펑 가능 때 패를 가져오면 `tutorialFail` → 실패 나레이션 뒤 그 레슨 처음부터.

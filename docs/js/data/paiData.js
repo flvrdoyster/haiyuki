@@ -31,9 +31,9 @@ const PaiData = {
         { id: 'sword', name: '검', color: 'blue', category: 'weapon', img: 'tiles/pai_sword.png' },
         { id: 'wand', name: '지팡이', color: 'yellow', category: 'weapon', img: 'tiles/pai_wand.png' },
 
-        { id: 'mayu_red', name: '빨간 눈썹개', color: 'red', category: 'mayu', img: 'tiles/pai_red.png' },
-        { id: 'mayu_blue', name: '파란 눈썹개', color: 'blue', category: 'mayu', img: 'tiles/pai_blue.png' },
-        { id: 'mayu_yellow', name: '노란 눈썹개', color: 'yellow', category: 'mayu', img: 'tiles/pai_yellow.png' },
+        { id: 'mayu_red', name: '빨강 눈썹개', color: 'red', category: 'mayu', img: 'tiles/pai_red.png' },
+        { id: 'mayu_blue', name: '파랑 눈썹개', color: 'blue', category: 'mayu', img: 'tiles/pai_blue.png' },
+        { id: 'mayu_yellow', name: '노랑 눈썹개', color: 'yellow', category: 'mayu', img: 'tiles/pai_yellow.png' },
         { id: 'mayu_purple', name: '보라 눈썹개', color: 'purple', category: 'mayu', img: 'tiles/pai_purple.png' }
     ],
 

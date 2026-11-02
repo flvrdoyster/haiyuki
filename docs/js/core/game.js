@@ -72,11 +72,7 @@ const Game = {
 
         setTimeout(() => {
             renderMuteIcon(Assets.muted);
-            if (skillsBtn) {
-                const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
-                skillsBtn.classList.remove('toggle-on', 'toggle-off');
-                skillsBtn.classList.add(rulesEnabled ? 'toggle-on' : 'toggle-off');
-            }
+            Game.syncSkillsButton();
         }, 100);
 
         const yakuBtn = document.getElementById('yaku-btn');
@@ -184,6 +180,15 @@ const Game = {
     save: function () {
         localStorage.setItem('haiyuki_save', JSON.stringify(this.saveData));
         console.log("Game saved.");
+    },
+
+    syncSkillsButton: function () {
+        const btn = document.getElementById('skills-btn');
+        if (!btn) return;
+        const inTutorial = !!(typeof BattleEngine !== 'undefined' && BattleEngine.tutorial);
+        btn.disabled = inTutorial;
+        btn.classList.remove('toggle-on', 'toggle-off');
+        btn.classList.add(BattleConfig.RULES.SKILLS_ENABLED ? 'toggle-on' : 'toggle-off');
     },
 
     changeScene: function (scene, data) {
