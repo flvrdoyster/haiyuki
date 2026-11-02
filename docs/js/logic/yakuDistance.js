@@ -436,8 +436,31 @@ const YakuDistance = (() => {
         return out;
     }
 
-    function exampleTiles(index) {
-        return YAKU[index].example.map(k => k === ANY ? null : KIND_IDS[k]);
+    const COLOR_INDEX = { red: 0, yellow: 1, blue: 2 };
+    const rep = (k, n) => new Array(n).fill(k);
+    const VARIANT_EXAMPLES = {
+        JANG_GI: (p, w) => [...rep(p, 3), ...rep(w, 3), ...rep(ANY, 6)],
+        PIL_SAL_GI: (p, w) => [...rep(p, 4), ...rep(w, 4), ...rep(ANY, 4)],
+        IL_SAEK: (b) => [...rep(b, 3), ...rep(b + 2, 3), ...rep(b + 3, 3), ...rep(12, 3)],
+        CHO_IL_SAEK: (b) => [...rep(b, 4), ...rep(b + 2, 4), ...rep(b + 3, 4)],
+        SUN_IL_SAEK: (b) => [...rep(b, 3), ...rep(b + 1, 3), ...rep(b + 3, 6)]
+    };
+
+    function variantExample(key, meta) {
+        const f = VARIANT_EXAMPLES[key];
+        if (!f || !meta) return null;
+        if (meta.char) {
+            const p = KIND_IDS.indexOf(meta.char);
+            if (p < 0) return null;
+            return f(p, WEAPONS[p >> 2]);
+        }
+        if (meta.color in COLOR_INDEX) return f(4 * COLOR_INDEX[meta.color]);
+        return null;
+    }
+
+    function exampleTiles(index, meta) {
+        const ex = variantExample(YAKU[index].key, meta) || YAKU[index].example;
+        return ex.map(k => k === ANY ? null : KIND_IDS[k]);
     }
 
     return { YAKU, KIND_IDS, ANY, evaluate, evaluateCounts, markSlots, helpfulKinds, exampleTiles, unseenCounts, reachable };

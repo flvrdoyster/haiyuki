@@ -505,7 +505,7 @@
             function renderDetail() {
                 const r = dist[selected];
                 const y = YakuDistance.YAKU[selected];
-                const ex = YakuDistance.exampleTiles(selected).map(id => id ? tileImg(id) : '<span class="any">?</span>').join('');
+                const ex = YakuDistance.exampleTiles(selected, r.meta).map(id => id ? tileImg(id) : '<span class="any">?</span>').join('');
                 let need = '';
                 if (hand.length === 0) need = '';
                 else if (r.missing === 0) need = '<span class="done">완성</span>';

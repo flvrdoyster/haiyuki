@@ -96,7 +96,7 @@ const Game = {
 
                 if (!isHidden) {
                     const iframe = document.getElementById('yaku-frame');
-                    if (iframe) {
+                    if (iframe && !iframe.src) {
                         iframe.src = iframe.dataset.src;
                     }
                 }

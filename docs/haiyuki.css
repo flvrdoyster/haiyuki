@@ -333,11 +333,11 @@ a {
     /* Box Model */
     width: 380px;
     height: 480px;
-    border: 1px solid var(--border);
 
     /* Visual */
     background: rgba(0, 92, 80, 1);
-    box-shadow: 0 0 10px var(--shadow);
+    box-shadow: 0 0 20px var(--shadow);
+    clip-path: inset(-40px -40px -40px 0);
 }
 
 #yaku-container.hidden {
