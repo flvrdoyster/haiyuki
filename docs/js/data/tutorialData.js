@@ -23,6 +23,7 @@ const TutorialData = {
                     ]
                 },
                 { on: 'drawn', say: [{ text: '필요 없는 패를 1장 버립니다.\n{빨강 눈썹개}패를 선택하세요.', look: 'hand:mayu_red' }] },
+                { on: 'drawn', discards: 1, say: [{ text: '이번에도 필요 없는 패를 1장 버립니다.\n{파랑 눈썹개}패를 선택하세요.', look: 'hand:mayu_blue' }] },
                 {
                     on: 'discarded', discards: 2, say: [
                         '뭐든지 좋으니 각각 3개씩 모두 4벌을 모으면\n"삼도립"이라는 역이 완성됩니다.',
@@ -63,7 +64,7 @@ const TutorialData = {
                 { draw: 'fari', win: { yaku: '삼도립', score: 2400 } }
             ],
             script: [
-                { on: 'wait', say: ['앞에서와 같은 패입니다.\n이번에는 리치를 걸고 기다려 봅시다.'] },
+                { on: 'wait', say: ['앞에서와 같은 패로 이번에도 "삼도립"을 노립니다.', '이번에는 리치를 걸고 기다려 봅시다.'] },
                 { on: 'drawn', discards: 0, say: [{ text: '{빨강 눈썹개}패를 선택하세요.', look: 'hand:mayu_red' }] },
                 { on: 'wait', discards: 1, say: [{ text: '리치는 패를 가져온 뒤에 선언할 수 있습니다.\n{패 가져오기}를 선택하세요.', look: 'actionButton' }] },
                 { on: 'drawn', discards: 1, say: [{ text: '앞으로 1개로 날 수 있을 때 리치를 선언할 수 있습니다.\n메뉴에서 {리치}를 선택하세요.', look: 'actionButton' }] },
@@ -76,7 +77,7 @@ const TutorialData = {
                 },
                 { on: 'win', say: [
                                 { text: '?로 표시된 「숨김 도라」는\n리치로 난 경우에만 모양이 표시됩니다.', look: 'uraDora' },
-                                '아쉽게도 이번엔 숨김 도라패가 없어 추가 보너스는 얻지 못했습니다.'
+                                '아쉽게도 이번엔 숨김 도라패가 없어\n추가 보너스는 얻지 못했습니다.'
                                 ] }
             ]
         },
@@ -98,13 +99,15 @@ const TutorialData = {
             ],
             script: [
                 { on: 'wait', say: ['같은 색의 패로 3종류를 3개씩,\n보라색 눈썹개패를 3개 모으면\n"일색"이라는 역이 완성됩니다.'] },
+                { on: 'drawn', discards: 0, say: [{ text: '빨강 패와 보라 눈썹개패를 모으므로\n파랑인 {검}패는 필요 없습니다.', look: 'hand:sword' }] },
+                { on: 'drawn', discards: 1, say: [{ text: '가져온 {페톰}패도 노랑이므로 버립니다.', look: 'hand:pet' }] },
                 {
                     on: 'ponChance', say: [
                         { text: '펑은 패를 새로 가져오지 않고\n상대가 버린 패를 받아\n3개 모음으로 만드는 것을 말합니다.', look: ['lastDiscard', 'hand:ataho'] },
                         '패 가져오기 대신, ESC 등을 눌러 메뉴를 열고 {펑}을 선택하세요.'
                     ]
                 },
-                { on: 'afterPon', say: ['펑을 하면 바로 1장 버립니다.'] },
+                { on: 'afterPon', say: ['펑을 하면 바로 1장 버립니다.', { text: '{지팡이}패를 선택하세요.', look: 'hand:wand' }] },
                 {
                     on: 'discarded', say: [
                         '펑을 한 뒤에 난다면 역의 점수가 3/4로 줄어듭니다.',
@@ -132,6 +135,13 @@ const TutorialData = {
             script: [
                 { on: 'wait', say: ['취호전의 캐릭터 3인(아타호, 린샹, 스마슈)을\n4개씩 모아 완성하는 역도 있습니다.\n4개씩 모으는 역은 펑을 하면 만들 수 없습니다.'] },
                 { on: 'drawn', discards: 0, say: [{ text: '메뉴에서 {리치}를 선택하세요.', look: 'actionButton' }] },
+                { on: 'riichi', say: [{ text: '{유리와카마루}패를 선택하세요.', look: 'hand:yuri' }] },
+                {
+                    on: 'discarded', discards: 1, say: [
+                        { text: '이제 {스마슈}패가 1개만 더 오면\n취호전이 완성됩니다.', look: 'hand:smash' },
+                        '리치를 걸었으므로 상대가 스마슈패를 버려도\n그 패로 날 수 있습니다.'
+                    ]
+                },
                 { on: 'ron', say: [{ text: '리치를 걸고 있을 때, 상대가 버린 패로 나면\n론이 선언되며 이깁니다.', look: 'lastDiscard' }] },
                 {
                     on: 'afterResult', say: [
