@@ -1120,36 +1120,8 @@ const BattleEngine = {
             if (canRiichi && AILogic.shouldRiichi(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile)) {
                 this.cpu.isRiichi = true;
                 this.cpu.declaringRiichi = true;
-
-                this.setExpression('CPU', 'smile');
-                this.currentBgm = 'audio/bgm_tension';
-                this.currentState = this.STATE_FX_PLAYING;
-
-                const riichiKey = this.p1.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
-                const sp = BattleConfig.SPEED;
-
-                this.sequencing = {
-                    active: true,
-                    timer: 0,
-                    currentStep: 0,
-                    steps: [
-                        { type: 'WAIT', duration: sp.CPU_RIICHI_THINK },
-                        { type: 'DIALOGUE', key: riichiKey, who: 'cpu' },
-                        { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
-                        { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'p1' },
-                        { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
-                        { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { timeline: 'riichi_r', blocking: true }) },
-                        { type: 'MUSIC', id: 'audio/bgm_tension', loop: true },
-                        {
-                            type: 'CALLBACK', callback: () => {
-                                this.sequencing.active = false;
-                                this.currentState = this.STATE_CPU_TURN;
-                                this.discardTileCPU(riichiDiscardIndex);
-                            }
-                        }
-                    ]
-                };
-                return; // Stop CPU turn logic here
+                this.startCpuRiichiSequence(riichiDiscardIndex);
+                return;
             }
         }
 
@@ -1176,7 +1148,42 @@ const BattleEngine = {
             discardIdx = AILogic.decideDiscard(this.cpu.hand, this.cpuSkill, this.cpu.aiProfile, context);
         }
 
+        if (this.cpu.declaringRiichi && !this.cpu.riichiSilent) {
+            this.startCpuRiichiSequence(discardIdx);
+            return;
+        }
         this.scheduleCpuDiscard(discardIdx);
+    },
+
+    startCpuRiichiSequence: function (discardIdx) {
+        this.setExpression('CPU', 'smile');
+        this.currentBgm = 'audio/bgm_tension';
+        this.currentState = this.STATE_FX_PLAYING;
+
+        const riichiKey = this.p1.isRiichi ? 'COUNTER_RIICHI' : 'RIICHI';
+        const sp = BattleConfig.SPEED;
+
+        this.sequencing = {
+            active: true,
+            timer: 0,
+            currentStep: 0,
+            steps: [
+                { type: 'WAIT', duration: sp.CPU_RIICHI_THINK },
+                { type: 'DIALOGUE', key: riichiKey, who: 'cpu' },
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: 'p1' },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
+                { type: 'CALLBACK', callback: () => this.showPopup('RIICHI', { timeline: 'riichi_r', blocking: true }) },
+                { type: 'MUSIC', id: 'audio/bgm_tension', loop: true },
+                {
+                    type: 'CALLBACK', callback: () => {
+                        this.sequencing.active = false;
+                        this.currentState = this.STATE_CPU_TURN;
+                        this.discardTileCPU(discardIdx);
+                    }
+                }
+            ]
+        };
     },
 
     // 드로우한 패를 잠깐 보여주고 버림(FX_PLAYING으로 CPU_TURN 재발화 차단). autotest는 0.
@@ -1792,7 +1799,6 @@ const BattleEngine = {
         const p = this.getPlayer(who);
         p.isRiichi = true;
         p.declaringRiichi = true;
-        p.riichiSilent = true;
         if (who === 'P1') {
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();
         }

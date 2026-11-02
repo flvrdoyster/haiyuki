@@ -54,7 +54,7 @@
 ## 턴 진행 타이밍
 
 - 원본 `usamain.sq`를 fxtrace로 실행해 센 틱에 맞춘다(`SPEED`): 사람 버림 → CPU 뽑기 21, CPU 뽑기 → 버림 22, CPU 버림 → 사람 뽑기 입력 가능 22(`DRAW_INPUT_DELAY`, 키·마우스 모두), 리치 중 사람은 CPU 버림 22틱 뒤 자동으로 뽑고(`RIICHI_AUTO_DRAW`) 50틱 뒤 자동 버림(원본은 자동 없음 — 웹 선택).
-- 리치 선언 순서는 원본대로 "대사(20틱) → 상대 대답(120틱, 확인키·클릭으로 넘김) → 배너(82틱) → 버림". 사람은 리치 버튼 뒤 버릴 패를 고른 순간 이 시퀀스가 돌고 배너가 끝나야 패가 놓인다(`discardTile` → `commitDiscard`). CPU는 뽑은 뒤 21틱(`CPU_RIICHI_THINK`)에 시작한다. 시퀀서 스텝 `DIALOGUE`·`WAIT_KEY`가 이를 맡고, 키로 넘기면 `BattleDialogue.hideAll`로 말풍선을 닫는다. 튜토리얼은 대사 없이 배너만. BGM은 시퀀스 끝의 `MUSIC` 스텝이 배너 뒤에 바꾸며, `updateBattleMusic`과 리치 봉 그리기는 `declaringRiichi` 중인 쪽을 아직 리치가 아닌 것으로 본다(버튼을 누른 순간 먼저 바뀌지 않게). 비기로 거는 리치(`declareRiichiLock`: 맹호일발권·기합 리치)와 론 패 교환으로 되가져온 리치패를 다시 버릴 때는 `riichiSilent`로 대사·배너 시퀀스를 건너뛰고 버림패에 리치 표시만 한다.
+- 리치 선언 순서는 원본대로 "대사(20틱) → 상대 대답(120틱, 확인키·클릭으로 넘김) → 배너(82틱) → 버림". 사람은 리치 버튼 뒤 버릴 패를 고른 순간 이 시퀀스가 돌고 배너가 끝나야 패가 놓인다(`discardTile` → `commitDiscard`). CPU는 뽑은 뒤 21틱(`CPU_RIICHI_THINK`)에 시작한다. 시퀀서 스텝 `DIALOGUE`·`WAIT_KEY`가 이를 맡고, 키로 넘기면 `BattleDialogue.hideAll`로 말풍선을 닫는다. 튜토리얼은 대사 없이 배너만. BGM은 시퀀스 끝의 `MUSIC` 스텝이 배너 뒤에 바꾸며, `updateBattleMusic`과 리치 봉 그리기는 `declaringRiichi` 중인 쪽을 아직 리치가 아닌 것으로 본다(버튼을 누른 순간 먼저 바뀌지 않게). 비기로 거는 리치(`declareRiichiLock`: 맹호일발권·기합 리치)도 원본처럼 버리는 순간 같은 시퀀스를 탄다(원본은 두 비기가 '이번 버림에서 리치 선언' 플래그를 직접 켜고 버림 루틴이 그 플래그로 선언 연출에 들어간다, `sq/RULES.md` 비기 표). CPU는 AI 판단 리치와 비기 리치 모두 `startCpuRiichiSequence`를 쓴다. 론 패 교환으로 되가져온 리치패를 다시 버릴 때만 `riichiSilent`로 시퀀스를 건너뛰고 버림패에 리치 표시만 한다.
 
 ## 페이지 스타일
 
