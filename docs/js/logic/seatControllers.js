@@ -6,7 +6,7 @@ const AIDecisions = {
     shouldReact: function (engine, who, skillId) {
         if (skillId === 'SUPER_IAI') return true;
         const me = engine.getPlayer(who);
-        return me.hp < me.maxHp * 0.8 || Math.random() < 0.8;
+        return me.hp < me.maxHp * 0.8 || engine.rng.ai.random() < 0.8;
     },
 
     wantsPon: function (engine, who, tile) {
@@ -53,10 +53,10 @@ const AIDecisions = {
                 profile: profile
             };
             const score = entry.aiScore(engine, ctx);
-            const randomFactor = Math.random() * 0.2;
+            const randomFactor = engine.rng.ai.random() * 0.2;
 
             if (score + randomFactor > threshold) {
-                if (Math.random() < skillUseChance) {
+                if (engine.rng.ai.random() < skillUseChance) {
                     engine.useSkill(skillId, who);
                 }
                 return;
@@ -93,7 +93,7 @@ const AIDecisions = {
 
         let idx;
         if (returned && me.hand.indexOf(returned) !== -1) {
-            idx = me.hand.indexOf(SkillFlows.pickRonExchangeTile(me.hand, returned));
+            idx = me.hand.indexOf(SkillFlows.pickRonExchangeTile(engine, me.hand, returned));
         } else if (me.isRiichi) {
             idx = me.hand.length - 1;
             if (me.declaringRiichi) {

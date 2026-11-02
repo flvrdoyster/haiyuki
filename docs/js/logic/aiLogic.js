@@ -19,6 +19,13 @@ const AILogic = {
     MAYU_KEEP_W: 500,
 
     // skill(0..1)은 softmax 온도만 좌우(실력). 스타일 축은 skill 무관 full 적용.
+    rng: null,
+
+    rand: function () {
+        if (!this.rng) this.rng = Rng.stream(Rng.randomSeed(), 'ai');
+        return this.rng.random();
+    },
+
     decideDiscard: function (hand, skill, profile, context) {
         if (!profile) profile = this.DEFAULT_PROFILE;
         if (skill == null) skill = 0.5;
@@ -36,7 +43,7 @@ const AILogic = {
         if (T < 1e-6) return candidates[0].index;
         let sum = 0;
         const weights = candidates.map(c => { const w = Math.exp((c.score - top) / T); sum += w; return w; });
-        let r = Math.random() * sum;
+        let r = this.rand() * sum;
         for (let i = 0; i < candidates.length; i++) {
             r -= weights[i];
             if (r <= 0) return candidates[i].index;
@@ -197,7 +204,7 @@ const AILogic = {
     shouldRiichi: function (hand, skill, profile) {
         if (skill == null) skill = 0.5;
         // 론=리치 전제라 텐파이면 리치가 정답(성격 축 아님). 실력으로만 게이팅.
-        return Math.random() <= (0.6 + 0.4 * skill);
+        return this.rand() <= (0.6 + 0.4 * skill);
     },
 
     shouldRon: function (hand, discardedTile, skill, profile) {
@@ -222,10 +229,10 @@ const AILogic = {
         // 멘젠은 리치 노려 늦게까지 안 엶.
         if (isMenzen) {
             if (turnCount < 14) {
-                return Math.random() < (ponBias * 0.1);
+                return this.rand() < (ponBias * 0.1);
             }
-            return Math.random() < ponBias;
+            return this.rand() < ponBias;
         }
-        return Math.random() < ponBias;
+        return this.rand() < ponBias;
     }
 };

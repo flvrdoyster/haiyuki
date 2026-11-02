@@ -143,8 +143,20 @@ const BattleEngine = {
     dialogueTriggeredThisTurn: false,
     roundSkillUsage: { p1: {}, cpu: {} },
 
+    logAction: function (who, type, payload) {
+        this.actionLog.push(Object.assign({ round: this.currentRound, who: who, type: type }, payload));
+    },
+
+    tileKey: function (tile) {
+        return { type: tile.type, color: tile.color };
+    },
+
     init: function (data, scene) {
         this.scene = scene;
+        this.seed = (data.seed != null ? data.seed : Rng.randomSeed()) >>> 0;
+        this.rng = Rng.create(this.seed);
+        AILogic.rng = this.rng.ai;
+        this.actionLog = [];
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.oncontextmenu = (e) => {
@@ -193,7 +205,7 @@ const BattleEngine = {
         this.turnCount = 1;
         this.currentRound = 1;
 
-        const bgIndex = Math.floor(Math.random() * (BattleConfig.BG.max - BattleConfig.BG.min + 1)) + BattleConfig.BG.min;
+        const bgIndex = this.rng.fx.int(BattleConfig.BG.max - BattleConfig.BG.min + 1) + BattleConfig.BG.min;
         const bgName = bgIndex.toString().padStart(2, '0');
         this.bgPath = `${BattleConfig.BG.prefix}${bgName}.png`;
 
@@ -395,7 +407,7 @@ const BattleEngine = {
         this.cpuPhase = 'draw';
         this.setupPending = [];
         this.setupWaiting = null;
-        this.firstSeat = (!this.tutorial && BattleConfig.RULES.RANDOM_FIRST_TURN && Math.random() < 0.5) ? 1 : 0;
+        this.firstSeat = (!this.tutorial && BattleConfig.RULES.RANDOM_FIRST_TURN && this.rng.deck.random() < 0.5) ? 1 : 0;
         this.firstTurn = this.whoAt(this.firstSeat);
 
         const dealSteps = [];
@@ -432,10 +444,10 @@ const BattleEngine = {
         this.uraDoras = [];
         this.uraDoraRevealed = false;
 
-        const d1 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.dora] : PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        const d1 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.dora] : this.rng.deck.pick(PaiData.TYPES);
         this.doras.push({ type: d1.id, color: d1.color, img: d1.img });
 
-        const d2 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.uraDora] : PaiData.TYPES[Math.floor(Math.random() * PaiData.TYPES.length)];
+        const d2 = this.tutorial ? PaiData.BY_ID[this.tutorial.lesson.uraDora] : this.rng.deck.pick(PaiData.TYPES);
 
         this.uraDoras.push({ type: d2.id, color: d2.color, img: d2.img });
 
@@ -626,6 +638,7 @@ const BattleEngine = {
         }
 
         this.consumeMp(who, skill.cost);
+        this.logAction(who, 'skill', { skill: skillId });
         this.processSkillEffect(skill, who, skillId);
 
         console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
@@ -713,12 +726,7 @@ const BattleEngine = {
             }
         });
 
-        for (let i = deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-
-        return deck;
+        return this.rng.deck.shuffle(deck);
     },
 
     drawTiles: function (count, who) {
@@ -766,7 +774,7 @@ const BattleEngine = {
 
         if (!buffActive && who === this.p1 && count === 1 &&
             this.drawAssistChance > 0 && this.deck.length >= 2 &&
-            Math.random() < this.drawAssistChance) {
+            this.rng.deck.random() < this.drawAssistChance) {
             const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
             const fullHand = this.getFullHand(who);
             let bestOffset = 0;
@@ -794,7 +802,7 @@ const BattleEngine = {
 
         const luck = who ? this.luckOf(who) : 0;
         if (!buffActive && who && count === 1 && luck && this.deck.length >= 2 &&
-            Math.random() < Math.abs(luck)) {
+            this.rng.deck.random() < Math.abs(luck)) {
             const want = luck > 0;
             const peek = Math.min(BattleConfig.RULES.DRAW_ASSIST.peek, this.deck.length);
             const fullHand = this.getFullHand(who);
@@ -1017,6 +1025,7 @@ const BattleEngine = {
         const t = this.drawTiles(1, me);
         if (t.length > 0) {
             this.events.push({ type: 'DRAW', player: who });
+            this.logAction(who, 'draw');
             me.hand.push(t[0]);
             console.log(`[Draw] ${who}: ${t[0].color} ${t[0].type}`);
             if (who === 'P1') this.lastDrawGroupSize = 1;
@@ -1139,6 +1148,8 @@ const BattleEngine = {
             this.possibleActions = [];
         }
 
+        if (me.hand[index]) this.logAction(who, 'discard', { tile: this.tileKey(me.hand[index]) });
+
         if (me.declaringRiichi && !me.riichiSilent) {
             this.startRiichiSequence(who, index);
             return;
@@ -1220,13 +1231,13 @@ const BattleEngine = {
             if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !me.isRiichi) {
                 const CH = BattleConfig.DIALOGUE.CHANCE;
                 if (opp.isRiichi) {
-                    if (Math.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
+                    if (this.rng.fx.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', 'cpu');
                 } else {
                     const key = this.classifyCpuDraw();
                     const chance = key === 'GOOD_DRAW' ? CH.DRAW_GOOD
                         : key === 'BAD_DRAW' ? CH.DRAW_BAD
                             : CH.RANDOM;
-                    if (Math.random() < chance) this.triggerDialogue(key, 'cpu', 'RANDOM');
+                    if (this.rng.fx.random() < chance) this.triggerDialogue(key, 'cpu', 'RANDOM');
                 }
             }
             this.cpuDrawInfo = null;
@@ -1424,6 +1435,7 @@ const BattleEngine = {
         this.currentState = this.STATE_FX_PLAYING;
         this.timers.add(() => {
             if (!this.applyPon(me, tile)) return;
+            this.logAction(who, 'pon', { tile: this.tileKey(tile) });
 
             if (who === 'P1') {
                 this.timers.add(() => {
@@ -1438,6 +1450,7 @@ const BattleEngine = {
 
     declareRiichi: function (who) {
         const me = this.getPlayer(who);
+        this.logAction(who, 'riichi');
         me.isRiichi = true;
         me.declaringRiichi = true;
         me.riichiSilent = false;
@@ -1463,6 +1476,7 @@ const BattleEngine = {
             console.error("CRITICAL: TSUMO allowed but checkYaku failed during execution!");
             return;
         }
+        this.logAction(who, 'tsumo');
 
         this.setExpression(who, 'smile');
         this.setExpression(this.opponentOf(who), 'shocked');
@@ -1482,6 +1496,7 @@ const BattleEngine = {
             console.error("CRITICAL: RON allowed but checkYaku failed during execution!");
             return;
         }
+        this.logAction(who, 'ron');
 
         if (BattleConfig.RULES.SKILLS_ENABLED && !opp.isRiichi) {
             const reactiveSkillId = (opp.skills || []).find(id => {
@@ -1612,7 +1627,7 @@ const BattleEngine = {
         });
 
         removedTiles.forEach(tile => {
-            const r = Math.floor(Math.random() * this.deck.length);
+            const r = this.rng.deck.int(this.deck.length);
             this.deck.splice(r, 0, tile);
         });
 
@@ -1706,7 +1721,7 @@ const BattleEngine = {
         }
 
         if (lines && lines.length > 0) {
-            const text = lines[Math.floor(Math.random() * lines.length)];
+            const text = this.rng.fx.pick(lines);
             const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
             this.events.push({ type: 'DIALOGUE', text: text, who: who });
             this.dialogueTriggeredThisTurn = true;
@@ -1770,6 +1785,7 @@ const BattleEngine = {
         const count = indices.length;
 
         if (!skill || count === 0) {
+            this.logAction(who, 'exchange', { tiles: [] });
             this.finishRoundSetup(who);
             return;
         }
@@ -1782,6 +1798,7 @@ const BattleEngine = {
         }
 
         this.consumeMp(who, totalCost);
+        this.logAction(who, 'exchange', { tiles: indices.map(i => this.tileKey(me.hand[i])) });
         this.exchangeTiles(me, indices);
 
         this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });

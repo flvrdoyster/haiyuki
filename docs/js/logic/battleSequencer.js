@@ -284,7 +284,7 @@ const BattleSequencer = {
         },
         DORA_ROULETTE: function (engine, step, dt) {
             if (!engine.doras.length) { BattleSequencer.advance(engine); return; }
-            if (step.left === undefined) step.left = 26 + Math.floor(Math.random() * 26);
+            if (step.left === undefined) step.left = 26 + engine.rng.fx.int(26);
             engine.sequencing.timer += dt;
             if (engine.sequencing.timer < 2) return;
             engine.sequencing.timer = 0;

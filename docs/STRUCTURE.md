@@ -1,6 +1,6 @@
 # 코드 구조
 
-- `index.html`의 `<script>` 순서가 곧 의존성. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `logic/seatControllers.js`는 `battleEngine.js` 뒤(런타임에만 참조), `core/game.js`는 마지막.
+- `index.html`의 `<script>` 순서가 곧 의존성. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `core/rng.js`도 `battleEngine.js` 앞, `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `logic/seatControllers.js`는 `battleEngine.js` 뒤(런타임에만 참조), `core/game.js`는 마지막.
 - ESM 전환 불가 — 테스트가 `(0, eval)('Game')`로 스크립트 스코프 전역을 98곳에서 잡는다.
 - `BattleEngine`의 상태 필드를 옮기지 말 것 — 테스트가 `e.p1`/`e.deck`/`e.currentState` 등을 199곳에서 직접 읽는다. 함수 이동은 안전.
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
@@ -30,6 +30,18 @@
 - 크리티컬·수경 보정은 `startWinSequence`에서 한 번만 곱한다. 우라도라는 표 도라와 같은 종류가 나올 수 있다.
 - `SkillRegistry` 항목의 훅은 모두 선택이다: `canUse(engine, who, user)` 추가 조건, `execute(engine, who, user, opponent)` 효과, `aiScore(engine, ctx)` AI 욕구(점수 + 0~0.2 난수가 0.6을 넘으면 발동, `ctx = { who, isTenpai, isPlayerRiichi, turn, profile }`). 플래그 `multiUse`는 라운드·턴 제한 면제, `autoFlow`는 전용 흐름에서만 발동(`useSkill` 경로 차단). 반격 비기(`EXCHANGE_RON`·`SUPER_IAI`)와 `DORA_BOMB`은 항목 없이 `SkillFlows`가 엔진 흐름에서 직접 부른다.
 - 시퀀서 스텝 `CALLBACK`은 콜백이 `engine.sequencing`을 통째로 바꾸지 않았을 때만 다음 스텝으로 넘어간다. 모르는 스텝 종류는 경고하고 건너뛴다.
+
+## 난수
+
+- 전투 안의 무작위는 `Math.random`을 쓰지 않고 `engine.rng`의 스트림만 쓴다. `core/rng.js`의 `Rng.create(seed)`가 32비트 시드에서 이름 붙은 스트림 셋을 독립적으로 만든다(마스터 시드와 스트림 이름을 섞어 시드, mulberry32). 스트림 API는 `random()`·`int(n)`·`pick(array)`·`shuffle(array)`(제자리).
+- 시드는 `BattleEngine.init(data)`의 `data.seed`에서 오고, 없으면 `Rng.randomSeed()`(`Math.random`을 쓰는 유일한 곳)가 만든다. `engine.seed`에 남고, 스트림은 `init`에서 한 번 만들어 라운드가 바뀌어도(`startRound`) 이어 쓴다. `init`은 전투마다 한 번이다.
+- 스트림 고르는 기준: 판에 영향을 주면 `deck`, 보이기만 하는 것이면 `fx`, AI의 판단이면 `ai`.
+  - `deck`: 덱 셔플(`generateDeck`), 도라·우라도라, 선공 `firstSeat`, `drawTiles`의 `luck` 편향과 easy 드로우 어시스트, `exchangeTiles`가 덱에 되돌려 넣는 위치.
+  - `fx`: 전투 배경(`init`), 상대 버림 대사 발동 확률(`commitDiscardFor`), `triggerDialogue`의 대사 선택, 도라 룰렛 회전 수(`DORA_ROULETTE`).
+  - `ai`: `AIDecisions.shouldReact`·`useActiveSkills`, `AILogic`의 softmax 버림·리치·펑 확률, `SkillFlows.pickRonExchangeTile`·라스트 찬스 자동 정지 위치·`executeCpuTileExchange`의 확률과 셔플. 온라인에는 AI가 없어 동기화 대상은 아니고, 시드만으로 오프라인 경기를 재현하려고 같은 체계에 둔다.
+- `AILogic`은 엔진을 받지 않으므로 `init`이 `AILogic.rng = engine.rng.ai`로 꽂는다(엔진 없이 부르면 임의 시드 스트림이 지연 생성된다). `decideDiscard(hand, skill, profile, ctx)` 시그니처는 그대로다.
+- 전투 밖(타이틀·크레딧·캐릭터 선택·컨티뉴 연출, 초상화 눈 깜빡임)은 `Math.random` 그대로다. 튜토리얼은 도라·배패가 레슨 데이터라 난수의 영향이 없다.
+- 행동 로그 `engine.actionLog`는 `init`에서 비우고 매치 내내 쌓인다(라운드마다 비우지 않음). 항목은 `{ round, who, type, ...payload }`, `who`는 `'P1'`/`'CPU'`. 버린 패는 손패 인덱스가 아니라 `{ type, color }`로 적는다. 종류: `draw`, `discard`(`tile`), `pon`(`tile`), `riichi`, `tsumo`, `ron`, `skill`(`skill` id), `exchange`(`tiles`, 교환 없이 확정하면 빈 배열), `lastChance`(발동), `lastChanceStop`(`shown`, 룰렛이 멈춘 시점에 보인 장수). 기록만 하고 재생은 없다. 같은 시드의 자동 테스트 경기는 로그가 같아야 한다.
 
 ## CPU 스킬
 
@@ -105,7 +117,7 @@
 
 ## 테스트 (`tests/`, gitignore)
 
-- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial`.
+- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial` `pause` `determinism`. `determinism`은 `startBattle`의 `seed` 옵션으로 같은 시드의 덱·도라·선공·배경 일치, 자동 경기 `actionLog` 일치를 단언한다.
 - `_` 접두사 5개는 단언 없는 측정 도구.
 - `startBattle` 헬퍼는 기본으로 `SKILLS_ENABLED = false`로 전투를 시작한다(회귀 스펙 전제). 승률·행동 측정은 스킬이 켜져야 하므로 `_ai_fingerprint`는 `skills: true`로 시작한다.
 - CPU 승률·행동 지문 측정은 `_ai_fingerprint.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts _ai_fingerprint`, 서버 포트 `PORT` 기본 3100 — 회귀용 :3000과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `docs/tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.

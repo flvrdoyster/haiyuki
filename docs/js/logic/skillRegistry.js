@@ -79,7 +79,7 @@ const SkillFlows = {
         engine.openDrawWindow(engine.opponentOf(who), null);
     },
 
-    pickRonExchangeTile: function (hand, returned) {
+    pickRonExchangeTile: function (engine, hand, returned) {
         const key = t => t.type + '|' + t.color;
         const counts = {};
         hand.forEach(t => { counts[key(t)] = (counts[key(t)] || 0) + 1; });
@@ -89,7 +89,7 @@ const SkillFlows = {
         if (pool.length === 0) pool = pick(n => n === 2);
         if (pool.length === 0) pool = pick(n => n > 3);
         if (pool.length === 0) pool = cands;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return engine.rng.ai.pick(pool);
     },
 
     activateRonTileExchange: function (engine, who) {
@@ -109,7 +109,7 @@ const SkillFlows = {
 
         player.exchangeReturned = badTile;
         if (who === 'P1' && engine.symmetric) {
-            engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(hand, badTile);
+            engine.p1.exchangeDiscard = SkillFlows.pickRonExchangeTile(engine, hand, badTile);
         }
         const returnedIndex = hand.indexOf(badTile);
         engine.enterTurn(who, { drew: false, hoverIndex: returnedIndex !== -1 ? returnedIndex : hand.length - 1 });
@@ -159,7 +159,7 @@ const SkillFlows = {
                 lc.ptr = engine.deck.length - 1;
                 lc.tile = engine.deck[lc.ptr] || null;
                 lc.shown = 1;
-                lc.stopAt = auto ? 20 + Math.floor(Math.random() * 10) : 0;
+                lc.stopAt = auto ? 20 + engine.rng.ai.int(10) : 0;
                 if (!lc.tile) SkillFlows.lastChanceJudge(engine);
             }
         } else if (lc.phase === 'spin') {
@@ -188,6 +188,7 @@ const SkillFlows = {
         const lc = engine.lastChance;
         const skill = SkillData.LAST_CHANCE;
         engine.consumeMp(lc.who, skill.cost);
+        engine.logAction(lc.who, 'lastChance');
         console.log(`[Skill] ${lc.who} used ${skill.name} (LAST_CHANCE)`);
         engine.events.push({ type: 'SOUND', id: 'audio/barrier' });
         engine.showPopup('SKILL', { text: skill.name, blocking: false });
@@ -201,6 +202,7 @@ const SkillFlows = {
 
     lastChanceJudge: function (engine) {
         const lc = engine.lastChance;
+        engine.logAction(lc.who, 'lastChanceStop', { shown: lc.shown });
         const player = engine.getPlayer(lc.who);
         const tile = lc.tile;
         const winYaku = tile && YakuLogic.checkYaku([...engine.getFullHand(player), tile], player.id, engine.isOpen(player));
@@ -243,7 +245,7 @@ const SkillFlows = {
             let seen = 0, used = false;
             for (const tile of hand) {
                 if (keepTypes.indexOf(tile.type) >= 0) seen++;
-                if (seen < 6 && Math.random() < 0.7) { used = true; break; }
+                if (seen < 6 && engine.rng.ai.random() < 0.7) { used = true; break; }
             }
             if (!used) return;
         }
@@ -252,10 +254,7 @@ const SkillFlows = {
         hand.forEach(t => { typeCount[t.type] = (typeCount[t.type] || 0) + 1; });
 
         const order = hand.map((_, i) => i);
-        for (let i = order.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [order[i], order[j]] = [order[j], order[i]];
-        }
+        engine.rng.ai.shuffle(order);
 
         let budget = me.mp;
         const picked = [];
