@@ -1035,7 +1035,8 @@ const BattleRenderer = {
         const isHovered = state ? !!state.actionHover : false;
         UIDraw.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
-            cursorColor: conf.cursor
+            cursorColor: conf.cursor,
+            selectedText: conf.selectedText
         });
     },
 

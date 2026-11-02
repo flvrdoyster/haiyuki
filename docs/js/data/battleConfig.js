@@ -173,7 +173,8 @@ const BattleConfig = {
         draw: {
             text: "패 가져오기",
             font: `bold 16px ${FONTS.bold}`,
-            cursor: 'rgba(255, 105, 180, 0.5)'
+            cursor: 'rgba(255, 105, 180, 0.5)',
+            selectedText: 'rgba(255, 255, 255, 1)'
         },
         win: {
             text: "날 수 있어!",

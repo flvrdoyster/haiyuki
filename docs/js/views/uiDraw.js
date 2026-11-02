@@ -101,7 +101,7 @@ const UIDraw = {
             ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
         }
 
-        ctx.fillStyle = isSelected ? 'rgba(255, 255, 0, 1)' : 'rgba(255, 255, 255, 1)';
+        ctx.fillStyle = isSelected ? (options.selectedText || 'rgba(255, 255, 0, 1)') : 'rgba(255, 255, 255, 1)';
         const fontName = (typeof FONTS !== 'undefined') ? FONTS.bold : 'sans-serif';
         ctx.font = options.font || `bold 16px ${fontName}`;
         ctx.textAlign = 'center';
