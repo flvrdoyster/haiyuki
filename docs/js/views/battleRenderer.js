@@ -588,21 +588,23 @@ const BattleRenderer = {
         this.drawNumber(ctx, displayRound, rnx, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
     },
 
-    drawClock: function (ctx, who, seconds) {
-        const img = Assets.get(BattleConfig.INFO.numbers.path);
+    drawClock: function (ctx, who, seconds, kind) {
+        const digits = BattleConfig.ONLINE.CLOCK_DIGITS;
+        const path = kind === 'turn' ? digits.turn : digits.other;
+        const img = Assets.get(path);
         if (!img) return;
         const H = BattleConfig.HAND;
         const y = who === 'P1' ? H.playerY + Math.floor((H.tileHeight - img.height) / 2) : H.cpuY + Math.floor((H.tileHeight - img.height) / 2);
-        this.drawNumber(ctx, seconds, 6, y, 'left');
+        this.drawNumber(ctx, seconds, 6, y, 'left', 0, path);
     },
 
-    drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {
+    drawNumber: function (ctx, number, x, y, align = 'center', pad = 0, path = BattleConfig.INFO.numbers.path) {
         let str = number.toString();
         if (pad > 0 && str.length < pad) str = str.padStart(pad, '0');
 
         const numW = BattleConfig.INFO.numbers.w;
         const gap = BattleConfig.INFO.numbers.gap;
-        const img = Assets.get(BattleConfig.INFO.numbers.path);
+        const img = Assets.get(path);
 
         if (!img) return;
 

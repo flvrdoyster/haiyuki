@@ -449,11 +449,11 @@ const BattleScene = {
         if (this.confirmData) {
             this.drawConfirm(ctx);
             if (this.confirmData && this.confirmData.limit > 0) {
-                BattleRenderer.drawClock(ctx, 'P1', Math.ceil(this.confirmData.limit / BattleConfig.ONLINE.TICK_RATE));
+                BattleRenderer.drawClock(ctx, 'P1', Math.ceil(this.confirmData.limit / BattleConfig.ONLINE.TICK_RATE), 'confirm');
             }
         } else if (this.online && BattleEngine.clock) {
             const seconds = OnlineClock.remaining(BattleEngine.clock);
-            if (seconds !== null) BattleRenderer.drawClock(ctx, BattleEngine.clock.who, seconds);
+            if (seconds !== null) BattleRenderer.drawClock(ctx, BattleEngine.clock.who, seconds, BattleEngine.clock.key);
         }
     },
 

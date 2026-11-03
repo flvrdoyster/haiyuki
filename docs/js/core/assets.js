@@ -211,6 +211,7 @@ const Assets = {
         'tiles/pai_uradora.png', // 우라도라
 
         'ui/number.png',
+        'ui/number_gold.png',
         'ui/number_yellow.png',
         'ui/turn.png',
         'ui/round.png',

@@ -124,6 +124,7 @@
 |---|---|---|---|
 | `ui/alphabet.png` | 960x64 | 노란 알파벳 A~Z와 기호, 2줄 | 원본에서 못 찾음. `herecome`·`gameover` 글자와 같은 서체 |
 | `ui/number_big.png` | 398x52 | 노란 큰 숫자 0~9 | 원본에서 못 찾음(`herecome` 44%만) |
+| `ui/number_gold.png` | 158x28 | 금색 숫자 0~9 | `ui/number.png`의 색 네 개만 기존 게임 색(`#ffe800`·`#ffbd10`·`#ffa521`·그림자 `#ce5200`)으로 바꾼 것. 온라인 버림 외 제한 시간용 |
 | `ui/bar_blue.png`, `ui/bar_yellow.png`, `ui/bar_green.png` | 1x10 | 막대 그라데이션 한 줄 | 웹에서 만든 것으로 추정 |
 | `ui/easy.png`, `ui/normal.png`, `ui/difficult.png` | 120x56 | 한글 "쉬움/중간/어려움" 패 아이콘 | 원본에 난이도 그림 없음 |
 | `fx/tenpai.png` | 320x96 | 한글 "텐파이" | 원본 `jp/tenpai`는 "ノーテンパイ"(웹 `fx/noten`에 해당)뿐 |

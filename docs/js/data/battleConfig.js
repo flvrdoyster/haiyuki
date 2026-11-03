@@ -47,6 +47,7 @@ const BattleConfig = {
         ROULETTE_SEC: 15,
         RESULT_SEC: 20,
         RESULT_INPUT_DELAY: 160,
+        CLOCK_DIGITS: { turn: 'ui/number.png', other: 'ui/number_gold.png' },
         ticks: function (sec) {
             return Math.round(sec * this.TICK_RATE);
         }
