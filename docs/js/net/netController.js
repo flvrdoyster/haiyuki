@@ -146,7 +146,7 @@ NetController.prototype = {
             if (!this.canApply(engine, who, msg)) {
                 this.waited += dt;
                 if (this.waited > NetController.WAIT_LIMIT) {
-                    match.fail('DESYNC', { reason: 'timeout', type: msg.type, state: engine.currentState });
+                    match.fail('desync', { reason: 'timeout', type: msg.type, state: engine.currentState });
                 }
                 return;
             }
@@ -156,12 +156,12 @@ NetController.prototype = {
                 const mine = engine.stateHash();
                 match.checked++;
                 if (mine !== msg.hash) {
-                    match.fail('DESYNC', { reason: 'hash', type: msg.type, mine: mine, theirs: msg.hash, round: engine.currentRound, turn: engine.turnCount });
+                    match.fail('desync', { reason: 'hash', type: msg.type, mine: mine, theirs: msg.hash, round: engine.currentRound, turn: engine.turnCount });
                     return;
                 }
             }
             if (!this.apply(engine, who, msg)) {
-                match.fail('DESYNC', { reason: 'apply', type: msg.type, state: engine.currentState });
+                match.fail('desync', { reason: 'apply', type: msg.type, state: engine.currentState });
                 return;
             }
         }

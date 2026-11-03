@@ -28,10 +28,9 @@ const TitleConfig = {
     PUSH_KEY: { path: 'ui/pushok.png', y: 360 },
     COPYRIGHT: { path: 'ui/logo_compile_1998.png', y: 432 },
     MENU: [
-        { id: 'BATTLE', text: "BATTLE", y: 284 },
-        { id: 'TUTORIAL', text: "TUTORIAL", y: 320 },
-        { id: 'STORY_ONLY', text: "STORY ONLY", y: 356 },
-        { id: 'ONLINE', text: "ONLINE", y: 392 }
+        { id: 'BATTLE', text: "BATTLE", y: 300 },
+        { id: 'TUTORIAL', text: "TUTORIAL", y: 340 },
+        { id: 'STORY_ONLY', text: "STORY ONLY", y: 380 }
     ]
 };
 
@@ -105,8 +104,6 @@ const TitleScene = {
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (selected === 'TUTORIAL') {
                     this.startTutorial();
-                } else if (selected === 'ONLINE') {
-                    Game.changeScene(OnlineLobbyScene);
                 }
             }
         }

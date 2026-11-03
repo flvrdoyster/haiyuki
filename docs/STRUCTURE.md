@@ -1,6 +1,6 @@
 # 코드 구조
 
-- `index.html`의 `<script>` 순서가 곧 의존성. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `core/rng.js`도 `battleEngine.js` 앞, `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `logic/seatControllers.js`와 `net/*.js`는 `battleEngine.js` 뒤(런타임에만 참조), `core/game.js`는 마지막.
+- `index.html`의 `<script>` 순서가 곧 의존성. `online.html`은 같은 캔버스에 같은 스크립트 목록을 쓰므로 두 페이지의 목록을 같이 맞춘다. `core/timers.js`는 `battleEngine.js` 앞(파싱 시점 호출), `core/rng.js`도 `battleEngine.js` 앞, `views/battleLayout.js`·`fxSystem.js`·`bitmapFont.js`·`uiDraw.js`는 각 사용자 앞, `logic/seatControllers.js`와 `net/*.js`는 `battleEngine.js` 뒤(런타임에만 참조), `core/game.js`는 마지막.
 - ESM 전환 불가 — 테스트가 `(0, eval)('Game')`로 스크립트 스코프 전역을 98곳에서 잡는다.
 - `BattleEngine`의 상태 필드를 옮기지 말 것 — 테스트가 `e.p1`/`e.deck`/`e.currentState` 등을 199곳에서 직접 읽는다. 함수 이동은 안전.
 - `autoPlay.js`의 `decideDiscard(hand, 0.7, null, ctx)` — `tests/_ai_fingerprint`가 이 값을 중립 베이스라인으로 쓴다.
@@ -11,7 +11,7 @@
 - 손패는 `QADebug.sync`가 `window.__haiyuki__`를 만들 때마다 `publishHand`로 iframe(`#yaku-frame`)과 새 창(`window.__yakuPopup`)에 `postMessage({type:'haiyuki-hand'})`로 밀어 준다(손패·오픈 세트·버림 수·상대 펑 수가 바뀔 때만). 양쪽 버림패와 상대 펑 세트는 종류별 남은 장수(9 − 보이는 장수, `YakuDistance.unseenCounts`)를 세는 데 쓰고, 남은 장수를 전부 더해도 못 만드는 역은 '완성 불가'로 표시한다(`reachable`). 도라는 종류만 정하고 패 산에서 빼지 않으므로 세지 않는다. `file://`에서는 iframe이 부모를 직접 못 읽어 이 경로가 필수이고, 같은 출처(http)에서는 패널이 `parent.__haiyuki__`를 직접 읽는 폴링도 겸한다. 패널은 열리면 `haiyuki-hand-request`를 보내 현재 손패를 받는다. 메시지에는 라운드 번호도 들어 있어 라운드가 바뀌면 패널이 선택 줄을 정렬 첫 줄로 되돌리고(같은 라운드에서는 유지), `Game.changeScene`이 전투가 아닌 장면으로 갈 때 `QADebug.clearPanel`로 빈 손패를 보내 패널을 비운다(`window.__haiyuki__`는 테스트가 읽으므로 건드리지 않는다).
 - BGM은 `Assets.bootBgm`(로딩 징글·타이틀)만 `canplaythrough`까지 기다리고, 나머지는 요소만 등록해 뒤에서 받는다. 덜 받은 BGM을 `playMusic`해도 버퍼가 차면 재생이 시작된다. 로딩·타이틀 장면이 새 BGM을 쓰게 되면 `bootBgm`에 넣는다.
 - 폰트는 KODDI 공식 배포 웹폰트(`KoddiUDOnGothic-Regular/Bold.woff2`)를 `docs/fonts/`에 그대로 두고 `haiyuki.css`의 `@font-face`로 쓴다. `index.html`은 공용 `atah.io/fonts.css`를 링크하지 않고 이 두 파일만 `preload`한다. `Game.init`은 폰트 로드(최대 3초)를 기다리므로 폰트 용량이 곧 시작 지연이다.
-- URL 파라미터: `?mode=story`(=`watch`)는 스토리 온리 캐릭터 선택으로, `?mode=tutorial`은 튜토리얼로 로딩 직후 바로 간다(스플래시·타이틀 생략, `LoadingScene`). `?online=host:<코드>`·`?online=join:<코드>`는 온라인 로비를 건너뛰고 그 방에 바로 들어간다("온라인 대전"). `?debug`는 디버그 패널, `?gamepad`는 가상 패드(토글 시 URL에 남긴다).
+- URL 파라미터: `?mode=story`(=`watch`)는 스토리 온리 캐릭터 선택으로, `?mode=tutorial`은 튜토리얼로 로딩 직후 바로 간다(스플래시·타이틀 생략, `LoadingScene`). `?debug`는 디버그 패널, `?gamepad`는 가상 패드(토글 시 URL에 남긴다).
 - 자원 한 개가 실패하면 `Assets.maxAttempts`(4)번까지 `retryDelayMs`씩 늘려 가며 다시 받는다. 끝내 실패하면 `Assets.failed`에 id를 모으고, `Assets.load(onComplete, onError)`는 `onComplete` 대신 `onError(failed)`만 부른다. `LoadingScene`은 이때 오류 문구를 그리고 타이틀로 가지 않으며, 아무 키나 누르면 새로 고친다. 지연 등록되는 BGM(`bootBgm` 밖)은 요소만 만들고 끝나므로 재시도 대상이 아니다.
 - 역 판정(`yakuLogic.js`)은 손패를 13종류 개수 벡터(`countsOf`, `PaiData.TYPES` 순서)로 바꿔 `_evalCounts`에서 메모한다(키 = 13진수×2 + 오픈 여부, 상한 `MEMO_MAX`면 비움). 오픈 손패는 `CLOSED_ONLY` 역을 건너뛰므로 `checkYaku`·`checkTenpai`에 `open`(= `engine.isOpen(player)`)을 넘겨야 하고, 전체 손패는 `getFullHand`로 만든다. 패 색은 종류에 묶여 있다는 전제이고, 종류와 색이 어긋난 패가 들어오면 `countsOf`가 null을 돌려 `checkYaku`만 옛 경로(`analyzeHand`)로 간다. AI(`aiLogic.js`)의 수용 패·리치 점수 탐색은 배열 복사 없이 이 벡터를 증감하며 돈다 — 한 CPU 차례에 `checkYaku` 1.5만 회가 거의 전부 메모 적중으로 바뀌어 롱태스크가 사라졌다(`tests/perf/REPORT.md`).
 
@@ -46,14 +46,18 @@
 
 ## 온라인 대전
 
-설계는 `ONLINE.md`. 같은 브라우저의 두 탭(`BroadcastChannel`)으로 1:1 대전이 끝까지 돈다. 릴레이 서버는 아직 없다.
+설계는 `ONLINE.md`. 같은 브라우저의 두 탭(`BroadcastChannel`)으로 1:1 대전이 끝까지 돌고, 끝나면 같은 방에서 재대전한다. 릴레이 서버는 아직 없다.
 
-- 파일: `net/transport.js`(`BroadcastChannelTransport(roomCode)`: `send(msg)`·`onMessage(cb)`·`close()`. 릴레이가 생기면 같은 인터페이스로 WebSocket 구현을 더한다), `net/onlineMatch.js`(`OnlineMatch.create({ host, code, char, seed, skillsEnabled })`가 만드는 매치 객체. 접속·핑·수신 큐 `inbox`·행동 전송·실패 처리. `OnlineMatch.current`가 진행 중인 매치), `net/netController.js`(`NetController`: 상대 자리 컨트롤러), `scenes/onlineLobbyScene.js`(로비).
+- 파일: `net/transport.js`(`BroadcastChannelTransport(roomCode)`: `send(msg)`·`onMessage(cb)`·`close()`. 릴레이가 생기면 같은 인터페이스로 WebSocket 구현을 더한다), `net/onlineMatch.js`(`OnlineMatch.create({ host, code, char, seed })`가 만드는 매치 객체. 접속·핑·수신 큐 `inbox`·행동 전송·실패 처리·재대전. `OnlineMatch.current`가 진행 중인 매치. 상태가 바뀌면 `onChange`를 부른다), `net/netController.js`(`NetController`: 상대 자리 컨트롤러), `net/onlineLobby.js`(`OnlineLobby`: 패널 DOM 담당, `OnlineStageScene`: 패널 뒤에 까만 캔버스만 그리는 빈 장면).
 - 자리: 호스트가 자리 0, 게스트가 자리 1(`engine.localSeat`). 양쪽 모두 `engine.p1`이 자기이고 `engine.cpu`가 상대라서 렌더러·씬·테스트는 그대로다. 순서 의존 로직(배패·셋업·선공·라스트 찬스 순서)은 자리 번호로 돌므로 두 엔진이 같은 판을 만든다.
 - 접속: 양쪽이 `hello`를 0.5초마다 보내다가 상대의 `hello`를 받으면 멈추고 한 번 더 답한다(먼저 연 탭의 첫 메시지가 버려져도 만난다). 호스트의 `hello`에 시드와 비기 설정이 실린다. 연결 뒤에는 1초마다 `ping`을 보내고 10초 동안 아무 메시지도 없으면 끊김으로 본다(`BroadcastChannel`에는 끊김 신호가 없다).
-- 로비(`ONLINE` 메뉴): `CREATE`는 네 글자 방 코드(A–Z에서 I·O 제외)를 만들어 보여 주고, `JOIN`은 캔버스 위에 HTML `<input id="online-code">`를 띄워 코드를 받는다(Enter 확정, ESC 취소. 입력 상자에 포커스가 있는 동안 `Input`은 키를 무시한다). 접속되면 캐릭터 선택(`CharacterSelectScene` `mode: 'ONLINE'`)으로 간다: 각자 고르고 `pick`을 교환하며, 상대 초상화는 상대의 `pick`이 오면 뜬다. 같은 캐릭터 허용, 눈썹개는 자기 쪽에서 해금됐을 때만 고를 수 있다. 둘 다 고르면 조우 씬 없이 `BattleScene`으로 간다(`{ online: match, playerIndex, cpuIndex }`).
-- 전투 설정: 시드·`localSeat`는 매치에서, 컨트롤러는 P1 `HumanController`·CPU `NetController`, 난이도 `normal`(드로우 어시스트 0, `luck`은 캐릭터 특성이라 그대로), 비기 on/off는 호스트 설정을 양쪽에 적용하고 매치 뒤 로컬 설정을 되돌린다(비기 토글 버튼은 매치 중 잠근다). 토너·세이브·컨티뉴·엔딩은 관여하지 않고 끝나면 타이틀로 간다. 자동 테스트의 도라 룰렛 생략은 온라인에서는 하지 않는다(`fx` 소비가 양쪽에서 같아야 한다).
-- 메시지 = 행동 로그 항목. `engine.onAction` 훅으로 `who === 'P1'`인 항목을 그대로 보내되 `ron`은 받는 쪽이 무시하고, 자동 쯔모(`auto`)·반격 비기의 `skill` 항목·`lastChance` 발동은 보내지 않는다(양쪽 엔진이 스스로 한다). 받은 메시지는 `inbox`에 쌓이고 `NetController.poll`이 머리부터 적용 조건을 보아 적용한다. 조건이 안 맞으면 기다리고(연출 중일 수 있다), 폴링된 3600틱이 지나도록 적용되지 않으면 `DESYNC`.
+- 진입: 온라인 대전은 `online.html`에서만 시작한다. 로딩이 끝나면 스플래시·타이틀 없이 `OnlineLobby.begin()`이 빈 장면으로 바꾸고 HTML 패널(`#online-panel`, `#game-container` 안에 캔버스를 덮음. 캔버스 폭 기준 `cqw` 단위라 모바일에서 같이 줄어든다)을 보인다. `index.html`에도 같은 스크립트가 올라가지만 진입 경로가 없다. `body.online-page`가 온라인 페이지 표시이고 `OnlineLobby.isPage()`가 읽는다. 상단바는 소리·역 계산기·게임패드·전체 화면뿐이라 `game.js`의 난이도·비기 버튼 처리는 요소가 없으면 건너뛴다. `noindex`이고 `sitemap.xml`에 없다.
+- 로비 상태(`OnlineLobby.view`): `start`(`방 만들기`, 코드 입력 + `참가`) → `wait`(코드, 호스트만 초대 링크 `online.html?room=코드`와 `링크 복사`; `navigator.clipboard`가 없거나 실패하면 링크 상자를 선택) → 접속되면 `hidden`으로 패널을 닫고 캐릭터 선택(`CharacterSelectScene` `mode: 'ONLINE'`)으로 간다. 매치가 끝나면 `BattleScene.exitOnline`이 `OnlineLobby.returnFromMatch`를 불러 `ended`(결과 한 줄 + `다시 대전`)를 보인다. 실패(`match.failed`: `disconnect`·`desync`)는 어느 단계에서든 매치를 닫고 메시지(`연결이 끊어졌습니다`·`동기가 어긋났습니다`)와 함께 `start`로 돌아간다. 캐릭터 선택에서 ESC·`취소`·`나가기`는 방을 나가 `start`로 간다. 코드 입력은 `OnlineMatch.normalizeCode`로 대문자 네 글자만 받는다(입력 상자에 포커스가 있는 동안 `Input`은 키를 무시한다). `?room=코드`로 열면 입력 없이 바로 `joinRoom`.
+- 캐릭터 선택: 각자 고르고 `pick`을 교환하며, 상대 초상화는 상대의 `pick`이 오면 뜬다. 같은 캐릭터 허용, 눈썹개는 자기 쪽에서 해금됐을 때만 고를 수 있다(오프라인과 같은 필터). 상대가 눈썹개를 고르면 해금 여부와 무관하게 실루엣·`???` 표기 없이 일반 캐릭터처럼 그린다: `BattleScene.cpuMasked`와 `BattleRenderer.maskedCpuName`이 온라인(`engine.online`)에서는 꺼진다. 둘 다 고르면 조우 씬 없이 `BattleScene`으로 간다(`{ online: match, playerIndex, cpuIndex }`).
+- 재대전: 매치가 끝나면 `match.ended`. `다시 대전`은 `requestRematch`로 `rematch`를 보내고 `rematchMine`을 세운다(상대 대기 문구 표시). 호스트는 양쪽 `rematch`가 모이면 `Rng.randomSeed()`로 새 시드를 뽑아 `rematchStart {seed}`를 보내고 `beginNext`, 게스트는 `rematchStart`를 받으면 `beginNext`. `beginNext`는 시드를 바꾸고 캐릭터 선택 값·요약·수신 큐·검사 횟수를 비운 뒤 `onChange`로 로비가 캐릭터 선택부터 다시 시작시킨다. 방과 핑은 그대로 이어진다.
+- 나가기: `match.close()`가 `bye`를 보내고(탭을 닫을 때도 `pagehide`에서 닫는다) 받은 쪽은 10초를 기다리지 않고 바로 끊김으로 처리한다.
+- 전투 설정: 시드·`localSeat`는 매치에서, 컨트롤러는 P1 `HumanController`·CPU `NetController`, 난이도 `normal`(드로우 어시스트 0, `luck`은 캐릭터 특성이라 그대로), 비기는 `OnlineLobby.begin`이 `SKILLS_ENABLED = true`로 고정한다. 토너·세이브·컨티뉴·엔딩은 관여하지 않는다. 자동 테스트의 도라 룰렛 생략은 온라인에서는 하지 않는다(`fx` 소비가 양쪽에서 같아야 한다).
+- 메시지 = 행동 로그 항목. `engine.onAction` 훅으로 `who === 'P1'`인 항목을 그대로 보내되 `ron`은 받는 쪽이 무시하고, 자동 쯔모(`auto`)·반격 비기의 `skill` 항목·`lastChance` 발동은 보내지 않는다(양쪽 엔진이 스스로 한다). 받은 메시지는 `inbox`에 쌓이고 `NetController.poll`이 머리부터 적용 조건을 보아 적용한다. 조건이 안 맞으면 기다리고(연출 중일 수 있다), 폴링된 3600틱이 지나도록 적용되지 않으면 `desync`.
 
   | 메시지 | 적용 조건 | 적용 |
   |---|---|---|
@@ -62,7 +66,7 @@
   | `discard {tile}` | `isTurn('CPU')` | `cpu.hand`에서 패 식별로 인덱스를 찾아 `discardFor` |
   | `riichi` | `isTurn('CPU')`, `canDeclareRiichi` | `declareRiichi('CPU')` |
   | `tsumo` | `isTurn('CPU')` | `declareTsumo('CPU')` |
-  | `skill {skill}` | `isTurn('CPU')` | `useSkill(id, 'CPU')`(거부되면 `DESYNC`) |
+  | `skill {skill}` | `isTurn('CPU')` | `useSkill(id, 'CPU')`(거부되면 `desync`) |
   | `exchange {tiles}` | `setupWaiting === 'CPU'` | 패 식별들을 인덱스로 바꿔 `confirmTileExchange('CPU', …)` |
   | `react {use}` | 미해결 `onCounterPrompt` | 보관한 `resolve(use)` |
   | `nagari {use}` | 미해결 `onNagari` | 보관한 `resolve(use)` |
@@ -70,11 +74,11 @@
   | `lastChanceStop {shown}` | `engine.lastChance`가 `CPU` 자리이고 `spin` 단계 | `lastChanceSetStop`: `stopAt = shown`, 이미 지나쳤으면 `shown`으로 되감음 |
   | `ron` | 항상 | 무시(콘솔 로그만) |
 
-- 상태 해시 `engine.stateHash()`: 자리 0·1 순으로 손패(패 키 정렬)·오픈 세트·HP·MP, 버림 목록, 덱 길이, 라운드, `turnCount`, `rng.deck.calls`·`rng.fx.calls`를 이어 붙여 FNV-1a 32비트. 보내는 쪽은 행동을 기록하는 순간(= 적용 함수 맨 앞, 상태 변경 전)의 해시를 메시지에 싣고, 받는 쪽은 적용 직전에 자기 해시와 비교한다. 다르면 `DESYNC`: 매치를 멈추고 화면에 한 단어를 띄운 뒤 120틱 뒤 타이틀로 간다(끊김은 `DISCONNECT`). 매치 결과·행동 로그·검사 횟수는 `match.summary`에 남는다.
+- 상태 해시 `engine.stateHash()`: 자리 0·1 순으로 손패(패 키 정렬)·오픈 세트·HP·MP, 버림 목록, 덱 길이, 라운드, `turnCount`, `rng.deck.calls`·`rng.fx.calls`를 이어 붙여 FNV-1a 32비트. 보내는 쪽은 행동을 기록하는 순간(= 적용 함수 맨 앞, 상태 변경 전)의 해시를 메시지에 싣고, 받는 쪽은 적용 직전에 자기 해시와 비교한다. 다르면 `desync`로 매치를 멈추고 로비 패널에 알린다(끊김은 `disconnect`). 매치 결과·행동 로그·검사 횟수는 `match.summary`에 남는다.
 - `fx` 대칭 규칙: `fx` 스트림 소비는 자리와 무관한 논리 지점에서만 일어나고 보여 주기만 가른다. 버림 대사는 어느 자리가 버리든 같은 조건으로 확률을 굴리고 대사를 고르되 말풍선은 버린 자리가 `CPU`일 때만(`triggerDialogue`의 `silent` 옵션, 마지막 뽑기 정보는 `lastDrawInfo[who]`). 펑 대답(`PON_REPLY`)은 펑이 적용되는 순간 `pickDialogue`로 고르고 대답하는 쪽이 `CPU`일 때만 `DIALOGUE_SPEAK` 뒤에 띄운다(타이머 안에서 고르면 메시지 적용 시점에 따라 소비 순서가 갈린다). 라운드 시작 패 교환 대사는 `confirmTileExchange`가 양쪽 자리에서 고르고 P1이면 띄우지 않는다. 도라 폭진은 양쪽이 같은 위치(결과 팝업 뒤)에서 컨트롤러에 묻는다. 배경·도라 룰렛 회전 수·리치·비기·승패 대사는 원래 자리에 무관하다.
-- URL 진입: `?online=host:<코드>` / `?online=join:<코드>`에 `&char=<CharacterData 인덱스>`(캐릭터 선택 생략), 호스트는 `&seed=<32비트>`·`&skills=0|1`을 더 받는다. 로딩 직후 로비의 대기 화면으로 가고 접속되면 캐릭터 선택으로 간다.
-- 수동 확인: 한 브라우저에서 탭 둘을 열어 `index.html?online=host:ABCD`와 `index.html?online=join:ABCD`(또는 타이틀 `ONLINE` → `CREATE` 코드를 다른 탭 `JOIN`에 입력). 둘 다 같은 출처(같은 `http://` 서버)여야 `BroadcastChannel`이 통한다. 한 탭을 닫으면 다른 탭은 10초 뒤 `DISCONNECT`.
-- 테스트 `tests/online.spec.ts`: 한 브라우저 컨텍스트에 페이지 둘을 열어 URL 진입으로 만나게 하고 양쪽 `Game.isAutoTest`·`Game.symmetric`을 켜 P1을 AI가 움직이게 한다(대칭 모드라 확인창 없이 반격·라스트 찬스·도라 폭진까지 AI가 답한다). 비기 on/off 각각 한 매치를 끝까지 돌려 `summary.failed`가 없고 해시 검사가 있었고 두 탭의 `actionLog`가 자리만 바꿔 같고 승자·HP가 대칭임을 단언한다. 라스트 찬스는 AI끼리 거의 안 나와서 배패 단계에 양쪽 `turnCount`를 18로 올리고 `cpuWantsLastChance`를 항상 참으로 바꾼 매치를 하나 더 돌린다. 사람 입력 경로는 호스트 탭을 자동 테스트 없이 두고 키로 뽑고 버린 패가 게스트의 상대 버림으로 나타나는지 본다.
+- URL: `online.html?room=<코드>`는 초대 링크(바로 참가). `&char=<CharacterData 인덱스>`는 캐릭터 선택 생략(첫 매치만), 호스트는 `&seed=<32비트>`로 첫 시드를 고정한다(테스트·수동 확인용).
+- 수동 확인: 한 브라우저에서 `online.html`을 탭 둘로 열어 한쪽 `방 만들기`, 다른 쪽에 링크로 접속. 같은 출처(같은 `http://` 서버)여야 `BroadcastChannel`이 통하고, `docs/`를 서버로 띄워야 효과음이 돈다. 한 탭을 닫으면 다른 탭이 바로 끊김 문구를 보인다.
+- 테스트 `tests/online.spec.ts`: 한 브라우저 컨텍스트에 페이지 둘을 열고(호스트는 `방 만들기`로 코드를 읽고, 게스트는 `?room=`으로 접속) 양쪽 `Game.isAutoTest`·`Game.symmetric`을 켜 P1을 AI가 움직이게 한다(대칭 모드라 확인창 없이 반격·라스트 찬스·도라 폭진까지 AI가 답한다). 비기는 항상 켜지므로 끈 매치는 테스트가 `OnlineLobby.ready` 뒤에 `SKILLS_ENABLED`를 직접 끈다. 비기 on/off 각각 한 매치를 끝까지 돌려 `summary.failed`가 없고 해시 검사가 있었고 두 탭의 `actionLog`가 자리만 바꿔 같고 승자·HP가 대칭임을 단언한다. 라스트 찬스는 AI끼리 거의 안 나와서 배패 단계에 양쪽 `turnCount`를 18로 올리고 `cpuWantsLastChance`를 항상 참으로 바꾼 매치를 하나 더 돌린다. 사람 입력 경로는 호스트 탭을 자동 테스트 없이 두고 키로 뽑고 버린 패가 게스트의 상대 버림으로 나타나는지 본다. 로비 DOM 흐름(방 만들기 → 코드·링크 표시 → 링크로 접속 → 패널 닫힘, 코드 입력 정규화), 재대전(결과 문구 → 양쪽 `다시 대전` → 새 시드로 두 번째 매치가 끝까지 동기), 나가기(상대 탭에 끊김 문구)도 본다.
 
 ## CPU 스킬
 
@@ -141,6 +145,7 @@
 - 패유기만 다른 점: 확인 버튼은 `KeyZ`를 보낸다(Enter를 보내도 `input.js`가 Z로 정규화해서 동작은 같다). 마우스로도 눌린다(`input.spec`이 `page.click`으로 누른다). 켜짐 표시는 `body.gamepad-on`. 패드는 캔버스 위에 뜨지 않고 `padding-bottom: 180px`로 자리를 비운다.
 - D-pad 버튼의 `padding: 6px 14px` — 에뮬레이터 페이지는 전역 `button` 패딩을 상속해서 아이콘이 그 크기로 보인다. 패유기엔 전역 규칙이 없어 D-pad에만 같은 값을 준다.
 - `.btn-touch-only` 숨김은 `.toolbar-icon-btn.btn-touch-only`로 쓴다. `.toolbar-icon-btn`이 뒤에서 `display: flex`를 줘서, 같은 명시도면 숨김이 진다.
+- `online.html`의 상단바는 난이도·비기 그룹이 없고(역 계산기 그룹만 가운데) 나머지는 같다.
 - `#toolbar-row`는 3열 그리드(왼쪽 음소거, 가운데 게임 옵션, 오른쪽 게임패드·전체 화면)이고 폭을 캔버스 640px에 맞춰 양끝 아이콘이 캔버스 가장자리와 맞는다.
 
 ## 일시정지

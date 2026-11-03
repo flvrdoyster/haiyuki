@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>환세패유기 온라인 대전 : atah.io</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="haiyuki.css">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="preload" href="fonts/KoddiUDOnGothic-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/KoddiUDOnGothic-Bold.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Google Tag Manager -->
+    <script>
+        // Load GTM only on the live site for real visitors. Skip on localhost/file://
+        // and under automated browsers (Playwright/Selenium set navigator.webdriver),
+        // so local dev and E2E test runs don't pollute analytics.
+        if (!navigator.webdriver && /(^|\.)atah\.io$/i.test(location.hostname)) {
+            (function (w, d, s, l, i) {
+                w[l] = w[l] || []; w[l].push({
+                    'gtm.start':
+                        new Date().getTime(), event: 'gtm.js'
+                }); var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                        'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+            })(window, document, 'script', 'dataLayer', 'GTM-PR4S897C');
+        }</script>
+    <!-- End Google Tag Manager -->
+    <link rel="stylesheet" href="https://atah.io/footer.css">
+</head>
+
+<body class="footer-static online-page">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PR4S897C" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="main-wrapper">
+        <div id="toolbar-row">
+            <button id="mute-btn" class="toolbar-icon-btn" title="소리"><svg viewBox="0 0 49.13 70.14" height="22"><path fill="currentColor" d="M7.43,68.29c-2.31-1.26-4.13-3.01-5.45-5.25s-1.98-4.77-1.98-7.58.65-5.41,1.96-7.62c1.3-2.21,3.12-3.93,5.45-5.14,2.33-1.22,4.96-1.82,7.89-1.82s5.45.59,7.73,1.76l-.09-42.63h26.19v14.77h-18.72v40.69c0,2.81-.65,5.34-1.96,7.58-1.3,2.24-3.1,3.99-5.38,5.25s-4.88,1.87-7.78,1.85c-2.93.03-5.55-.59-7.87-1.85Z"/></svg></button>
+            <div class="toolbar-center">
+                <div class="toolbar-group">
+                    <span class="toolbar-label">역 계산기</span>
+                    <button id="yaku-btn" class="toolbar-btn toggle-off"></button>
+                </div>
+            </div>
+            <div class="toolbar-right">
+                <button id="gamepad-btn" class="toolbar-icon-btn btn-touch-only" title="게임패드" aria-label="게임패드"><svg aria-hidden="true" viewBox="0 0 16 16" height="22"><path fill="currentColor" d="M6.5 0A1.5 1.5 0 0 0 5 1.5v3a0.5 0.5 0 0 1 -0.5 0.5h-3A1.5 1.5 0 0 0 0 6.5v3A1.5 1.5 0 0 0 1.5 11h3a0.5 0.5 0 0 1 0.5 0.5v3A1.5 1.5 0 0 0 6.5 16h3a1.5 1.5 0 0 0 1.5 -1.5v-3a0.5 0.5 0 0 1 0.5 -0.5h3A1.5 1.5 0 0 0 16 9.5v-3A1.5 1.5 0 0 0 14.5 5h-3a0.5 0.5 0 0 1 -0.5 -0.5v-3A1.5 1.5 0 0 0 9.5 0zm1.288 2.34a0.25 0.25 0 0 1 0.424 0l0.799 1.278A0.25 0.25 0 0 1 8.799 4H7.201a0.25 0.25 0 0 1 -0.212 -0.382zm0 11.32 -0.799 -1.277A0.25 0.25 0 0 1 7.201 12H8.8a0.25 0.25 0 0 1 0.212 0.383l-0.799 1.278a0.25 0.25 0 0 1 -0.424 0Zm-4.17 -4.65 -1.279 -0.798a0.25 0.25 0 0 1 0 -0.424l1.279 -0.799A0.25 0.25 0 0 1 4 7.201V8.8a0.25 0.25 0 0 1 -0.382 0.212Zm10.043 -0.798 -1.278 0.799A0.25 0.25 0 0 1 12 8.799V7.2a0.25 0.25 0 0 1 0.383 -0.212l1.278 0.799a0.25 0.25 0 0 1 0 0.424Z"/></svg></button>
+                <button id="fullscreen-btn" class="toolbar-icon-btn" title="전체 화면"><svg viewBox="0 0 59.13 59.13" height="22"><path fill="currentColor" d="M0,22.05V3.69C0,1.62,1.62,0,3.69,0h18.36v4.5H6.75c-1.17,0-1.98.81-1.98,1.98v15.57H0ZM0,37.08h4.77v15.57c0,1.17.81,1.98,1.98,1.98h15.3v4.5H3.69c-2.07,0-3.69-1.62-3.69-3.69v-18.36ZM59.13,22.05h-4.77V6.48c0-1.17-.81-1.98-1.98-1.98h-15.3V0h18.36c2.07,0,3.69,1.62,3.69,3.69v18.36ZM59.13,37.08v18.36c0,2.07-1.62,3.69-3.69,3.69h-18.36v-4.5h15.3c1.17,0,1.98-.81,1.98-1.98v-15.57h4.77Z"/></svg></button>
+            </div>
+        </div>
+        <div id="play-area">
+            <div id="game-container">
+                <canvas id="game-canvas" width="640" height="480"></canvas>
+                <div id="online-panel" hidden>
+                    <h1 id="online-title">온라인 대전</h1>
+                    <p id="online-message" hidden></p>
+                    <section class="online-view" data-view="start">
+                        <button id="online-create" class="online-btn" type="button">방 만들기</button>
+                        <div class="online-row">
+                            <input id="online-join-input" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="방 코드">
+                            <button id="online-join" class="online-btn" type="button">참가</button>
+                        </div>
+                    </section>
+                    <section class="online-view" data-view="wait">
+                        <div id="online-room-code"></div>
+                        <div class="online-row online-link-row">
+                            <input id="online-link" type="text" readonly aria-label="초대 링크">
+                            <button id="online-copy" class="online-btn" type="button">링크 복사</button>
+                        </div>
+                        <p>상대를 기다리는 중</p>
+                        <button id="online-cancel" class="online-btn online-sub" type="button">취소</button>
+                    </section>
+                    <section class="online-view" data-view="ended">
+                        <div id="online-result"></div>
+                        <button id="online-rematch" class="online-btn" type="button">다시 대전</button>
+                        <p id="online-rematch-wait" hidden>상대를 기다리는 중</p>
+                        <button id="online-leave" class="online-btn online-sub" type="button">나가기</button>
+                    </section>
+                </div>
+            </div>
+            <div id="yaku-container" class="hidden">
+                <iframe id="yaku-frame" data-src="yaku-calc.html?live"></iframe>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="virtual-gamepad" aria-hidden="true">
+        <div class="gamepad-dpad">
+            <button data-key="ArrowUp" class="dpad-up"><svg viewBox="0 0 21.9 38.33" role="img" aria-label="↑" style="transform:rotate(90deg)"><polygon fill="currentColor" points="16.43 0 16.43 5.48 10.95 5.48 10.95 10.95 5.48 10.95 5.48 16.43 0 16.43 0 21.9 5.48 21.9 5.48 27.38 10.95 27.38 10.95 32.86 16.43 32.86 16.43 38.33 21.9 38.33 21.9 32.86 21.9 27.38 21.9 21.9 21.9 16.43 21.9 10.95 21.9 0 16.43 0"/></svg></button>
+            <button data-key="ArrowLeft" class="dpad-left"><svg viewBox="0 0 21.9 38.33" role="img" aria-label="←"><polygon fill="currentColor" points="16.43 0 16.43 5.48 10.95 5.48 10.95 10.95 5.48 10.95 5.48 16.43 0 16.43 0 21.9 5.48 21.9 5.48 27.38 10.95 27.38 10.95 32.86 16.43 32.86 16.43 38.33 21.9 38.33 21.9 32.86 21.9 27.38 21.9 21.9 21.9 16.43 21.9 10.95 21.9 0 16.43 0"/></svg></button>
+            <button data-key="ArrowRight" class="dpad-right"><svg viewBox="0 0 21.9 38.33" role="img" aria-label="→" style="transform:rotate(180deg)"><polygon fill="currentColor" points="16.43 0 16.43 5.48 10.95 5.48 10.95 10.95 5.48 10.95 5.48 16.43 0 16.43 0 21.9 5.48 21.9 5.48 27.38 10.95 27.38 10.95 32.86 16.43 32.86 16.43 38.33 21.9 38.33 21.9 32.86 21.9 27.38 21.9 21.9 21.9 16.43 21.9 10.95 21.9 0 16.43 0"/></svg></button>
+            <button data-key="ArrowDown" class="dpad-down"><svg viewBox="0 0 21.9 38.33" role="img" aria-label="↓" style="transform:rotate(270deg)"><polygon fill="currentColor" points="16.43 0 16.43 5.48 10.95 5.48 10.95 10.95 5.48 10.95 5.48 16.43 0 16.43 0 21.9 5.48 21.9 5.48 27.38 10.95 27.38 10.95 32.86 16.43 32.86 16.43 38.33 21.9 38.33 21.9 32.86 21.9 27.38 21.9 21.9 21.9 16.43 21.9 10.95 21.9 0 16.43 0"/></svg></button>
+        </div>
+        <div class="gamepad-buttons">
+            <button data-key="Escape" class="gp-menu"><svg viewBox="0 0 38.33 38.33" role="img" aria-label="ESC" fill="currentColor"><rect x="16.43" y="16.43" width="5.48" height="5.48"/><rect x="10.95" y="10.95" width="5.48" height="5.48"/><rect x="21.9" y="21.9" width="5.48" height="5.48"/><rect x="21.9" y="10.95" width="5.48" height="5.48"/><rect x="10.95" y="21.9" width="5.48" height="5.48"/><rect x="5.48" y="5.48" width="5.48" height="5.48"/><rect x="27.38" y="5.48" width="5.48" height="5.48"/><rect x="5.48" y="27.38" width="5.48" height="5.48"/><rect x="27.38" y="27.38" width="5.48" height="5.48"/><rect width="5.48" height="5.48"/><rect x="32.86" width="5.48" height="5.48"/><rect y="32.86" width="5.48" height="5.48"/><rect x="32.86" y="32.86" width="5.48" height="5.48"/></svg></button>
+            <button data-key="KeyZ" class="gp-action gamepad-btn-enter"><svg viewBox="0 0 38.33 38.33" role="img" aria-label="Enter"><polygon fill="currentColor" points="32.86 0 32.86 21.9 16.43 21.9 16.43 16.43 16.43 10.95 10.95 10.95 10.95 16.43 5.48 16.43 5.48 21.9 0 21.9 0 27.38 5.48 27.38 5.48 32.86 10.95 32.86 10.95 38.33 16.43 38.33 16.43 32.86 16.43 27.38 32.86 27.38 38.33 27.38 38.33 21.9 38.33 0 32.86 0"/></svg></button>
+        </div>
+    </div>
+
+    <script src="js/core/input.js"></script>
+    <script src="js/core/gamepad.js"></script>
+    <script src="js/core/assets.js"></script>
+    <script src="js/core/timers.js"></script>
+    <script src="js/core/rng.js"></script>
+
+    <script src="js/data/characterData.js"></script>
+
+    <script src="js/data/dialogueData.js"></script>
+    <script src="js/data/battleConfig.js"></script>
+    <script src="js/data/fxTimelines.js"></script>
+    <script src="js/data/paiData.js"></script>
+    <script src="js/data/tutorialData.js"></script>
+    <script src="js/logic/yakuLogic.js"></script>
+    <script src="js/logic/battleMenuSystem.js"></script>
+    <script src="js/logic/aiLogic.js"></script>
+    <script src="js/logic/autoPlay.js"></script>
+    <script src="js/logic/skillRegistry.js"></script>
+    <script src="js/logic/battleSequencer.js"></script>
+    <script src="js/views/bitmapFont.js"></script>
+    <script src="js/views/uiDraw.js"></script>
+    <script src="js/views/uiHelpers.js"></script>
+    <script src="js/scenes/loadingScene.js"></script>
+    <script src="js/scenes/titleScene.js"></script>
+    <script src="js/scenes/characterSelectScene.js"></script>
+    <script src="js/scenes/encounterScene.js"></script>
+    <script src="js/views/portraitCharacter.js"></script>
+    <script src="js/views/battleDialogue.js"></script>
+
+    <script src="js/views/battleLayout.js"></script>
+    <script src="js/views/fxSystem.js"></script>
+    <script src="js/views/battleRenderer.js"></script>
+    <script src="js/logic/battleEngine.js"></script>
+    <script src="js/logic/seatControllers.js"></script>
+    <script src="js/net/transport.js"></script>
+    <script src="js/net/onlineMatch.js"></script>
+    <script src="js/net/netController.js"></script>
+    <script src="js/net/onlineLobby.js"></script>
+    <script src="js/core/debug.js"></script>
+    <script src="js/scenes/battleScene.js"></script>
+    <script src="js/scenes/endingScene.js"></script>
+    <script src="js/scenes/continueScene.js"></script>
+    <script src="js/scenes/creditsScene.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="https://atah.io/footer.js"></script>
+    <script src="js/core/version.js"></script>
+</body>
+
+</html>

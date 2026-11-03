@@ -54,19 +54,15 @@ const LoadingScene = {
 
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode');
-        const online = params.get('online');
-        if (mode === 'story' || mode === 'watch' || mode === 'tutorial' || online || Game.isAutoTest) {
+        if (OnlineLobby.isPage()) {
+            if (!this.isLoaded) return;
+            OnlineLobby.begin();
+            return;
+        }
+        if (mode === 'story' || mode === 'watch' || mode === 'tutorial' || Game.isAutoTest) {
             if (!this.isLoaded) return;
             this.delayTimer += dt;
             if (this.delayTimer > 30) {
-                const num = (k) => params.get(k) != null && params.get(k) !== '' ? Number(params.get(k)) : null;
-                if (online && OnlineLobbyScene.startFromUrl(online, {
-                    char: num('char'),
-                    seed: num('seed'),
-                    skills: params.get('skills') != null ? params.get('skills') !== '0' : null
-                })) {
-                    return;
-                }
                 if (mode === 'story' || mode === 'watch') {
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (mode === 'tutorial') {

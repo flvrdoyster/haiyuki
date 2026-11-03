@@ -14,8 +14,6 @@ const BattleScene = {
         if (data.online) {
             const match = data.online;
             this.online = match;
-            this.skillsBeforeOnline = BattleConfig.RULES.SKILLS_ENABLED;
-            BattleConfig.RULES.SKILLS_ENABLED = !!match.skillsEnabled;
             data.difficulty = 'normal';
             data.seed = match.seed;
             data.localSeat = match.seat;
@@ -42,14 +40,11 @@ const BattleScene = {
     },
 
     exitOnline: function () {
-        BattleConfig.RULES.SKILLS_ENABLED = this.skillsBeforeOnline;
         const match = this.online;
         this.online = null;
         BattleEngine.online = null;
-        if (match) match.close();
-        Game.syncSkillsButton();
         Assets.stopMusic();
-        Game.changeScene(TitleScene);
+        OnlineLobby.returnFromMatch(match);
     },
 
     endMatch: function () {
@@ -143,7 +138,7 @@ const BattleScene = {
         this.p1Character.setAnimationConfig(getAnimConfig(p1Data));
 
         // 마스크 보스: BattleRenderer가 실루엣(MAYU_unknown.png)을 직접 그림 — cpuCharacter는 이벤트 시스템용으로만 유지
-        this.cpuMasked = (cpuData && cpuData.id === 'mayu' && (!p1Data || p1Data.id !== 'mayu'));
+        this.cpuMasked = (!this.online && cpuData && cpuData.id === 'mayu' && (!p1Data || p1Data.id !== 'mayu'));
 
         this.cpuCharacter = new PortraitCharacter(cpuData, {
             ...BattleConfig.PORTRAIT.CPU,
@@ -250,7 +245,7 @@ const BattleScene = {
         QADebug.sync(BattleEngine);
 
         if (this.online && this.online.failed) {
-            if (this.online.updateFailure(dt)) this.exitOnline();
+            this.exitOnline();
             return;
         }
 
@@ -455,7 +450,6 @@ const BattleScene = {
         if (this.confirmData) {
             this.drawConfirm(ctx);
         }
-        if (this.online) this.online.drawFailure(ctx);
     },
 
     showConfirm: function (msg, onYes, onNo, options = {}) {

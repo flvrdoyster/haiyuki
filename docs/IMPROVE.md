@@ -35,5 +35,5 @@
 
 ## 7. 온라인 대전 준비 — 잔여
 - P1 자리에 `AIController`를 끼워 대칭 모드·자동 테스트의 P1 AI(`autoPlay.js`, `tryP1AiPon`, `updateLogic`의 `symmetric` 분기, `HumanController` 안의 `symmetric` 분기)를 컨트롤러 교체로 바꾼다. `_ai_fingerprint` 베이스라인이 걸려 있으므로 측정값을 전후 비교한다.
-- 온라인 4단계: 릴레이 서버(WebSocket 전송 구현, `transport.js`와 같은 인터페이스)와 방 코드 공유 UI. 끊김은 지금 매치 무효로만 처리하므로 재접속은 그 뒤.
-- 온라인에서 상대가 눈썹개를 고르면 기존 CPU 규칙대로 실루엣(마스크)으로 그려진다. 온라인에서는 그대로 보여 줄지 정한다.
+- 온라인 4단계: 릴레이 서버(Cloudflare Worker + Durable Object, WebSocket 전송 구현, `transport.js`와 같은 인터페이스). 지금 로비의 방 코드·초대 링크 UI는 `BroadcastChannel`(같은 브라우저)에서만 통한다. 끊김은 매치 무효로만 처리하므로 재접속은 그 뒤.
+- 퀵 매치: 릴레이가 대기 중인 상대를 자동으로 붙여 준다. 코드·초대와 병행하고 `online.html` 로비에 버튼으로 더한다. 릴레이 뒤에야 가능.

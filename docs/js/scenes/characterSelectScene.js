@@ -100,17 +100,12 @@ const CharacterSelectScene = {
         }
     },
 
-    leaveOnline: function () {
-        this.match.close();
-        this.match = null;
-        Assets.stopMusic();
-        Game.changeScene(TitleScene);
-    },
-
     updateOnline: function (dt) {
         const match = this.match;
         if (match.failed) {
-            if (match.updateFailure(dt)) this.leaveOnline();
+            this.match = null;
+            Assets.stopMusic();
+            OnlineLobby.returnFromMatch(match);
             return true;
         }
         if (match.peerChar != null && this.cpuIndex !== match.peerChar) {
@@ -136,7 +131,9 @@ const CharacterSelectScene = {
             return true;
         }
         if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
-            this.leaveOnline();
+            this.match = null;
+            Assets.stopMusic();
+            OnlineLobby.leave();
             return true;
         }
         return false;
@@ -326,7 +323,6 @@ const CharacterSelectScene = {
 
     draw: function (ctx) {
         this.drawScene(ctx);
-        if (this.match) this.match.drawFailure(ctx);
     },
 
     drawScene: function (ctx) {

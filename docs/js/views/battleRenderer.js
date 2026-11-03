@@ -291,7 +291,7 @@ const BattleRenderer = {
 
     // 플레이어가 마유가 아닐 때 CPU 마유는 "???" 표기 (숨겨진 보스)
     maskedCpuName: function (s) {
-        if (s && s.cpu && s.cpu.id === 'mayu' && s.p1 && s.p1.id !== 'mayu') return '???';
+        if (s && !s.online && s.cpu && s.cpu.id === 'mayu' && s.p1 && s.p1.id !== 'mayu') return '???';
         return (s && s.cpu && s.cpu.name) ? s.cpu.name : '';
     },
 

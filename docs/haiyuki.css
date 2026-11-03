@@ -579,24 +579,141 @@ body.gamepad-on #virtual-gamepad {
     width: 72px;
     min-width: 72px;
 }
-#online-code {
+
+#online-panel {
     position: absolute;
-    left: 50%;
-    top: 68%;
-    transform: translate(-50%, -50%);
-    display: none;
-    width: 6ch;
-    padding: 4px 8px;
-    font: 28px monospace;
-    letter-spacing: 0.2em;
+    inset: 0;
+    z-index: 5;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3cqw;
+    padding: 4cqw;
+    box-sizing: border-box;
+    background: var(--stage-bg);
+    color: var(--stage-text);
+    font-family: 'KoddiUDOnGothic', sans-serif;
     text-align: center;
-    text-transform: uppercase;
-    color: #ff0;
-    background: #000;
-    border: 2px solid #fff;
-    outline: none;
 }
 
-#online-code.show {
-    display: block;
+#online-panel[hidden],
+#online-panel [hidden],
+#online-panel .online-view {
+    display: none;
+}
+
+#online-panel[data-view="start"] .online-view[data-view="start"],
+#online-panel[data-view="wait"] .online-view[data-view="wait"],
+#online-panel[data-view="ended"] .online-view[data-view="ended"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3cqw;
+    width: 100%;
+}
+
+#online-panel[data-role="guest"] .online-link-row {
+    display: none;
+}
+
+#online-title {
+    margin: 0;
+    font-size: 6cqw;
+    color: var(--stage-text-2);
+}
+
+#online-message {
+    margin: 0;
+    font-size: 3.4cqw;
+    color: var(--danger);
+}
+
+#online-panel p {
+    margin: 0;
+    font-size: 3.4cqw;
+    color: var(--stage-text-2);
+}
+
+#online-room-code {
+    font-size: 15cqw;
+    font-weight: bold;
+    letter-spacing: 0.25em;
+    padding-left: 0.25em;
+    color: var(--stage-text);
+}
+
+#online-result {
+    font-size: 11cqw;
+    font-weight: bold;
+    color: var(--stage-text);
+}
+
+.online-row {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2cqw;
+    width: 100%;
+}
+
+.online-btn {
+    min-height: 44px;
+    padding: 0 4cqw;
+    font: inherit;
+    font-size: 4cqw;
+    color: var(--stage-text);
+    background: var(--stage-btn);
+    border: 1px solid var(--stage-btn-border);
+    cursor: pointer;
+}
+
+.online-btn:hover:not(:disabled) {
+    background: var(--stage-btn-hover);
+}
+
+.online-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.online-btn.done {
+    color: var(--link);
+}
+
+.online-sub {
+    font-size: 3.4cqw;
+    color: var(--stage-text-2);
+}
+
+#online-panel input {
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 2cqw;
+    font: inherit;
+    font-size: 4cqw;
+    color: var(--stage-text);
+    background: var(--surface);
+    border: 1px solid var(--stage-btn-border);
+    outline: none;
+    border-radius: 0;
+}
+
+#online-panel input:focus {
+    border-color: var(--stage-text-2);
+}
+
+#online-join-input {
+    width: 28cqw;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    padding-left: calc(2cqw + 0.3em);
+}
+
+#online-link {
+    flex: 1;
+    min-width: 0;
+    max-width: 62cqw;
 }

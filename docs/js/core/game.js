@@ -191,8 +191,7 @@ const Game = {
         const btn = document.getElementById('skills-btn');
         if (!btn) return;
         const inTutorial = !!(typeof BattleEngine !== 'undefined' && BattleEngine.tutorial);
-        const inOnline = !!(typeof OnlineMatch !== 'undefined' && OnlineMatch.current);
-        btn.disabled = inTutorial || inOnline;
+        btn.disabled = inTutorial;
         btn.classList.remove('toggle-on', 'toggle-off');
         btn.classList.add(BattleConfig.RULES.SKILLS_ENABLED ? 'toggle-on' : 'toggle-off');
     },
