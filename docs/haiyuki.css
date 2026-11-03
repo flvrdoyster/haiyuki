@@ -449,8 +449,15 @@ a {
     margin: 0 8px;
 }
 
-#site-links .link-label {
-    margin-right: 8px;
+@media (max-width: 768px) {
+    #site-links {
+        font-size: var(--font-sm);
+        white-space: nowrap;
+    }
+
+    #site-links .link-sep {
+        margin: 0 4px;
+    }
 }
 
 /* Mobile Optimizations */
