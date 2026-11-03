@@ -701,6 +701,38 @@ const BattleRenderer = {
         ctx.restore();
     },
 
+    damageStages: function (info) {
+        const stages = [];
+        const push = v => { if (stages[stages.length - 1] !== v) stages.push(v); };
+        const hasYaku = info.yakuScore != null && info.baseScore != null;
+        if (hasYaku) {
+            push(info.yakuScore);
+            push(info.baseScore);
+            if (typeof info.bonusScore === 'number' && info.bonusScore > 0) push(info.baseScore + info.bonusScore);
+        }
+        push(info.score || 0);
+        return stages;
+    },
+
+    rollDamage: function (stages, t, roll) {
+        let from = 0;
+        let at = roll.start;
+        for (const to of stages) {
+            if (t < at) return from;
+            if (t < at + roll.ticks) {
+                const p = (t - at) / roll.ticks;
+                const ease = 1 - (1 - p) * (1 - p);
+                if (Math.floor(t / roll.soundEvery) > Math.floor((t - 1) / roll.soundEvery)) {
+                    Assets.playSound(BattleConfig.AUDIO.TICK);
+                }
+                return Math.round((from + (to - from) * ease) / 10) * 10;
+            }
+            from = to;
+            at += roll.ticks + roll.gap;
+        }
+        return from;
+    },
+
     drawResult: function (ctx, state) {
         const conf = BattleConfig.RESULT;
 
@@ -794,33 +826,7 @@ const BattleRenderer = {
             ctx.fillStyle = conf.scoreColor;
             ctx.fillText("데미지", conf.yakuListX, damageY);
 
-            const hasBuffs = info.activeBuffs && info.activeBuffs.length > 0;
-            const openPenalty = info.yakuScore != null && info.baseScore != null && info.yakuScore !== info.baseScore;
-            let displayScore = info.score;
-
-            if (hasBuffs || openPenalty) {
-                // 보정(버프·오픈 페널티)이 있으면 점수 롤업: 0~80f 역 원점수+보너스 → 80~140f 보간 → 이후 최종값
-                const baseTotal = (info.yakuScore != null ? info.yakuScore : (info.baseScore || 0)) + (info.bonusScore || 0);
-                const finalTotal = info.score;
-
-                if (state.timer < 80) {
-                    displayScore = baseTotal;
-                } else if (state.timer < 140) {
-                    const progress = (state.timer - 80) / 60;
-                    // Ease Out Quad
-                    const ease = 1 - (1 - progress) * (1 - progress);
-                    displayScore = Math.floor(baseTotal + (finalTotal - baseTotal) * ease);
-
-                    // 4프레임마다 틱 사운드
-                    const prevTick = Math.floor((state.timer - 1.0) / 4);
-                    const currentTick = Math.floor(state.timer / 4);
-                    if (currentTick > prevTick) {
-                        Assets.playSound(BattleConfig.AUDIO.TICK);
-                    }
-                } else {
-                    displayScore = finalTotal;
-                }
-            }
+            const displayScore = this.rollDamage(this.damageStages(info), state.stateTimer, conf.damageRoll);
 
             BitmapFont.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
                 align: 'right',
