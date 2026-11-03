@@ -75,7 +75,7 @@ const UIDraw = {
         this.drawUIFrame(ctx, x, y, w, h);
 
         const border = 4;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(x + border, y + border, w - (border * 2), h - (border * 2));
         ctx.restore();
     },
