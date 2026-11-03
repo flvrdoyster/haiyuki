@@ -300,8 +300,7 @@ const SkillRegistry = {
         canUse: (engine, who) => engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.guaranteedWin = true;
-            // 텐파이 깨면 보장승리패를 못 찾아 낭비되므로 리치처럼 손패 고정.
-            engine.declareRiichiLock(who);
+            engine.declareRiichiLock(who, 1);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },
@@ -391,8 +390,7 @@ const SkillRegistry = {
             engine.canDeclareRiichi(who),
         execute: (engine, who, user) => {
             user.buffs.spiritTimer = 5;
-            // 기합 리치 = 실제 리치 선언: 손패 고정.
-            engine.declareRiichiLock(who);
+            engine.declareRiichiLock(who, 2);
         },
         aiScore: (engine, ctx) => _aggressiveSkillScore(ctx)
     },

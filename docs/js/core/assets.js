@@ -217,6 +217,8 @@ const Assets = {
         'ui/lesson.png',
         'ui/dora.png',
         'ui/riichi.png',
+        'ui/riichi_gold.png',
+        'ui/riichi_blue.png',
         'ui/bar_blue.png',
         'ui/bar_yellow.png',
         'ui/alphabet.png',

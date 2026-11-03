@@ -107,10 +107,9 @@ const BattleConfig = {
         frame: { path: 'ui/dora.png', xOffset: 0, yOffset: 40, align: 'center' }
     },
     RIICHI_STICK: {
-        path: 'ui/riichi.png',
-        y: 246,
-        offset: 58,            // 도라 중심에서의 거리
-        scale: 0.9
+        paths: ['ui/riichi.png', 'ui/riichi_gold.png', 'ui/riichi_blue.png'],
+        P1: { x: 180, y: 240 },
+        CPU: { x: 376, y: 180 }
     },
 
     NAME_DISPLAY: {
@@ -145,10 +144,10 @@ const BattleConfig = {
     },
     INFO: {
         // 중심(320) 기준 오프셋: 턴 = 중심-offset, 라운드 = 중심+offset
-        turnLabel: { offset: 60, y: 180, align: 'right' },
-        turnNumber: { offset: 60, y: 200, align: 'right', pad: 2 }, // pad = 자릿수
-        roundLabel: { offset: 60, y: 180, align: 'left' },
-        roundNumber: { offset: 60, y: 200, align: 'left', pad: 2 },
+        turnLabel: { offset: 60, y: 188, align: 'right' },
+        turnNumber: { offset: 60, y: 208, align: 'right', pad: 2 }, // pad = 자릿수
+        roundLabel: { offset: 60, y: 188, align: 'left' },
+        roundNumber: { offset: 60, y: 208, align: 'left', pad: 2 },
         numbers: { path: 'ui/number.png', w: 14, gap: 2 },
         labels: {
             turnPath: 'ui/turn.png',

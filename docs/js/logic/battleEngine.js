@@ -1534,6 +1534,7 @@ const BattleEngine = {
         const me = this.getPlayer(who);
         this.logAction(who, 'riichi');
         me.isRiichi = true;
+        me.riichiStick = 0;
         me.declaringRiichi = true;
         me.riichiSilent = false;
         if (who === 'P1') {
@@ -1649,9 +1650,10 @@ const BattleEngine = {
         return false;
     },
 
-    declareRiichiLock: function (who) {
+    declareRiichiLock: function (who, stick) {
         const p = this.getPlayer(who);
         p.isRiichi = true;
+        p.riichiStick = stick;
         p.declaringRiichi = true;
         if (who === 'P1') {
             this.validRiichiDiscardIndices = this.getValidRiichiDiscards();

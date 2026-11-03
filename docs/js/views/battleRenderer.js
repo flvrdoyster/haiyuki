@@ -181,26 +181,11 @@ const BattleRenderer = {
         this.drawInfo(ctx, state.turnCount, state.currentRound, !!state.tutorial);
 
         const riichiConf = BattleConfig.RIICHI_STICK;
-        if (riichiConf && Assets.get(riichiConf.path)) {
-            const rImg = Assets.get(riichiConf.path);
-            const rY = riichiConf.y;
-            const rOff = riichiConf.offset;
-            const rScale = riichiConf.scale || 1.0;
-            const rW = rImg.width * rScale;
-            const rH = rImg.height * rScale;
-            const cx = BattleConfig.SCREEN.centerX;
-
-            if (state.p1.isRiichi && !state.p1.declaringRiichi) {
-                // 중앙선 왼쪽: 오른쪽 끝이 offset 위치에 닿도록
-                const rx = cx - rOff - rW;
-                ctx.drawImage(rImg, rx, rY, rW, rH);
-            }
-
-            if (state.cpu.isRiichi && !state.cpu.declaringRiichi) {
-                const rx = cx + rOff;
-                ctx.drawImage(rImg, rx, rY, rW, rH);
-            }
-        }
+        [['P1', state.p1], ['CPU', state.cpu]].forEach(([who, p]) => {
+            if (!p.isRiichi) return;
+            const rImg = Assets.get(riichiConf.paths[p.riichiStick || 0]);
+            if (rImg) ctx.drawImage(rImg, riichiConf[who].x, riichiConf[who].y);
+        });
 
         // 스킬 대화는 승리 시퀀스 중에도 표시되므로 항상 그림
         BattleDialogue.draw(ctx, state);
