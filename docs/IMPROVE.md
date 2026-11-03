@@ -35,5 +35,5 @@
 
 ## 7. 온라인 대전 준비 — 잔여
 - P1 자리에 `AIController`를 끼워 대칭 모드·자동 테스트의 P1 AI(`autoPlay.js`, `tryP1AiPon`, `updateLogic`의 `symmetric` 분기, `HumanController` 안의 `symmetric` 분기)를 컨트롤러 교체로 바꾼다. `_ai_fingerprint` 베이스라인이 걸려 있으므로 측정값을 전후 비교한다.
-- 온라인 4단계 마무리: 릴레이를 배포하고 `BattleConfig.ONLINE.RELAY_URL`에 `*.workers.dev` 주소를 넣는다(비어 있으면 `BroadcastChannel`). 끊김은 매치 무효로만 처리하므로 재접속은 그 뒤.
+- 온라인 재접속: 끊기면 상대는 CPU 인계, 나간 쪽은 돌아올 수 없다. 릴레이 경로에 하트비트가 없어 오래 조용한 소켓이 끊기는지도 실기기로 본다.
 - 퀵 매치: 릴레이가 대기 중인 상대를 자동으로 붙여 준다. 코드·초대와 병행하고 `vs.html` 로비에 버튼으로 더한다. 릴레이 뒤에야 가능.

@@ -38,7 +38,7 @@ const BattleConfig = {
     },
 
     ONLINE: {
-        RELAY_URL: '',
+        RELAY_URL: 'wss://haiyuki-relay.flvrdoyster.workers.dev',
         TICK_RATE: 60,
         DISCARD_SEC: 45,
         EXCHANGE_SEC: 45,

@@ -53,6 +53,7 @@
 | `rematchStart` | 호스트가 양쪽의 `rematch`를 확인하고 보냄. 새 시드를 싣고, 양쪽이 캐릭터 선택부터 다시 시작 |
 | `draw` | 뽑기 창에서 그냥 뽑음 |
 | `pon` / `tsumo` / `riichi` | 선언(론은 자동이라 받는 쪽이 무시) |
+| `riichiCancel` | 리치 패를 버리기 전 리치 취소 |
 | `discard` | 버린 패(손패 인덱스가 아니라 패 식별, 정렬 차이 방지) |
 | `skill` | 능동 비기 id |
 | `exchange` | 라운드 시작 패 교환 확정(패 식별 목록, 빈 배열이면 교환 없음) |
@@ -140,4 +141,4 @@
 3. `BroadcastChannel` 두 탭 대전, 로비·캐릭터 선택, 상태 해시, 테스트.
 4. 릴레이 작성·배포(WebSocket 전송층).
 
-1·2·3과 4의 릴레이 코드·클라이언트 전송층은 끝났다. 배포와 `RELAY_URL` 기입은 `docs/IMPROVE.md`.
+1·2·3·4 모두 끝났다. 릴레이는 `haiyuki-relay.flvrdoyster.workers.dev`에 배포되어 있고 주소는 `BattleConfig.ONLINE.RELAY_URL`에 있다. 재접속·퀵 매치는 `docs/IMPROVE.md`.
