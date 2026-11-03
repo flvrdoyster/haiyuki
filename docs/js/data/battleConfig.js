@@ -38,6 +38,7 @@ const BattleConfig = {
     },
 
     ONLINE: {
+        RELAY_URL: '',
         TICK_RATE: 60,
         DISCARD_SEC: 45,
         EXCHANGE_SEC: 45,

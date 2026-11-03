@@ -71,7 +71,10 @@
 `send`/`onMessage` 두 개짜리 인터페이스로 가린다.
 
 - `BroadcastChannel`: 같은 브라우저 두 탭으로 대전(구현됨, `net/transport.js`). 서버 없이 동기화 전체를 검증하고 Playwright 테스트(`tests/online.spec.ts`)도 이것으로 돌린다.
-- Cloudflare Worker + Durable Object 릴레이: 방 코드 하나로 두 소켓을 잇는다. 정적 호스팅은 그대로 두고 릴레이 주소만 상수로 둔다. 릴레이 코드는 `docs/` 밖 별도 디렉터리.
+- Cloudflare Worker + Durable Object 릴레이(구현됨, `relay/`와 `net/transport.js`의 `WebSocketTransport`): 방 코드 하나로 두 소켓을 잇는다. 정적 호스팅은 그대로 두고 릴레이 주소만 `BattleConfig.ONLINE.RELAY_URL`에 둔다. 릴레이 코드는 `docs/` 밖 별도 디렉터리.
+- 선택 규칙: `vs.html?transport=local`이면 항상 `BroadcastChannel`. 아니면 `?relay=주소`(테스트·시험용)가 있으면 그것, 없으면 `RELAY_URL`이 있을 때 WebSocket, 비어 있으면 `BroadcastChannel`.
+- 릴레이 경로의 접속·끊김: 릴레이의 `peer joined`는 전송층이 처리하고 `Match`는 그때부터 `hello`를 보낸다(상대가 없을 때 보낸 것은 서버가 버리므로). `peer left`는 `bye`와 같은 경로(`left`), 소켓 `close`·`error`와 접속 거부(코드 오류 400, 자리 참 409 포함)는 `disconnect`로 처리한다. 소켓이 끊김을 알려 주므로 `ping`과 10초 타임아웃은 쓰지 않는다(`BroadcastChannel` 경로에만 남는다).
+- 방 코드는 5자(I·O 제외 대문자)다. 쾌진극의 5자 패스워드 관례에 맞췄다.
 - 끊김은 매치 무효로만 처리한다. 재접속은 뒤로 미룬다.
 
 ## 6. 화면
@@ -80,7 +83,7 @@
 
 로비는 캔버스 위에 덮는 HTML 패널이다. 상태는 셋이다.
 
-- **시작**: `VS MODE` 글자, `방 만들기`, 구분선, 코드 입력 상자(대문자 네 글자)와 `참가`. 초대 링크 `vs.html?room=코드`로 열면 입력 없이 바로 참가한다.
+- **시작**: `VS MODE` 글자, `방 만들기`, 구분선, 코드 입력 상자(대문자 다섯 글자)와 `참가`. 초대 링크 `vs.html?room=코드`로 열면 입력 없이 바로 참가한다.
 - **대기**: 코드를 크게 보이고, 호스트만 `코드 복사`·`바로 입장 링크 복사` 두 버튼을 둔다(복사하면 토스트 `코드를 복사했습니다`·`바로 입장 링크를 복사했습니다`). 그 아래 `상대를 기다리는 중`(뒤에 점이 하나씩 늘어난다)과 `취소`. 게스트는 코드와 같은 문구.
 - **매치 끝**: 같은 방을 유지한 채 `WIN`/`LOSE` 글자, 라운드 목록, `다시 대전`, `나가기`. 한쪽만 누르면 그쪽은 버튼 자리에 `상대를 기다리는 중`. 둘 다 누르면 호스트가 새 시드를 보내고 양쪽이 캐릭터 선택부터 다시 간다.
 
@@ -137,4 +140,4 @@
 3. `BroadcastChannel` 두 탭 대전, 로비·캐릭터 선택, 상태 해시, 테스트.
 4. 릴레이 작성·배포(WebSocket 전송층).
 
-1·2·3은 끝났다. 4는 `docs/IMPROVE.md`.
+1·2·3과 4의 릴레이 코드·클라이언트 전송층은 끝났다. 배포와 `RELAY_URL` 기입은 `docs/IMPROVE.md`.

@@ -1,7 +1,7 @@
 const OnlineMatch = {
     current: null,
     CODE_CHARS: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
-    CODE_LENGTH: 4,
+    CODE_LENGTH: 5,
     HELLO_MS: 500,
     PING_MS: 1000,
     TIMEOUT_MS: 10000,
@@ -16,7 +16,14 @@ const OnlineMatch = {
     },
 
     normalizeCode: function (text) {
-        return (text || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, this.CODE_LENGTH);
+        return (text || '').toUpperCase().replace(/[^A-HJ-NP-Z]/g, '').slice(0, this.CODE_LENGTH);
+    },
+
+    makeTransport: function (code, host) {
+        const params = new URLSearchParams(window.location.search);
+        const url = params.get('transport') === 'local' ? '' : (params.get('relay') || BattleConfig.ONLINE.RELAY_URL);
+        if (url) return new WebSocketTransport(url, code, host ? 'host' : 'guest');
+        return new BroadcastChannelTransport(code);
     },
 
     create: function (opts) {
@@ -32,7 +39,7 @@ function Match(opts) {
     this.host = !!opts.host;
     this.seat = this.host ? 0 : 1;
     this.code = opts.code;
-    this.transport = opts.transport || new BroadcastChannelTransport(this.code);
+    this.transport = opts.transport || OnlineMatch.makeTransport(this.code, this.host);
     this.seed = this.host ? ((opts.seed != null ? opts.seed : Rng.randomSeed()) >>> 0) : null;
     this.myChar = opts.char != null ? opts.char : null;
     this.peerChar = null;
@@ -59,8 +66,21 @@ function Match(opts) {
 Match.prototype = {
     open: function () {
         this.transport.onMessage(msg => this.receive(msg));
+        this.transport.onEvent(state => this.onTransportEvent(state));
+        if (!this.transport.relay) this.startHello();
+    },
+
+    startHello: function () {
+        if (this._hello || this.connected) return;
         this.sendHello();
         this._hello = setInterval(() => this.sendHello(), OnlineMatch.HELLO_MS);
+    },
+
+    onTransportEvent: function (state) {
+        if (this.closed) return;
+        if (state === 'joined') this.startHello();
+        else if (state === 'left') this.fail('left');
+        else if (state === 'closed') this.fail('disconnect');
     },
 
     sendHello: function () {
@@ -93,7 +113,7 @@ Match.prototype = {
                 this._hello = null;
                 this.sendHello();
                 if (this.myChar != null) this.sendRaw('pick', { index: this.myChar });
-                this._ping = setInterval(() => this.tickPing(), OnlineMatch.PING_MS);
+                if (!this.transport.relay) this._ping = setInterval(() => this.tickPing(), OnlineMatch.PING_MS);
                 this.notify();
             }
             return;

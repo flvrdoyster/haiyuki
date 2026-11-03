@@ -64,8 +64,8 @@ function connect(code, role) {
 }
 
 test('방 코드로 만나 메시지 교환, 거절, 퇴장 알림', async () => {
-  const host = await connect('ABCD', 'host');
-  const guest = await connect('ABCD', 'guest');
+  const host = await connect('ABCDE', 'host');
+  const guest = await connect('ABCDE', 'guest');
   assert.deepEqual(await host.next(), { type: 'peer', state: 'joined' });
   assert.deepEqual(await guest.next(), { type: 'peer', state: 'joined' });
 
@@ -76,22 +76,23 @@ test('방 코드로 만나 메시지 교환, 거절, 퇴장 알림', async () =>
   guest.send(JSON.stringify(b));
   assert.deepEqual(await host.next(), b);
 
-  await assert.rejects(connect('ABCD', 'guest'), { status: 409 });
-  await assert.rejects(connect('ABCD', 'host'), { status: 409 });
+  await assert.rejects(connect('ABCDE', 'guest'), { status: 409 });
+  await assert.rejects(connect('ABCDE', 'host'), { status: 409 });
 
   guest.close();
   assert.deepEqual(await host.next(), { type: 'peer', state: 'left' });
 });
 
 test('잘못된 코드는 400', async () => {
-  await assert.rejects(connect('ABIO', 'host'), { status: 400 });
+  await assert.rejects(connect('ABIOX', 'host'), { status: 400 });
+  await assert.rejects(connect('ABCD', 'host'), { status: 400 });
   await assert.rejects(connect('abcd', 'host'), { status: 400 });
   await assert.rejects(connect('ABC', 'host'), { status: 400 });
 });
 
 test('호스트 없이 게스트가 먼저 와도 입장', async () => {
-  const guest = await connect('WXYZ', 'guest');
-  const host = await connect('WXYZ', 'host');
+  const guest = await connect('WXYZK', 'guest');
+  const host = await connect('WXYZK', 'host');
   assert.deepEqual(await guest.next(), { type: 'peer', state: 'joined' });
   assert.deepEqual(await host.next(), { type: 'peer', state: 'joined' });
 });

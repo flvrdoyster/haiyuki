@@ -7,7 +7,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 접속 | `GET wss://<host>/room/<CODE>?role=host\|guest` (WebSocket 업그레이드) |
-| 코드 | 대문자 A~Z에서 I·O 제외 네 글자. 틀리면 400 |
+| 코드 | 대문자 A~Z에서 I·O 제외 다섯 글자. 틀리면 400 |
 | 자리 | `host`·`guest` 각 하나. 이미 찬 자리는 409. 호스트 없이 게스트가 먼저 와도 됨 |
 | 서버 메시지 | `{"type":"peer","state":"joined"}` (상대 접속 시 양쪽에, 접속 직후 상대가 이미 있으면 바로), `{"type":"peer","state":"left"}` (상대 소켓이 닫힐 때) |
 | 그 외 텍스트 | 그대로 상대에게 전달. 상대가 없으면 버림. 핑도 `{"type":"ping"}` 애플리케이션 메시지로 전달 |
@@ -37,7 +37,7 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-배포 뒤 출력되는 `*.workers.dev` 주소를 클라이언트의 릴레이 주소 상수에 넣는다.
+배포 뒤 출력되는 `*.workers.dev` 주소를 `docs/js/data/battleConfig.js`의 `BattleConfig.ONLINE.RELAY_URL`에 넣는다.
 
 ## 무료 플랜 한도
 

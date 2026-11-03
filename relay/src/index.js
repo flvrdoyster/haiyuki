@@ -1,4 +1,4 @@
-const CODE_RE = /^[A-HJ-NP-Z]{4}$/;
+const CODE_RE = /^[A-HJ-NP-Z]{5}$/;
 const MAX_BYTES = 64 * 1024;
 const IDLE_MS = 10 * 60 * 1000;
 

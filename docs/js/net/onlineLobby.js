@@ -303,7 +303,7 @@ const OnlineLobby = {
             { round: 2, result: 'win', yaku: '입에 담을 수도 없는 엄청난 기술', damage: 9600 },
             { round: 3, result: 'draw', tenpai: [true, true], damage: 0 }
         ];
-        const code = 'ABCD';
+        const code = 'ABCDE';
         return {
             'start': { view: 'start' },
             'start-failed': { view: 'start', toast: this.MESSAGES.disconnect },
@@ -331,7 +331,9 @@ const OnlineLobby = {
             this.seenTakeover = m.takenOver;
             this.status(this.STATUS.takeover);
         }
-        if (this.view === 'wait' && m.connected) {
+        if (this.view === 'wait' && m.failed) {
+            this.fail(m);
+        } else if (this.view === 'wait' && m.connected) {
             this.status(this.STATUS.joined);
             this.startSelect();
         } else if (this.view === 'ended') {
