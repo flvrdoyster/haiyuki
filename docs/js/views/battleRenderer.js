@@ -568,12 +568,12 @@ const BattleRenderer = {
 
         if (turnImg && roundImg) {
             let tX = tx;
-            if (tConf.turnLabel.align === 'center') tX -= turnImg.width / 2;
+            if (tConf.turnLabel.align === 'center') tX -= Math.floor(turnImg.width / 2);
             else if (tConf.turnLabel.align === 'right') tX -= turnImg.width;
             ctx.drawImage(turnImg, tX, tConf.turnLabel.y);
 
             let rX = rx;
-            if (tConf.roundLabel.align === 'center') rX -= roundImg.width / 2;
+            if (tConf.roundLabel.align === 'center') rX -= Math.floor(roundImg.width / 2);
             else if (tConf.roundLabel.align === 'right') rX -= roundImg.width;
             ctx.drawImage(roundImg, rX, tConf.roundLabel.y);
         }

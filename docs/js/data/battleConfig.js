@@ -144,10 +144,10 @@ const BattleConfig = {
     },
     INFO: {
         // 중심(320) 기준 오프셋: 턴 = 중심-offset, 라운드 = 중심+offset
-        turnLabel: { offset: 60, y: 188, align: 'right' },
-        turnNumber: { offset: 60, y: 208, align: 'right', pad: 2 }, // pad = 자릿수
-        roundLabel: { offset: 60, y: 188, align: 'left' },
-        roundNumber: { offset: 60, y: 208, align: 'left', pad: 2 },
+        turnLabel: { offset: 96, y: 180, align: 'center' },
+        turnNumber: { offset: 96, y: 203, align: 'center', pad: 2 }, // pad = 자릿수
+        roundLabel: { offset: 96, y: 237, align: 'center' },
+        roundNumber: { offset: 96, y: 203, align: 'center', pad: 2 },
         numbers: { path: 'ui/number.png', w: 14, gap: 2 },
         labels: {
             turnPath: 'ui/turn.png',
