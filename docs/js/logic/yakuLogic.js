@@ -571,14 +571,18 @@ const YakuLogic = {
         const n = ctx.discardCount;
         const cpuWon = ctx.winner === 'CPU';
 
-        if (n <= 1 && winType === 'TSUMO') {
+        if (n === 0 && winType === 'TSUMO') {
             const s = 800;
             totalBonus += s;
             details.push({ name: '텐호 보너스', score: s });
+        } else if (n === 1 && winType === 'TSUMO') {
+            const s = 800;
+            totalBonus += s;
+            details.push({ name: '치호 보너스', score: s });
         } else if (n === 1 && winType === 'RON') {
             const s = 400;
             totalBonus += s;
-            details.push({ name: '텐호 보너스', score: s });
+            details.push({ name: '렌호 보너스', score: s });
         }
 
         if (n >= (cpuWon ? 39 : 38) && winType === 'TSUMO') {
