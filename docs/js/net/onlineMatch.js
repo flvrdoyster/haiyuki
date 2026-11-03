@@ -5,7 +5,7 @@ const OnlineMatch = {
     HELLO_MS: 500,
     PING_MS: 1000,
     TIMEOUT_MS: 10000,
-    SENT_TYPES: ['draw', 'discard', 'pon', 'riichi', 'tsumo', 'ron', 'skill', 'exchange', 'react', 'nagari', 'doraBomb', 'lastChanceStop'],
+    SENT_TYPES: ['draw', 'discard', 'pon', 'riichi', 'tsumo', 'ron', 'skill', 'exchange', 'react', 'nagari', 'doraBomb', 'lastChanceStop', 'confirm'],
 
     makeCode: function () {
         let code = '';
@@ -39,6 +39,7 @@ function Match(opts) {
     this.connected = false;
     this.failed = null;
     this.failInfo = null;
+    this.takenOver = null;
     this.ended = false;
     this.rematchMine = false;
     this.rematchPeer = false;
@@ -80,7 +81,7 @@ Match.prototype = {
     },
 
     receive: function (msg) {
-        if (!msg || msg.seat === this.seat || this.closed) return;
+        if (!msg || msg.seat === this.seat || this.closed || this.takenOver) return;
         this.lastHeard = Date.now();
         if (msg.type === 'hello') {
             if (!this.host) this.seed = msg.seed >>> 0;
@@ -98,7 +99,7 @@ Match.prototype = {
             return;
         }
         if (msg.type === 'bye') {
-            this.fail('disconnect');
+            this.fail('left');
             return;
         }
         if (msg.type === 'rematch') {
@@ -124,7 +125,7 @@ Match.prototype = {
     },
 
     requestRematch: function () {
-        if (!this.ended || this.failed || this.closed || this.rematchMine) return;
+        if (!this.ended || this.failed || this.closed || this.takenOver || this.rematchMine) return;
         this.rematchMine = true;
         this.sendRaw('rematch');
         this.tryStartRematch();
@@ -154,7 +155,7 @@ Match.prototype = {
     },
 
     tickPing: function () {
-        if (this.closed || this.failed) return;
+        if (this.closed || this.failed || this.takenOver) return;
         this.sendRaw('ping');
         if (Date.now() - this.lastHeard > OnlineMatch.TIMEOUT_MS) this.fail('disconnect');
     },
@@ -164,6 +165,7 @@ Match.prototype = {
     },
 
     onAction: function (engine, entry) {
+        if (this.takenOver) return;
         if (entry.who !== 'P1' || entry.auto) return;
         if (OnlineMatch.SENT_TYPES.indexOf(entry.type) < 0) return;
         if (entry.type === 'skill' && SkillData[entry.skill] && SkillData[entry.skill].type === 'REACTIVE') return;
@@ -176,8 +178,27 @@ Match.prototype = {
         this.sendRaw(entry.type, payload);
     },
 
+    inBattle: function () {
+        return typeof BattleEngine !== 'undefined' && BattleEngine.online === this;
+    },
+
+    takeOver: function (reason, info) {
+        this.takenOver = reason;
+        this.failInfo = info || null;
+        this.inbox = [];
+        console.error(`[Online] takeover ${reason}`, info || '');
+        if (this._ping) { clearInterval(this._ping); this._ping = null; }
+        if (this._hello) { clearInterval(this._hello); this._hello = null; }
+        BattleEngine.handOverToAI('CPU');
+        this.notify();
+    },
+
     fail: function (reason, info) {
-        if (this.failed) return;
+        if (this.failed || this.takenOver) return;
+        if (this.inBattle() && !this.ended) {
+            this.takeOver(reason, info);
+            return;
+        }
         this.failed = reason;
         this.failInfo = info || null;
         this.failTicks = 0;
@@ -194,17 +215,20 @@ Match.prototype = {
         this.summary = {
             winner: engine.matchWinner || null,
             hp: [engine.p1.hp, engine.cpu.hp],
+            rounds: engine.roundHistory.slice(),
+            chars: [this.myChar, this.peerChar],
             actionLog: engine.actionLog.slice(),
             checked: this.checked,
             sent: this.sent,
             failed: this.failed,
+            takenOver: this.takenOver,
             failInfo: this.failInfo
         };
     },
 
     close: function () {
         if (this.closed) return;
-        if (this.connected && !this.failed) this.sendRaw('bye');
+        if (this.connected && !this.failed && !this.takenOver) this.sendRaw('bye');
         this.closed = true;
         this.onChange = null;
         if (this._hello) clearInterval(this._hello);

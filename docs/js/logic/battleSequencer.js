@@ -89,12 +89,32 @@ const BattleSequencer = {
                     engine.pendingDamage.amount = totalScore;
                 }
 
-                const resultData = {
+                const doraHit = bonusResult.details.map(d => /^도라.*x(\d+)/.exec(d.name)).find(Boolean);
+                const notes = engine.roundNotes;
+                const mods = activeBuffs.slice();
+                if (notes.doraBomb) mods.push('DORA_BOMB');
+                const winnerPlayer = engine.getPlayer(who);
+                const yakuName = (engine.winningYaku && engine.winningYaku.yaku && engine.winningYaku.yaku.length > 0) ? engine.winningYaku.yaku[0] : type;
+                engine.recordRound({
                     round: engine.currentRound,
-                    result: (who === 'P1') ? '승' : '패',
-                    yaku: (engine.winningYaku && engine.winningYaku.yaku && engine.winningYaku.yaku.length > 0) ? engine.winningYaku.yaku[0] : type
-                };
-                engine.roundHistory.push(resultData);
+                    winner: who,
+                    how: type === 'RON' ? 'ron' : 'tsumo',
+                    yaku: doraHit ? `${yakuName} · 도라 ${doraHit[1]}` : yakuName,
+                    baseScore: score,
+                    damage: totalScore,
+                    bonuses: bonusResult.details,
+                    mods: mods,
+                    open: engine.isOpen(winnerPlayer),
+                    riichi: [engine.p1.isRiichi, engine.cpu.isRiichi],
+                    uraDora: engine.uraDoraRevealed ? engine.uraDoras.map(d => d.type) : [],
+                    tenpai: null,
+                    nagariBy: null,
+                    lastChance: notes.lastChance,
+                    counter: notes.counter ? { id: notes.counter.id, ok: notes.counter.who === who } : null,
+                    turns: engine.turnCount,
+                    hp: engine.hpAfter(engine.opponentOf(who), totalScore),
+                    firstSeat: engine.firstSeat
+                });
 
                 engine.resultInfo = {
                     type: (who === 'P1') ? 'WIN' : 'LOSE',
@@ -139,12 +159,26 @@ const BattleSequencer = {
         engine.setExpression('P1', p1Tenpai ? 'smile' : 'shocked');
         engine.setExpression('CPU', cpuTenpai ? 'smile' : 'shocked');
 
-        const resultData = {
+        engine.recordRound({
             round: engine.currentRound,
-            result: '무승부',
-            yaku: '-'
-        };
-        engine.roundHistory.push(resultData);
+            winner: null,
+            how: 'nagari',
+            yaku: null,
+            baseScore: 0,
+            damage: damage,
+            bonuses: [],
+            mods: [],
+            open: false,
+            riichi: [engine.p1.isRiichi, engine.cpu.isRiichi],
+            uraDora: [],
+            tenpai: [p1Tenpai, cpuTenpai],
+            nagariBy: engine.deck.length === 0 ? 'deck' : 'turns',
+            lastChance: null,
+            counter: null,
+            turns: engine.turnCount,
+            hp: engine.hpAfter(engine.pendingDamage ? engine.pendingDamage.target : null, damage),
+            firstSeat: engine.firstSeat
+        });
 
         const tenpaiOf = [0, 1].map(seat => engine.whoAt(seat) === 'P1' ? p1Tenpai : cpuTenpai);
         const lastChanceSteps = [0, 1].map(seat => ({

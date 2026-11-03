@@ -603,6 +603,14 @@ const BattleRenderer = {
         this.drawNumber(ctx, displayRound, rnx, tConf.roundNumber.y, tConf.roundNumber.align, tConf.roundNumber.pad || 0);
     },
 
+    drawClock: function (ctx, who, seconds) {
+        const img = Assets.get(BattleConfig.INFO.numbers.path);
+        if (!img) return;
+        const H = BattleConfig.HAND;
+        const y = who === 'P1' ? H.playerY + Math.floor((H.tileHeight - img.height) / 2) : H.cpuY + Math.floor((H.tileHeight - img.height) / 2);
+        this.drawNumber(ctx, seconds, 6, y, 'left');
+    },
+
     drawNumber: function (ctx, number, x, y, align = 'center', pad = 0) {
         let str = number.toString();
         if (pad > 0 && str.length < pad) str = str.padStart(pad, '0');

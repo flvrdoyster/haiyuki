@@ -37,6 +37,20 @@ const BattleConfig = {
         ACTION_WAIT: 30
     },
 
+    ONLINE: {
+        TICK_RATE: 60,
+        DISCARD_SEC: 45,
+        EXCHANGE_SEC: 45,
+        DRAW_SEC: 20,
+        CONFIRM_SEC: 20,
+        ROULETTE_SEC: 15,
+        RESULT_SEC: 20,
+        RESULT_INPUT_DELAY: 160,
+        ticks: function (sec) {
+            return Math.round(sec * this.TICK_RATE);
+        }
+    },
+
     UI_BG: { path: 'bg/GAMEBG.png', color: 'rgba(34, 85, 34, 1)' },
     BG: { prefix: 'bg/', min: 0, max: 11, x: 320, y: 220, align: 'center' },
     PORTRAIT: {

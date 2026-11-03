@@ -214,6 +214,7 @@ const SkillFlows = {
         }
         lc.phase = 'pre';
         lc.t = 0;
+        engine.roundNotes.lastChance = { who: lc.who, hit: false };
     },
 
     lastChanceJudge: function (engine) {
@@ -223,6 +224,7 @@ const SkillFlows = {
         const tile = lc.tile;
         const winYaku = tile && YakuLogic.checkYaku([...engine.getFullHand(player), tile], player.id, engine.isOpen(player));
         if (winYaku) {
+            engine.roundNotes.lastChance = { who: lc.who, hit: true };
             player.hand.push({ type: tile.type, color: tile.color, img: tile.img });
             engine.lastChance = null;
             engine.winningYaku = winYaku;
@@ -237,6 +239,8 @@ const SkillFlows = {
     },
 
     lastChanceEnd: function (engine) {
+        const entry = engine.roundHistory.find(r => r.round === engine.currentRound);
+        if (entry) entry.lastChance = engine.roundNotes.lastChance;
         engine.lastChance = null;
         engine.cpu.isRevealed = false;
         engine.currentState = engine.STATE_FX_PLAYING;

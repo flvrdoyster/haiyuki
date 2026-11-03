@@ -92,6 +92,7 @@ const CharacterSelectScene = {
         this.cpuTimer = 0;
         if (this.match) {
             this.match.sendPick(this.playerIndex);
+            if (this.match.peerChar == null) OnlineLobby.status(OnlineLobby.STATUS.picking);
             return;
         }
         this.updateCpuPortrait();

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>환세패유기 온라인 대전 : atah.io</title>
+    <title>환세패유기 VS MODE : atah.io</title>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -56,31 +56,9 @@
         <div id="play-area">
             <div id="game-container">
                 <canvas id="game-canvas" width="640" height="480"></canvas>
-                <div id="online-panel" hidden>
-                    <h1 id="online-title">온라인 대전</h1>
-                    <p id="online-message" hidden></p>
-                    <section class="online-view" data-view="start">
-                        <button id="online-create" class="online-btn" type="button">방 만들기</button>
-                        <div class="online-row">
-                            <input id="online-join-input" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="방 코드">
-                            <button id="online-join" class="online-btn" type="button">참가</button>
-                        </div>
-                    </section>
-                    <section class="online-view" data-view="wait">
-                        <div id="online-room-code"></div>
-                        <div class="online-row online-link-row">
-                            <input id="online-link" type="text" readonly aria-label="초대 링크">
-                            <button id="online-copy" class="online-btn" type="button">링크 복사</button>
-                        </div>
-                        <p>상대를 기다리는 중</p>
-                        <button id="online-cancel" class="online-btn online-sub" type="button">취소</button>
-                    </section>
-                    <section class="online-view" data-view="ended">
-                        <div id="online-result"></div>
-                        <button id="online-rematch" class="online-btn" type="button">다시 대전</button>
-                        <p id="online-rematch-wait" hidden>상대를 기다리는 중</p>
-                        <button id="online-leave" class="online-btn online-sub" type="button">나가기</button>
-                    </section>
+                <div id="online-layer">
+                    <div id="online-status" role="status" aria-live="polite"></div>
+                    <div id="online-panel" hidden></div>
                 </div>
             </div>
             <div id="yaku-container" class="hidden">

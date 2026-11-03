@@ -449,6 +449,12 @@ const BattleScene = {
 
         if (this.confirmData) {
             this.drawConfirm(ctx);
+            if (this.confirmData && this.confirmData.limit > 0) {
+                BattleRenderer.drawClock(ctx, 'P1', Math.ceil(this.confirmData.limit / BattleConfig.ONLINE.TICK_RATE));
+            }
+        } else if (this.online && BattleEngine.clock) {
+            const seconds = OnlineClock.remaining(BattleEngine.clock);
+            if (seconds !== null) BattleRenderer.drawClock(ctx, BattleEngine.clock.who, seconds);
         }
     },
 
@@ -459,6 +465,7 @@ const BattleScene = {
             onNo: onNo,
             selected: 1,
             timer: 10,
+            limit: options.limit || 0,
             cost: options.cost || 0
         };
         this._confirmLayout = null;
@@ -469,6 +476,15 @@ const BattleScene = {
         if (d.timer > 0) {
             d.timer -= dt;
             return;
+        }
+
+        if (d.limit > 0) {
+            d.limit -= dt;
+            if (d.limit <= 0) {
+                if (d.onNo) d.onNo();
+                this.confirmData = null;
+                return;
+            }
         }
 
         const mx = Input.mouseX;

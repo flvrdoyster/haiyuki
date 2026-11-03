@@ -3,6 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        if (new URLSearchParams(location.search).get('mode') === 'vs') {
+            const q = new URLSearchParams(location.search);
+            q.delete('mode');
+            const rest = q.toString();
+            location.replace('vs.html' + (rest ? '?' + rest : '') + location.hash);
+        }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>환세패유기 웹 버전 : atah.io</title>
     <meta name="mobile-web-app-capable" content="yes">

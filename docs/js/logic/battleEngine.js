@@ -187,6 +187,8 @@ const BattleEngine = {
         this.actionLog = [];
         this.onAction = data.onAction || null;
         this.online = data.online || null;
+        this.resultSeq = 0;
+        this.clock = null;
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.oncontextmenu = (e) => {
@@ -339,13 +341,56 @@ const BattleEngine = {
 
 
 
+    recordRound: function (entry) {
+        const at = this.roundHistory.findIndex(r => r.round === entry.round);
+        if (at >= 0) this.roundHistory.splice(at, 1);
+        this.roundHistory.push(entry);
+    },
+
+    hpAfter: function (target, amount) {
+        const hp = [this.p1.hp, this.cpu.hp];
+        const i = target === 'P1' ? 0 : target === 'CPU' ? 1 : -1;
+        if (i >= 0) hp[i] = Math.max(0, hp[i] - amount);
+        return hp;
+    },
+
     nextRound: function () {
         this.currentRound++;
         this.startRound();
     },
 
-    confirmResult: function () {
+    isResultState: function () {
+        return this.currentState === this.STATE_WIN ||
+            this.currentState === this.STATE_LOSE ||
+            this.currentState === this.STATE_NAGARI;
+    },
+
+    handOverToAI: function (who) {
+        const old = this.controllerOf(who);
+        const ai = new AIController();
+        this.controllers[who] = ai;
+        this.clock = null;
+        ai.pending = this.isTurn(who);
+        if (old.release) old.release(this, who);
+        if (this.setupWaiting === who) {
+            ai.onRoundSetup(this, who, this.setupSkillOf(who));
+        }
+        if (this.lastChance && this.lastChance.who === who && this.lastChance.phase === 'spin') {
+            this.lastChance.stopAt = ai.rouletteStopAt(this, who);
+        }
+        if (this.isDrawWindow(who)) {
+            const tile = this.discards[this.discards.length - 1];
+            if (tile) ai.onDrawWindow(this, who, { tile: tile, canPon: this.drawWindowOptions(who, tile).canPon });
+        }
+    },
+
+    confirmResult: function (who) {
         if (this.narration) return;
+        if (this.online) {
+            if (!this.isResultState()) return;
+            this.logAction(who || 'P1', 'confirm', { win: this.resultSeq });
+            this.resultSeq++;
+        }
         const proceed = () => {
             this.currentState = this.STATE_DAMAGE_ANIMATION;
             this.timer = 0;
@@ -407,6 +452,7 @@ const BattleEngine = {
         this.sequencing.active = false;
         this.events = [];
         this.lastChance = null;
+        this.roundNotes = { doraBomb: false, counter: null, lastChance: null };
 
         this._lastPopupType = null;
         this._lastPopupTime = -100;
@@ -873,6 +919,7 @@ const BattleEngine = {
             const c = this.controllerOf(who);
             if (c.poll) c.poll(this, who, dt);
         });
+        if (this.online) this.controllerOf('P1').update(this, 'P1', dt);
         if (this.narration) return;
 
         if (this.currentState !== this.lastState) {
@@ -1542,6 +1589,7 @@ const BattleEngine = {
                 this.controllerOf(oppWho).onCounterPrompt(this, oppWho, reactiveSkillId, (use) => {
                     this.logAction(oppWho, 'react', { use: !!use });
                     if (use && this.useSkill(reactiveSkillId, oppWho, true)) {
+                        this.roundNotes.counter = { who: oppWho, id: reactiveSkillId };
                         if (reactiveSkillId === 'SUPER_IAI') {
                             SkillFlows.activateSuperIaido(this, oppWho);
                         } else {
@@ -1894,7 +1942,10 @@ const BattleEngine = {
         }
         this.controllerOf(who).onDoraBomb(this, who, (use) => {
             this.logAction(who, 'doraBomb', { use: !!use });
-            if (use) SkillFlows.applyDoraBomb(this, me, who);
+            if (use) {
+                this.roundNotes.doraBomb = true;
+                SkillFlows.applyDoraBomb(this, me, who);
+            }
             onDone();
         });
     },

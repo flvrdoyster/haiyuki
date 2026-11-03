@@ -114,6 +114,105 @@ const AIDecisions = {
     }
 };
 
+const OnlineClock = {
+    phase: function (e) {
+        const o = e.online;
+        if (!o || o.takenOver || e.isAutoTest() || e.tutorial) return null;
+        const C = BattleConfig.ONLINE;
+        if (e.setupWaiting) {
+            return { key: 'exchange', who: e.setupWaiting, limit: C.ticks(C.EXCHANGE_SEC), delay: 0 };
+        }
+        const net = e.controllerOf('CPU');
+        if (net.pendingReact || net.pendingNagari || net.pendingDoraBomb) {
+            return { key: 'confirm', who: 'CPU', limit: C.ticks(C.CONFIRM_SEC), delay: 0 };
+        }
+        let st = e.currentState;
+        if (st === e.STATE_BATTLE_MENU) st = BattleMenuSystem.lastStateBeforeMenu;
+        switch (st) {
+            case e.STATE_WAIT_FOR_DRAW:
+                if (e.p1.isRiichi) return null;
+                return { key: 'draw', who: 'P1', limit: C.ticks(C.DRAW_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
+            case e.STATE_PLAYER_TURN:
+                if (e.p1.isRiichi && !e.p1.declaringRiichi) return null;
+                return { key: 'turn', who: 'P1', limit: C.ticks(C.DISCARD_SEC), delay: 0 };
+            case e.STATE_CPU_TURN:
+                if (e.cpu.isRiichi && !e.cpu.declaringRiichi) return null;
+                if (e.cpuPhase === 'draw') {
+                    return { key: 'draw', who: 'CPU', limit: C.ticks(C.DRAW_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
+                }
+                return { key: 'turn', who: 'CPU', limit: C.ticks(C.DISCARD_SEC), delay: 0 };
+            case e.STATE_ROULETTE: {
+                const lc = e.lastChance;
+                if (!lc || lc.phase !== 'spin') return null;
+                return { key: 'roulette', who: lc.who, limit: C.ticks(C.ROULETTE_SEC), delay: 0 };
+            }
+            case e.STATE_WIN:
+            case e.STATE_LOSE:
+            case e.STATE_NAGARI:
+                return { key: 'result', who: 'P1', limit: C.ticks(C.RESULT_SEC), delay: C.RESULT_INPUT_DELAY };
+            default:
+                return null;
+        }
+    },
+
+    step: function (e, dt) {
+        const p = OnlineClock.phase(e);
+        if (!p) {
+            e.clock = null;
+            return null;
+        }
+        const c = e.clock;
+        if (!c || c.key !== p.key || c.who !== p.who) {
+            e.clock = Object.assign(p, { t: 0, fired: false });
+        } else {
+            c.t += dt;
+        }
+        return e.clock;
+    },
+
+    remaining: function (c) {
+        if (!c || c.t < c.delay) return null;
+        return Math.max(0, Math.ceil((c.limit - (c.t - c.delay)) / BattleConfig.ONLINE.TICK_RATE));
+    },
+
+    expired: function (c) {
+        return c.t - c.delay >= c.limit;
+    },
+
+    expire: function (e, c) {
+        if (e.currentState === e.STATE_BATTLE_MENU) BattleMenuSystem.toggle();
+        switch (c.key) {
+            case 'draw':
+                e.confirmDraw();
+                break;
+            case 'turn': {
+                const me = e.p1;
+                let idx = me.hand.length - 1;
+                if (e.riichiTargetIndex >= 0) {
+                    idx = e.riichiTargetIndex;
+                } else if (me.declaringRiichi) {
+                    const valid = e.validRiichiDiscardIndices;
+                    if (valid && valid.length && valid.indexOf(idx) < 0) idx = valid[valid.length - 1];
+                }
+                e.discardTile(idx);
+                break;
+            }
+            case 'exchange':
+                e.exchangeIndices = [];
+                e.confirmTileExchange();
+                break;
+            case 'roulette':
+                if (e.lastChance && e.lastChance.who === 'P1' && e.lastChance.phase === 'spin') {
+                    SkillFlows.lastChanceJudge(e);
+                }
+                break;
+            case 'result':
+                e.confirmResult();
+                break;
+        }
+    }
+};
+
 function AIController() {
     this.pending = false;
 }
@@ -181,12 +280,21 @@ HumanController.prototype = {
     onTurn: function () {
     },
 
-    update: function () {
+    update: function (engine, who, dt) {
+        if (!engine.online) return;
+        const c = OnlineClock.step(engine, dt);
+        if (c && c.who === who && !c.fired && OnlineClock.expired(c)) {
+            c.fired = true;
+            OnlineClock.expire(engine, c);
+        }
     },
 
     confirm: function (engine, msg, resolve) {
         if (engine.scene && engine.scene.showConfirm) {
-            engine.scene.showConfirm(msg, () => resolve(true), () => resolve(false));
+            const options = engine.online && !engine.online.takenOver
+                ? { limit: BattleConfig.ONLINE.ticks(BattleConfig.ONLINE.CONFIRM_SEC) }
+                : {};
+            engine.scene.showConfirm(msg, () => resolve(true), () => resolve(false), options);
         } else {
             resolve(false);
         }
@@ -244,6 +352,7 @@ HumanController.prototype = {
     }
 };
 
+window.OnlineClock = OnlineClock;
 window.AIDecisions = AIDecisions;
 window.AIController = AIController;
 window.HumanController = HumanController;

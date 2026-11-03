@@ -23,6 +23,17 @@ NetController.prototype = {
 
     onCounterPrompt: function (engine, who, skillId, resolve) {
         this.pendingReact = resolve;
+        this.pendingSkill = skillId;
+    },
+
+    release: function (engine, who) {
+        const react = this.pendingReact;
+        const nagari = this.pendingNagari;
+        const bomb = this.pendingDoraBomb;
+        this.pendingReact = this.pendingNagari = this.pendingDoraBomb = null;
+        if (react) react(AIDecisions.shouldReact(engine, who, this.pendingSkill));
+        if (nagari) nagari(SkillFlows.cpuWantsLastChance(engine, who));
+        if (bomb) bomb(true);
     },
 
     onNagari: function (engine, who, resolve) {
@@ -59,6 +70,8 @@ NetController.prototype = {
                 return !!this.pendingNagari;
             case 'doraBomb':
                 return !!this.pendingDoraBomb;
+            case 'confirm':
+                return msg.win === engine.resultSeq && engine.isResultState();
             case 'lastChanceStop':
                 return !!engine.lastChance && engine.lastChance.who === who && engine.lastChance.phase === 'spin';
             default:
@@ -125,6 +138,9 @@ NetController.prototype = {
                 resolve(!!msg.use);
                 return true;
             }
+            case 'confirm':
+                engine.confirmResult(who);
+                return true;
             case 'lastChanceStop':
                 SkillFlows.lastChanceSetStop(engine, msg.shown);
                 return true;
@@ -139,10 +155,14 @@ NetController.prototype = {
 
     poll: function (engine, who, dt) {
         const match = this.match;
-        if (match.failed) return;
+        if (match.failed || match.takenOver) return;
         const inbox = match.inbox;
         while (inbox.length > 0) {
             const msg = inbox[0];
+            if (msg.type === 'confirm' && msg.win < engine.resultSeq) {
+                inbox.shift();
+                continue;
+            }
             if (!this.canApply(engine, who, msg)) {
                 this.waited += dt;
                 if (this.waited > NetController.WAIT_LIMIT) {
