@@ -1,6 +1,11 @@
 extracted/
 __pycache__/
 .DS_Store
-docs/tests/
 relay/node_modules/
 relay/.wrangler/
+tests/node_modules/
+tests/.playwright/
+tests/fingerprint-*.json
+tests/perf/results/
+tests/perf/raw/
+tests/perf/trace.json

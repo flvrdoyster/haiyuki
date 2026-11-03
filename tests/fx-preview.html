@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FX 미리보기</title>
+<style>
+:root {
+    color-scheme: dark;
+    --bg: rgba(26, 26, 26, 1);
+    --surface: rgba(38, 38, 38, 1);
+    --surface-2: rgba(51, 51, 51, 1);
+    --border: rgba(255, 255, 255, 0.22);
+    --text: rgba(204, 204, 204, 1);
+    --text-2: rgba(170, 170, 170, 1);
+    --text-3: rgba(119, 119, 119, 1);
+    --accent: rgba(204, 204, 204, 1);
+}
+body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); font-family: 'KoddiUDOnGothic', sans-serif; font-size: 14px; }
+.wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+canvas { display: block; width: 640px; max-width: 100%; aspect-ratio: 4 / 3; background: #000; image-rendering: pixelated; }
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 260px; }
+fieldset { border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+legend { color: var(--text-2); padding: 0 4px; }
+button { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font: inherit; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.on { background: var(--text-3); color: #000; }
+label { display: inline-flex; gap: 4px; align-items: center; }
+#info { font-family: ui-monospace, monospace; color: var(--text-2); white-space: pre; min-height: 3.2em; }
+.hint { color: var(--text-3); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <canvas id="c" width="640" height="480"></canvas>
+    <div class="panel">
+        <fieldset>
+            <legend>선언 연출</legend>
+            <button data-fx="RIICHI">리치 (P1)</button>
+            <button data-fx="RIICHI" data-tl="riichi_r">리치 (CPU)</button>
+            <button data-fx="PON">펑</button>
+            <button data-fx="RON">론</button>
+            <button data-fx="TSUMO">쯔모</button>
+            <button data-fx="NAGARI">나가리</button>
+        </fieldset>
+        <fieldset>
+            <legend>나가리 라벨</legend>
+            <label><input type="checkbox" id="p1-tenpai" checked> P1 텐파이</label>
+            <label><input type="checkbox" id="cpu-tenpai"> CPU 텐파이</label>
+        </fieldset>
+        <fieldset>
+            <legend>피해 흔들림</legend>
+            <button data-dmg="3200">≤3200</button>
+            <button data-dmg="4800">&gt;3200</button>
+            <button data-dmg="6400">≥6400</button>
+            <label><select id="dmg-sound">
+                <option value="audio/impact-1">impact-1</option>
+                <option value="audio/impact-2">impact-2</option>
+                <option value="audio/impact-3">impact-3</option>
+                <option value="audio/slash">slash</option>
+                <option value="">소리 없음</option>
+            </select></label>
+        </fieldset>
+        <fieldset>
+            <legend>재생</legend>
+            <label>속도 <select id="speed">
+                <option value="1">1×</option>
+                <option value="0.5">0.5×</option>
+                <option value="0.25">0.25×</option>
+                <option value="0.1">0.1×</option>
+            </select></label>
+            <button id="pause">일시정지</button>
+            <button id="step">1틱</button>
+            <label><input type="checkbox" id="sound" checked> 소리</label>
+            <label><input type="checkbox" id="lerp" checked> 보간</label>
+            <label><input type="checkbox" id="bounds"> 조각 경계</label>
+        </fieldset>
+        <div id="info"></div>
+        <div class="hint">Z·Space·캔버스 클릭 = 론·쯔모·나가리 대기 건너뛰기<br>게임 코드(battleConfig·fxTimelines·fxSystem)를 그대로 불러 쓴다.</div>
+    </div>
+</div>
+
+<script src="../js/data/battleConfig.js"></script>
+<script src="../js/data/fxTimelines.js"></script>
+<script src="../js/core/assets.js"></script>
+<script src="../js/views/fxSystem.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const srcOf = {};
+    Assets.toLoad.forEach(item => {
+        if (typeof item === 'string') srcOf[item] = '../assets/' + item;
+        else srcOf[item.id] = '../' + item.src;
+    });
+
+    const images = {};
+    Object.keys(srcOf).filter(id => id.startsWith('fx/') || id === 'bg/01.png').forEach(id => {
+        const img = new Image();
+        img.src = srcOf[id];
+        images[id] = img;
+    });
+    Assets.get = id => images[id];
+
+    function playSound(id) {
+        if (!id || !document.getElementById('sound').checked || !srcOf[id]) return;
+        const a = new Audio(srcOf[id]);
+        a.play().catch(() => {});
+    }
+
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const buf = document.createElement('canvas');
+    buf.width = canvas.width; buf.height = canvas.height;
+
+    window.Game = {
+        isAutoTest: false,
+        _shakeT: 0, _shakeDur: 0, _shakeAmp: 0,
+        shake: function (amp, frames) { this._shakeAmp = amp; this._shakeT = 0; this._shakeDur = frames; }
+    };
+
+    const fx = FXSystem.create();
+    let lastSpawn = null;
+    let paused = false;
+    let stepOnce = false;
+
+    const origSample = fx.sampleSmooth.bind(fx);
+    fx.sampleSmooth = function (path, t) {
+        if (document.getElementById('lerp').checked) return origSample(path, t);
+        const p = this.sample(path, t);
+        return p ? [p[1], p[2]] : null;
+    };
+
+    function spawn(type, timeline) {
+        fx.list.length = 0;
+        const conf = BattleConfig.POPUP.TYPES[type];
+        const opts = { timeline: timeline || conf.timeline, blocking: true };
+        if (type === 'NAGARI') {
+            opts.labels = {
+                bottom: document.getElementById('p1-tenpai').checked ? 'fx/tenpai' : 'fx/noten',
+                top: document.getElementById('cpu-tenpai').checked ? 'fx/tenpai' : 'fx/noten'
+            };
+        }
+        fx.spawn('fx/' + type.toLowerCase(), 0, 0, opts);
+        lastSpawn = { type: type, timeline: opts.timeline };
+        playSound(conf.sound);
+    }
+
+    function damage(amount) {
+        const tier = BattleConfig.SHAKE.find(t => amount >= t.min);
+        Game.shake(tier.amp, tier.frames);
+        playSound(document.getElementById('dmg-sound').value);
+    }
+
+    document.querySelectorAll('[data-fx]').forEach(b => b.addEventListener('click', () => spawn(b.dataset.fx, b.dataset.tl)));
+    document.querySelectorAll('[data-dmg]').forEach(b => b.addEventListener('click', () => damage(+b.dataset.dmg)));
+    document.getElementById('pause').addEventListener('click', e => {
+        paused = !paused;
+        e.target.classList.toggle('on', paused);
+    });
+    document.getElementById('step').addEventListener('click', () => { stepOnce = true; });
+    canvas.addEventListener('click', () => fx.skipHold());
+    window.addEventListener('keydown', e => {
+        if (e.code === 'KeyZ' || e.code === 'Space') { e.preventDefault(); fx.skipHold(); }
+    });
+
+    function update(dt) {
+        fx.update(dt);
+        if (Game._shakeT < Game._shakeDur) Game._shakeT += dt;
+    }
+
+    function draw() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const bg = images['bg/01.png'];
+        if (bg && bg.complete) ctx.drawImage(bg, Math.round(320 - bg.width / 2), Math.round(220 - bg.height / 2));
+
+        const showBounds = document.getElementById('bounds').checked;
+        fx.list.forEach(f => {
+            if (!f.timeline) return;
+            f.pieces.forEach((pc, i) => {
+                if (!pc.visible) return;
+                const x = Math.round(pc.x - pc.sw / 2), y = Math.round(pc.y - pc.sh / 2);
+                ctx.drawImage(pc.img, pc.sx, pc.sy, pc.sw, pc.sh, x, y, pc.sw, pc.sh);
+                if (showBounds) {
+                    ctx.strokeStyle = i === 0 ? 'rgba(255,80,80,0.9)' : 'rgba(80,160,255,0.9)';
+                    ctx.strokeRect(x + 0.5, y + 0.5, pc.sw - 1, pc.sh - 1);
+                }
+            });
+            f.labels.forEach(lb => {
+                if (lb.visible) ctx.drawImage(lb.img, Math.round(lb.x - lb.img.width / 2), Math.round(lb.y - lb.img.height / 2));
+            });
+        });
+
+        if (Game._shakeT < Game._shakeDur) {
+            const dy = [Game._shakeAmp, 0, -Game._shakeAmp, 0][Math.floor(Game._shakeT) % 4];
+            if (dy) {
+                const b = buf.getContext('2d');
+                b.clearRect(0, 0, buf.width, buf.height);
+                b.drawImage(canvas, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(buf, 0, dy);
+                ctx.drawImage(buf, 0, dy > 0 ? dy - canvas.height : dy + canvas.height);
+            }
+        }
+
+        const f = fx.list[0];
+        const info = document.getElementById('info');
+        if (f && f.timeline) {
+            const tl = f.timeline;
+            const hold = tl.hold ? (f.holdDone ? '대기 끝' : (f.t >= tl.hold[0] ? `대기 중 ${f.holdLeft.toFixed(0)}/${tl.hold[1] - tl.hold[0]}` : `대기 ${tl.hold[0]}틱부터`)) : '대기 없음';
+            info.textContent = `${lastSpawn.type} (${lastSpawn.timeline})\n틱 ${f.t.toFixed(1)} / ${tl.end}  ·  ${hold}`;
+        } else if (Game._shakeT < Game._shakeDur) {
+            info.textContent = `흔들림 ±${Game._shakeAmp}px  ${Game._shakeT.toFixed(1)} / ${Game._shakeDur}틱`;
+        } else {
+            info.textContent = lastSpawn ? `${lastSpawn.type} 끝` : '';
+        }
+    }
+
+    let last = null;
+    function loop(now) {
+        if (last === null) last = now;
+        let dt = Math.min(15, (now - last) / (1000 / 60)) * +document.getElementById('speed').value;
+        last = now;
+        if (stepOnce) { update(1); stepOnce = false; }
+        else if (!paused) update(dt);
+        draw();
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@
 
 + **`docs/`** — 게임 본체. 빌드 없이 정적 파일 그대로 GitHub Pages로 `haiyuki.atah.io`에 서빙된다.  
 `index.html`의 `<script>` 순서가 곧 의존성이고, `js/`는 `core`(루프·입력·에셋·타이머·게임패드) · `data`(캐릭터·패·전투 설정·연출 타임라인) · `logic`(전투 엔진·역 판정·AI) · `scenes` · `views`로 나뉜다. 버전은 `js/core/version.js`가 단일 소스.
-+ **`docs/tests/`** — Playwright 회귀 테스트·성능 측정 (저장소에는 없음, 로컬 전용).
++ **`tests/`** — Playwright 회귀 테스트·골든 리플레이·성능 측정.
 + **`sq/`** — 원본 스크립트 VM·EXE 역분석 문서(`FORMAT.md`, `RULES.md`, `FX.md`)와 도구(`sqdis.py`, `tools/`). `docs/js/data/fxTimelines.js`는 `sq/tools/fxexport.py`가 생성한다.
 + **`assets/`** — 원본 에셋 ↔ 웹 에셋 대응표(`INVENTORY.md`)와 추출 스크립트(`extract.sh`).
 + **`extracted/`** — 원본에서 추출한 그림·소리, 스크립트 덤프 (저장소에는 없음, `.gitignore`).

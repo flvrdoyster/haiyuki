@@ -160,14 +160,15 @@
 - 탭이 숨겨지면(`document.hidden`, 모바일 앱 전환 포함) 로딩 장면을 뺀 모든 장면에서 `Game.pause()`로 멈춘다: 로직 틱·효과음·BGM 정지, 입력 초기화. 돌아와도 자동 재개하지 않고 캔버스에 일시정지 아이콘(높이 48px, kaisin `src/input.ts`의 `ICONS.pause` 모양)만 띄운 채 Z/Space/탭·클릭으로 재개하며, 재개 첫 프레임 dt는 0이다. 로딩 중에는 멈추지 않는다. 자동 테스트는 제외.
 - `blur`는 쓰지 않는다: 역 계산기 iframe을 누르거나 다른 창을 보며 둘 때도 포커스가 빠져 데스크톱에서 과하게 멈춘다. 모바일 앱 전환은 `hidden`이 함께 온다.
 
-## 테스트 (`tests/`, gitignore)
+## 테스트 (`tests/`)
 
-- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial` `pause` `determinism` `online`. `determinism`은 `startBattle`의 `seed` 옵션으로 같은 시드의 덱·도라·선공·배경 일치, 자동 경기 `actionLog` 일치를 단언한다. `online`은 "온라인 대전"의 테스트 방법.
+- 회귀 스위트 = `battle` `battle-extended` `flow` `input` `scene-input` `visual` `mouse` `tutorial` `pause` `determinism` `golden` `online`. `determinism`은 `startBattle`의 `seed` 옵션으로 같은 시드의 덱·도라·선공·배경 일치, 자동 경기 `actionLog` 일치를 단언한다. `online`은 "온라인 대전"의 테스트 방법.
+- `golden.spec.ts`는 시드·캐릭터·난이도·비기 조합 8판을 자동 대전으로 끝까지 돌려 `actionLog` 전체·라운드별 `stateHash`·최종 결과를 `tests/golden/<이름>.json`과 비교한다. 다르면 처음 달라진 `actionLog` 항목이나 라운드를 메시지에 보여 준다. 의도한 동작 변경이면 `UPDATE_GOLDEN=1 npx playwright test golden.spec.ts`로 저장본을 다시 쓴 뒤 diff를 확인해 커밋한다. 틱 수는 실행마다 달라 비교하지 않는다.
 - `_` 접두사 5개는 단언 없는 측정 도구.
 - `startBattle` 헬퍼는 기본으로 `SKILLS_ENABLED = false`로 전투를 시작한다(회귀 스펙 전제). 승률·행동 측정은 스킬이 켜져야 하므로 `_ai_fingerprint`는 `skills: true`로 시작한다.
-- CPU 승률·행동 지문 측정은 `_ai_fingerprint.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts _ai_fingerprint`, 서버 포트 `PORT` 기본 3100 — 회귀용 :3000과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `docs/tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.
+- CPU 승률·행동 지문 측정은 `_ai_fingerprint.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts _ai_fingerprint`, 서버 포트 `PORT` 기본 3100 — 회귀용 :3000과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.
 - `_ai_fingerprint`는 매치(KO) 단위로 CPU 승률을 집계한다(경기별 승자·라운드 수, 95% 구간). P1은 CPU와 다른 6명을 순환하고(`P1_FIXED=1`이면 아타호 고정), 난이도 보통의 토너 진행도(`defeatedOpponents` 길이)를 0~4로 돌린다. P1의 확인창(도라 폭진·라스트 찬스)은 "예", 라운드 시작 패 교환은 교환 없이 확정, 룰렛은 자동 정지로 넘긴다. 속도를 위해 페이지 안에서 `Game.update`를 `TURBO`(기본 40)번씩 직접 돌리며, 샤드를 나누지 말고 한 프로세스로 돌리는 편이 빠르다(700경기 약 13분).
 - 대칭 총당 측정은 `_matchup.spec.ts`(`startBattle`의 `symmetric: true`)를 `measure.config.ts`로 돌린다. P1=a, CPU=b 순서쌍 49조합을 조합당 `MPC`경기씩, 상태는 `matchup-state.<커밋>[.s<k>].json`에 누적(`SHARD=k/n`으로 조합을 나눠 `PORT`를 달리 병렬 실행)하고 `matchup-results.json`으로 병합한다. 표는 `python3 perf/matchup_report.py`. `ONLY=<캐릭터>`로 그 캐릭터가 낀 조합만 돌린다. 이긴 판의 역 이름은 쪽별 `yakus`에 센다. P1이 선공이라 순서쌍을 모두 돌려 선후공을 상쇄한다.
-- `visual.spec.ts`는 `maxDiffPixels: 0`(0.001 비율로는 215px 변화를 놓친 적 있음). 베이스라인은 로컬 전용 — 리팩토링 직전에 생성. 전투 배경 `engine.bgPath`는 랜덤이라 고정 필수.
+- `visual.spec.ts`는 `maxDiffPixels: 0`(0.001 비율로는 215px 변화를 놓친 적 있음). 베이스라인은 `visual.spec.ts-snapshots/`에 커밋한다. 전투 배경 `engine.bgPath`는 랜덤이라 고정 필수.
 - `retries: 1` — 재시도 통과는 `flaky`로 표시된다. 간헐 실패는 소스를 stash해도 재현되므로 두 번 연속 실패만 진짜.
 - 키/마우스는 down → 70ms → up으로 눌러야 프레임에 잡힌다.
