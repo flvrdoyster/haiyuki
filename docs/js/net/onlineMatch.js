@@ -5,7 +5,7 @@ const OnlineMatch = {
     HELLO_MS: 500,
     PING_MS: 1000,
     TIMEOUT_MS: 10000,
-    SENT_TYPES: ['draw', 'discard', 'pon', 'riichi', 'tsumo', 'ron', 'skill', 'exchange', 'react', 'nagari', 'doraBomb', 'lastChanceStop', 'confirm'],
+    SENT_TYPES: ['draw', 'discard', 'pon', 'riichi', 'riichiCancel', 'tsumo', 'ron', 'skill', 'exchange', 'react', 'nagari', 'doraBomb', 'lastChanceStop', 'confirm'],
 
     makeCode: function () {
         let code = '';

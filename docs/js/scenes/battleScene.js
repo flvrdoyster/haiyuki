@@ -282,8 +282,7 @@ const BattleScene = {
         const engine = BattleEngine;
 
         if (Input.isJustPressed(Input.ESC) || Input.isMouseRightClick()) {
-            // 리치 자동 버림 중에는 메뉴 금지
-            if (engine.p1 && engine.p1.isRiichi) return;
+            if (engine.p1 && engine.p1.isRiichi && !engine.canCancelRiichi('P1')) return;
 
             // 패 교환 중에는 ESC를 교환 확인키로 쓰므로 메뉴 스킵
             if (engine.currentState !== engine.STATE_TILE_EXCHANGE) {

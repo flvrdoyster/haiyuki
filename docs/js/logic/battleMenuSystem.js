@@ -14,7 +14,8 @@ const BattleMenuSystem = {
 
         // 선언 커맨드(아가리=TSUMO/펑/리치): 팝업 대신 항상 표시, 불가 시 회색(스킬과 동일).
         // 론은 리치 자동이라 메뉴에 안 뜬다.
-        const pa = this.engine.possibleActions || [];
+        const cancelling = this.engine.canCancelRiichi('P1');
+        const pa = cancelling ? [{ type: 'RIICHI' }] : (this.engine.possibleActions || []);
         const findAction = type => pa.find(a => a.type === type) || null;
         [
             { id: 'TSUMO', label: '아가리' },
@@ -46,7 +47,7 @@ const BattleMenuSystem = {
                         if (skill) {
                             const rulesEnabled = BattleConfig.RULES.SKILLS_ENABLED;
                             const canUse = this.engine.canUseSkill(skillId, 'P1');
-                            const isDisabled = !rulesEnabled || !canUse;
+                            const isDisabled = !rulesEnabled || !canUse || cancelling;
 
                             this.menuItems.push({ id: skillId, label: skill.name, type: 'SKILL', data: skill, disabled: isDisabled });
                         }

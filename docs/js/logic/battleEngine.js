@@ -1499,7 +1499,10 @@ const BattleEngine = {
     executeAction: function (action) {
         if (!action) return;
         if (action.type === 'PON') this.declarePon('P1', action.targetTile);
-        else if (action.type === 'RIICHI') this.declareRiichi('P1');
+        else if (action.type === 'RIICHI') {
+            if (this.canCancelRiichi('P1')) this.cancelRiichi('P1');
+            else this.declareRiichi('P1');
+        }
         else if (action.type === 'TSUMO') this.declareTsumo('P1');
         else if (action.type === 'RON') this.declareRon('P1');
     },
@@ -1549,6 +1552,23 @@ const BattleEngine = {
         this.updateBattleMusic();
         this.currentState = this.turnStateOf(who);
         if (who === 'P1') this.tutorialEvent('riichi');
+    },
+
+    canCancelRiichi: function (who) {
+        const me = this.getPlayer(who);
+        return !this.tutorial && me.isRiichi && me.declaringRiichi && !me.riichiSilent && !me.riichiStick && this.isTurn(who);
+    },
+
+    cancelRiichi: function (who) {
+        const me = this.getPlayer(who);
+        this.logAction(who, 'riichiCancel');
+        me.isRiichi = false;
+        me.declaringRiichi = false;
+        if (who === 'P1') {
+            this.validRiichiDiscardIndices = null;
+            this.riichiTargetIndex = -1;
+            this.checkSelfActions();
+        }
     },
 
     declareTsumo: function (who, auto) {

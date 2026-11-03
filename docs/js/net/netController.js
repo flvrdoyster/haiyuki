@@ -59,6 +59,7 @@ NetController.prototype = {
                 return engine.isDrawWindow(who);
             case 'discard':
             case 'riichi':
+            case 'riichiCancel':
             case 'tsumo':
             case 'skill':
                 return engine.isTurn(who);
@@ -100,6 +101,10 @@ NetController.prototype = {
             case 'riichi':
                 if (!engine.canDeclareRiichi(who)) return false;
                 engine.declareRiichi(who);
+                return true;
+            case 'riichiCancel':
+                if (!engine.canCancelRiichi(who)) return false;
+                engine.cancelRiichi(who);
                 return true;
             case 'tsumo':
                 if (msg.auto) return true;
