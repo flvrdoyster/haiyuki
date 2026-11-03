@@ -19,6 +19,7 @@ const SelectConfig = {
         gap: 14,
         dimOpacity: 0.5,
         cursorPath: 'face/select_cursor.png',
+        cursorPathOnline: 'face/select_cursor_vs.png',
         // 마유(숨김 캐릭터)는 VS 로고 아래 별도 슬롯 — 기본 6인 행에 포함되지 않음
         hiddenSlotY: 292
     }
@@ -409,20 +410,24 @@ const CharacterSelectScene = {
             ctx.restore();
         });
 
-        const cursorImg = Assets.get(SelectConfig.ICON_ROW.cursorPath);
+        const cursorPath = this.match ? SelectConfig.ICON_ROW.cursorPathOnline : SelectConfig.ICON_ROW.cursorPath;
+        const cursorImg = Assets.get(cursorPath);
         if (cursorImg) {
             const cursorW = cursorImg.width / 2; // 2프레임(플레이어·CPU) 포함
             const cursorH = cursorImg.height;
 
-            const pr = this.getIconRect(this.playerIndex);
-            UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
-                pr.x + (pr.w - cursorW) / 2, pr.y + (pr.h - cursorH) / 2, 0, cursorW, cursorH);
+            const drawCursor = (index, frame) => {
+                const r = this.getIconRect(index);
+                UIDraw.drawFrame(ctx, cursorPath,
+                    r.x + (r.w - cursorW) / 2, r.y + (r.h - cursorH) / 2, frame, cursorW, cursorH);
+            };
+            const drawRival = () => {
+                if (showCpu && this.characters[this.cpuIndex]) drawCursor(this.cpuIndex, 1);
+            };
 
-            if (showCpu && this.characters[this.cpuIndex]) {
-                const cr = this.getIconRect(this.cpuIndex);
-                UIDraw.drawFrame(ctx, SelectConfig.ICON_ROW.cursorPath,
-                    cr.x + (cr.w - cursorW) / 2, cr.y + (cr.h - cursorH) / 2, 1, cursorW, cursorH);
-            }
+            if (this.match) drawRival();
+            drawCursor(this.playerIndex, 0);
+            if (!this.match) drawRival();
         }
     },
 

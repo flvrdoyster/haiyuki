@@ -153,6 +153,7 @@ const Assets = {
         'ui/short_bubble.png',
         'ui/battle_menu.png',
         'face/select_cursor.png',
+        'face/select_cursor_vs.png',
 
         'face/select_ATA.png', 'face/select_RIN.png', 'face/select_FARI.png',
         'face/select_SMSH.png', 'face/select_PET.png', 'face/select_YURI.png',
