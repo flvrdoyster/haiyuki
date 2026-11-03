@@ -63,7 +63,15 @@ const BattleSequencer = {
             type: 'CALLBACK',
             callback: () => {
                 engine.sequencing.active = false;
-                engine.offerDoraBomb(who, () => { engine.sequencing.active = true; });
+                engine.offerDoraBomb(who, () => {
+                    if (engine.roundNotes.doraBomb) {
+                        const at = engine.sequencing.steps.findIndex(s => s.type === 'REVEAL_URA');
+                        engine.sequencing.steps.splice(at + 1, 0,
+                            { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                            { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY });
+                    }
+                    engine.sequencing.active = true;
+                });
             }
         });
 
