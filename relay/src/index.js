@@ -39,9 +39,14 @@ export class Room {
   async fetch(request) {
     const role = new URL(request.url).searchParams.get('role');
     const seats = this.seats();
-    if (seats[role]) return new Response('seat taken', { status: 409 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
+    if (seats[role]) {
+      server.accept();
+      server.send(JSON.stringify({ type: 'peer', state: 'full' }));
+      server.close(1008, 'seat taken');
+      return new Response(null, { status: 101, webSocket: client });
+    }
     this.state.acceptWebSocket(server);
     server.serializeAttachment(role);
     await this.state.storage.deleteAlarm();

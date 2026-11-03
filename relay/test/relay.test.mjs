@@ -76,8 +76,13 @@ test('방 코드로 만나 메시지 교환, 거절, 퇴장 알림', async () =>
   guest.send(JSON.stringify(b));
   assert.deepEqual(await host.next(), b);
 
-  await assert.rejects(connect('ABCDE', 'guest'), { status: 409 });
-  await assert.rejects(connect('ABCDE', 'host'), { status: 409 });
+  for (const role of ['guest', 'host']) {
+    const extra = await connect('ABCDE', role);
+    assert.deepEqual(await extra.next(), { type: 'peer', state: 'full' });
+  }
+  const ping = { type: 'ping', seat: 0 };
+  host.send(JSON.stringify(ping));
+  assert.deepEqual(await guest.next(), ping);
 
   guest.close();
   assert.deepEqual(await host.next(), { type: 'peer', state: 'left' });

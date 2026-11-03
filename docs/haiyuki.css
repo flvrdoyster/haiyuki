@@ -858,9 +858,20 @@ body.gamepad-on #virtual-gamepad {
     white-space: nowrap;
 }
 
-.online-history li > :nth-child(3) {
+.online-history .detail {
+    display: flex;
+    min-width: 0;
+}
+
+.online-history .yaku {
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.online-history .fixed {
+    flex: none;
+    white-space: pre;
 }
 
 .online-history .r {

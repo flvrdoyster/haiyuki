@@ -88,8 +88,6 @@ const BattleSequencer = {
                 if (engine.pendingDamage) {
                     engine.pendingDamage.amount = totalScore;
                 }
-
-                const doraHit = bonusResult.details.map(d => /^도라.*x(\d+)/.exec(d.name)).find(Boolean);
                 const notes = engine.roundNotes;
                 const mods = activeBuffs.slice();
                 if (notes.doraBomb) mods.push('DORA_BOMB');
@@ -99,7 +97,7 @@ const BattleSequencer = {
                     round: engine.currentRound,
                     winner: who,
                     how: type === 'RON' ? 'ron' : 'tsumo',
-                    yaku: doraHit ? `${yakuName} · 도라 ${doraHit[1]}` : yakuName,
+                    yaku: yakuName,
                     baseScore: score,
                     damage: totalScore,
                     bonuses: bonusResult.details,

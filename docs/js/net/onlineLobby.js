@@ -14,22 +14,19 @@ const OnlineStageScene = {
 };
 
 const OnlineLobby = {
-    MESSAGES: {
-        left: '상대가 나갔습니다',
-        disconnect: '연결이 끊어졌습니다',
-        desync: '동기가 어긋났습니다'
-    },
-    STATUS: {
+    TOASTS: {
         joined: '상대가 들어왔습니다',
         picking: '상대가 캐릭터를 고르는 중',
         rematch: '상대가 다시 대전을 원합니다',
-        takeover: '상대가 나가서 CPU가 이어받습니다'
+        takeover: '상대가 나가서 CPU가 이어받습니다',
+        left: '상대가 나갔습니다',
+        disconnect: '연결이 끊어졌습니다',
+        full: '방이 가득 찼습니다',
+        desync: '동기가 어긋났습니다',
+        copiedCode: '코드를 복사했습니다',
+        copiedLink: '바로 입장 링크를 복사했습니다'
     },
     STATUS_MS: 3500,
-    COPIED: {
-        code: '코드를 복사했습니다',
-        link: '바로 입장 링크를 복사했습니다'
-    },
     ALPHABET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!',
     GLYPH: { I: { w: 24, off: 4 } },
     LABEL: { win: '승', lose: '패', draw: '무승부' },
@@ -87,8 +84,8 @@ const OnlineLobby = {
             const act = {
                 'online-create': () => this.createRoom(),
                 'online-join': () => this.joinRoom(this.el('online-join-input').value),
-                'online-copy-code': () => this.copyText(this.match.code, this.COPIED.code),
-                'online-copy-link': () => this.copyText(this.inviteLink(this.match.code), this.COPIED.link),
+                'online-copy-code': () => this.copyText(this.match.code, this.TOASTS.copiedCode),
+                'online-copy-link': () => this.copyText(this.inviteLink(this.match.code), this.TOASTS.copiedLink),
                 'online-cancel': () => this.leave(),
                 'online-rematch': () => { if (this.match) this.match.requestRematch(); },
                 'online-leave': () => this.leave()
@@ -187,6 +184,7 @@ const OnlineLobby = {
                 round: r.round,
                 result: r.winner === 'P1' ? 'win' : r.winner === 'CPU' ? 'lose' : 'draw',
                 yaku: r.yaku,
+                bonuses: (r.bonuses || []).map((b) => b.name),
                 tenpai: r.tenpai,
                 damage: r.damage
             }));
@@ -223,13 +221,23 @@ const OnlineLobby = {
     historyRows: function (rounds) {
         const tenpai = (t) => (t ? '텐파이' : '노텐');
         return rounds.map((r) => {
-            const detail = r.result === 'draw' && r.tenpai ? `${tenpai(r.tenpai[0])} / ${tenpai(r.tenpai[1])}` : r.yaku;
+            let detail;
+            if (r.result === 'draw' && r.tenpai) {
+                detail = `<span class="fixed">${tenpai(r.tenpai[0])} / ${tenpai(r.tenpai[1])}</span>`;
+            } else {
+                const tags = (r.bonuses || []).map((name) => {
+                    const dora = /^도라.*x(\d+)/.exec(name);
+                    return dora ? `도라 ${dora[1]}` : name.replace(' 보너스', '');
+                });
+                detail = `<span class="yaku">${this.esc(r.yaku)}</span>` + tags.map((t) => `<span class="fixed"> · ${this.esc(t)}</span>`).join('');
+            }
             const dmg = r.damage ? '-' + r.damage : '';
             return `<li><span class="r">R${r.round}</span>` +
                 `<span class="${this.LABEL_CLASS[r.result]}">${this.LABEL[r.result]}</span>` +
-                `<span>${this.esc(detail)}</span><span class="dmg">${dmg}</span></li>`;
+                `<span class="detail">${detail}</span><span class="dmg">${dmg}</span></li>`;
         }).join('');
     },
+
 
     markup: function (st) {
         const title = `<h1 class="heading" aria-label="VS MODE">${this.glyphs('VS MODE', 1)}</h1>`;
@@ -291,27 +299,27 @@ const OnlineLobby = {
 
     previewStates: function () {
         const rounds = [
-            { round: 1, result: 'win', yaku: '삼도립', damage: 2400 },
+            { round: 1, result: 'win', yaku: '삼도립', bonuses: ['치호 보너스'], damage: 2400 },
             { round: 2, result: 'draw', tenpai: [true, false], damage: 1000 },
             { round: 3, result: 'lose', yaku: '적일색', damage: 3600 },
-            { round: 4, result: 'win', yaku: '취호전 · 도라 3', damage: 7200 }
+            { round: 4, result: 'win', yaku: '취호전', bonuses: ['도라 보너스 x3'], damage: 7200 }
         ];
         const flip = (rs) => rs.map((r) => ({ ...r, result: r.result === 'win' ? 'lose' : r.result === 'lose' ? 'win' : 'draw' }));
         const long = Array.from({ length: 12 }, (_, i) => ({ ...rounds[i % 4], round: i + 1 }));
         const worst = [
-            { round: 1, result: 'lose', yaku: '입에 담을 수도 없는 엄청난 기술 · 도라 3', damage: 14400 },
+            { round: 1, result: 'lose', yaku: '입에 담을 수도 없는 엄청난 기술', bonuses: ['해저 보너스', '도라 보너스 x3'], damage: 14400 },
             { round: 2, result: 'win', yaku: '입에 담을 수도 없는 엄청난 기술', damage: 9600 },
             { round: 3, result: 'draw', tenpai: [true, true], damage: 0 }
         ];
         const code = 'ABCDE';
         return {
             'start': { view: 'start' },
-            'start-failed': { view: 'start', toast: this.MESSAGES.disconnect },
+            'start-failed': { view: 'start', toast: this.TOASTS.disconnect },
             'wait-host': { view: 'wait', role: 'host', code: code },
             'wait-guest': { view: 'wait', role: 'guest', code: code },
             'ended-win': { view: 'ended', result: 'win', rounds: rounds, canRematch: true, rematch: 'idle' },
             'ended-waiting': { view: 'ended', result: 'win', rounds: rounds, canRematch: true, rematch: 'waiting' },
-            'ended-peer-rematch': { view: 'ended', result: 'lose', rounds: flip(rounds), canRematch: true, rematch: 'idle', toast: this.STATUS.rematch },
+            'ended-peer-rematch': { view: 'ended', result: 'lose', rounds: flip(rounds), canRematch: true, rematch: 'idle', toast: this.TOASTS.rematch },
             'ended-takeover': { view: 'ended', result: 'lose', rounds: flip(long), canRematch: false },
             'ended-long': { view: 'ended', result: 'lose', rounds: worst, canRematch: true, rematch: 'idle' }
         };
@@ -329,12 +337,12 @@ const OnlineLobby = {
         if (m !== this.match) return;
         if (m.takenOver && this.seenTakeover !== m.takenOver) {
             this.seenTakeover = m.takenOver;
-            this.status(this.STATUS.takeover);
+            this.status(this.TOASTS.takeover);
         }
         if (this.view === 'wait' && m.failed) {
             this.fail(m);
         } else if (this.view === 'wait' && m.connected) {
-            this.status(this.STATUS.joined);
+            this.status(this.TOASTS.joined);
             this.startSelect();
         } else if (this.view === 'ended') {
             if (m.failed) {
@@ -342,7 +350,7 @@ const OnlineLobby = {
             } else if (!m.ended) {
                 this.startSelect();
             } else {
-                if (m.rematchPeer && !m.rematchMine && !this.seenRematch) this.status(this.STATUS.rematch);
+                if (m.rematchPeer && !m.rematchMine && !this.seenRematch) this.status(this.TOASTS.rematch);
                 this.seenRematch = m.rematchPeer;
                 this.refresh();
             }
@@ -364,7 +372,7 @@ const OnlineLobby = {
     },
 
     fail: function (match) {
-        const text = this.MESSAGES[match.failed] || '';
+        const text = this.TOASTS[match.failed] || '';
         this.dispose();
         this.show('start');
         this.status(text);

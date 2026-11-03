@@ -80,6 +80,7 @@ Match.prototype = {
         if (this.closed) return;
         if (state === 'joined') this.startHello();
         else if (state === 'left') this.fail('left');
+        else if (state === 'full') this.fail('full');
         else if (state === 'closed') this.fail('disconnect');
     },
 
