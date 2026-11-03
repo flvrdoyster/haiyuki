@@ -24,6 +24,7 @@
     --font-sm: 0.75em;
     --font-xs: 0.65em;
     --line-height: 1.6;
+    --toolbar-label: 18px;
 
     color-scheme: dark;
     --bg: rgba(26, 26, 26, 1);
@@ -208,7 +209,7 @@ body.gamepad-on .toolbar-icon-btn.btn-touch-only {
 .toolbar-label {
     /* Typography */
     font-family: 'KoddiUDOnGothic', sans-serif;
-    font-size: 18px;
+    font-size: var(--toolbar-label);
     color: var(--text);
 }
 
@@ -427,6 +428,31 @@ a {
     margin: 0 4px;
 }
 
+#site-links {
+    margin: 16px 0 0;
+    text-align: center;
+    font-family: 'KoddiUDOnGothic', sans-serif;
+    font-size: var(--font-md);
+    color: var(--text-3);
+}
+
+#site-links a {
+    color: var(--text-2);
+    text-decoration: none;
+}
+
+#site-links a:hover {
+    color: var(--text);
+}
+
+#site-links .link-sep {
+    margin: 0 8px;
+}
+
+#site-links .link-label {
+    margin-right: 8px;
+}
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
     body {
@@ -448,8 +474,8 @@ a {
         gap: 6px;
     }
 
-    .toolbar-label {
-        font-size: 12px;
+    :root {
+        --toolbar-label: 12px;
     }
 
     .toolbar-group {

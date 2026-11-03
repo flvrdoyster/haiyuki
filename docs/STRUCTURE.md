@@ -144,6 +144,7 @@
 
 - 색은 gensei-pc98 `docs/style.css`의 `:root` 토큰을 그대로 복사해 쓴다(역할과 쓰임은 gensei-pc98 `docs/NOTES.md` "색상 토큰"). 그쪽 토큰이 바뀌면 같이 바꾼다. 예외: 역 계산기 iframe 칸(`yaku-calc.html`과 같은 원본 헬프 화면의 녹색 바탕 `#005c50`)과 가상 게임패드(유리 재질 자체 값). `yaku-calc.html`의 색은 원본 `graph/jp/helpbg`·`help`에서 가져온 자체 토큰(녹색 바탕, 남색 패널, 연보라 입체 버튼)이고, 패널 틀은 게임 창과 같은 `ui/frame/` 조각(모서리 4개·선 4개)을 CSS 배경 레이어로 깐 것이며 글자는 게임과 같은 KoddiUD 폰트다.
 - 푸터 레이아웃·글자 크기는 공유 `https://atah.io/footer.css`, 색·그라디언트 윗선·여백은 gensei-pc98 `#footer`와 같게 `#main-wrapper #footer`(아이디 둘)로 덮는다. 공유 `footer.css`의 `opacity: 0.8`은 1로 되돌린다. 모바일에선 저작권과 버전을 한 줄로 둔다 — 에뮬레이터 크레딧이 없어 둘째 줄에 버전만 남기 때문.
+- 글자 크기는 gensei-pc98 토큰(`--font-lg`·`--font-md`·`--font-sm`·`--font-xs`)을 따른다. 상단 레이블만 예외로, 옆의 버튼 이미지 높이(데스크톱 35px·모바일 27px)에 맞춘 px 값 `--toolbar-label`(18px·모바일 12px)을 쓴다. 다른 글자를 "레이블과 같게" 맞출 때는 이 값이 아니라 토큰을 쓴다. 푸터 위 링크 줄(`#site-links`)은 `--font-md`.
 - `theme-color`는 `--bg`와 같은 값이라 모바일 브라우저 상단이 페이지 바탕과 이어진다.
 
 ## 가상 게임패드·상단바
