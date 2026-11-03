@@ -3,6 +3,7 @@ const EndingScene = {
     canSkip: false,
 
     init: function (data) {
+        Analytics.track('ending_reached');
         this.timer = 0;
         this.canSkip = false;
         this.playerIndex = data ? data.playerIndex : 0;

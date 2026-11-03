@@ -97,9 +97,11 @@ const TitleScene = {
             if (Input.isConfirmKey() || Input.isMouseJustPressed() || Game.isAutoTest) {
                 const selected = TitleConfig.MENU[this.menuIndex].id;
                 if (selected === 'BATTLE') {
+                    Analytics.playStart();
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'STORY' });
                 } else if (selected === 'STORY_ONLY') {
+                    Analytics.playStart();
                     Assets.stopMusic();
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (selected === 'TUTORIAL') {
@@ -113,6 +115,7 @@ const TitleScene = {
         const pool = CharacterData.map((c, i) => ({ id: c.id, index: i })).filter(c => c.id !== 'mayu');
         const player = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
         const cpu = pool[Math.floor(Math.random() * pool.length)];
+        Analytics.playStart();
         Assets.stopMusic();
         Game.changeScene(BattleScene, { playerIndex: player.index, cpuIndex: cpu.index, tutorial: true, lessonIndex: 0 });
     },

@@ -64,6 +64,7 @@ const LoadingScene = {
             this.delayTimer += dt;
             if (this.delayTimer > 30) {
                 if (mode === 'story' || mode === 'watch') {
+                    Analytics.playStart();
                     Game.changeScene(CharacterSelectScene, { mode: 'WATCH' });
                 } else if (mode === 'tutorial') {
                     TitleScene.startTutorial();

@@ -576,6 +576,7 @@ const BattleEngine = {
         if (next < TutorialData.LESSONS.length) {
             this.scene.fadeRound(() => this.tutorialStartLesson(next));
         } else {
+            Analytics.track('tutorial_complete');
             Game.fadeTo(() => this.scene.exitTutorial());
         }
     },

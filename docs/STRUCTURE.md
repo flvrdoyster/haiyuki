@@ -152,6 +152,7 @@
 - 푸터 레이아웃·글자 크기는 공유 `https://atah.io/footer.css`, 색·그라디언트 윗선·여백은 gensei-pc98 `#footer`와 같게 `#main-wrapper #footer`(아이디 둘)로 덮는다. 공유 `footer.css`의 `opacity: 0.8`은 1로 되돌린다. 모바일에선 저작권과 버전을 한 줄로 둔다 — 에뮬레이터 크레딧이 없어 둘째 줄에 버전만 남기 때문.
 - 글자 크기는 gensei-pc98 토큰(`--font-lg`·`--font-md`·`--font-sm`·`--font-xs`)을 따른다. 상단 레이블만 예외로, 옆의 버튼 이미지 높이(데스크톱 35px·모바일 27px)에 맞춘 px 값 `--toolbar-label`(18px·모바일 12px)을 쓴다. 다른 글자를 "레이블과 같게" 맞출 때는 이 값이 아니라 토큰을 쓴다. 푸터 위 링크 줄(`#site-links`)은 `--font-md`.
 - `theme-color`는 `--bg`와 같은 값이라 모바일 브라우저 상단이 페이지 바탕과 이어진다.
+- GA4 이벤트는 `dataLayer.push({ event, game: 'haiyuki' })`(사이트 공통 GTM)로 보낸다. `js/core/analytics.js`의 `Analytics.track`·`playStart`가 맡고 자동 테스트(`Game.isAutoTest`)에서는 보내지 않는다. `play_start`는 타이틀에서 BATTLE·TUTORIAL·STORY ONLY를 고를 때, `?mode=` 직행 때, VS 매치가 캐릭터 선택을 마치고 전투로 들어갈 때(재대전 포함) 보내고, 첫 `play_start`가 `PlayTime.start()`로 `play_milestone`(`minutes`) 집계를 켠다. `js/core/play-time.js`는 gensei-pc98 `emulator/play-time.js`를 그대로 복사한 공유 파일이다. 그 밖에 `tutorial_complete`(레슨 4까지 마침), `ending_reached`(`EndingScene` 진입), `gamepad_activate`(가상 게임패드 켬).
 
 ## 가상 게임패드·상단바
 

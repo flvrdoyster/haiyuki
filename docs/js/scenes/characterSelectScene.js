@@ -124,6 +124,7 @@ const CharacterSelectScene = {
         if (this.currentState === this.STATE_READY) {
             this.readyTimer += dt;
             if (this.readyTimer > (Game.isAutoTest ? 10 : 60)) {
+                Analytics.playStart();
                 Game.changeScene(BattleScene, {
                     online: match,
                     playerIndex: this.playerIndex,
