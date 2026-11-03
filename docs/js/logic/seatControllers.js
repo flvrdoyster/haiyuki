@@ -120,36 +120,36 @@ const OnlineClock = {
         if (!o || o.takenOver || e.isAutoTest() || e.tutorial) return null;
         const C = BattleConfig.ONLINE;
         if (e.setupWaiting) {
-            return { key: 'exchange', who: e.setupWaiting, limit: C.ticks(C.EXCHANGE_SEC), delay: 0 };
+            return { key: 'exchange', who: e.setupWaiting, limit: C.ticks(C.CHOICE_SEC), delay: 0 };
         }
         const net = e.controllerOf('CPU');
         if (net.pendingReact || net.pendingNagari || net.pendingDoraBomb) {
-            return { key: 'confirm', who: 'CPU', limit: C.ticks(C.CONFIRM_SEC), delay: 0 };
+            return { key: 'confirm', who: 'CPU', limit: C.ticks(C.CHOICE_SEC), delay: 0 };
         }
         let st = e.currentState;
         if (st === e.STATE_BATTLE_MENU) st = BattleMenuSystem.lastStateBeforeMenu;
         switch (st) {
             case e.STATE_WAIT_FOR_DRAW:
                 if (e.p1.isRiichi) return null;
-                return { key: 'draw', who: 'P1', limit: C.ticks(C.DRAW_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
+                return { key: 'draw', who: 'P1', limit: C.ticks(C.CHOICE_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
             case e.STATE_PLAYER_TURN:
                 if (e.p1.isRiichi && !e.p1.declaringRiichi) return null;
                 return { key: 'turn', who: 'P1', limit: C.ticks(C.DISCARD_SEC), delay: 0 };
             case e.STATE_CPU_TURN:
                 if (e.cpu.isRiichi && !e.cpu.declaringRiichi) return null;
                 if (e.cpuPhase === 'draw') {
-                    return { key: 'draw', who: 'CPU', limit: C.ticks(C.DRAW_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
+                    return { key: 'draw', who: 'CPU', limit: C.ticks(C.CHOICE_SEC), delay: BattleConfig.SPEED.DRAW_INPUT_DELAY };
                 }
                 return { key: 'turn', who: 'CPU', limit: C.ticks(C.DISCARD_SEC), delay: 0 };
             case e.STATE_ROULETTE: {
                 const lc = e.lastChance;
                 if (!lc || lc.phase !== 'spin') return null;
-                return { key: 'roulette', who: lc.who, limit: C.ticks(C.ROULETTE_SEC), delay: 0 };
+                return { key: 'roulette', who: lc.who, limit: C.ticks(C.CHOICE_SEC), delay: 0 };
             }
             case e.STATE_WIN:
             case e.STATE_LOSE:
             case e.STATE_NAGARI:
-                return { key: 'result', who: 'P1', limit: C.ticks(C.RESULT_SEC), delay: C.RESULT_INPUT_DELAY };
+                return { key: 'result', who: 'P1', limit: C.ticks(C.CHOICE_SEC), delay: C.RESULT_INPUT_DELAY };
             default:
                 return null;
         }
@@ -297,7 +297,7 @@ HumanController.prototype = {
     confirm: function (engine, msg, resolve) {
         if (engine.scene && engine.scene.showConfirm) {
             const options = engine.online && !engine.online.takenOver
-                ? { limit: BattleConfig.ONLINE.ticks(BattleConfig.ONLINE.CONFIRM_SEC) }
+                ? { limit: BattleConfig.ONLINE.ticks(BattleConfig.ONLINE.CHOICE_SEC) }
                 : {};
             engine.scene.showConfirm(msg, () => resolve(true), () => resolve(false), options);
         } else {

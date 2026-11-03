@@ -589,13 +589,19 @@ const BattleRenderer = {
     },
 
     drawClock: function (ctx, who, seconds, kind) {
-        const digits = BattleConfig.ONLINE.CLOCK_DIGITS;
-        const path = kind === 'turn' ? digits.turn : digits.other;
-        const img = Assets.get(path);
+        const clock = kind === 'turn' ? BattleConfig.ONLINE.CLOCK.turn : BattleConfig.ONLINE.CLOCK.other;
+        const img = Assets.get(clock.digits);
         if (!img) return;
         const H = BattleConfig.HAND;
         const y = who === 'P1' ? H.playerY + Math.floor((H.tileHeight - img.height) / 2) : H.cpuY + Math.floor((H.tileHeight - img.height) / 2);
-        this.drawNumber(ctx, seconds, 6, y, 'left', 0, path);
+        this.drawNumber(ctx, seconds, 6, y, 'left', 0, clock.digits);
+        ctx.save();
+        ctx.font = `bold 12px ${FONTS.bold}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = clock.color;
+        ctx.fillText(clock.label, 6, y - 2);
+        ctx.restore();
     },
 
     drawNumber: function (ctx, number, x, y, align = 'center', pad = 0, path = BattleConfig.INFO.numbers.path) {

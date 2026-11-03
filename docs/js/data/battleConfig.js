@@ -41,13 +41,12 @@ const BattleConfig = {
         RELAY_URL: 'wss://haiyuki-relay.flvrdoyster.workers.dev',
         TICK_RATE: 60,
         DISCARD_SEC: 45,
-        EXCHANGE_SEC: 45,
-        DRAW_SEC: 20,
-        CONFIRM_SEC: 20,
-        ROULETTE_SEC: 15,
-        RESULT_SEC: 20,
+        CHOICE_SEC: 20,
         RESULT_INPUT_DELAY: 160,
-        CLOCK_DIGITS: { turn: 'ui/number.png', other: 'ui/number_gold.png' },
+        CLOCK: {
+            turn: { digits: 'ui/number_gold.png', label: '버리기까지', color: 'rgba(255, 232, 0, 1)' },
+            other: { digits: 'ui/number.png', label: '선택까지', color: 'rgba(255, 255, 255, 1)' }
+        },
         ticks: function (sec) {
             return Math.round(sec * this.TICK_RATE);
         }
