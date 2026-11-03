@@ -1,5 +1,3 @@
-// 오토 플레이 — Game.isAutoTest일 때 P1을 AI가 대신 둔다.
-// P1은 aiProfile 없이 skill 0.7 고정. tests/_ai_fingerprint가 이 값을 중립 베이스라인으로 쓴다.
 const AutoPlay = {
     performSymmetricTurn: function (e) {
         e.checkActiveSkills('P1');

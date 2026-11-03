@@ -1,11 +1,7 @@
 /**
  * 렌더링 비주얼 회귀 (G)
  *
- * 스위트 전체에 렌더링 단언이 하나도 없었다. `_titlecheck`/`_logocheck`/`_creditcheck`
- * 는 캔버스 스크린샷을 파일로 떨구기만 하고 expect 가 없어서, 그림이 깨져도
- * 예외만 안 나면 통과한다(눈으로 보는 캡처 도구지 회귀 테스트가 아니다).
- *
- * 그래서 아래 리팩토링 대상들이 전부 무방비였다:
+ * 렌더링 리팩토링 대상들을 픽셀 단위로 지킨다:
  *   - encounterScene 의 말풍선 그리기 중복 제거
  *   - 캐릭터 이름 스트로크+필 렌더링 공용화 (encounter / charSelect / battleRenderer 3곳)
  *   - battleRenderer 히트테스트 분리, battleScene FX 추출

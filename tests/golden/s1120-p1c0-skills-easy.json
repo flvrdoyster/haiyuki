@@ -1,0 +1,601 @@
+{
+ "case": {
+  "name": "s1120-p1c0-skills-easy",
+  "seed": 1120,
+  "p": 1,
+  "c": 0,
+  "skills": true,
+  "difficulty": "easy"
+ },
+ "result": {
+  "winner": "P1",
+  "hp": [
+   12800,
+   0
+  ],
+  "rounds": 2,
+  "finalHash": 2256627048
+ },
+ "roundHashes": {
+  "r1": 4033376624,
+  "r2": 2609555998
+ },
+ "actionLog": [
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_red",
+    "color": "red"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "smash",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "yuri",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "yuri",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "sword",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "riichi"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "fari",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "tsumo",
+   "auto": true
+  },
+  {
+   "round": 1,
+   "who": "P1",
+   "type": "doraBomb",
+   "use": true
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "rin",
+    "color": "red"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_red",
+    "color": "red"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "ataho",
+    "color": "red"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_red",
+    "color": "red"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "pet",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_purple",
+    "color": "purple"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "pet",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_red",
+    "color": "red"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_yellow",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "sword",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "riichi"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "wand",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "pet",
+    "color": "yellow"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "sword",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "sword",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "sword",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "smash",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "smash",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "smash",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "smash",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "discard",
+   "tile": {
+    "type": "mayu_blue",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "draw"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "skill",
+   "skill": "TIGER_STRIKE"
+  },
+  {
+   "round": 2,
+   "who": "CPU",
+   "type": "discard",
+   "tile": {
+    "type": "yuri",
+    "color": "blue"
+   }
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "ron"
+  },
+  {
+   "round": 2,
+   "who": "P1",
+   "type": "doraBomb",
+   "use": true
+  }
+ ]
+}

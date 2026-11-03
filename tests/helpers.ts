@@ -426,3 +426,38 @@ export async function injectRiichiTenpai(page: Page, withRiichi: boolean): Promi
         e.timer        = 0;
     }, withRiichi);
 }
+
+export interface MatchOutcome {
+    result: { winner: string | null; hp: number[]; rounds: number; finalHash: number };
+    roundHashes: Record<string, number>;
+    actionLog: any[];
+}
+
+/** Drive the running battle to match end with Game.update, answering confirms with "yes". */
+export async function playMatchOut(page: Page, maxTicks = 400000): Promise<MatchOutcome> {
+    return page.evaluate((limit) => {
+        const g = (0, eval)('Game');
+        const e = (0, eval)('BattleEngine');
+        e.matchWinner = null;
+        const roundHashes: Record<string, number> = {};
+        let lastRound = -1;
+        let n = 0;
+        while (!e.matchWinner && n < limit) {
+            g.update(1);
+            if (e.currentRound !== lastRound) {
+                lastRound = e.currentRound;
+                roundHashes['r' + lastRound] = e.stateHash();
+            }
+            const s = g.currentScene;
+            if (s && s.confirmData && s.confirmData.onYes) { const d = s.confirmData; s.confirmData = null; d.onYes(); }
+            if ((e.currentState === e.STATE_WIN || e.currentState === e.STATE_LOSE) && e.stateTimer > 170) e.confirmResult();
+            else if (e.currentState === e.STATE_NAGARI && e.stateTimer > 90) e.confirmResult();
+            n++;
+        }
+        return {
+            result: { winner: e.matchWinner, hp: [e.p1.hp, e.cpu.hp], rounds: e.currentRound, finalHash: e.stateHash() },
+            roundHashes,
+            actionLog: JSON.parse(JSON.stringify(e.actionLog)),
+        };
+    }, maxTicks);
+}

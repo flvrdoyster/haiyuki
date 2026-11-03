@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
-import { waitForGame, startBattle, installAutoDriver, waitForMatchOver, stopHarness } from './helpers';
+import { waitForGame, startBattle, installAutoDriver, waitForMatchOver, stopHarness } from '../helpers';
 
 // Scratch: measure each CPU character's actual in-match behavior fingerprint —
 // pon rate, riichi turn, win-type mix, deal-in rate, average win score, dora
@@ -25,10 +25,10 @@ import { waitForGame, startBattle, installAutoDriver, waitForMatchOver, stopHarn
 // snapshots cpu.hand+openSets to compute dora count (mirrors
 // yakuLogic.calculateBonuses' countDoras) and color purity (max-color-share).
 //
-// Results are written to fingerprint-results.json next to this file (not just
+// Results are written to tests/fingerprint-results.json (not just
 // console) so a long background run can be read back without re-parsing logs.
 //
-// Run: npx playwright test --config measure.config.ts _ai_fingerprint
+// Run: npx playwright test --config measure.config.ts
 //   MPC=<matches to add per character this run> (default 10)
 //   CHARS=smash,mayu  (subset)   SKILLS=0 (skills off; default on)   DIFF=easy|normal|hard (default normal)
 //   RESET=1 (discard accumulated state)   PORT=12802 (server port, see measure.config.ts)
@@ -42,7 +42,7 @@ const SKILLS = process.env.SKILLS !== '0';
 const DIFFICULTY = process.env.DIFF || 'normal';
 const COMMIT = execSync('git rev-parse --short HEAD', { cwd: path.join(__dirname, '..', '..') }).toString().trim();
 const STATE_KEY = `${COMMIT}|skills=${SKILLS ? 1 : 0}|diff=${DIFFICULTY}`;
-const STATE_PATH = path.join(__dirname, `fingerprint-state.${COMMIT}.skills${SKILLS ? 1 : 0}.${DIFFICULTY}.json`);
+const STATE_PATH = path.join(__dirname, '..', `fingerprint-state.${COMMIT}.skills${SKILLS ? 1 : 0}.${DIFFICULTY}.json`);
 
 type CharState = RoundStat & { matches: number; riichiTurns: number[]; winHands: { dora: number; purity: number | null }[]; mpEnd: { r: number; mp: number }[] };
 
@@ -226,7 +226,7 @@ test('AI 캐릭터 행동 지문 측정', async ({ page }) => {
         };
     }
 
-    const outPath = path.join(__dirname, 'fingerprint-results.json');
+    const outPath = path.join(__dirname, '..', 'fingerprint-results.json');
     fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
     console.log('AI_FINGERPRINT_DONE -> ' + outPath);
 });

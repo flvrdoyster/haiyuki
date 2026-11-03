@@ -324,12 +324,24 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
             return e.discards.some((d: any) => d.owner === 'cpu');
         }, undefined, { timeout: 30_000 });
 
+        await guest.evaluate(() => { (0, eval)('Game').update = () => {}; });
+        await host.waitForTimeout(500);
         await host.evaluate(() => {
             const e = (window as any).BattleEngine;
             e.currentState = e.STATE_WIN;
             e.stateTimer = 0;
         });
-        await host.waitForFunction(() => (window as any).BattleEngine.resultSeq === 1, undefined, { timeout: 15_000 });
+        const ticks = await host.evaluate(() => {
+            const g = (0, eval)('Game');
+            const e = (window as any).BattleEngine;
+            let n = 0;
+            while (e.resultSeq !== 1 && n < 3000) {
+                g.update(1);
+                n++;
+            }
+            return n;
+        });
+        expect(ticks).toBeLessThan(3000);
         const confirm = await host.evaluate(() => (window as any).BattleEngine.actionLog.filter((e: any) => e.type === 'confirm' && e.who === 'P1'));
         expect(confirm.length).toBe(1);
         expect(confirm[0].win).toBe(0);

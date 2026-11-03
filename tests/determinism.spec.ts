@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForGame, startBattle } from './helpers';
+import { waitForGame, startBattle, playMatchOut } from './helpers';
 
 const GAME_URL = '/';
 
@@ -23,21 +23,8 @@ async function playMatch(page: any, seed: number, p: number, c: number) {
     await page.goto(GAME_URL);
     await waitForGame(page);
     await startBattle(page, { seed, playerIndex: p, cpuIndex: c, randomFirst: true, skills: true });
-    return page.evaluate(() => {
-        const g = (0, eval)('Game');
-        const e = (0, eval)('BattleEngine');
-        e.matchWinner = null;
-        let n = 0;
-        while (!e.matchWinner && n < 400000) {
-            g.update(1);
-            const s = g.currentScene;
-            if (s && s.confirmData && s.confirmData.onYes) s.confirmData.onYes();
-            if ((e.currentState === e.STATE_WIN || e.currentState === e.STATE_LOSE) && e.stateTimer > 170) e.confirmResult();
-            else if (e.currentState === e.STATE_NAGARI && e.stateTimer > 90) e.confirmResult();
-            n++;
-        }
-        return { winner: e.matchWinner, hp: [e.p1.hp, e.cpu.hp], ticks: n, log: JSON.stringify(e.actionLog), len: e.actionLog.length };
-    });
+    const m = await playMatchOut(page);
+    return { winner: m.result.winner, hp: m.result.hp, log: JSON.stringify(m.actionLog), len: m.actionLog.length };
 }
 
 test.describe('determinism', () => {

@@ -5,7 +5,7 @@ const PORT = process.env.PORT || '12801';
 
 export default defineConfig({
     testDir: '.',
-    testIgnore: ['node_modules/**', 'perf/**'],
+    testIgnore: ['node_modules/**', 'perf/**', 'measure/**'],
     // Generated artifacts (run output, html report, .last-run.json) go in one
     // hidden, gitignored folder under tests/.
     outputDir: './.playwright/results',

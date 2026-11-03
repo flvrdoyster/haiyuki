@@ -3,8 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = +(process.env.PORT || 12802);
 
 export default defineConfig({
-    testDir: '.',
-    testMatch: ['_ai_fingerprint.spec.ts'],
+    testDir: './measure',
     outputDir: './.playwright/measure-results',
     fullyParallel: false,
     workers: 1,
