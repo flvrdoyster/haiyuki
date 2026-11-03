@@ -33,7 +33,7 @@ const BattleConfig = {
         CPU_DISCARD_HOLD: 22,
         CPU_RIICHI_THINK: 21,
         DIALOGUE_SPEAK: 20,
-        DIALOGUE_REPLY: 120,
+        DIALOGUE_REPLY: 30,
         ACTION_WAIT: 30
     },
 
