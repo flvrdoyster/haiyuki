@@ -217,6 +217,7 @@ test.describe('B. 흐름', () => {
                 });
                 const onResult = e.currentState === e.STATE_WIN;
                 if (onResult && p.look.some((t: string) => t === 'dora' || t === 'uraDora') && !R._lookUnderResult(e)) missing.push('result-not-hidden');
+                if (p.look.includes('drawn') && R._actionRect) missing.push('button-not-hidden');
                 return { text: p.text, missing };
             });
             if (look) lookSeen.set(look.text, look.missing);

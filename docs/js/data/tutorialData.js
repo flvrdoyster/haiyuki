@@ -32,7 +32,7 @@ const TutorialData = {
                 },
                 {
                     on: 'tsumoChance', say: [
-                        '역은 항상 12개의 패로 구성됩니다.\n이제 역이 완성되어 날 수 있습니다.',
+                        { text: '역은 항상 12개의 패로 구성됩니다.\n이제 역이 완성되어 날 수 있습니다.', look: 'drawn' },
                         { text: 'ESC나 화면의 {노란색 텍스트} 버튼을 누르면 메뉴를 엽니다.\n메뉴에서 {아가리}를 선택하세요.', look: 'actionButton' }
                     ]
                 },

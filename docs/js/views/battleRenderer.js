@@ -57,7 +57,7 @@ const BattleRenderer = {
 
     draw: function (ctx, state, activeFX) {
         ctx.imageSmoothingEnabled = false;
-        this._lookRects = { dora: null, uraDora: null, lastDiscard: null, hand: [] };
+        this._lookRects = { dora: null, uraDora: null, lastDiscard: null, drawn: null, hand: [] };
 
         if (this._dirtyStatic || !this.bgCanvas) {
             this.updateStaticLayers(state);
@@ -133,7 +133,7 @@ const BattleRenderer = {
             const options = {};
             if (state.tutorial) {
                 const choosing = state.currentState === state.STATE_PLAYER_TURN || state.currentState === state.STATE_BATTLE_MENU;
-                if (choosing && !state.tutorialCanDiscard(i)) options.tint = 'rgba(0, 0, 0, 0.6)';
+                if (choosing && !state.narration && !state.tutorialCanDiscard(i)) options.tint = 'rgba(0, 0, 0, 0.6)';
             } else if (state.p1.isRiichi) {
                 // 리치 후 버릴 수 없는 패 어둡게
                 const validIndices = state.validRiichiDiscardIndices;
@@ -147,7 +147,9 @@ const BattleRenderer = {
             } else {
                 this.drawTile(ctx, state.p1.hand[i], pos.x, y, tileW, tileH, options);
                 const sideH = sideImg ? sideImg.height : 0;
-                this._lookRects.hand.push({ type: state.p1.hand[i].type, x: pos.x, y: y - sideH, w: tileW, h: tileH + sideH });
+                const rect = { type: state.p1.hand[i].type, x: pos.x, y: y - sideH, w: tileW, h: tileH + sideH };
+                this._lookRects.hand.push(rect);
+                if (i === pCount - 1) this._lookRects.drawn = rect;
             }
         }
 
@@ -981,6 +983,14 @@ const BattleRenderer = {
             t.x < r.x + r.w && t.x + t.w > r.x && t.y < r.y + r.h && t.y + t.h > r.y);
     },
 
+    _lookCoversButton: function (state, button) {
+        if (!state.narration || state.narrationPage().look.includes('actionButton')) return false;
+        return this.lookRects(state).some(t => {
+            const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
+            return cx >= button.x && cx <= button.x + button.w && cy >= button.y && cy <= button.y + button.h;
+        });
+    },
+
     drawLook: function (ctx, state) {
         const conf = BattleConfig.NARRATION.look;
         const img = Assets.get(conf.path);
@@ -1056,8 +1066,9 @@ const BattleRenderer = {
         if (!key) { this._actionRect = null; this._actionKey = null; return; }
         const conf = BattleConfig.ACTION_BUTTONS[key];
         const r = this._actionButtonRect(ctx, conf);
-        this._actionRect = r;
         this._actionKey = key;
+        if (this._lookCoversButton(state, r)) { this._actionRect = null; return; }
+        this._actionRect = r;
         const isHovered = state ? !!state.actionHover : false;
         UIDraw.drawButton(ctx, r.x, r.y, r.w, r.h, conf.text, isHovered, {
             font: conf.font,
