@@ -66,7 +66,7 @@ const BattleSequencer = {
                 engine.offerDoraBomb(who, () => {
                     if (engine.roundNotes.doraBomb) {
                         const at = engine.sequencing.steps.findIndex(s => s.type === 'REVEAL_URA');
-                        engine.sequencing.steps.splice(at + 1, 0,
+                        engine.sequencing.steps.splice(at, 0,
                             { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
                             { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY });
                     }

@@ -25,14 +25,14 @@ const AIDecisions = {
     },
 
     useActiveSkills: function (engine, who) {
-        if (!BattleConfig.RULES.SKILLS_ENABLED) return;
+        if (!BattleConfig.RULES.SKILLS_ENABLED) return false;
         const me = engine.getPlayer(who);
-        if (me.skillsUsedThisTurn) return;
+        if (me.skillsUsedThisTurn || me.skillCheckDone) return false;
 
         const opp = engine.getOpponent(who);
         const skills = me.skills || [];
         const profile = CharacterData.find(c => c.id === me.id).aiProfile;
-        if (!profile) return;
+        if (!profile) return false;
 
         const skillUseChance = 0.3 + 0.7 * engine.skillOf(who);
 
@@ -57,11 +57,13 @@ const AIDecisions = {
 
             if (score + randomFactor > threshold) {
                 if (engine.rng.ai.random() < skillUseChance) {
-                    engine.useSkill(skillId, who);
+                    me.skillCheckDone = true;
+                    return engine.useSkill(skillId, who);
                 }
-                return;
+                return false;
             }
         }
+        return false;
     },
 
     act: function (engine, who) {
@@ -70,14 +72,14 @@ const AIDecisions = {
 
         if (engine.tutorial) {
             engine.discardFor(who, me.hand.length - 1);
-            return;
+            return false;
         }
 
-        AIDecisions.useActiveSkills(engine, who);
+        if (AIDecisions.useActiveSkills(engine, who)) return true;
 
         if (YakuLogic.checkYaku(engine.getFullHand(me), me.id, engine.isOpen(me))) {
             engine.declareTsumo(who);
-            return;
+            return false;
         }
 
         const returned = me.exchangeReturned;
@@ -87,7 +89,7 @@ const AIDecisions = {
             if (riichiIdx >= 0 && AILogic.shouldRiichi(me.hand, engine.skillOf(who), me.aiProfile)) {
                 engine.declareRiichi(who);
                 engine.discardFor(who, riichiIdx);
-                return;
+                return false;
             }
         }
 
@@ -111,6 +113,7 @@ const AIDecisions = {
             idx = AILogic.decideDiscard(me.hand, engine.skillOf(who), me.aiProfile, context);
         }
         engine.discardFor(who, idx);
+        return false;
     }
 };
 
@@ -234,7 +237,7 @@ AIController.prototype = {
     onTurn: function (engine, who, info) {
         if (info.drew) {
             this.pending = false;
-            AIDecisions.act(engine, who);
+            this.run(engine, who);
         } else {
             this.pending = true;
         }
@@ -246,8 +249,12 @@ AIController.prototype = {
             engine.drawFor(who);
         } else if (this.pending) {
             this.pending = false;
-            AIDecisions.act(engine, who);
+            this.run(engine, who);
         }
+    },
+
+    run: function (engine, who) {
+        if (AIDecisions.act(engine, who)) this.pending = true;
     },
 
     onCounterPrompt: function (engine, who, skillId, resolve) {

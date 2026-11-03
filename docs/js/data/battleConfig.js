@@ -164,10 +164,8 @@ const BattleConfig = {
         P1: { offsetX: -20, offsetY: -86, textOffsetX: 20, textOffsetY: 0 },
         CPU: { offsetX: 20, offsetY: 86, textOffsetX: -20, textOffsetY: 0 },
         CHANCE: {
-            RANDOM: 0.7,
-            WORRY_RON: 0.7,
-            DRAW_GOOD: 0.7,
-            DRAW_BAD: 0.7
+            DISCARD: 0.5,
+            RANDOM: 0.1
         }
     },
     // timeline = FXTimelines 키(원본 틱 좌표와 조각 배치).

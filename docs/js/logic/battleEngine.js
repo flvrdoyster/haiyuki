@@ -145,7 +145,6 @@ const BattleEngine = {
 
     possibleActions: [],
 
-    dialogueTriggeredThisTurn: false,
     lastDrawInfo: { P1: null, CPU: null },
     roundSkillUsage: { p1: {}, cpu: {} },
 
@@ -707,7 +706,7 @@ const BattleEngine = {
         return true;
     },
 
-    useSkill: function (skillId, who = 'P1', isInternal = false) {
+    useSkill: function (skillId, who = 'P1', isInternal = false, onDone = null) {
         const skill = SkillData[skillId];
         if (!skill) return false;
 
@@ -723,7 +722,6 @@ const BattleEngine = {
 
         this.logAction(who, 'skill', { skill: skillId });
         this.consumeMp(who, skill.cost);
-        this.processSkillEffect(skill, who, skillId);
 
         console.log(`[Skill] ${who} used ${skill.name} (${skillId})`);
 
@@ -732,22 +730,55 @@ const BattleEngine = {
             this.getPlayer(who).skillsUsedThisTurn = true;
         }
 
-        this.showPopup('SKILL', { text: skill.name, blocking: false });
-        this.setExpression(who, 'smile');
-
-        if (skill.sfx) {
-            this.events.push({ type: 'SOUND', id: skill.sfx });
-        } else {
-            this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
-        }
-
         const dialOwner = who === 'P1' ? 'p1' : 'cpu';
-        this.triggerDialogue(skillId, dialOwner);
+        const spoke = this.triggerDialogue(skillId, dialOwner);
+        const prevState = this.currentState;
 
-        if (who === 'P1' && this.currentState === this.STATE_PLAYER_TURN) {
-            this.checkSelfActions();
+        const takeEffect = () => {
+            this.processSkillEffect(skill, who, skillId);
+
+            this.showPopup('SKILL', { text: skill.name, blocking: false });
+            this.setExpression(who, 'smile');
+
+            if (skill.sfx) {
+                this.events.push({ type: 'SOUND', id: skill.sfx });
+            } else {
+                this.events.push({ type: 'SOUND', id: 'audio/skill_activate' });
+            }
+
+            if (onDone) {
+                onDone();
+            } else if (this.currentState === this.STATE_FX_PLAYING) {
+                this.currentState = prevState;
+            }
+
+            if (who === 'P1' && this.currentState === this.STATE_PLAYER_TURN) {
+                this.checkSelfActions();
+            }
+        };
+
+        if (!spoke) {
+            takeEffect();
+            return true;
         }
 
+        const sp = BattleConfig.SPEED;
+        this.currentState = this.STATE_FX_PLAYING;
+        this.sequencing = {
+            active: true,
+            timer: 0,
+            currentStep: 0,
+            steps: [
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY },
+                {
+                    type: 'CALLBACK', callback: () => {
+                        this.sequencing.active = false;
+                        takeEffect();
+                    }
+                }
+            ]
+        };
         return true;
     },
 
@@ -1097,7 +1128,6 @@ const BattleEngine = {
         }
 
         this.logAction(who, 'draw');
-        this.dialogueTriggeredThisTurn = false;
         me.skillsUsedThisTurn = false;
 
         this.manageBuffs(me);
@@ -1138,6 +1168,7 @@ const BattleEngine = {
 
     enterTurn: function (who, info) {
         const me = this.getPlayer(who);
+        me.skillCheckDone = false;
         this.currentState = this.turnStateOf(who);
         if (who === 'P1') {
             this.timer = 0;
@@ -1207,7 +1238,7 @@ const BattleEngine = {
     },
 
     checkActiveSkills: function (who) {
-        AIDecisions.useActiveSkills(this, who);
+        return AIDecisions.useActiveSkills(this, who);
     },
 
     discardTile: function (index) {
@@ -1258,13 +1289,27 @@ const BattleEngine = {
 
         if (who === 'P1') this.riichiTargetIndex = index;
         this.currentState = this.STATE_FX_PLAYING;
-        const talk = this.tutorial ? [] : [
-            ...think,
-            { type: 'DIALOGUE', key: riichiKey, who: who.toLowerCase() },
-            { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
-            { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: oppWho.toLowerCase() },
-            { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
-        ];
+        const stick = this.getPlayer(who).riichiStick;
+        const lockKey = stick === 1 ? 'TIGER_STRIKE' : 'SPIRIT_RIICHI';
+        let talk;
+        if (this.tutorial) {
+            talk = [];
+        } else if (stick > 0) {
+            talk = (who === 'P1' || this.online) ? [
+                ...think,
+                { type: 'DIALOGUE', key: lockKey, who: who.toLowerCase() },
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
+            ] : [];
+        } else {
+            talk = [
+                ...think,
+                { type: 'DIALOGUE', key: riichiKey, who: who.toLowerCase() },
+                { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+                { type: 'DIALOGUE', key: 'RIICHI_REPLY', who: oppWho.toLowerCase() },
+                { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
+            ];
+        }
         this.sequencing = {
             active: true,
             timer: 0,
@@ -1308,19 +1353,7 @@ const BattleEngine = {
         }
         me.exchangeReturned = null;
 
-        if (!this.dialogueTriggeredThisTurn && this.turnCount < 20 && !me.isRiichi) {
-            const CH = BattleConfig.DIALOGUE.CHANCE;
-            const opts = { silent: who === 'P1' };
-            if (opp.isRiichi) {
-                if (this.rng.fx.random() < CH.WORRY_RON) this.triggerDialogue('WORRY_RON', who, undefined, opts);
-            } else {
-                const key = this.classifyDraw(who);
-                const chance = key === 'GOOD_DRAW' ? CH.DRAW_GOOD
-                    : key === 'BAD_DRAW' ? CH.DRAW_BAD
-                        : CH.RANDOM;
-                if (this.rng.fx.random() < chance) this.triggerDialogue(key, who, 'RANDOM', opts);
-            }
-        }
+        this.rollDiscardDialogue(who, discarded);
         this.lastDrawInfo[who] = null;
 
         this.discards.push(discarded);
@@ -1512,25 +1545,39 @@ const BattleEngine = {
         this.logAction(who, 'pon', { tile: this.tileKey(tile) });
         this.setExpression(who, 'smile');
         this.setExpression(this.opponentOf(who), 'shocked');
-        this.showPopup('PON', { blocking: true });
-        this.triggerDialogue('PON', who.toLowerCase());
-        this.dialogueTriggeredThisTurn = true;
+        const oppWho = this.opponentOf(who);
+        const sp = BattleConfig.SPEED;
+        const spoke = this.triggerDialogue('PON', who.toLowerCase());
+        const reply = this.pickDialogue('PON_REPLY', oppWho);
 
         this.currentState = this.STATE_FX_PLAYING;
-        this.timers.add(() => {
-            if (!this.applyPon(me, tile)) return;
-
-            const oppWho = this.opponentOf(who);
-            const reply = this.pickDialogue('PON_REPLY', oppWho);
-            if (reply && oppWho === 'CPU') {
-                this.timers.add(() => {
-                    this.events.push({ type: 'DIALOGUE', text: reply, who: oppWho });
-                }, BattleConfig.SPEED.DIALOGUE_SPEAK);
-            }
-
-            this.enterTurn(who, { drew: false, afterPon: true });
-            if (who === 'P1') this.tutorialEvent('afterPon');
-        }, BattleConfig.SPEED.ACTION_WAIT);
+        const talk = spoke ? [
+            { type: 'WAIT', duration: sp.DIALOGUE_SPEAK },
+            {
+                type: 'CALLBACK', callback: () => {
+                    if (reply && oppWho === 'CPU') this.events.push({ type: 'DIALOGUE', text: reply, who: oppWho });
+                }
+            },
+            { type: 'WAIT_KEY', duration: sp.DIALOGUE_REPLY }
+        ] : [];
+        this.sequencing = {
+            active: true,
+            timer: 0,
+            currentStep: 0,
+            steps: [
+                ...talk,
+                { type: 'CALLBACK', callback: () => this.showPopup('PON', { blocking: true }) },
+                { type: 'WAIT', duration: sp.ACTION_WAIT },
+                {
+                    type: 'CALLBACK', callback: () => {
+                        this.sequencing.active = false;
+                        if (!this.applyPon(me, tile)) return;
+                        this.enterTurn(who, { drew: false, afterPon: true });
+                        if (who === 'P1') this.tutorialEvent('afterPon');
+                    }
+                }
+            ]
+        };
     },
 
     declareRiichi: function (who) {
@@ -1609,13 +1656,15 @@ const BattleEngine = {
             if (reactiveSkillId && this.checkSkillCost(SkillData[reactiveSkillId], oppWho)) {
                 this.controllerOf(oppWho).onCounterPrompt(this, oppWho, reactiveSkillId, (use) => {
                     this.logAction(oppWho, 'react', { use: !!use });
-                    if (use && this.useSkill(reactiveSkillId, oppWho, true)) {
-                        this.roundNotes.counter = { who: oppWho, id: reactiveSkillId };
+                    const counter = () => {
                         if (reactiveSkillId === 'SUPER_IAI') {
                             SkillFlows.activateSuperIaido(this, oppWho);
                         } else {
                             SkillFlows.activateRonTileExchange(this, oppWho);
                         }
+                    };
+                    if (use && this.useSkill(reactiveSkillId, oppWho, true, counter)) {
+                        this.roundNotes.counter = { who: oppWho, id: reactiveSkillId };
                     } else {
                         this.finishRonFor(who, win);
                     }
@@ -1803,31 +1852,44 @@ const BattleEngine = {
         this.lastDrawInfo.CPU = v;
     },
 
-    classifyCpuDraw: function () {
-        return this.classifyDraw('CPU');
+    rollDiscardDialogue: function (who, discarded) {
+        if (this.tutorial) return;
+        const CH = BattleConfig.DIALOGUE.CHANCE;
+        if (this.rng.fx.random() >= CH.DISCARD) return;
+
+        const me = this.getPlayer(who);
+        const opp = this.getOpponent(who);
+        let key = null;
+        if (this.rng.fx.random() < CH.RANDOM) {
+            key = 'RANDOM';
+        } else if (!me.isRiichi) {
+            key = opp.isRiichi
+                ? this.riichiDiscardKey(this.opponentOf(who), discarded)
+                : (this.isDrawnKind(who, discarded) ? 'BAD_DRAW' : 'GOOD_DRAW');
+        }
+        if (key) this.triggerDialogue(key, who, undefined, { silent: who === 'P1' });
     },
 
-    classifyDraw: function (who) {
+    isDrawnKind: function (who, tile) {
         const info = this.lastDrawInfo[who];
-        if (!info || !info.tile) return 'RANDOM';
-        const tile = info.tile;
-        const preHand = info.preHand || [];
+        return !!info && info.tile.type === tile.type && info.tile.color === tile.color;
+    },
 
-        const sameType = preHand.filter(t => t.type === tile.type).length;
-        const sameColor = preHand.filter(t => t.color === tile.color).length;
-
-        if (sameType >= 2) return 'GOOD_DRAW';
-        if (sameType === 0 && sameColor <= 2) return 'BAD_DRAW';
-
-        return 'RANDOM';
+    riichiDiscardKey: function (oppWho, tile) {
+        const tag = oppWho.toLowerCase();
+        const same = t => t.type === tile.type && t.color === tile.color;
+        const riichiAt = this.discards.findIndex(t => t.owner === tag && t.isRiichi);
+        if (riichiAt < 0) return null;
+        if (!this.discards.some(t => t.owner === tag && same(t))) return 'DISCARD_UNSEEN';
+        return this.discards.slice(riichiAt).some(same) ? 'DISCARD_PASSED' : null;
     },
 
     triggerDialogue: function (key, owner, fallbackKey, options = {}) {
         const text = this.pickDialogue(key, owner, fallbackKey);
-        if (!text) return;
+        if (!text) return false;
         const who = (owner === 'p1' || owner === 'P1') ? 'P1' : 'CPU';
         if (!options.silent) this.events.push({ type: 'DIALOGUE', text: text, who: who });
-        this.dialogueTriggeredThisTurn = true;
+        return true;
     },
 
     pickDialogue: function (key, owner, fallbackKey) {

@@ -360,7 +360,8 @@ const DialogueData = {
             GOOD_DRAW: [],
             BAD_DRAW: [],
             COUNTER_RIICHI: [],
-            WORRY_RON: []
+            DISCARD_UNSEEN: [],
+            DISCARD_PASSED: []
         },
         ataho: {
             PON: ["그걸 좀 가져가야겠구먼."],
@@ -372,7 +373,8 @@ const DialogueData = {
             GOOD_DRAW: ["이걸 기다리고 있었다네."],
             BAD_DRAW: ["이건 필요 없는 패로구먼."],
             COUNTER_RIICHI: ["먼저 나게 두진 않겠네."],
-            WORRY_RON: ["이거 위험한가?", "이건 넘어가겠지."],
+            DISCARD_UNSEEN: ["이거 위험한가?"],
+            DISCARD_PASSED: ["이건 넘어가겠지."],
             TIGER_STRIKE: ["맹호일발권!\n이걸로 나의 승리라네."],
             HELL_PILE: ["그렇게 승리를 서두르면 안 되지.\n자네에겐 지옥 쌓기일세."]
         },
@@ -386,7 +388,8 @@ const DialogueData = {
             GOOD_DRAW: ["좋았어, 운이 좀 따르는걸."],
             BAD_DRAW: ["이런 건 필요없어."],
             COUNTER_RIICHI: ["당신만 좋은 꼴 보게 하진 않겠어!"],
-            WORRY_RON: ["이거... 설마...", "설마 이런 패를 원할 리 없겠지."],
+            DISCARD_UNSEEN: ["이거... 설마..."],
+            DISCARD_PASSED: ["설마 이런 패를 원할 리 없겠지."],
             WATER_MIRROR: ["수경!"],
             DORA_BOMB: ["받아랏, 도라폭진!"]
         },
@@ -400,7 +403,8 @@ const DialogueData = {
             GOOD_DRAW: ["오옷! 럭키~!!"],
             BAD_DRAW: ["이건 필요 없겠는데..."],
             COUNTER_RIICHI: ["후우~ 겨우 다 모았네..."],
-            WORRY_RON: ["이거 위험하겠는데...", "뭔가 수상한데..."],
+            DISCARD_UNSEEN: ["이거 위험하겠는데..."],
+            DISCARD_PASSED: ["뭔가 수상한데..."],
             EXCHANGE_TILE: [],
             EXCHANGE_RON: ["설마 이걸로 론을 노린 건 아니겠지?"]
         },
@@ -410,11 +414,12 @@ const DialogueData = {
             RIICHI: ["후훗, 선수필승입니다."],
             RIICHI_REPLY: ["의외로군요. 제법이지 않습니까."],
             WIN: ["전략의 차이군요."],
-            RANDOM: ["흠."],
-            GOOD_DRAW: ["과연."],
+            RANDOM: ["과연."],
+            GOOD_DRAW: ["흠."],
             BAD_DRAW: ["하아."],
             COUNTER_RIICHI: ["저도 질 수는 없죠."],
-            WORRY_RON: ["때로는 운을 하늘에 맡겨 보지요.", "이걸로 될까요?"],
+            DISCARD_UNSEEN: ["때로는 운을 하늘에 맡겨 보지요."],
+            DISCARD_PASSED: ["이걸로 될까요?"],
             CRITICAL: ["후훗, 크리티컬 공격입니다.\n아프실 겁니다만 참아 주시죠."],
             LAST_CHANCE: ["그럼, 라스트 찬스는 제게 찾아와 줄까요?"]
         },
@@ -428,7 +433,8 @@ const DialogueData = {
             GOOD_DRAW: ["좋은 패가 들어왔네요."],
             BAD_DRAW: ["유감이지만,\n이건 필요 없겠어요."],
             COUNTER_RIICHI: ["우후훗, 지고 있을 순 없죠."],
-            WORRY_RON: ["이건... 위험할까요?", "이거, 넘어가겠지요?"],
+            DISCARD_UNSEEN: ["이건... 위험할까요?"],
+            DISCARD_PASSED: ["이거, 넘어가겠지요?"],
             RECOVERY: ["상처를 회복하겠어요."],
             DISCARD_GUARD: ["버린 패 방어에요.\n가져가면 안 돼요."]
         },
@@ -438,11 +444,12 @@ const DialogueData = {
             RIICHI: ["먼저 실례~"],
             RIICHI_REPLY: ["빠르기도 하네..."],
             WIN: ["미안하구만!!"],
-            RANDOM: ["뭐야..."],
+            RANDOM: ["이런이런..."],
             GOOD_DRAW: ["훗..."],
-            BAD_DRAW: ["이런이런..."],
+            BAD_DRAW: ["뭐야..."],
             COUNTER_RIICHI: ["나도 질 수 없지."],
-            WORRY_RON: ["이건 어떠냐!!", "이건 괜찮겠지."],
+            DISCARD_UNSEEN: ["이건 어떠냐!!"],
+            DISCARD_PASSED: ["이건 괜찮겠지."],
             SUPER_IAI: ["어이쿠, 나도 모르게 손이 미끄러졌네.\n미안, 미안."],
             SPIRIT_RIICHI: ["금방 끝내서 편하게 해줄게."]
         },
@@ -454,9 +461,10 @@ const DialogueData = {
             WIN: ["멍~~!!"],
             RANDOM: ["멍!"],
             GOOD_DRAW: ["멍!"],
-            BAD_DRAW: ["캬잉"],
+            BAD_DRAW: ["멍!"],
             COUNTER_RIICHI: ["멍!"],
-            WORRY_RON: ["캬잉", "멍!"],
+            DISCARD_UNSEEN: ["캬잉"],
+            DISCARD_PASSED: ["멍!"],
             PAINT_TILE: []
         }
     }

@@ -1,6 +1,6 @@
 const AutoPlay = {
     performSymmetricTurn: function (e) {
-        e.checkActiveSkills('P1');
+        if (e.checkActiveSkills('P1')) return;
 
         e.checkSelfActions();
         const tsumoAction = (e.possibleActions || []).find(a => a.type === 'TSUMO');
