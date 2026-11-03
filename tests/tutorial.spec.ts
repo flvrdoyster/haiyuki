@@ -30,7 +30,7 @@ test.beforeEach(async ({ page }) => {
 
 const CHARACTER_IDS = ['ataho', 'rinxiang', 'fari', 'smash', 'petum', 'yuri', 'mayu'];
 
-test.describe('A. 레슨 데이터', () => {
+test.describe('레슨 데이터', () => {
     test('단계마다 텐파이·역·점수가 데이터대로 성립하고 의도하지 않은 펑·텐파이가 없다', async ({ page }) => {
         const report = await page.evaluate((charIds) => {
             const TutorialData = (0, eval)('TutorialData');
@@ -188,7 +188,7 @@ function nextKey(page: Page): Promise<{ key: string | null; lesson: number; hpOk
     });
 }
 
-test.describe('B. 흐름', () => {
+test.describe('튜토리얼 흐름', () => {
     test('타이틀에서 TUTORIAL로 레슨 1~4를 끝내고 타이틀로 돌아온다. 저장·HP·비기 설정은 그대로', async ({ page }) => {
         test.setTimeout(240_000);
 

@@ -102,22 +102,22 @@ function assertSameMatch(h: any, g: any) {
     expect(JSON.stringify(noConfirm(swapSeats(g.summary.actionLog)))).toBe(JSON.stringify(noConfirm(h.summary.actionLog)));
 }
 
-test.describe('vs.html (BroadcastChannel, two tabs)', () => {
-    test('AI vs AI match with skills off stays in sync to the end', async ({ context }) => {
+test.describe('대전 페이지 (BroadcastChannel, 탭 두 개)', () => {
+    test('비기를 끈 AI 대 AI 한 판이 끝까지 동기를 유지한다', async ({ context }) => {
         test.setTimeout(300_000);
         const { h, g } = await playAiMatch(context, { skills: false, seed: 4242, p: 0, c: 1 });
         assertSameMatch(h, g);
         expect(h.summary.actionLog.some((e: Entry) => e.type === 'skill')).toBe(false);
     });
 
-    test('AI vs AI match with skills on stays in sync to the end', async ({ context }) => {
+    test('비기를 켠 AI 대 AI 한 판이 끝까지 동기를 유지한다', async ({ context }) => {
         test.setTimeout(300_000);
         const { h, g } = await playAiMatch(context, { skills: true, seed: 4343, p: 3, c: 4 });
         assertSameMatch(h, g);
         expect(g.seed).toBe(h.seed);
     });
 
-    test('nagari with last chance roulette on both seats stays in sync', async ({ context }) => {
+    test('양쪽 자리에서 라스트 찬스 룰렛이 도는 나가리도 동기를 유지한다', async ({ context }) => {
         test.setTimeout(300_000);
         const { h, g } = await playAiMatch(context, { skills: true, seed: 6, p: 4, c: 4, lastChance: true });
         assertSameMatch(h, g);
@@ -126,7 +126,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(types).toContain('lastChanceStop');
     });
 
-    test('a tile discarded by key on the host appears as the opponent discard on the guest', async ({ context }) => {
+    test('호스트가 키로 버린 패가 게스트에서 상대 버림패로 나타난다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '?char=0&seed=777', { autoTest: false, skills: false });
         const room = await createRoom(host);
@@ -168,7 +168,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         })));
         expect(failed).toEqual([null, null]);
     });
-    test('lobby: create room shows code and invite link, the invited tab joins and both panels close', async ({ context }) => {
+    test('로비: 방을 만들면 코드와 초대 링크가 뜨고, 초대받은 탭이 입장하면 양쪽 패널이 닫힌다', async ({ context }) => {
         test.setTimeout(120_000);
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         const host = await openTab(context, '', { autoTest: false });
@@ -194,7 +194,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         }
     });
 
-    test('lobby: typing a code filters to five capital letters and joins by button', async ({ context }) => {
+    test('로비: 코드를 입력하면 대문자 다섯 글자로 걸러지고 버튼으로 입장한다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '', { autoTest: false });
         const room = await createRoom(host);
@@ -206,7 +206,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         await expect(host.locator('#online-panel')).toBeHidden();
     });
 
-    test('rematch: after a match both press rematch and the second match stays in sync with a new seed', async ({ context }) => {
+    test('재대전: 한 판이 끝나고 양쪽이 재대전을 누르면 새 시드의 두 번째 판이 동기를 유지한다', async ({ context }) => {
         test.setTimeout(600_000);
         const { host, guest } = await startAiPair(context, { skills: true, seed: 8888, p: 0, c: 1 });
         const [h1, g1] = await Promise.all([waitForSummary(host, 280_000), waitForSummary(guest, 280_000)]);
@@ -245,7 +245,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(g2.seed).toBe(h2.seed);
     });
 
-    test('leaving the room shows the disconnect message and the start view on the other tab', async ({ context }) => {
+    test('방을 나가면 상대 탭에 이탈 문구와 시작 화면이 나온다', async ({ context }) => {
         test.setTimeout(300_000);
         const { host, guest } = await startAiPair(context, { skills: true, seed: 99, p: 0, c: 1 });
         await Promise.all([waitForSummary(host, 280_000), waitForSummary(guest, 280_000)]);
@@ -254,7 +254,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         await expect(host.locator('#online-status')).toHaveText('상대가 나갔습니다');
         await expect(host.locator('#online-create')).toBeVisible();
     });
-    test('result window: one confirm advances both seats and the late duplicate is dropped', async ({ context }) => {
+    test('결과 창: 한쪽이 확인하면 양쪽이 넘어가고 늦게 온 중복 확인은 버려진다', async ({ context }) => {
         test.setTimeout(300_000);
         const host = await openTab(context, '?char=0&seed=5151', { autoTest: true, symmetric: true, skills: false });
         const room = await createRoom(host);
@@ -279,7 +279,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(guestRecv.length).toBe(hostConfirms.length);
     });
 
-    test('time limits: the draw window and the discard resolve themselves and reach the opponent', async ({ context }) => {
+    test('제한 시간: 뽑기와 버림이 스스로 처리되어 상대에게 전달된다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '?char=0&seed=777', { autoTest: false, skills: false });
         await host.evaluate(() => {
@@ -347,7 +347,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(confirm[0].win).toBe(0);
     });
 
-    test('time limits: a confirm dialog answers no by itself', async ({ context }) => {
+    test('제한 시간: 확인창이 스스로 아니오로 답한다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '?char=0&seed=778', { autoTest: false, skills: false });
         await host.evaluate(() => { (0, eval)('BattleConfig').ONLINE.CHOICE_SEC = 1; });
@@ -368,7 +368,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(await host.evaluate(() => (0, eval)('BattleScene').confirmData)).toBeNull();
     });
 
-    test('opponent leaving mid-match: the CPU takes the seat and the match ends with leave only', async ({ context }) => {
+    test('대전 중 상대 이탈: CPU가 자리를 이어받고 이탈 기록만 남기고 끝난다', async ({ context }) => {
         test.setTimeout(300_000);
         const { host, guest } = await startAiPair(context, { skills: true, seed: 2468, p: 0, c: 1 });
         await host.waitForFunction(() => {
@@ -392,7 +392,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         await expect(host.locator('#online-leave')).toBeVisible();
     });
 
-    test('console log shows connect, connected, pick and the first action in order (debug=net)', async ({ context }) => {
+    test('콘솔 로그에 connect, connected, pick, 첫 행동이 순서대로 찍힌다 (debug=net)', async ({ context }) => {
         test.setTimeout(120_000);
         const hostLogs: string[] = [];
         const guestLogs: string[] = [];
@@ -422,7 +422,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         expect(hostLogs.some(l => l.startsWith('[Online] relay event'))).toBe(false);
     });
 
-    test('desync mid-match is handled like a departure: the CPU takes the seat', async ({ context }) => {
+    test('대전 중 동기 어긋남은 이탈처럼 처리되어 CPU가 자리를 이어받는다', async ({ context }) => {
         test.setTimeout(300_000);
         const { host } = await startAiPair(context, { skills: true, seed: 1357, p: 0, c: 1 });
         await host.waitForFunction(() => {
@@ -455,7 +455,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         await expect(host.locator('#online-rematch')).toBeHidden();
     });
 
-    test('character select: picking first shows the waiting status and leaving shows the departure status', async ({ context }) => {
+    test('캐릭터 선택: 먼저 고르면 대기 문구가, 나가면 이탈 문구가 나온다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '', { autoTest: false });
         const room = await createRoom(host);
@@ -468,7 +468,7 @@ test.describe('vs.html (BroadcastChannel, two tabs)', () => {
         await expect(host.locator('#online-create')).toBeVisible();
     });
 
-    test('index.html?mode=vs hands over to vs.html and keeps the other parameters', async ({ page }) => {
+    test('index.html?mode=vs가 vs.html로 넘어가고 다른 매개변수를 유지한다', async ({ page }) => {
         await page.goto('/index.html?mode=vs&room=ABCDE');
         await page.waitForURL(/\/vs\.html\?room=ABCDE$/);
         expect(page.url()).not.toContain('mode=');

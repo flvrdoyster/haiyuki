@@ -58,7 +58,7 @@ async function renderScene(page: Page, sceneName: string, data: any, freeze: Rec
 
 const canvas = (page: Page) => page.locator('#game-canvas');
 
-test.describe('G. 렌더링 비주얼 회귀', () => {
+test.describe('렌더링 비주얼 회귀', () => {
     test.beforeEach(async ({ page }) => {
         await bootFrozen(page);
     });
@@ -128,7 +128,7 @@ test.describe('G. 렌더링 비주얼 회귀', () => {
     });
 });
 
-test.describe('G. VS MODE 로비 화면', () => {
+test.describe('VS MODE 로비 화면', () => {
     const PREVIEWS = ['start', 'start-failed', 'wait-host', 'wait-guest', 'ended-win', 'ended-waiting',
         'ended-peer-rematch', 'ended-takeover', 'ended-long'];
     const WIDTHS = [{ label: '640', viewport: { width: 1100, height: 900 } }, { label: '360', viewport: { width: 360, height: 800 } }];

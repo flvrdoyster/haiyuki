@@ -71,7 +71,7 @@
 
 `send`/`onMessage` 두 개짜리 인터페이스로 가린다.
 
-- `BroadcastChannel`: 같은 브라우저 두 탭으로 대전(구현됨, `net/transport.js`). 서버 없이 동기화 전체를 검증하고 Playwright 테스트(`tests/online.spec.ts`)도 이것으로 돌린다.
+- `BroadcastChannel`: 같은 브라우저 두 탭으로 대전(구현됨, `net/transport.js`). 서버 없이 동기화 전체를 검증하고 Playwright 테스트(`tests/online-local.spec.ts`)도 이것으로 돌린다.
 - Cloudflare Worker + Durable Object 릴레이(구현됨, `relay/`와 `net/transport.js`의 `WebSocketTransport`): 방 코드 하나로 두 소켓을 잇는다. 정적 호스팅은 그대로 두고 릴레이 주소만 `BattleConfig.ONLINE.RELAY_URL`에 둔다. 릴레이 코드는 `docs/` 밖 별도 디렉터리.
 - 선택 규칙: `vs.html?transport=local`이면 항상 `BroadcastChannel`. 아니면 `?relay=주소`(테스트·시험용)가 있으면 그것, 없으면 `RELAY_URL`이 있을 때 WebSocket, 비어 있으면 `BroadcastChannel`.
 - 릴레이 경로의 접속·끊김: 릴레이의 `peer joined`는 전송층이 처리하고 `Match`는 그때부터 `hello`를 보낸다(상대가 없을 때 보낸 것은 서버가 버리므로). `peer left`는 `bye`와 같은 경로(`left`), 자리가 찼을 때 릴레이가 보내는 `peer full`은 `full`(`방이 가득 찼습니다`), 소켓 `close`·`error`와 접속 거부(코드 오류 400 포함)는 `disconnect`로 처리한다. 소켓이 끊김을 알려 주므로 `ping`과 10초 타임아웃은 쓰지 않는다(`BroadcastChannel` 경로에만 남는다).

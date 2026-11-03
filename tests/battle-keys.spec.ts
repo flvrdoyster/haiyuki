@@ -27,7 +27,7 @@ function stateName(page: Page): Promise<string> {
     return page.evaluate(() => (window as any).__haiyuki__?.state?.name ?? '');
 }
 
-test.describe('E. 입력/키맵 검증 (Z·Space·ESC)', () => {
+test.describe('입력/키맵 검증 (Z·Space·ESC)', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/');
         await waitForGame(page);
@@ -106,7 +106,7 @@ test.describe('E. 입력/키맵 검증 (Z·Space·ESC)', () => {
     });
 });
 
-test.describe('E-gp. 가상 게임패드', () => {
+test.describe('가상 게임패드', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/?gamepad'); // gamepad.js가 body.gamepad-on 부여
         await waitForGame(page);

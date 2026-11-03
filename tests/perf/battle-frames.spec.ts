@@ -61,7 +61,7 @@ async function runWindow(page: any, cdp: any, auto: boolean, ms: number, name: s
 }
 
 for (const auto of [false, true]) {
-    test(`battle frames 60s ${auto ? 'autoTest' : 'real'}`, async ({ page }) => {
+    test(`전투 프레임 60초 ${auto ? '자동' : '실플레이'}`, async ({ page }) => {
         test.setTimeout(150_000);
         const cdp = await page.context().newCDPSession(page);
         await cdp.send('Performance.enable');
@@ -76,7 +76,7 @@ async function memoSizes(page: any) {
     return page.evaluate(() => { const y = (0, eval)('YakuLogic'); return { memo: y._memo ? y._memo.size : null, tenpai: y._tenpaiMemo ? y._tenpaiMemo.size : null }; });
 }
 
-test('three matches autoTest heap', async ({ page }) => {
+test('자동 전투 세 판 힙', async ({ page }) => {
     test.setTimeout(1_300_000);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Performance.enable');

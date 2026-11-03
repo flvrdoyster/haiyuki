@@ -5,7 +5,7 @@ import { waitForGame, startBattle } from '../helpers';
 import { DRIVER_SRC, PROBE_SRC, saveJson } from './util';
 
 for (const auto of [false, true]) {
-    test(`trace 20s ${auto ? 'auto' : 'real'}`, async ({ page }) => {
+    test(`트레이스 20초 ${auto ? '자동' : '실플레이'}`, async ({ page }) => {
         test.setTimeout(120_000);
         const cdp = await page.context().newCDPSession(page);
         await page.goto('/index.html');

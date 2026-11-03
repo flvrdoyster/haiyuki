@@ -1,6 +1,6 @@
 # aiProfile 축이 CPU 버림 선택에 미치는 영향
 
-측정: `node tests/perf/aiprofile_measure.js` (약 50초, 10개 worker). 소스는 수정하지 않고 `vm`으로 로드, `acceptanceInfoCounts`·`riichiScoreCounts`만 컨텍스트 안에서 메모화(프로필 무관 함수라 결과 동일).
+측정: `node tests/measure/aiprofile_measure.js` (약 50초, 10개 worker). 소스는 수정하지 않고 `vm`으로 로드, `acceptanceInfoCounts`·`riichiScoreCounts`만 컨텍스트 안에서 메모화(프로필 무관 함수라 결과 동일).
 
 ## 방법
 

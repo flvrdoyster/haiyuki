@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 import { PROBE_SRC, DRIVER_SRC, summarize, saveJson } from './util';
 
-test('scene transitions real', async ({ page }) => {
+test('장면 전환 실플레이', async ({ page }) => {
     test.setTimeout(420_000);
     await page.goto('/index.html');
     await page.waitForFunction(() => { try { return !!(0, eval)('Game').currentScene; } catch { return false; } });

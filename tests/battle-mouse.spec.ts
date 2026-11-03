@@ -1,7 +1,7 @@
 /**
  * 캔버스 마우스 좌표 히트테스트 검증 (H)
  *
- * 기존 스위트엔 캔버스 좌표로 무언가를 맞히는 테스트가 하나도 없었다 — input.spec 의
+ * 기존 스위트엔 캔버스 좌표로 무언가를 맞히는 테스트가 하나도 없었다 — battle-keys.spec 의
  * 가상 게임패드 클릭은 DOM 버튼이라 캔버스 좌표계와 무관하다. 그래서
  * battleRenderer 의 히트테스트(getHandTileAt / getMenuItemAt / checkActionButton /
  * checkExchangeButton)를 분리하는 리팩토링이 좌표를 어긋내도 잡을 방법이 없었다.
@@ -65,7 +65,7 @@ test.beforeEach(async ({ page }) => {
 
 // ── H-1. 단위: 히트테스트 ↔ 레이아웃 일치 ────────────────────────────────────
 
-test.describe('H-1. 히트테스트가 레이아웃 계산과 같은 좌표를 본다', () => {
+test.describe('히트테스트가 레이아웃 계산과 같은 좌표를 본다', () => {
     test('getHandTileAt: 각 패의 중심은 그 패의 인덱스, 세로 여백과 바깥은 -1', async ({ page }) => {
         await startBattle(page, { autoTest: false });
         await waitForState(page, 'WAIT_FOR_DRAW');
@@ -160,7 +160,7 @@ test.describe('H-1. 히트테스트가 레이아웃 계산과 같은 좌표를 �
 
 // ── H-2. E2E: 실제 마우스 ────────────────────────────────────────────────────
 
-test.describe('H-2. 실제 마우스 클릭이 캔버스 좌표를 거쳐 엔진에 닿는다', () => {
+test.describe('실제 마우스 클릭이 캔버스 좌표를 거쳐 엔진에 닿는다', () => {
     test('PLAYER_TURN 에서 패의 중심을 누르면 그 패가 버려진다', async ({ page }) => {
         await startBattle(page, { autoTest: false });
         await waitForState(page, 'WAIT_FOR_DRAW');

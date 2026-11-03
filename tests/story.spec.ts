@@ -8,7 +8,7 @@
  *   D-4 컨티뉴          — 패배 → 컨티뉴 화면, 재시도/포기 분기
  *
  * 씬 객체는 const 라 window 에 없으므로 (0, eval)('SceneName') 으로 접근한다.
- * (battle.spec.ts / helpers.ts 와 동일 패턴.)
+ * (rules.spec.ts / helpers.ts 와 동일 패턴.)
  *
  * 마유는 CharacterData 의 7번째(인덱스 6) 히든 캐릭터. proceedFromMatchOver 는
  * cpuIndex === 6 으로 트루 엔딩을 판정한다(엔트리에 index 필드가 없기 때문).
@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
     await page.evaluate(() => (0, eval)('Assets').setMute(true));
 });
 
-test.describe('D. 게임 흐름 / 진행 검증', () => {
+test.describe('게임 흐름 / 진행 검증', () => {
 
     // ── D-1. 토너먼트 진행 ──────────────────────────────────────────────────
     test('승리(보스 외) → 다음 상대 인카운터로 진행하고 격파 목록이 갱신된다', async ({ page }) => {

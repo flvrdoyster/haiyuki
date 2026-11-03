@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import { waitForGame, startBattle } from '../helpers';
 import { DRIVER_SRC, saveJson } from './util';
 
-test('hotspots 30s real', async ({ page }) => {
+test('핫스팟 30초 실플레이', async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/index.html');
     await waitForGame(page);

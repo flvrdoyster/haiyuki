@@ -8,7 +8,7 @@ const BLOCK_PATTERNS: Record<string, RegExp> = { fonts: /\.woff2?(\?|$)/, iframe
 const SUFFIX = BLOCK.length ? `-block-${BLOCK.join('+')}` : '';
 
 for (const [label, cond] of Object.entries(NETWORKS)) {
-    test(`load ${label}${SUFFIX}`, async ({ browser }) => {
+    test(`로딩 ${label}${SUFFIX}`, async ({ browser }) => {
         test.setTimeout(240_000);
         const runs: any[] = [];
         for (let r = 0; r < RUNS; r++) {

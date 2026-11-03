@@ -82,7 +82,7 @@ function updateSummary(file: string, actual: any): string {
     return `${at}, 달라진 항목 ${changed}개(${ea.length}→${aa.length}), 달라진 라운드 해시 ${hashes.length}개`;
 }
 
-test.describe('golden replay', () => {
+test.describe('골든 리플레이', () => {
     for (const c of CASES) {
         test(c.name, async ({ page }) => {
             test.setTimeout(240_000);
@@ -103,4 +103,39 @@ test.describe('golden replay', () => {
             expect(same, same ? '' : '처음 달라진 지점: ' + firstDiff(expected, actual)).toBe(true);
         });
     }
+});
+
+async function boardSnapshot(page: any, seed: number) {
+    await startBattle(page, { seed, randomFirst: true, skills: true });
+    await page.waitForFunction(() => (0, eval)('BattleEngine').deck.length > 0);
+    return page.evaluate(() => {
+        const e = (0, eval)('BattleEngine');
+        return {
+            seed: e.seed,
+            deck: e.deck.map((t: any) => t.type + t.color),
+        };
+    });
+}
+
+test.describe('시드', () => {
+    test('시드가 다르면 덱이 다르다', async ({ page }) => {
+        await page.goto('/');
+        await waitForGame(page);
+        const a = await boardSnapshot(page, 12345);
+        await page.goto('/');
+        await waitForGame(page);
+        const b = await boardSnapshot(page, 54321);
+        expect(a.seed).toBe(12345);
+        expect(b.seed).toBe(54321);
+        expect(b.deck).not.toEqual(a.deck);
+    });
+
+    test('시드가 다르면 다른 판이 진행된다', async ({ page }) => {
+        test.setTimeout(240_000);
+        const a = await play(page, { name: 'a', seed: 777, p: 0, c: 1, skills: true });
+        const b = await play(page, { name: 'b', seed: 778, p: 0, c: 1, skills: true });
+        expect(a.actionLog.length).toBeGreaterThan(10);
+        expect(a.result.winner).not.toBeNull();
+        expect(JSON.stringify(b.actionLog)).not.toBe(JSON.stringify(a.actionLog));
+    });
 });

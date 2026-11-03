@@ -2,8 +2,8 @@
  * 비배틀 씬 입력/커서/사운드 검증 (F)
  *
  * 기존 스펙의 공백을 메운다:
- *   - input.spec.ts 는 실제 키 입력을 쓰는 유일한 스펙이지만 전부 BattleScene 이다.
- *   - flow.spec.ts 등 나머지는 update()/changeScene() 을 직접 불러 입력 레이어를 우회한다.
+ *   - battle-keys.spec.ts 는 실제 키 입력을 쓰는 유일한 스펙이지만 전부 BattleScene 이다.
+ *   - story.spec.ts 등 나머지는 update()/changeScene() 을 직접 불러 입력 레이어를 우회한다.
  *   - 사운드에 대한 단언이 스위트 전체에 하나도 없었다.
  *
  * 그 결과 타이틀·캐릭터선택·컨티뉴의 "확인키(Z/Space)"와 "커서 이동 + 효과음"이
@@ -18,7 +18,7 @@
  * playSound 가 console.warn 만 하고 조용히 끝나기 때문에 눈으로는 안 잡힌다.
  *
  * 타이밍: Input.isJustPressed 는 keydown 다음 프레임에 true 가 되므로
- * input.spec.ts 와 동일하게 키를 ~70ms 눌러 유지한다.
+ * battle-keys.spec.ts 와 동일하게 키를 ~70ms 눌러 유지한다.
  */
 import { test, expect, type Page } from '@playwright/test';
 import { installAudioSpy, clearAudioLog, getSfxIds, getMissingSfx } from './helpers';
@@ -62,7 +62,7 @@ test.beforeEach(async ({ page }) => {
 
 // ── F-1. 타이틀 ───────────────────────────────────────────────────────────────
 
-test.describe('F-1. TitleScene 확인키/커서', () => {
+test.describe('TitleScene 확인키/커서', () => {
     test('PRESS_KEY 에서 Z 로 모드 선택으로 넘어간다', async ({ page }) => {
         await tapKey(page, 'z');
         const state = await page.evaluate(() => {
@@ -112,7 +112,7 @@ test.describe('F-1. TitleScene 확인키/커서', () => {
 
 // ── F-2. 캐릭터 선택 ──────────────────────────────────────────────────────────
 
-test.describe('F-2. CharacterSelectScene 확인키/커서', () => {
+test.describe('CharacterSelectScene 확인키/커서', () => {
     test.beforeEach(async ({ page }) => {
         await page.evaluate(() => {
             const g = (0, eval)('Game');
@@ -157,7 +157,7 @@ test.describe('F-2. CharacterSelectScene 확인키/커서', () => {
 
 // ── F-3. 컨티뉴 ───────────────────────────────────────────────────────────────
 
-test.describe('F-3. ContinueScene 확인키/커서', () => {
+test.describe('ContinueScene 확인키/커서', () => {
     test.beforeEach(async ({ page }) => {
         await page.evaluate(() => {
             const g = (0, eval)('Game');

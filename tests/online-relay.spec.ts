@@ -71,12 +71,12 @@ async function pair(browser: Browser, autoTest: boolean) {
     return { host, guest, room };
 }
 
-test.describe('vs.html (relay, two browser contexts)', () => {
+test.describe('대전 페이지 (릴레이, 브라우저 컨텍스트 두 개)', () => {
     test.beforeEach(() => {
         test.skip(!!skipReason, skipReason);
     });
 
-    test('two contexts meet through the relay, pick characters and apply first-round actions', async ({ browser }) => {
+    test('컨텍스트 두 개가 릴레이로 만나 캐릭터를 고르고 첫 라운드 행동을 반영한다', async ({ browser }) => {
         test.setTimeout(150_000);
         const { host, guest, room } = await pair(browser, true);
         expect(room).toMatch(/^[A-HJ-NP-Z]{5}$/);
@@ -101,7 +101,7 @@ test.describe('vs.html (relay, two browser contexts)', () => {
         await guest.ctx.close();
     });
 
-    test('closing one context shows the departure message during character select', async ({ browser }) => {
+    test('캐릭터 선택 중 한쪽을 닫으면 이탈 문구가 나온다', async ({ browser }) => {
         test.setTimeout(90_000);
         const { host, guest } = await pair(browser, false);
         await host.page.waitForFunction(() => (0, eval)('Game').currentScene === (0, eval)('CharacterSelectScene'));
@@ -112,7 +112,7 @@ test.describe('vs.html (relay, two browser contexts)', () => {
         await host.ctx.close();
     });
 
-    test('closing one context during battle hands the seat to the CPU', async ({ browser }) => {
+    test('전투 중 한쪽을 닫으면 CPU가 자리를 이어받는다', async ({ browser }) => {
         test.setTimeout(150_000);
         const { host, guest } = await pair(browser, true);
         await host.page.waitForFunction(() => {
@@ -125,7 +125,7 @@ test.describe('vs.html (relay, two browser contexts)', () => {
         await host.ctx.close();
     });
 
-    test('a full room shows the room-full message', async ({ browser }) => {
+    test('가득 찬 방은 입장 불가 문구를 보여 준다', async ({ browser }) => {
         test.setTimeout(90_000);
         const { host, guest, room } = await pair(browser, false);
         const third = await openTab(browser, `&room=${room}`, false);
