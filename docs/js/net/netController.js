@@ -4,6 +4,7 @@ function NetController(match) {
     this.pendingNagari = null;
     this.pendingDoraBomb = null;
     this.waited = 0;
+    this.waitLogged = 0;
 }
 
 NetController.WAIT_LIMIT = 3600;
@@ -144,6 +145,7 @@ NetController.prototype = {
                 return true;
             }
             case 'confirm':
+                OnlineLog.info(`confirm received win=${msg.win}`);
                 engine.confirmResult(who);
                 return true;
             case 'lastChanceStop':
@@ -162,6 +164,7 @@ NetController.prototype = {
         const match = this.match;
         if (match.failed || match.takenOver) return;
         const inbox = match.inbox;
+        match.age += dt;
         while (inbox.length > 0) {
             const msg = inbox[0];
             if (msg.type === 'confirm' && msg.win < engine.resultSeq) {
@@ -171,22 +174,32 @@ NetController.prototype = {
             if (!this.canApply(engine, who, msg)) {
                 this.waited += dt;
                 if (this.waited > NetController.WAIT_LIMIT) {
-                    match.fail('desync', { reason: 'timeout', type: msg.type, state: engine.currentState });
+                    match.fail('desync', { reason: 'timeout', type: msg.type, state: engine.currentState, detail: match.describeState(engine, msg) });
+                    return;
+                }
+                const sec = Math.floor(this.waited / 60);
+                if (sec > this.waitLogged) {
+                    this.waitLogged = sec;
+                    OnlineLog.net(`.. waiting for ${msg.type} seq=${msg.seq} state=${engine.currentState} ticks=${Math.floor(this.waited)}`);
                 }
                 return;
             }
             inbox.shift();
             this.waited = 0;
+            this.waitLogged = 0;
             if (msg.hash !== undefined && msg.type !== 'ron') {
                 const mine = engine.stateHash();
                 match.checked++;
                 if (mine !== msg.hash) {
-                    match.fail('desync', { reason: 'hash', type: msg.type, mine: mine, theirs: msg.hash, round: engine.currentRound, turn: engine.turnCount });
+                    match.fail('desync', { reason: 'hash', type: msg.type, mine: mine, theirs: msg.hash, round: engine.currentRound, turn: engine.turnCount, detail: match.describeState(engine, msg) });
                     return;
                 }
             }
+            OnlineLog.net(`applied ${msg.type} seq=${msg.seq} ${OnlineLog.at()} queued=${Math.floor(match.age - (match.queuedAt.get(msg) || 0))} ticks`);
+            match.applied.push({ type: msg.type, seq: msg.seq, round: engine.currentRound, turn: engine.turnCount });
+            if (match.applied.length > 10) match.applied.shift();
             if (!this.apply(engine, who, msg)) {
-                match.fail('desync', { reason: 'apply', type: msg.type, state: engine.currentState });
+                match.fail('desync', { reason: 'apply', type: msg.type, state: engine.currentState, detail: match.describeState(engine, msg) });
                 return;
             }
         }

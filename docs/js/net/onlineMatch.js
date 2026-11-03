@@ -1,3 +1,20 @@
+const OnlineLog = {
+    debug: new URLSearchParams(window.location.search).get('debug') === 'net',
+
+    info: function () {
+        console.log('[Online]', ...arguments);
+    },
+
+    net: function () {
+        if (this.debug) console.log('[Online]', ...arguments);
+    },
+
+    at: function () {
+        if (typeof BattleEngine === 'undefined' || !BattleEngine.online) return 'r- t-';
+        return `r${BattleEngine.currentRound} t${BattleEngine.turnCount}`;
+    }
+};
+
 const OnlineMatch = {
     current: null,
     CODE_CHARS: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
@@ -59,12 +76,18 @@ function Match(opts) {
     this.summary = null;
     this.lastHeard = 0;
     this.closed = false;
+    this.helloSent = 0;
+    this.helloRecv = 0;
+    this.age = 0;
+    this.queuedAt = new WeakMap();
+    this.applied = [];
     this._hello = null;
     this._ping = null;
 }
 
 Match.prototype = {
     open: function () {
+        OnlineLog.info(`connect transport=${this.transport.relay ? 'relay' : 'local'} relay=${this.transport.url || '-'} room=${this.code} seat=${this.host ? 'host' : 'guest'}`);
         this.transport.onMessage(msg => this.receive(msg));
         this.transport.onEvent(state => this.onTransportEvent(state));
         if (!this.transport.relay) this.startHello();
@@ -78,6 +101,7 @@ Match.prototype = {
 
     onTransportEvent: function (state) {
         if (this.closed) return;
+        OnlineLog.info(`relay event ${state} room=${this.code}`);
         if (state === 'joined') this.startHello();
         else if (state === 'left') this.fail('left');
         else if (state === 'full') this.fail('full');
@@ -85,6 +109,7 @@ Match.prototype = {
     },
 
     sendHello: function () {
+        this.helloSent++;
         const payload = { char: this.myChar };
         if (this.host) payload.seed = this.seed;
         this.sendRaw('hello', payload);
@@ -93,6 +118,7 @@ Match.prototype = {
     sendRaw: function (type, payload) {
         if (this.closed) return;
         const msg = Object.assign({ type: type, seat: this.seat, seq: this.seq++ }, payload || {});
+        if (type !== 'ping') OnlineLog.net(`>> ${type} seq=${msg.seq} ${OnlineLog.at()}`);
         this.transport.send(msg);
     },
 
@@ -104,11 +130,14 @@ Match.prototype = {
     receive: function (msg) {
         if (!msg || msg.seat === this.seat || this.closed || this.takenOver) return;
         this.lastHeard = Date.now();
+        if (msg.type !== 'ping') OnlineLog.net(`<< ${msg.type} seq=${msg.seq} ${OnlineLog.at()}`);
         if (msg.type === 'hello') {
+            this.helloRecv++;
             if (!this.host) this.seed = msg.seed >>> 0;
             if (msg.char != null) this.peerChar = msg.char;
             if (!this.connected) {
                 this.connected = true;
+                OnlineLog.info(`connected seat=${this.host ? 'host' : 'guest'} seed=${this.seed} hello received=${this.helloRecv} sent=${this.helloSent}`);
                 this.lastHeard = Date.now();
                 clearInterval(this._hello);
                 this._hello = null;
@@ -125,6 +154,7 @@ Match.prototype = {
         }
         if (msg.type === 'rematch') {
             this.rematchPeer = true;
+            OnlineLog.info(`rematch requested by peer mine=${this.rematchMine}`);
             this.tryStartRematch();
             this.notify();
             return;
@@ -135,9 +165,11 @@ Match.prototype = {
         }
         if (msg.type === 'pick') {
             this.peerChar = msg.index;
+            OnlineLog.info(`pick mine=${this.myChar} peer=${this.peerChar}`);
             return;
         }
         if (msg.type === 'ping') return;
+        this.queuedAt.set(msg, this.age);
         this.inbox.push(msg);
     },
 
@@ -148,6 +180,7 @@ Match.prototype = {
     requestRematch: function () {
         if (!this.ended || this.failed || this.closed || this.takenOver || this.rematchMine) return;
         this.rematchMine = true;
+        OnlineLog.info(`rematch requested by me peer=${this.rematchPeer}`);
         this.sendRaw('rematch');
         this.tryStartRematch();
         this.notify();
@@ -156,11 +189,13 @@ Match.prototype = {
     tryStartRematch: function () {
         if (!this.host || !this.ended || !this.rematchMine || !this.rematchPeer) return;
         const seed = Rng.randomSeed() >>> 0;
+        OnlineLog.info(`rematch accepted by both seed=${seed}`);
         this.sendRaw('rematchStart', { seed: seed });
         this.beginNext(seed);
     },
 
     beginNext: function (seed) {
+        OnlineLog.info(`rematch start seed=${seed} match=${this.round + 1}`);
         this.seed = seed;
         this.myChar = null;
         this.peerChar = null;
@@ -190,6 +225,7 @@ Match.prototype = {
         if (entry.who !== 'P1' || entry.auto) return;
         if (OnlineMatch.SENT_TYPES.indexOf(entry.type) < 0) return;
         if (entry.type === 'skill' && SkillData[entry.skill] && SkillData[entry.skill].type === 'REACTIVE') return;
+        if (entry.type === 'confirm') OnlineLog.info(`confirm sent win=${entry.win}`);
         const payload = Object.assign({}, entry);
         delete payload.round;
         delete payload.who;
@@ -197,6 +233,30 @@ Match.prototype = {
         payload.hash = engine.stateHash();
         this.sent++;
         this.sendRaw(entry.type, payload);
+    },
+
+    describeState: function (engine, msg) {
+        const key = t => t.type + ':' + t.color;
+        const seat = n => {
+            const p = engine.playerAt(n);
+            return {
+                hand: p.hand.map(key).sort().join(','),
+                openSets: p.openSets.map(s => s.tiles.map(key).sort().join(',')),
+                hp: p.hp,
+                mp: p.mp
+            };
+        };
+        return {
+            seats: [seat(0), seat(1)],
+            discards: engine.discards.map(key).join(','),
+            deck: engine.deck.length,
+            round: engine.currentRound,
+            turn: engine.turnCount,
+            state: engine.currentState,
+            rng: { deck: engine.rng.deck.calls, fx: engine.rng.fx.calls },
+            msg: msg ? { type: msg.type, seq: msg.seq } : null,
+            applied: this.applied.slice()
+        };
     },
 
     inBattle: function () {
@@ -207,7 +267,8 @@ Match.prototype = {
         this.takenOver = reason;
         this.failInfo = info || null;
         this.inbox = [];
-        console.error(`[Online] takeover ${reason}`, info || '');
+        const at = BattleEngine.online === this ? { round: BattleEngine.currentRound, turn: BattleEngine.turnCount, state: BattleEngine.currentState } : {};
+        console.error(`[Online] takeover ${reason}`, Object.assign(at, info));
         if (this._ping) { clearInterval(this._ping); this._ping = null; }
         if (this._hello) { clearInterval(this._hello); this._hello = null; }
         BattleEngine.handOverToAI('CPU');
@@ -260,4 +321,5 @@ Match.prototype = {
     }
 };
 
+window.OnlineLog = OnlineLog;
 window.OnlineMatch = OnlineMatch;

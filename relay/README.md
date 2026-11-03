@@ -39,6 +39,23 @@ npx wrangler deploy
 
 배포 뒤 출력되는 `*.workers.dev` 주소를 `docs/js/data/battleConfig.js`의 `BattleConfig.ONLINE.RELAY_URL`에 넣는다.
 
+## 로그
+
+`console.log`로 방 코드와 함께 남기고 메시지 내용은 찍지 않는다(크기·`type`만). `npx wrangler tail`로 실시간으로 본다(배포한 뒤, 로컬은 `npm run dev` 출력).
+
+| 로그 | 시점 |
+| --- | --- |
+| `[room CODE] join role=host\|guest peer=yes\|no` | 자리 접속 (접속 시점에 상대가 있었는지) |
+| `[room CODE] full role=… rejected` | 이미 찬 자리 거절 |
+| `[room CODE] bad request 400 role=…` | 코드 형식 오류·잘못된 `role` |
+| `[room CODE] too big role=… type=… size=…` | 64KB 초과로 닫음 |
+| `[room CODE] leave role=… peer=… relayed=N dropped=N bytes=N types={…}` | 소켓이 닫힐 때 한 번. 그 소켓이 보낸 메시지 중 상대에게 중계한 수·상대가 없어 버린 수·글자 수 합·`type`별 개수. 하이버네이션으로 깨어난 뒤에는 그 이후 분만 센다 |
+| `[room CODE] idle cleanup` | 소켓이 없는 채 10분이 지나 알람이 상태를 지움 |
+
+```bash
+npx wrangler tail haiyuki-relay --format pretty
+```
+
 ## 무료 플랜 한도
 
 Durable Object는 SQLite 백엔드 클래스만 무료 플랜에서 쓸 수 있다(`new_sqlite_classes`). Worker 요청 일 10만 건, DO 요청 일 10만 건, DO 실행 시간 일 13,000 GB-s. 수신 WebSocket 메시지는 20건당 요청 1건으로 계산된다. 한도는 변할 수 있으니 배포 전에 Cloudflare 문서로 확인한다.

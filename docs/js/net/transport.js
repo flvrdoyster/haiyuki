@@ -30,6 +30,7 @@ function WebSocketTransport(relayUrl, roomCode, role) {
     this.evCb = null;
     this.closed = false;
     const base = String(relayUrl).replace(/\/+$/, '').replace(/^http/, 'ws');
+    this.url = base;
     this.ws = new WebSocket(`${base}/room/${roomCode}?role=${role}`);
     this.ws.onmessage = (e) => {
         if (typeof e.data !== 'string') return;

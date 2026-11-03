@@ -183,6 +183,7 @@ const OnlineClock = {
         if (e.currentState === e.STATE_BATTLE_MENU) BattleMenuSystem.toggle();
         switch (c.key) {
             case 'draw':
+                OnlineLog.info('timeout auto draw');
                 e.confirmDraw();
                 break;
             case 'turn': {
@@ -194,19 +195,23 @@ const OnlineClock = {
                     const valid = e.validRiichiDiscardIndices;
                     if (valid && valid.length && valid.indexOf(idx) < 0) idx = valid[valid.length - 1];
                 }
+                OnlineLog.info(`timeout auto discard idx=${idx} tile=${me.hand[idx].type}:${me.hand[idx].color}`);
                 e.discardTile(idx);
                 break;
             }
             case 'exchange':
+                OnlineLog.info('timeout auto exchange (none)');
                 e.exchangeIndices = [];
                 e.confirmTileExchange();
                 break;
             case 'roulette':
                 if (e.lastChance && e.lastChance.who === 'P1' && e.lastChance.phase === 'spin') {
+                    OnlineLog.info('timeout auto roulette stop');
                     SkillFlows.lastChanceJudge(e);
                 }
                 break;
             case 'result':
+                OnlineLog.info('timeout auto confirm result');
                 e.confirmResult();
                 break;
         }
