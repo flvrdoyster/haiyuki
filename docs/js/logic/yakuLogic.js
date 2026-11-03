@@ -569,7 +569,7 @@ const YakuLogic = {
         let totalBonus = 0;
         const details = [];
         const n = ctx.discardCount;
-        const cpuWon = ctx.winner === 'CPU';
+        const first = ctx.winnerFirst !== false;
 
         if (n === 0 && winType === 'TSUMO') {
             const s = 800;
@@ -585,11 +585,11 @@ const YakuLogic = {
             details.push({ name: '렌호 보너스', score: s });
         }
 
-        if (n >= (cpuWon ? 39 : 38) && winType === 'TSUMO') {
+        if (n >= (first ? 38 : 39) && winType === 'TSUMO') {
             const s = 800;
             totalBonus += s;
             details.push({ name: '해저 보너스', score: s });
-        } else if (n >= (cpuWon ? 39 : 40) && winType === 'RON') {
+        } else if (n >= (first ? 40 : 39) && winType === 'RON') {
             const s = 800;
             totalBonus += s;
             details.push({ name: '하저 보너스', score: s });

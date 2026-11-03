@@ -1784,6 +1784,7 @@ const BattleEngine = {
     calculateBonuses: function (hand, winType, isRiichi, winner) {
         return YakuLogic.calculateBonuses(hand, winType, isRiichi, {
             winner: winner || 'P1',
+            winnerFirst: this.seatOf(winner || 'P1') === this.firstSeat,
             discardCount: this.discards.length,
             doras: this.doras,
             uraDoras: this.uraDoras
