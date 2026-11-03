@@ -40,7 +40,7 @@ for (const auto of [false, true]) {
             const cf = nodes.get(id).callFrame;
             const key = `${cf.functionName}|${cf.url}|${cf.lineNumber}`;
             const dt = (profile.timeDeltas[i + 1] ?? profile.timeDeltas[i]) / 1000;
-            const cur = self.get(key) ?? { ms: 0, name: cf.functionName || '(anonymous)', url: cf.url.replace(/^.*localhost:3000\//, ''), line: cf.lineNumber + 1 };
+            const cur = self.get(key) ?? { ms: 0, name: cf.functionName || '(anonymous)', url: cf.url.replace(/^.*localhost:\d+\//, ''), line: cf.lineNumber + 1 };
             cur.ms += dt; self.set(key, cur);
         });
         const top = [...self.values()].sort((a, b) => b.ms - a.ms).slice(0, 25).map(x => ({ ...x, ms: Math.round(x.ms), pct: +(100 * x.ms * 1000 / total).toFixed(1) }));

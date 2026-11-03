@@ -31,7 +31,7 @@ import { waitForGame, startBattle, installAutoDriver, waitForMatchOver, stopHarn
 // Run: npx playwright test --config measure.config.ts _ai_fingerprint
 //   MPC=<matches to add per character this run> (default 10)
 //   CHARS=smash,mayu  (subset)   SKILLS=0 (skills off; default on)   DIFF=easy|normal|hard (default normal)
-//   RESET=1 (discard accumulated state)   PORT=3100 (server port, see measure.config.ts)
+//   RESET=1 (discard accumulated state)   PORT=12802 (server port, see measure.config.ts)
 // State accumulates in fingerprint-state.<commit>.skills<0|1>.<diff>.json (one file per condition), one write per
 // match, so a run can be short and repeated; fingerprint-results.json is rebuilt from the state each run.
 

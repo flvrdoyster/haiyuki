@@ -2,7 +2,7 @@ import * as path from 'path';
 import { defineConfig } from '@playwright/test';
 import base from '../playwright.config';
 
-const PORT = Number(process.env.PERF_PORT || 3100);
+const PORT = Number(process.env.PERF_PORT || 12801);
 
 export default defineConfig({
     ...base,

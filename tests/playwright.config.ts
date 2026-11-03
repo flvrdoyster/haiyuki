@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
 
-const PORT = process.env.PORT || '3100';
+const PORT = process.env.PORT || '12801';
 
 export default defineConfig({
     testDir: '.',

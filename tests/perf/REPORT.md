@@ -7,7 +7,7 @@
 다시 돌리기(`tests/playwright.config.ts` 가 `perf/**` 를 제외하므로 전용 설정을 쓴다):
 
 ```bash
-cd haiyuki_web/tests && lsof -ti:3000 | xargs kill; npx playwright test -c perf/playwright.config.ts --project=chromium
+cd haiyuki_web/tests && npx playwright test -c perf/playwright.config.ts --project=chromium
 ```
 
 일부만: `npx playwright test -c perf/playwright.config.ts battle trace hotspots`. 연속 대국 수는 `PERF_MATCHES=10`(기본 3).
@@ -47,7 +47,7 @@ cd haiyuki_web/tests && lsof -ti:3000 | xargs kill; npx playwright test -c perf/
 - 수정 후 `load` 이벤트는 10Mbps 0.5초, 4Mbps 1.3초. 요청 실패는 0건(2회씩).
 - 남은 시간은 대부분 이미지 141개(2.1MB)와, 같이 받는 폰트·BGM 의 대역폭 나눔이다. 폰트를 줄여서 더 얻을 수 있는 몫은 10Mbps 에서 최대 약 1초, 4Mbps 에서 최대 약 2.6초다(차단 측정 기준 상한).
 - 뒤에서 받는 BGM 이 덜 받은 채(`readyState` 1) `playMusic` 되어도, 4Mbps·폰트 차단 조건에서 `play()` 약 0.3초 뒤 재생이 시작됐다(`_yaku_check.spec.ts` 두 번째 테스트). 같은 스펙의 첫 테스트는 iframe 이 로딩 중 요청되지 않고 버튼을 누르면 로드되는지, BGM 요소 11개가 모두 등록되는지 확인한다.
-- 기존 회귀 스펙은 `perf/regress.config.ts`(포트 3100)로 돌린다. 다른 세션의 측정이 3000번 서버를 쓰는 중이면 그 서버를 죽이지 않기 위해서다: `npx playwright test -c perf/regress.config.ts battle.spec.ts battle-extended.spec.ts flow.spec.ts input.spec.ts mouse.spec.ts scene-input.spec.ts visual.spec.ts`.
+- 기존 회귀 스펙은 `perf/regress.config.ts`(포트 12801)로 돌린다. 사용자용 12800번 서버를 죽이지 않기 위해서다: `npx playwright test -c perf/regress.config.ts battle.spec.ts battle-extended.spec.ts flow.spec.ts input.spec.ts mouse.spec.ts scene-input.spec.ts visual.spec.ts`.
 
 ## 측정 환경과 한계
 

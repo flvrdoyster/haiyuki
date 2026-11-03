@@ -7,7 +7,7 @@
 URL에 `?debug`를 붙이면 상단 띠에 모든 `console.*` 로그와 잡히지 않은 에러가 표시된다(devtools를 못 여는 폰용). ✕로 닫는다. `?debug` 없으면 아무 동작 안 함.
 
 ```
-http://localhost:3000/?debug
+http://localhost:12800/?debug
 ```
 
 게임이 찍는 구조화 로그: `[Draw]` · `[Discard]` · `[Pon]` · `[Exchange]` · `[Skill]` · `[Round]`(승리/나가리: 역 · 데미지) · `[Damage]`(HP) · `[Match]`(승자 · HP).
