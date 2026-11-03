@@ -2,3 +2,5 @@ extracted/
 __pycache__/
 .DS_Store
 docs/tests/
+relay/node_modules/
+relay/.wrangler/

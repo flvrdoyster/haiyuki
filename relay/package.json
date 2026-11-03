@@ -1,0 +1,13 @@
+{
+  "name": "haiyuki-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "node --test test/relay.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4",
+    "ws": "^8"
+  }
+}
