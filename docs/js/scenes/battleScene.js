@@ -480,8 +480,8 @@ const BattleScene = {
         if (d.limit > 0) {
             d.limit -= dt;
             if (d.limit <= 0) {
-                if (d.onNo) d.onNo();
                 this.confirmData = null;
+                if (d.onNo) d.onNo();
                 return;
             }
         }
@@ -499,15 +499,15 @@ const BattleScene = {
         if (isOverYes) {
             if (Input.hasMouseMoved()) d.selected = 0;
             if (Input.isMouseJustPressed()) {
-                if (d.onYes) d.onYes();
                 this.confirmData = null;
+                if (d.onYes) d.onYes();
                 return;
             }
         } else if (isOverNo) {
             if (Input.hasMouseMoved()) d.selected = 1;
             if (Input.isMouseJustPressed()) {
-                if (d.onNo) d.onNo();
                 this.confirmData = null;
+                if (d.onNo) d.onNo();
                 return;
             }
         }
@@ -518,12 +518,12 @@ const BattleScene = {
         }
 
         if (Input.isConfirmKey()) {
+            this.confirmData = null;
             if (d.selected === 0) {
                 if (d.onYes) d.onYes();
             } else {
                 if (d.onNo) d.onNo();
             }
-            this.confirmData = null;
         }
     },
 

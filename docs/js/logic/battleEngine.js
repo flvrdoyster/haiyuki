@@ -1853,6 +1853,10 @@ const BattleEngine = {
     },
 
     activeStateTileExchange: function () {
+        if (this.isAutoTest() && this.setupWaiting === 'P1' && this.timer > 5) {
+            this.exchangeIndices = [];
+            this.confirmTileExchange('P1');
+        }
     },
 
     toggleExchangeSelection: function (index) {
