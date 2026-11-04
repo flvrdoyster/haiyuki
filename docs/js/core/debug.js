@@ -178,7 +178,12 @@ const QADebug = (() => {
         publishHand(null);
     }
 
-    return { sync, reset, clearPanel: () => publishHand(null) };
+    function clearPanel() {
+        window.__haiyuki__ = null;
+        publishHand(null);
+    }
+
+    return { sync, reset, clearPanel };
 })();
 
 const DebugCheats = {
