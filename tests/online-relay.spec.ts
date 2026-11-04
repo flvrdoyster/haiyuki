@@ -27,7 +27,7 @@ test.beforeAll(async () => {
         return;
     }
     port = await freePort();
-    child = spawn('npx', ['wrangler', 'dev', '--port', String(port), '--ip', '127.0.0.1'], { cwd: RELAY_DIR, stdio: 'ignore' });
+    child = spawn('npx', ['wrangler', 'dev', '--port', String(port), '--ip', '127.0.0.1'], { cwd: RELAY_DIR, stdio: 'ignore', detached: true });
     for (let i = 0; i < 240; i++) {
         try {
             const r = await fetch(`http://127.0.0.1:${port}/health`);
@@ -38,8 +38,28 @@ test.beforeAll(async () => {
     skipReason = 'wrangler dev가 시간 안에 뜨지 않음';
 });
 
-test.afterAll(() => {
-    child?.kill('SIGKILL');
+function groupAlive(pid: number): boolean {
+    try {
+        process.kill(-pid, 0);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function stopRelay() {
+    const pid = child?.pid;
+    child = null;
+    if (!pid) return;
+    for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
+        try { process.kill(-pid, signal); } catch { }
+        for (let i = 0; i < 20 && groupAlive(pid); i++) await new Promise((r) => setTimeout(r, 100));
+        if (!groupAlive(pid)) return;
+    }
+}
+
+test.afterAll(async () => {
+    await stopRelay();
 });
 
 async function openTab(browser: Browser, query: string, autoTest: boolean): Promise<{ ctx: BrowserContext; page: Page }> {
