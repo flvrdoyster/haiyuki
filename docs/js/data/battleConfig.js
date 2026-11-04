@@ -42,6 +42,8 @@ const BattleConfig = {
         TICK_RATE: 60,
         DISCARD_SEC: 45,
         CHOICE_SEC: 20,
+        WAIT_SEC: 600,
+        WAIT_WARN_SEC: 30,
         RESULT_INPUT_DELAY: 160,
         CLOCK: {
             turn: { digits: 'ui/number_gold.png', label: '버리기까지', color: 'rgba(255, 232, 0, 1)' },

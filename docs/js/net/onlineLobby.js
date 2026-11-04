@@ -24,7 +24,9 @@ const OnlineLobby = {
         full: '방이 가득 찼습니다',
         desync: '동기가 어긋났습니다',
         copiedCode: '코드를 복사했습니다',
-        copiedLink: '바로 입장 링크를 복사했습니다'
+        copiedLink: '바로 입장 링크를 복사했습니다',
+        waitWarn: '30초 뒤 방이 닫힙니다',
+        waitExpired: '상대가 오지 않아 방을 닫았습니다'
     },
     STATUS_MS: 3500,
     ALPHABET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!',
@@ -173,8 +175,23 @@ const OnlineLobby = {
     },
 
     show: function (view) {
+        if (view !== this.view) this.armWaitLimit(view === 'wait');
         this.view = view;
         this.sync(true);
+    },
+
+    armWaitLimit: function (on) {
+        clearTimeout(this._waitWarnTimer);
+        clearTimeout(this._waitEndTimer);
+        this._waitWarnTimer = this._waitEndTimer = null;
+        if (!on) return;
+        const cfg = BattleConfig.ONLINE;
+        this._waitWarnTimer = setTimeout(() => this.status(this.TOASTS.waitWarn), (cfg.WAIT_SEC - cfg.WAIT_WARN_SEC) * 1000);
+        this._waitEndTimer = setTimeout(() => {
+            this.dispose();
+            this.show('start');
+            this.status(this.TOASTS.waitExpired);
+        }, cfg.WAIT_SEC * 1000);
     },
 
     refresh: function () {

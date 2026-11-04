@@ -211,6 +211,20 @@ test.describe('대전 페이지 (BroadcastChannel, 탭 두 개)', () => {
         expect(await host.evaluate(() => (0, eval)('OnlineMatch').current.skills)).toBe(false);
     });
 
+    test('대기 제한: 상대가 오지 않으면 경고 토스트 뒤 방을 닫고 시작 화면으로 돌아간다', async ({ context }) => {
+        const host = await openTab(context, '', { autoTest: false });
+        await host.evaluate(() => {
+            const o = (0, eval)('BattleConfig').ONLINE;
+            o.WAIT_SEC = 4;
+            o.WAIT_WARN_SEC = 3;
+        });
+        await createRoom(host);
+        await expect(host.locator('#online-status')).toHaveText('30초 뒤 방이 닫힙니다', { timeout: 3_000 });
+        await expect(host.locator('#online-status')).toHaveText('상대가 오지 않아 방을 닫았습니다', { timeout: 5_000 });
+        await expect(host.locator('#online-create')).toBeVisible();
+        expect(await host.evaluate(() => (0, eval)('OnlineLobby').match)).toBeNull();
+    });
+
     test('로비: 코드를 입력하면 대문자 다섯 글자로 걸러지고 버튼으로 입장한다', async ({ context }) => {
         test.setTimeout(120_000);
         const host = await openTab(context, '', { autoTest: false });
