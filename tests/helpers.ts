@@ -65,6 +65,7 @@ export async function startBattle(
             const a  = (0, eval)('Assets');
             const bc = (0, eval)('BattleConfig');
             const bs = (0, eval)('BattleScene');
+            (window as any).__qa_seenBattle__ = false;
             g.isAutoTest = at;
             a.setMute(true);
             bc.RULES.SKILLS_ENABLED = sk;
@@ -116,16 +117,14 @@ export async function waitForAnyState(page: Page, names: string[], timeout = 30_
 export async function waitForMatchOver(page: Page) {
     await page.waitForFunction(
         () => {
-            const h = (window as any).__haiyuki__;
-            // Explicit MATCH_OVER (P1-win path)
+            const w = window as any;
+            const h = w.__haiyuki__;
             if (h?.state?.name === 'MATCH_OVER') return true;
-            // Scene-change detection (CPU-win path): h is non-null (we were in
-            // battle) and the current scene is no longer BattleScene.
-            if (!h) return false;
             try {
                 const g  = (0, eval)('Game');
                 const bs = (0, eval)('BattleScene');
-                return g.currentScene !== bs;
+                if (h || g.currentScene === bs) w.__qa_seenBattle__ = true;
+                return !!w.__qa_seenBattle__ && g.currentScene !== bs;
             } catch { return false; }
         },
         { timeout: 60_000 }
