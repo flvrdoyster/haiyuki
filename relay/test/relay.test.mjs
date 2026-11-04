@@ -42,7 +42,11 @@ after(() => {
 });
 
 function connect(code, role) {
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/room/${code}?role=${role}`);
+  return open(`/room/${code}?role=${role}`);
+}
+
+function open(path) {
+  const ws = new WebSocket(`ws://127.0.0.1:${port}${path}`);
   ws.queue = [];
   ws.waiters = [];
   ws.on('message', (d) => {
@@ -100,4 +104,45 @@ test('호스트 없이 게스트가 먼저 와도 입장', async () => {
   const host = await connect('WXYZK', 'host');
   assert.deepEqual(await guest.next(), { type: 'peer', state: 'joined' });
   assert.deepEqual(await host.next(), { type: 'peer', state: 'joined' });
+});
+
+async function nextOf(ws, type) {
+  for (;;) {
+    const m = await ws.next();
+    if (m.type === type) return m;
+  }
+}
+
+async function presence(ws, online, queued) {
+  for (;;) {
+    const m = await ws.next();
+    if (m.type === 'presence' && m.online === online && m.queued === queued) return;
+  }
+}
+
+test('로비: 접속·대기 인원을 알리고, 대기한 순서대로 둘씩 짝지어 코드를 준다', async () => {
+  const a = await open('/lobby');
+  await presence(a, 1, 0);
+  const b = await open('/lobby');
+  await presence(a, 2, 0);
+  await presence(b, 2, 0);
+  a.send(JSON.stringify({ type: 'queue' }));
+  await presence(b, 2, 1);
+  b.send(JSON.stringify({ type: 'unqueue' }));
+  await presence(a, 2, 1);
+  const c = await open('/lobby');
+  await presence(c, 3, 1);
+  c.send(JSON.stringify({ type: 'queue' }));
+  const ma = await nextOf(a, 'match');
+  const mc = await nextOf(c, 'match');
+  assert.equal(ma.type, 'match');
+  assert.equal(ma.role, 'host');
+  assert.deepEqual(mc, { type: 'match', code: ma.code, role: 'guest' });
+  assert.match(ma.code, /^[A-HJ-NP-Z]{5}$/);
+  await presence(b, 3, 0);
+  c.close();
+  await presence(b, 2, 0);
+  a.close();
+  await presence(b, 1, 0);
+  b.close();
 });

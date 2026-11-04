@@ -612,6 +612,7 @@ const BattleRenderer = {
 
         const numW = BattleConfig.INFO.numbers.w;
         const gap = BattleConfig.INFO.numbers.gap;
+        const srcX = BattleConfig.INFO.numbers.sx;
         const img = Assets.get(path);
 
         if (!img) return;
@@ -623,8 +624,7 @@ const BattleRenderer = {
 
         for (let i = 0; i < str.length; i++) {
             const digit = parseInt(str[i]);
-            const sx = digit * (numW + gap);
-            ctx.drawImage(img, sx, 0, numW, img.height, startX + i * (numW + gap), y, numW, img.height);
+            ctx.drawImage(img, srcX[digit], 0, numW, img.height, startX + i * (numW + gap), y, numW, img.height);
         }
     },
 

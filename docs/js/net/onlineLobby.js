@@ -28,6 +28,7 @@ const OnlineLobby = {
         waitWarn: '30초 뒤 방이 닫힙니다',
         waitExpired: '상대가 오지 않아 방을 닫았습니다'
     },
+    PRESENCE_LABEL: { online: '접속', queued: '대기' },
     STATUS_MS: 3500,
     ALPHABET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!',
     GLYPH: { I: { w: 24, off: 4 } },
@@ -64,6 +65,14 @@ const OnlineLobby = {
             this.showPreview(preview);
             return;
         }
+        QuickMatch.onPresence = () => this.updatePresence();
+        QuickMatch.onMatch = (msg) => this.quickMatched(msg);
+        QuickMatch.onDown = () => {
+            if (this.view !== 'quick' || this.match) return;
+            this.show('start');
+            this.status(this.TOASTS.disconnect);
+        };
+        QuickMatch.connect();
         const room = OnlineMatch.normalizeCode(params.get('room'));
         if (room.length === OnlineMatch.CODE_LENGTH) this.joinRoom(room);
         else this.show('start');
@@ -88,6 +97,7 @@ const OnlineLobby = {
             const act = {
                 'online-skills-toggle': () => this.toggleSkills(btn),
                 'online-create': () => this.createRoom(),
+                'online-quick': () => this.quickStart(),
                 'online-join': () => this.joinRoom(this.el('online-join-input').value),
                 'online-copy-code': () => this.copyText(this.match.code, this.TOASTS.copiedCode),
                 'online-copy-link': () => this.copyText(this.inviteLink(this.match.code), this.TOASTS.copiedLink),
@@ -128,6 +138,37 @@ const OnlineLobby = {
             seed: this.seed
         }));
         this.show('wait');
+    },
+
+    quickStart: function () {
+        QuickMatch.queue();
+        this.show('quick');
+    },
+
+    quickMatched: function (msg) {
+        if (this.view !== 'quick') return;
+        this.attach(OnlineMatch.create({
+            host: msg.role === 'host',
+            skills: true,
+            code: msg.code,
+            char: this.char,
+            seed: this.seed
+        }));
+    },
+
+    presenceItems: function (p) {
+        if (!p) return '';
+        return ['online', 'queued'].map((k) =>
+            `<span class="presence-item" aria-label="${this.PRESENCE_LABEL[k]} ${p[k]}"><span class="presence-icon ${k}"></span>${p[k]}</span>`
+        ).join('');
+    },
+
+    updatePresence: function () {
+        const el = this.el('online-presence');
+        if (!el) return;
+        const p = QuickMatch.presence;
+        el.hidden = !p;
+        el.innerHTML = this.presenceItems(p);
     },
 
     joinRoom: function (code) {
@@ -175,7 +216,7 @@ const OnlineLobby = {
     },
 
     show: function (view) {
-        if (view !== this.view) this.armWaitLimit(view === 'wait');
+        if (view !== this.view) this.armWaitLimit(view === 'wait' || view === 'quick');
         this.view = view;
         this.sync(true);
     },
@@ -201,6 +242,7 @@ const OnlineLobby = {
     stateOf: function () {
         const m = this.match;
         const st = { view: this.view };
+        if (this.view === 'start') st.quick = QuickMatch.available();
         if (this.view === 'wait' && m) {
             st.code = m.code;
             st.role = m.host ? 'host' : 'guest';
@@ -270,14 +312,23 @@ const OnlineLobby = {
     markup: function (st) {
         const title = `<h1 class="heading" aria-label="VS MODE">${this.glyphs('VS MODE', 1)}</h1>`;
         if (st.view === 'start') {
+            const p = st.presence !== undefined ? st.presence : QuickMatch.presence;
+            const quick = st.quick === false ? '' : `<h2 class="group-title">되는 대로 대전</h2>
+                <div class="form-row">
+                    <span id="online-presence" class="presence"${p ? '' : ' hidden'}>${this.presenceItems(p)}</span>
+                    <button id="online-quick" class="online-btn" type="button">참가</button>
+                </div>
+                <hr class="divider">`;
             return `${title}
-                <div class="hrow online-skills-row">
+                ${quick}
+                <h2 class="group-title">방 만들어 대전</h2>
+                <div class="form-row online-skills-row">
                     <span class="online-skills-label">비기</span>
                     <button id="online-skills-toggle" class="online-skills-toggle${this.skills ? '' : ' off'}" type="button" aria-label="${this.skills ? this.SKILLS_LABEL.on : this.SKILLS_LABEL.off}"></button>
+                    <button id="online-create" class="online-btn" type="button">방 만들기</button>
                 </div>
-                <button id="online-create" class="online-btn" type="button">방 만들기</button>
-                <hr class="divider">
-                <div class="hrow">
+                <hr class="divider faint">
+                <div class="form-row">
                     <input id="online-join-input" type="text" maxlength="${OnlineMatch.CODE_LENGTH}" placeholder="방 코드" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="방 코드">
                     <button id="online-join" class="online-btn" type="button">참가</button>
                 </div>`;
@@ -293,6 +344,12 @@ const OnlineLobby = {
                 <div id="online-room-code">${this.esc(st.code)}</div>
                 ${st.skills == null ? '' : `<p id="online-skills" class="note skills">${st.skills ? this.SKILLS_LABEL.on : this.SKILLS_LABEL.off}</p>`}
                 ${copy}
+                <p class="note wait">상대를 기다리는 중</p>
+                <button id="online-cancel" class="online-btn online-sub" type="button">취소</button>`;
+        }
+        if (st.view === 'quick') {
+            return `${title}
+                <p class="note skills">${this.SKILLS_LABEL.on}</p>
                 <p class="note wait">상대를 기다리는 중</p>
                 <button id="online-cancel" class="online-btn online-sub" type="button">취소</button>`;
         }
@@ -346,7 +403,9 @@ const OnlineLobby = {
         ];
         const code = 'ABCDE';
         return {
-            'start': { view: 'start' },
+            'start': { view: 'start', presence: { online: 3, queued: 1 } },
+            'start-offline': { view: 'start', presence: null },
+            'quick': { view: 'quick' },
             'start-failed': { view: 'start', toast: this.TOASTS.disconnect },
             'wait-host': { view: 'wait', role: 'host', code: code, skills: true },
             'wait-guest': { view: 'wait', role: 'guest', code: code, skills: false },
@@ -372,9 +431,10 @@ const OnlineLobby = {
             this.seenTakeover = m.takenOver;
             this.status(this.TOASTS.takeover);
         }
-        if (this.view === 'wait' && m.failed) {
+        const waiting = this.view === 'wait' || this.view === 'quick';
+        if (waiting && m.failed) {
             this.fail(m);
-        } else if (this.view === 'wait' && m.connected) {
+        } else if (waiting && m.connected) {
             this.status(this.TOASTS.joined);
             this.startSelect();
         } else if (this.view === 'ended') {
@@ -412,6 +472,7 @@ const OnlineLobby = {
     },
 
     dispose: function () {
+        QuickMatch.unqueue();
         if (this.match) {
             this.match.close();
             this.match = null;

@@ -1,6 +1,8 @@
 const CODE_RE = /^[A-HJ-NP-Z]{5}$/;
 const MAX_BYTES = 64 * 1024;
 const IDLE_MS = 10 * 60 * 1000;
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const LOBBY_MAX_BYTES = 256;
 
 function log(code, text) {
   console.log(`[room ${code}] ${text}`);
@@ -11,6 +13,12 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/health') {
       return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } });
+    }
+    if (url.pathname === '/lobby') {
+      if (request.headers.get('Upgrade') !== 'websocket') {
+        return new Response('expected websocket', { status: 426 });
+      }
+      return env.LOBBY.get(env.LOBBY.idFromName('lobby')).fetch(request);
     }
     const m = url.pathname.match(/^\/room\/([^/]+)$/);
     if (!m) return new Response('not found', { status: 404 });
@@ -43,6 +51,7 @@ export class Room {
     st[kind]++;
     st.bytes += bytes;
     st.types[type] = (st.types[type] || 0) + 1;
+    this.lastAt = Date.now();
   }
 
   seats() {
@@ -101,20 +110,21 @@ export class Room {
   }
 
   async webSocketClose(ws, code, reason) {
-    await this.left(ws);
+    await this.left(ws, `code=${code} reason=${reason || '-'}`);
     try { ws.close(code === 1005 || code === 1006 ? 1000 : code, reason); } catch {}
   }
 
   async webSocketError(ws) {
-    await this.left(ws);
+    await this.left(ws, 'error');
   }
 
-  async left(ws) {
+  async left(ws, how) {
     const seat = ws.deserializeAttachment();
     const remaining = this.state.getWebSockets().filter((s) => s !== ws && s.deserializeAttachment());
     const st = this.stats.get(ws) || { relayed: 0, dropped: 0, bytes: 0, types: {} };
     this.stats.delete(ws);
-    log(this.code, `leave role=${seat} peer=${remaining.some((s) => s.deserializeAttachment() !== seat) ? 'yes' : 'no'} relayed=${st.relayed} dropped=${st.dropped} bytes=${st.bytes} types=${JSON.stringify(st.types)}`);
+    const idle = this.lastAt ? `${((Date.now() - this.lastAt) / 1000).toFixed(1)}s` : '-';
+    log(this.code, `leave role=${seat} ${how} idle=${idle} peer=${remaining.some((s) => s.deserializeAttachment() !== seat) ? 'yes' : 'no'} relayed=${st.relayed} dropped=${st.dropped} bytes=${st.bytes} types=${JSON.stringify(st.types)}`);
     for (const s of remaining) {
       if (s.deserializeAttachment() !== seat) {
         try { s.send(JSON.stringify({ type: 'peer', state: 'left' })); } catch {}
@@ -128,5 +138,81 @@ export class Room {
       log(this.code, 'idle cleanup');
       await this.state.storage.deleteAll();
     }
+  }
+}
+
+function makeCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(5));
+  return [...bytes].map((b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
+}
+
+export class Lobby {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch() {
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    this.state.acceptWebSocket(server);
+    server.serializeAttachment({ queued: 0 });
+    log('lobby', `join online=${this.sockets().length}`);
+    this.broadcast();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  sockets(except) {
+    return this.state.getWebSockets().filter((ws) => ws !== except);
+  }
+
+  broadcast(except) {
+    const all = this.sockets(except);
+    const queued = all.filter((ws) => ws.deserializeAttachment().queued).length;
+    const msg = JSON.stringify({ type: 'presence', online: all.length, queued });
+    for (const ws of all) {
+      try { ws.send(msg); } catch {}
+    }
+  }
+
+  pair() {
+    const queue = this.sockets()
+      .filter((ws) => ws.deserializeAttachment().queued)
+      .sort((a, b) => a.deserializeAttachment().queued - b.deserializeAttachment().queued);
+    while (queue.length >= 2) {
+      const host = queue.shift();
+      const guest = queue.shift();
+      const code = makeCode();
+      host.serializeAttachment({ queued: 0 });
+      guest.serializeAttachment({ queued: 0 });
+      host.send(JSON.stringify({ type: 'match', code, role: 'host' }));
+      guest.send(JSON.stringify({ type: 'match', code, role: 'guest' }));
+      log('lobby', `match code=${code}`);
+    }
+  }
+
+  webSocketMessage(ws, message) {
+    if (typeof message !== 'string' || message.length > LOBBY_MAX_BYTES) return;
+    let msg;
+    try { msg = JSON.parse(message); } catch { return; }
+    if (msg.type === 'queue') {
+      if (!ws.deserializeAttachment().queued) ws.serializeAttachment({ queued: Date.now() });
+      this.pair();
+    } else if (msg.type === 'unqueue') {
+      ws.serializeAttachment({ queued: 0 });
+    } else {
+      return;
+    }
+    this.broadcast();
+  }
+
+  webSocketClose(ws, code, reason) {
+    log('lobby', `leave code=${code} reason=${reason || '-'} queued=${ws.deserializeAttachment().queued ? 'yes' : 'no'} online=${this.sockets(ws).length}`);
+    this.broadcast(ws);
+    try { ws.close(code === 1005 || code === 1006 ? 1000 : code, reason); } catch {}
+  }
+
+  webSocketError(ws) {
+    log('lobby', `leave error online=${this.sockets(ws).length}`);
+    this.broadcast(ws);
   }
 }

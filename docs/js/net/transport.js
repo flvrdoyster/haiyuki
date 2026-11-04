@@ -32,7 +32,9 @@ function WebSocketTransport(relayUrl, roomCode, role) {
     const base = String(relayUrl).replace(/\/+$/, '').replace(/^http/, 'ws');
     this.url = base;
     this.ws = new WebSocket(`${base}/room/${roomCode}?role=${role}`);
+    this.lastIn = this.lastOut = Date.now();
     this.ws.onmessage = (e) => {
+        this.lastIn = Date.now();
         if (typeof e.data !== 'string') return;
         let msg;
         try { msg = JSON.parse(e.data); } catch (err) { return; }
@@ -42,14 +44,26 @@ function WebSocketTransport(relayUrl, roomCode, role) {
         }
         if (this.cb) this.cb(msg);
     };
-    this.ws.onclose = () => this.emit('closed');
-    this.ws.onerror = () => this.emit('closed');
+    this.ws.onclose = (e) => {
+        if (!this.closed) OnlineLog.info(`relay closed code=${e.code} reason=${e.reason || '-'} clean=${e.wasClean} ${this.idle()} visible=${document.visibilityState}`);
+        this.emit('closed');
+    };
+    this.ws.onerror = () => {
+        if (!this.closed) OnlineLog.info(`relay error ${this.idle()} visible=${document.visibilityState}`);
+        this.emit('closed');
+    };
 }
 
 WebSocketTransport.prototype = {
     send: function (msg) {
         if (this.closed || this.ws.readyState !== WebSocket.OPEN) return;
+        this.lastOut = Date.now();
         this.ws.send(JSON.stringify(msg));
+    },
+
+    idle: function () {
+        const now = Date.now();
+        return `in=${((now - this.lastIn) / 1000).toFixed(1)}s out=${((now - this.lastOut) / 1000).toFixed(1)}s`;
     },
 
     onMessage: function (cb) {

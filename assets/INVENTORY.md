@@ -124,6 +124,7 @@
 |---|---|---|---|
 | `ui/alphabet.png` | 960x64 | 노란 알파벳 A~Z와 기호, 2줄 | 원본에서 못 찾음. `herecome`·`gameover` 글자와 같은 서체 |
 | `ui/number_big.png` | 398x52 | 노란 큰 숫자 0~9 | 원본에서 못 찾음(`herecome` 44%만) |
+| `ui/presence.png` | 32x16 | 흰색 16x16 아이콘 두 개(왼쪽 사람, 오른쪽 모래시계) | 원본에 없음. 대전 모드 시작 화면의 접속·대기 인원 |
 | `ui/pai_blank.png` | 80x56 | 글자 없는 빈 패 두 개(왼쪽 눕힌 패, 오른쪽 세운 패) | 원본에 없음. `ui/on.png`·`ui/off.png`·`ui/pai_onoff.png`의 빈 판. 코드에서는 쓰지 않음 |
 | `ui/pai_onoff.png` | 160x56 | 패 모양 켬/끔 토글 두 상태(왼쪽 80px 켬: 세운 `켠다`·눕힌 `끈다`, 오른쪽 80px 끔: 그 반대) | 원본에 없음. `ui/on.png`·`ui/off.png`와 같은 패 구성. 대전 모드 시작 화면의 비기 선택용 |
 | `ui/number_gold.png` | 158x28 | 금색 숫자 0~9 | `ui/number.png`의 색 네 개만 기존 게임 색(`#ffe800`·`#ffbd10`·`#ffa521`·그림자 `#ce5200`)으로 바꾼 것. 온라인 버림 제한 시간용 |

@@ -36,9 +36,13 @@ const OnlineMatch = {
         return (text || '').toUpperCase().replace(/[^A-HJ-NP-Z]/g, '').slice(0, this.CODE_LENGTH);
     },
 
-    makeTransport: function (code, host) {
+    relayUrl: function () {
         const params = new URLSearchParams(window.location.search);
-        const url = params.get('transport') === 'local' ? '' : (params.get('relay') || BattleConfig.ONLINE.RELAY_URL);
+        return params.get('transport') === 'local' ? '' : (params.get('relay') || BattleConfig.ONLINE.RELAY_URL);
+    },
+
+    makeTransport: function (code, host) {
+        const url = this.relayUrl();
         if (url) return new WebSocketTransport(url, code, host ? 'host' : 'guest');
         return new BroadcastChannelTransport(code);
     },

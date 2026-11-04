@@ -150,7 +150,7 @@ const BattleConfig = {
         turnNumber: { offset: 96, y: 203, align: 'center', pad: 2 }, // pad = 자릿수
         roundLabel: { offset: 96, y: 237, align: 'center' },
         roundNumber: { offset: 96, y: 203, align: 'center', pad: 2 },
-        numbers: { path: 'ui/number.png', w: 14, gap: 2 },
+        numbers: { path: 'ui/number.png', w: 14, gap: 2, sx: [0, 15, 31, 47, 63, 79, 95, 111, 127, 143] },
         labels: {
             turnPath: 'ui/turn.png',
             roundPath: 'ui/round.png',

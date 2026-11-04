@@ -145,6 +145,33 @@ test.describe('대전 페이지 (릴레이, 브라우저 컨텍스트 두 개)',
         await host.ctx.close();
     });
 
+    test('퀵 매치: 접속·대기 인원이 보이고, 둘이 누르면 비기 켠 방으로 만난다', async ({ browser }) => {
+        test.setTimeout(90_000);
+        const a = await openTab(browser, '', false);
+        const b = await openTab(browser, '', false);
+        await expect(a.page.locator('#online-presence')).toHaveText('20');
+        await a.page.click('#online-quick');
+        await expect(b.page.locator('#online-presence')).toHaveText('21');
+        await a.page.click('#online-cancel');
+        await expect(b.page.locator('#online-presence')).toHaveText('20');
+        await a.page.click('#online-quick');
+        await b.page.click('#online-quick');
+        for (const p of [a.page, b.page]) {
+            await p.waitForFunction(() => (0, eval)('Game').currentScene === (0, eval)('CharacterSelectScene'));
+        }
+        const seen = await Promise.all([a.page, b.page].map((p) => p.evaluate(() => {
+            const m = (0, eval)('OnlineMatch').current;
+            return { host: m.host, code: m.code, skills: m.skills };
+        })));
+        expect(seen[0].host).toBe(true);
+        expect(seen[1].host).toBe(false);
+        expect(seen[0].code).toBe(seen[1].code);
+        expect(seen[0].skills).toBe(true);
+        expect(seen[1].skills).toBe(true);
+        await a.ctx.close();
+        await b.ctx.close();
+    });
+
     test('가득 찬 방은 입장 불가 문구를 보여 준다', async ({ browser }) => {
         test.setTimeout(90_000);
         const { host, guest, room } = await pair(browser, false);

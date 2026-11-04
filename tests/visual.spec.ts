@@ -129,7 +129,7 @@ test.describe('렌더링 비주얼 회귀', () => {
 });
 
 test.describe('VS MODE 로비 화면', () => {
-    const PREVIEWS = ['start', 'start-failed', 'wait-host', 'wait-guest', 'ended-win', 'ended-waiting',
+    const PREVIEWS = ['start', 'start-offline', 'start-failed', 'quick', 'wait-host', 'wait-guest', 'ended-win', 'ended-waiting',
         'ended-peer-rematch', 'ended-takeover', 'ended-long'];
     const WIDTHS = [{ label: '640', viewport: { width: 1100, height: 900 } }, { label: '360', viewport: { width: 360, height: 800 } }];
 

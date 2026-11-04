@@ -430,6 +430,15 @@ const Assets = {
         audio.pause();
         audio.currentTime = 0;
         audio.loop = loop;
+        if (!audio._loopGuard) {
+            audio._loopGuard = true;
+            audio.addEventListener('ended', () => {
+                if (this.currentMusic !== audio || !audio.loop || this.muted) return;
+                if (typeof Game !== 'undefined' && Game.paused) return;
+                audio.currentTime = 0;
+                audio.play().catch(() => { });
+            });
+        }
         audio.volume = 0.5;
         audio.muted = false; // _unlockAudio에서 muted된 상태 해제
         this.currentMusic = audio;

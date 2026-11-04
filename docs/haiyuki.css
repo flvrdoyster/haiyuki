@@ -628,6 +628,7 @@ body.gamepad-on #virtual-gamepad {
     --ol-accent: var(--game-select-text);
     --ol-window-bg: var(--game-window-bg);
     --ol-divider: var(--frame);
+    --ol-divider-faint: color-mix(in srgb, var(--ol-divider) 35%, transparent);
     --ol-primary: var(--gold);
     --ol-primary-hi: #ffffff;
     --ol-primary-lo: #de8c10;
@@ -652,6 +653,7 @@ body.gamepad-on #virtual-gamepad {
     --ol-control-h: max(24px, calc(var(--ol-u) * 28));
     --ol-bevel: 2px;
     --ol-divider-w: 2px;
+    --ol-divider-faint-w: 1px;
 
     --ol-frame: calc(var(--ol-u) * 14);
     --ol-window-w: calc(var(--ol-u) * 486);
@@ -758,10 +760,6 @@ body.gamepad-on #virtual-gamepad {
     color: var(--ol-text-dim);
 }
 
-#online-panel .hrow.online-skills-row {
-    align-items: center;
-}
-
 #online-panel .online-skills-label {
     font-size: var(--ol-fs-body);
     font-weight: 700;
@@ -783,8 +781,10 @@ body.gamepad-on #virtual-gamepad {
     background-position: calc(var(--ol-u) * -80) 0;
 }
 
-#online-panel .online-skills-toggle:hover {
-    filter: brightness(1.1);
+@media (hover: hover) and (pointer: fine) {
+    #online-panel .online-skills-toggle:hover {
+        filter: brightness(1.1);
+    }
 }
 
 #online-panel .note.skills {
@@ -821,6 +821,64 @@ body.gamepad-on #virtual-gamepad {
     border-top: var(--ol-divider-w) solid var(--ol-divider);
 }
 
+#online-panel .divider.faint {
+    border-top: var(--ol-divider-faint-w) solid var(--ol-divider-faint);
+}
+
+#online-panel .form-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ol-gap-sm);
+    width: 100%;
+}
+
+#online-panel .form-row .online-btn {
+    width: var(--ol-control-w);
+    margin-left: auto;
+}
+
+#online-panel .form-row #online-join-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#online-panel .presence {
+    display: flex;
+    gap: var(--ol-gap-sm);
+    font-size: var(--ol-fs-body);
+    font-weight: 700;
+    color: var(--ol-text);
+}
+
+#online-panel .presence[hidden] {
+    display: none;
+}
+
+#online-panel .presence-item {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--ol-u) * 4);
+}
+
+#online-panel .presence-icon {
+    width: calc(var(--ol-u) * 16);
+    height: calc(var(--ol-u) * 16);
+    background: url('assets/ui/presence.png') 0 0 / calc(var(--ol-u) * 32) calc(var(--ol-u) * 16) no-repeat;
+    image-rendering: pixelated;
+}
+
+#online-panel .presence-icon.queued {
+    background-position: calc(var(--ol-u) * -16) 0;
+}
+
+#online-panel .group-title {
+    align-self: flex-start;
+    margin: 0;
+    font-size: var(--ol-fs-body);
+    font-weight: 700;
+    color: var(--ol-text);
+}
+
 #online-panel .hrow {
     display: flex;
     flex-wrap: wrap;
@@ -847,8 +905,10 @@ body.gamepad-on #virtual-gamepad {
     border-color: var(--ol-primary-hi) var(--ol-primary-lo) var(--ol-primary-lo) var(--ol-primary-hi);
 }
 
-.online-btn:hover {
-    background: var(--ol-primary-hover);
+@media (hover: hover) and (pointer: fine) {
+    .online-btn:hover {
+        background: var(--ol-primary-hover);
+    }
 }
 
 .online-btn:active {
@@ -866,8 +926,10 @@ body.gamepad-on #virtual-gamepad {
     border-color: var(--ol-secondary-hi) var(--ol-secondary-lo) var(--ol-secondary-lo) var(--ol-secondary-hi);
 }
 
-.online-btn.online-sub:hover {
-    background: var(--ol-secondary-hover);
+@media (hover: hover) and (pointer: fine) {
+    .online-btn.online-sub:hover {
+        background: var(--ol-secondary-hover);
+    }
 }
 
 .online-btn.online-sub:active {
