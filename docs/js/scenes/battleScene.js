@@ -15,6 +15,7 @@ const BattleScene = {
             const match = data.online;
             this.online = match;
             data.difficulty = 'normal';
+            BattleConfig.RULES.SKILLS_ENABLED = match.skills !== false;
             data.seed = match.seed;
             data.localSeat = match.seat;
             data.defeatedOpponents = [];

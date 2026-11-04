@@ -16,7 +16,10 @@ async function openTab(ctx: BrowserContext, query: string, opts: { autoTest: boo
         g.isAutoTest = at;
         g.symmetric = !!sym;
         (0, eval)('Assets').setMute(true);
-        if (sk === false) (0, eval)('BattleConfig').RULES.SKILLS_ENABLED = false;
+        if (sk === false) {
+            (0, eval)('BattleConfig').RULES.SKILLS_ENABLED = false;
+            (0, eval)('OnlineLobby').skills = false;
+        }
     }, { at: opts.autoTest, sym: opts.symmetric, sk: opts.skills });
     return page;
 }
@@ -192,6 +195,20 @@ test.describe('대전 페이지 (BroadcastChannel, 탭 두 개)', () => {
         for (const p of [host, guest]) {
             expect(await p.evaluate(() => (0, eval)('Game').currentScene === (0, eval)('CharacterSelectScene'))).toBe(true);
         }
+    });
+
+    test('비기 끔으로 만든 방: 게스트가 호스트 설정을 따르고 대기 화면에 비기 꺼짐이 나온다', async ({ context }) => {
+        test.setTimeout(120_000);
+        const host = await openTab(context, '?char=0', { autoTest: false });
+        await expect(host.locator('#online-skills-toggle')).toHaveAttribute('aria-label', '비기 켜짐');
+        await host.click('#online-skills-toggle');
+        await expect(host.locator('#online-skills-toggle')).toHaveAttribute('aria-label', '비기 꺼짐');
+        const room = await createRoom(host);
+        await expect(host.locator('#online-skills')).toHaveText('비기 꺼짐');
+        const guest = await openTab(context, `?room=${room}&char=1`, { autoTest: false });
+        await guest.waitForFunction(() => (0, eval)('OnlineMatch').current && (0, eval)('OnlineMatch').current.connected);
+        expect(await guest.evaluate(() => (0, eval)('OnlineMatch').current.skills)).toBe(false);
+        expect(await host.evaluate(() => (0, eval)('OnlineMatch').current.skills)).toBe(false);
     });
 
     test('로비: 코드를 입력하면 대문자 다섯 글자로 걸러지고 버튼으로 입장한다', async ({ context }) => {
@@ -406,7 +423,7 @@ test.describe('대전 페이지 (BroadcastChannel, 탭 두 개)', () => {
             const at = (re: RegExp) => logs.findIndex(l => re.test(l));
             const idx = [
                 at(new RegExp(`^\\[Online\\] connect transport=local relay=- room=${room} seat=${seat}`)),
-                at(/^\[Online\] connected seat=\w+ seed=\d+ hello received=\d+ sent=\d+/),
+                at(/^\[Online\] connected seat=\w+ seed=\d+ skills=(true|false) hello received=\d+ sent=\d+/),
                 at(/^\[Online\] pick mine=\d+ peer=\d+/),
                 at(/^\[Online\] << (draw|discard|pon|riichi|skill|exchange) seq=\d+ r\d+ t\d+/),
                 at(/^\[Online\] applied (draw|discard|pon|riichi|skill|exchange) seq=\d+ r\d+ t\d+ queued=\d+ ticks/)

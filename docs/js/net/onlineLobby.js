@@ -30,9 +30,11 @@ const OnlineLobby = {
     ALPHABET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ?.,!',
     GLYPH: { I: { w: 24, off: 4 } },
     LABEL: { win: '승', lose: '패', draw: '무승부' },
+    SKILLS_LABEL: { on: '비기 켜짐', off: '비기 꺼짐' },
     LABEL_CLASS: { win: 'w', lose: 'l', draw: 'd' },
 
     match: null,
+    skills: true,
     view: 'start',
     ready: false,
 
@@ -82,6 +84,7 @@ const OnlineLobby = {
             const btn = e.target.closest('button');
             if (!btn || this.preview) return;
             const act = {
+                'online-skills-toggle': () => this.toggleSkills(btn),
                 'online-create': () => this.createRoom(),
                 'online-join': () => this.joinRoom(this.el('online-join-input').value),
                 'online-copy-code': () => this.copyText(this.match.code, this.TOASTS.copiedCode),
@@ -95,6 +98,12 @@ const OnlineLobby = {
         window.addEventListener('pagehide', () => {
             if (OnlineMatch.current) OnlineMatch.current.close();
         });
+    },
+
+    toggleSkills: function (btn) {
+        this.skills = !this.skills;
+        btn.classList.toggle('off', !this.skills);
+        btn.setAttribute('aria-label', this.skills ? this.SKILLS_LABEL.on : this.SKILLS_LABEL.off);
     },
 
     inviteLink: function (code) {
@@ -111,6 +120,7 @@ const OnlineLobby = {
     createRoom: function () {
         this.attach(OnlineMatch.create({
             host: true,
+            skills: this.skills,
             code: OnlineMatch.makeCode(),
             char: this.char,
             seed: this.seed
@@ -177,6 +187,7 @@ const OnlineLobby = {
         if (this.view === 'wait' && m) {
             st.code = m.code;
             st.role = m.host ? 'host' : 'guest';
+            st.skills = m.skills;
         } else if (this.view === 'ended' && m) {
             const sum = m.summary || {};
             st.result = sum.winner === 'P1' ? 'win' : 'lose';
@@ -243,6 +254,10 @@ const OnlineLobby = {
         const title = `<h1 class="heading" aria-label="VS MODE">${this.glyphs('VS MODE', 1)}</h1>`;
         if (st.view === 'start') {
             return `${title}
+                <div class="hrow online-skills-row">
+                    <span class="online-skills-label">비기</span>
+                    <button id="online-skills-toggle" class="online-skills-toggle${this.skills ? '' : ' off'}" type="button" aria-label="${this.skills ? this.SKILLS_LABEL.on : this.SKILLS_LABEL.off}"></button>
+                </div>
                 <button id="online-create" class="online-btn" type="button">방 만들기</button>
                 <hr class="divider">
                 <div class="hrow">
@@ -259,6 +274,7 @@ const OnlineLobby = {
                 : '';
             return `${title}
                 <div id="online-room-code">${this.esc(st.code)}</div>
+                ${st.skills == null ? '' : `<p id="online-skills" class="note skills">${st.skills ? this.SKILLS_LABEL.on : this.SKILLS_LABEL.off}</p>`}
                 ${copy}
                 <p class="note wait">상대를 기다리는 중</p>
                 <button id="online-cancel" class="online-btn online-sub" type="button">취소</button>`;
@@ -315,8 +331,8 @@ const OnlineLobby = {
         return {
             'start': { view: 'start' },
             'start-failed': { view: 'start', toast: this.TOASTS.disconnect },
-            'wait-host': { view: 'wait', role: 'host', code: code },
-            'wait-guest': { view: 'wait', role: 'guest', code: code },
+            'wait-host': { view: 'wait', role: 'host', code: code, skills: true },
+            'wait-guest': { view: 'wait', role: 'guest', code: code, skills: false },
             'ended-win': { view: 'ended', result: 'win', rounds: rounds, canRematch: true, rematch: 'idle' },
             'ended-waiting': { view: 'ended', result: 'win', rounds: rounds, canRematch: true, rematch: 'waiting' },
             'ended-peer-rematch': { view: 'ended', result: 'lose', rounds: flip(rounds), canRematch: true, rematch: 'idle', toast: this.TOASTS.rematch },

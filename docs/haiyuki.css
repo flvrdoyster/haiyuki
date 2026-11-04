@@ -660,8 +660,10 @@ body.gamepad-on #virtual-gamepad {
     --ol-gap-sm: calc(var(--ol-u) * 13);
     --ol-toast-x: calc(var(--ol-u) * 13);
     --ol-toast-y: calc(var(--ol-u) * 48);
-    --ol-toast-pad-x: calc(var(--ol-u) * 4);
-    --ol-toast-pad-y: 0px;
+    --ol-toast-pad-x: calc(var(--ol-u) * 13);
+    --ol-toast-pad-y: calc(var(--ol-u) * 7);
+    --ol-toast-radius: calc(var(--ol-u) * 6);
+    --ol-toast-bg: var(--stage-toast);
     --ol-list-cols: calc(var(--ol-u) * 30) calc(var(--ol-u) * 51) 1fr calc(var(--ol-u) * 58);
 }
 
@@ -754,6 +756,39 @@ body.gamepad-on #virtual-gamepad {
     margin: 0;
     font-size: var(--ol-fs-body);
     color: var(--ol-text-dim);
+}
+
+#online-panel .hrow.online-skills-row {
+    align-items: center;
+}
+
+#online-panel .online-skills-label {
+    font-size: var(--ol-fs-body);
+    font-weight: 700;
+    color: var(--ol-text);
+}
+
+#online-panel .online-skills-toggle {
+    flex: none;
+    width: calc(var(--ol-u) * 80);
+    height: calc(var(--ol-u) * 56);
+    padding: 0;
+    border: 0;
+    background: url('assets/ui/pai_onoff.png') 0 0 / calc(var(--ol-u) * 160) calc(var(--ol-u) * 56) no-repeat;
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+
+#online-panel .online-skills-toggle.off {
+    background-position: calc(var(--ol-u) * -80) 0;
+}
+
+#online-panel .online-skills-toggle:hover {
+    filter: brightness(1.1);
+}
+
+#online-panel .note.skills {
+    color: var(--ol-text);
 }
 
 #online-panel .note.wait::after {
@@ -932,13 +967,14 @@ body.gamepad-on #virtual-gamepad {
     position: absolute;
     left: var(--ol-toast-x);
     top: var(--ol-toast-y);
-    padding: calc(var(--ol-frame) + var(--ol-toast-pad-y)) calc(var(--ol-frame) + var(--ol-toast-pad-x));
+    z-index: 1;
+    padding: var(--ol-toast-pad-y) var(--ol-toast-pad-x);
     box-sizing: border-box;
     font-size: var(--ol-fs-body);
     color: var(--ol-text);
     white-space: nowrap;
-    background: var(--ol-frame-art);
-    image-rendering: pixelated;
+    background: var(--ol-toast-bg);
+    border-radius: var(--ol-toast-radius);
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s;

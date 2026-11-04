@@ -58,6 +58,7 @@ function Match(opts) {
     this.code = opts.code;
     this.transport = opts.transport || OnlineMatch.makeTransport(this.code, this.host);
     this.seed = this.host ? ((opts.seed != null ? opts.seed : Rng.randomSeed()) >>> 0) : null;
+    this.skills = this.host ? opts.skills !== false : null;
     this.myChar = opts.char != null ? opts.char : null;
     this.peerChar = null;
     this.connected = false;
@@ -111,7 +112,10 @@ Match.prototype = {
     sendHello: function () {
         this.helloSent++;
         const payload = { char: this.myChar };
-        if (this.host) payload.seed = this.seed;
+        if (this.host) {
+            payload.seed = this.seed;
+            payload.skills = this.skills;
+        }
         this.sendRaw('hello', payload);
     },
 
@@ -133,11 +137,14 @@ Match.prototype = {
         if (msg.type !== 'ping') OnlineLog.net(`<< ${msg.type} seq=${msg.seq} ${OnlineLog.at()}`);
         if (msg.type === 'hello') {
             this.helloRecv++;
-            if (!this.host) this.seed = msg.seed >>> 0;
+            if (!this.host) {
+                this.seed = msg.seed >>> 0;
+                this.skills = msg.skills !== false;
+            }
             if (msg.char != null) this.peerChar = msg.char;
             if (!this.connected) {
                 this.connected = true;
-                OnlineLog.info(`connected seat=${this.host ? 'host' : 'guest'} seed=${this.seed} hello received=${this.helloRecv} sent=${this.helloSent}`);
+                OnlineLog.info(`connected seat=${this.host ? 'host' : 'guest'} seed=${this.seed} skills=${this.skills} hello received=${this.helloRecv} sent=${this.helloSent}`);
                 this.lastHeard = Date.now();
                 clearInterval(this._hello);
                 this._hello = null;
