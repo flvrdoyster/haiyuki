@@ -283,7 +283,7 @@ const BattleConfig = {
     RESULT: {
         x: 120, y: 90, w: 400, h: 300,
         unfoldPerTick: 16,
-        damageRoll: { start: 24, ticks: 24, gap: 8, soundEvery: 4 },
+        damageRoll: { start: 24, tutorialStart: 40, ticks: 24, gap: 8, soundEvery: 4 },
         windowColor: 'rgba(0, 0, 0, 0.85)',
         borderColor: 'rgba(255, 255, 255, 1)',
         borderWidth: 2,

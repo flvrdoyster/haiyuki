@@ -714,9 +714,9 @@ const BattleRenderer = {
         return stages;
     },
 
-    rollDamage: function (stages, t, roll) {
+    rollDamage: function (stages, t, roll, start) {
         let from = 0;
-        let at = roll.start;
+        let at = start;
         for (const to of stages) {
             if (t < at) return from;
             if (t < at + roll.ticks) {
@@ -826,7 +826,7 @@ const BattleRenderer = {
             ctx.fillStyle = conf.scoreColor;
             ctx.fillText("데미지", conf.yakuListX, damageY);
 
-            const displayScore = this.rollDamage(this.damageStages(info), state.stateTimer, conf.damageRoll);
+            const displayScore = this.rollDamage(this.damageStages(info), state.stateTimer, conf.damageRoll, state.tutorial ? conf.damageRoll.tutorialStart : conf.damageRoll.start);
 
             BitmapFont.drawNumberBig(ctx, displayScore, conf.scoreListX, damageY - 12, {
                 align: 'right',
