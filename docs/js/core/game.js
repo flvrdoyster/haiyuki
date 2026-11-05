@@ -94,7 +94,7 @@ const Game = {
                 yakuBtn.classList.add(open ? 'toggle-on' : 'toggle-off');
                 if (open) Game.loadYakuFrame();
             };
-            if (document.body.classList.contains('online-page') && window.innerWidth > 768) setYakuOpen(true);
+            if (document.body.classList.contains('online-page') && window.innerWidth >= 1040) setYakuOpen(true);
         }
 
         const fullscreenBtn = document.getElementById('fullscreen-btn');
