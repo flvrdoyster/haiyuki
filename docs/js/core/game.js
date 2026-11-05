@@ -85,14 +85,16 @@ const Game = {
                     return;
                 }
 
-                const isHidden = yakuContainer.classList.toggle('hidden');
-
-                yakuBtn.classList.remove('toggle-on', 'toggle-off');
-                yakuBtn.classList.add(isHidden ? 'toggle-off' : 'toggle-on');
-
-                if (!isHidden) Game.loadYakuFrame();
+                setYakuOpen(yakuContainer.classList.contains('hidden'));
                 yakuBtn.blur();
             };
+            const setYakuOpen = (open) => {
+                yakuContainer.classList.toggle('hidden', !open);
+                yakuBtn.classList.remove('toggle-on', 'toggle-off');
+                yakuBtn.classList.add(open ? 'toggle-on' : 'toggle-off');
+                if (open) Game.loadYakuFrame();
+            };
+            if (document.body.classList.contains('online-page') && window.innerWidth > 768) setYakuOpen(true);
         }
 
         const fullscreenBtn = document.getElementById('fullscreen-btn');
