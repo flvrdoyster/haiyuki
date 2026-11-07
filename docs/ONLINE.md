@@ -139,3 +139,14 @@
 4. 릴레이 작성·배포(WebSocket 전송층).
 
 1·2·3·4 모두 끝났다. 릴레이는 `haiyuki-relay.flvrdoyster.workers.dev`에 배포되어 있고 주소는 `BattleConfig.ONLINE.RELAY_URL`에 있다. 재접속은 하지 않는다(끊기면 남은 쪽이 CPU와 끝낸다). 퀵 매치는 릴레이의 로비 Durable Object가 짝을 지어 방 코드를 준다(`relay/README.md`).
+
+## 8. 기각: 대전 GA4 이벤트
+
+대전 오류를 이용자 쪽에서 모으려던 안(`vs_matched`, `vs_issue` + 원인 파라미터)은 검토 후 기각했다. 안이 지금 단계에 비해 복잡하고, 이 안 말고도 방향이 여러 갈래로 열려 있어 지금은 정할 수 없다는 판단이다. 이용자가 쌓인 뒤 다시 정한다. 그때 쓸 사실만 남긴다.
+
+- 문제 알림 경로는 넷이다: `OnlineLobby.fail`, `onChange`의 takeover 분기, `QuickMatch.onDown`(`fail()`을 거치지 않고 토스트만), 대기 만료. 같은 사건이 두 사람 쪽에서 다른 이름으로 찍힌다.
+- 배틀 중 `left`·`disconnect`·`desync`는 모두 CPU 인수로 처리돼 토스트가 `takeover`다. 토스트 이름만으로는 원인을 구분하지 못하고 `m.takenOver`·`failInfo.reason`을 봐야 한다.
+- 릴레이에 "방 없음" 응답이 없어서 없는 코드로 입장하면 대기 만료가 된다.
+- 게시된 GTM 컨테이너(GTM-PR4S897C)는 GA4 이벤트 태그가 하나이고 파라미터가 `game`·`minutes`로 고정이다. 새 파라미터는 태그 표에 추가해야 나간다. 트리거는 이름 정규식 목록이라 `play_start`·`tutorial_complete`·`ending_reached`가 빠져 있다.
+- 컨테이너에 "한국어 브라우저가 아니면 구성 태그 차단" 규칙이 있으나 효과는 확인하지 못했다.
+- gensei-pc98도 같은 컨테이너를 쓴다.
