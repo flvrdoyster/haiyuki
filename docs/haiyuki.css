@@ -449,6 +449,29 @@ a {
     margin: 0 8px;
 }
 
+#site-links [hidden] {
+    display: none;
+}
+
+@media (max-width: 370px) {
+    #install-sep {
+        display: none;
+    }
+
+    #install-link {
+        display: block;
+        margin-top: 6px;
+    }
+}
+
+#install-hint {
+    margin: 8px 0 0;
+    text-align: center;
+    font-family: 'KoddiUDOnGothic', sans-serif;
+    font-size: var(--font-sm);
+    color: var(--text-2);
+}
+
 @media (max-width: 768px) {
     #site-links {
         font-size: var(--font-sm);

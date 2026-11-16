@@ -22,6 +22,7 @@ export default defineConfig({
     use: {
         baseURL: `http://localhost:${PORT}`,
         headless: true,
+        serviceWorkers: 'block',
         video: 'retain-on-failure',
         screenshot: 'only-on-failure',
     },

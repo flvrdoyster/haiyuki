@@ -152,6 +152,13 @@
 - 푸터 레이아웃·글자 크기는 공유 `https://atah.io/footer.css`, 색·그라디언트 윗선·여백은 gensei-pc98 `#footer`와 같게 `#main-wrapper #footer`(아이디 둘)로 덮는다. 공유 `footer.css`의 `opacity: 0.8`은 1로 되돌린다. 모바일에선 저작권과 버전을 한 줄로 둔다 — 에뮬레이터 크레딧이 없어 둘째 줄에 버전만 남기 때문.
 - 글자 크기는 gensei-pc98 토큰(`--font-lg`·`--font-md`·`--font-sm`·`--font-xs`)을 따른다. 상단 레이블만 예외로, 옆의 버튼 이미지 높이(데스크톱 35px·모바일 27px)에 맞춘 px 값 `--toolbar-label`(18px·모바일 12px)을 쓴다. 다른 글자를 "레이블과 같게" 맞출 때는 이 값이 아니라 토큰을 쓴다. 푸터 위 링크 줄(`#site-links`)은 `--font-md`.
 - `theme-color`는 `--bg`와 같은 값이라 모바일 브라우저 상단이 페이지 바탕과 이어진다.
+- 웹 앱 설치: `manifest.webmanifest`를 `index.html`·`vs.html`이 연결한다. 사이트 전체가 앱 하나이고(`scope`·`start_url` 모두 `./`) 어느 페이지에서 설치해도 `index.html`에서 시작한다. `background_color`·`theme_color`는 `--bg`와 같은 값으로 맞춘다. `yaku-calc.html`은 연결하지 않는다.
+- 설치 링크: `#site-links` 끝의 `#install-link`(구분자 `#install-sep`)와 그 아래 안내 `#install-hint`는 마크업에 `hidden`으로 들어 있고 `js/core/install.js`가 켠다. 설치 창을 띄울 수 있는 브라우저(`beforeinstallprompt`가 온 경우)에서는 링크가 보이고 누르면 브라우저 설치 창이 뜬다. 이 이벤트는 한 번만 쓸 수 있어 누른 뒤에는 링크를 숨긴다. iOS는 설치 API가 없어 링크를 누르면 안내 문구를 펼친다. iOS 16.4부터 Safari 아닌 브라우저도 홈 화면에 추가할 수 있어 브라우저를 가리지 않고 보이되, 추가가 안 되는 앱 내 브라우저(사용자 에이전트로 알아볼 수 있는 것만)에서는 숨긴다. 홈 화면 앱으로 실행 중이면(`display-mode: standalone` 또는 `navigator.standalone`) 아무것도 보이지 않는다. 폭 370px 이하에서는 링크 줄이 넘치지 않게 설치 링크만 다음 줄로 내린다.
+- 오프라인 실행: `js/core/sw-register.js`(`index.html`·`vs.html`)가 `sw.js`를 등록한다. `sw.js`는 같은 출처·범위 안의 GET만 다루고 네트워크 우선이다: 온라인이면 서버 응답을 그대로 돌려주면서 캐시에 덮어쓰고, 네트워크가 실패했을 때만 캐시를 쓴다. 그래서 온라인 사용자는 서비스 워커가 없을 때와 같은 내용을 본다. 다른 출처(GTM, atah.io 공용 푸터, 대전 중계 서버)는 건드리지 않으므로 오프라인에서는 푸터·버전 표시가 없고 대전 모드는 연결되지 않는다. 그래서 `js/core/offline.js`가 `navigator.onLine`이 거짓인 동안 `index.html` 링크 줄의 "VS 모드"(`#vs-link`, 뒤 구분자 `#vs-sep`)를 숨긴다. `vs.html`을 직접 열면 로비의 연결 실패 표시에 맡긴다. 캐시 키는 쿼리를 뗀 경로라 `yaku-calc.html?live`·`?mode=` 같은 주소도 같은 항목을 쓴다. BGM처럼 `Range`로 오는 요청은 오프라인일 때 캐시의 전체 응답에서 구간을 잘라 206으로 준다.
+- 미리 받기: 서비스 워커가 설치될 때 `sw-files.js`의 목록 전체를 받아 둔다(한 번도 안 불러온 그림·소리도 오프라인에서 쓰기 위해). 목록에는 문서(`*.md`)·`CNAME`·`sitemap.xml`·검색 엔진 확인 파일·썸네일·서비스 워커 자신을 뺀 `docs/`의 모든 파일이 들어가므로 `yaku-calc.html`도 오프라인 범위다. 캐시 이름은 목록에 든 `digest`(전체 파일 내용의 해시)로 정해, 파일이 하나라도 바뀌면 새 캐시를 통째로 받고 옛 캐시를 지운다. `version.js`와는 무관하다.
+- `sw-files.js`는 `node tools/sw-files.mjs`가 만든다. `docs/`의 파일을 고치면 다시 돌려야 하고, 빠뜨리면 `sw.spec`의 목록 검사(`--check`)가 실패한다. 빠뜨린 채 배포돼도 온라인 동작은 같고, 오프라인 캐시만 그 파일을 한 번 불러오기 전까지 옛것으로 남는다.
+- 해제: `sw.js` 맨 위 `ENABLED`를 `false`로 바꿔 배포하면 다음 방문에서 캐시를 모두 지우고 등록을 해제한다.
+- 앱 아이콘(`icons/`)은 `favicon.png`의 32px 도트 원본을 정수 배율로 키운 것이다. `icon-*`는 꽉 채운 것(모서리 투명), `icon-maskable-*`는 런처가 원형 등으로 잘라도 그림이 남도록 가운데에 작게 두고 둘레를 `--bg` 색으로 채운 것이다. iOS 홈 화면 아이콘은 `apple-touch-icon`(`favicon.png`)을, 이름은 `apple-mobile-web-app-title`을 쓴다.
 - GA4 이벤트는 `dataLayer.push({ event, game: 'haiyuki' })`(사이트 공통 GTM)로 보낸다. `js/core/analytics.js`의 `Analytics.track`·`playStart`가 맡고 자동 테스트(`Game.isAutoTest`)에서는 보내지 않는다. `play_start`는 타이틀에서 BATTLE·TUTORIAL·STORY ONLY를 고를 때, `?mode=` 직행 때, VS 매치가 캐릭터 선택을 마치고 전투로 들어갈 때(재대전 포함) 보내고, 첫 `play_start`가 `PlayTime.start()`로 `play_milestone`(`minutes`) 집계를 켠다. `js/core/play-time.js`는 gensei-pc98 `emulator/play-time.js`를 그대로 복사한 공유 파일이다. 그 밖에 `tutorial_complete`(레슨 4까지 마침), `ending_reached`(`EndingScene` 진입), `gamepad_activate`(가상 게임패드 켬).
 
 ## 가상 게임패드·상단바
@@ -170,12 +177,13 @@
 
 ## 테스트 (`tests/`)
 
-- 회귀 스위트 = `rules`(룰북 불변식·시나리오·멀티 라운드·쉬움 드로우 어시스트) `yaku` `bonus` `skills` `story` `battle-keys` `menu-keys` `battle-mouse` `visual` `tutorial` `pause` `replay` `online-local` `online-relay`. `online-*`는 "온라인 대전"의 테스트 방법.
+- 회귀 스위트 = `rules`(룰북 불변식·시나리오·멀티 라운드·쉬움 드로우 어시스트) `yaku` `bonus` `skills` `story` `battle-keys` `menu-keys` `battle-mouse` `visual` `tutorial` `pause` `replay` `online-local` `online-relay` `sw`. `online-*`는 "온라인 대전"의 테스트 방법.
 - `replay.spec.ts`는 시드·캐릭터·난이도·비기 조합 30판을 자동 대전으로 끝까지 돌려 `actionLog` 전체·라운드별 `stateHash`·최종 결과를 `tests/golden/<이름>.json`과 비교한다. 다르면 처음 달라진 `actionLog` 항목이나 라운드를 메시지에 보여 준다. 의도한 동작 변경이면 `UPDATE_GOLDEN=1 npx playwright test replay.spec.ts`로 저장본을 다시 쓴 뒤 diff를 확인해 커밋한다. 갱신할 때 판마다 `신규`·`변경 없음`·첫 차이 지점과 달라진 항목 수가 한 줄씩 찍힌다. `startBattle`의 `seed`가 다르면 덱과 판이 달라지는지도 같은 파일에서 본다. 틱 수는 실행마다 달라 비교하지 않는다.
 - 측정 도구는 회귀 스위트 밖에 둔다: `measure/`(CPU 승률, 전용 설정 `measure.config.ts`)와 `perf/`. 회귀용 설정은 `measure/`·`perf/`를 건너뛴다.
 - `startBattle` 헬퍼는 기본으로 `SKILLS_ENABLED = false`로 전투를 시작한다(회귀 스펙 전제). 승률·행동 측정은 스킬이 켜져야 하므로 `measure/cpu-winrate`는 `skills: true`로 시작한다.
 - CPU 승률·행동 지문 측정은 `measure/cpu-winrate.spec.ts`를 전용 설정 `measure.config.ts`로 돌린다(`npx playwright test --config measure.config.ts`, 서버 포트 `PORT` 기본 12802 — 회귀용 12801·사용자용 12800과 겹치지 않고 기존 서버를 재사용하지 않는다). 결과는 매치마다 `fingerprint-state.<커밋>.skills<0|1>.<난이도>.json`에 누적되고 같은 조건이면 이어받으므로 `MPC`(캐릭터당 추가 경기 수, 기본 10)로 짧게 끊어 여러 번 돌린다. `CHARS`로 캐릭터 지정, `SKILLS=0`·`DIFF=`로 조건 변경, `RESET=1`로 초기화. `fingerprint-results.json`은 누적 상태에서 매번 다시 만든다. 메인 체크아웃을 쓰지 말고 측정 워크트리(`../haiyuki-measure`, 브랜치 `measure`)에 `tests/`를 복사해 돌린다 — 측정 중 소스가 바뀌면 결과가 섞인다.
 - `measure/cpu-winrate`는 매치(KO) 단위로 CPU 승률을 집계한다(경기별 승자·라운드 수, 95% 구간). P1은 CPU와 다른 6명을 순환하고(`P1_FIXED=1`이면 아타호 고정), 난이도 보통의 토너 진행도(`defeatedOpponents` 길이)를 0~4로 돌린다. P1의 확인창(도라 폭진·라스트 찬스)은 "예", 라운드 시작 패 교환은 교환 없이 확정, 룰렛은 자동 정지로 넘긴다. 속도를 위해 페이지 안에서 `Game.update`를 `TURBO`(기본 40)번씩 직접 돌리며, 샤드를 나누지 말고 한 프로세스로 돌리는 편이 빠르다(700경기 약 13분).
 - `visual.spec.ts`는 `maxDiffPixels: 0`(0.001 비율로는 215px 변화를 놓친 적 있음). 베이스라인은 `visual.spec.ts-snapshots/`에 커밋한다. 전투 배경 `engine.bgPath`는 랜덤이라 고정 필수.
+- 서비스 워커는 설정에서 막는다(`serviceWorkers: 'block'`). `sw.spec.ts`만 허용하고, `docs/` 사본을 임시 폴더에 만들어 스펙이 직접 띄운 서버(임시 포트)로 내준다. `context.setOffline`은 서비스 워커의 요청을 끊지 못해서 오프라인은 그 서버를 내려서 만들고, 새 배포 반영과 해제는 사본의 파일을 고쳐서 본다.
 - `retries: 1` — 재시도 통과는 `flaky`로 표시된다. 간헐 실패는 소스를 stash해도 재현되므로 두 번 연속 실패만 진짜.
 - 키/마우스는 down → 70ms → up으로 눌러야 프레임에 잡힌다.
